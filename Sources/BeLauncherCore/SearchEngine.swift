@@ -14,6 +14,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case shortcut
     case memory
     case pendingCommit
+    case answer
 
     public var label: String {
         switch self {
@@ -30,6 +31,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .shortcut: "Atajo"
         case .memory: "Memoria"
         case .pendingCommit: "Por confirmar"
+        case .answer: "Respuesta"
         }
     }
 
@@ -48,6 +50,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .shortcut: "square.stack.3d.up"
         case .memory: "brain"
         case .pendingCommit: "checkmark.seal"
+        case .answer: "text.bubble"
         }
     }
 }
@@ -97,12 +100,14 @@ public struct SearchInput: Sendable {
     /// What the brain currently holds as true, plus anything waiting to be confirmed.
     public var memories: [MemoryObject]
     public var pendingCommits: [MemoryCommit]
+    public var events: [CalendarEvent]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
                 applicationUses: [String: Int] = [:], aliases: [String: String] = [:],
                 shortcuts: [Shortcut] = [], systemShortcuts: [String] = [],
-                memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = []) {
+                memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
+                events: [CalendarEvent] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -114,6 +119,7 @@ public struct SearchInput: Sendable {
         self.systemShortcuts = systemShortcuts
         self.memories = memories
         self.pendingCommits = pendingCommits
+        self.events = events
     }
 }
 
@@ -130,8 +136,25 @@ public enum SearchEngine {
         let query = rawQuery.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return [] }
 
-        // A calculation always wins: the user typed something only a calculator can answer.
+        // A question for the brain wins outright: the user asked something, not searched.
         var pinned: [SearchResult] = []
+        switch BrainQuery.Intent.detect(query) {
+        case .whatDidWeDecide(let topic):
+            let answer = BrainQuery.whatDidWeDecide(topic: topic, in: input.memories)
+            pinned.append(answerResult(answer, id: "answer-decide"))
+        case .prepare(let subject):
+            let answer = BrainQuery.prepare(subject: subject, in: input.memories, events: input.events)
+            pinned.append(answerResult(answer, id: "answer-prepare"))
+        case .remember(let text):
+            pinned.append(SearchResult(
+                id: "answer-remember", kind: .answer, title: "Recordar: \(text)",
+                subtitle: "Se guardará como propuesta hasta que la confirmes",
+                score: 100_000, matched: [], payload: text
+            ))
+        case .none:
+            break
+        }
+
         if let calculation {
             pinned.append(SearchResult(
                 id: "calc", kind: .calculation, title: calculation.display,
@@ -314,6 +337,14 @@ public enum SearchEngine {
                 score: 0, matched: [], payload: clip.text, recordID: clip.id
             )
         }
+    }
+
+    static func answerResult(_ answer: BrainQuery.Answer, id: String) -> SearchResult {
+        SearchResult(
+            id: id, kind: .answer, title: answer.headline,
+            subtitle: answer.gap ?? "\(answer.citations.count) fuente(s)",
+            score: 100_000, matched: [], payload: answer.body
+        )
     }
 
     static func memorySubtitle(_ memory: MemoryObject) -> String {

@@ -489,6 +489,19 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            Section("Cerebro") {
+                LabeledContent("Vault", value: Vault.defaultRoot())
+                Button("Abrir la carpeta del cerebro") {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: Vault.defaultRoot()))
+                }
+                Text("Son archivos Markdown normales. Puedes abrirlos en cualquier editor, "
+                     + "moverlos a Obsidian o meterlos en un repositorio git.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text("Permisos: el calendario se pide la primera vez que preparas una reunión, "
+                     + "y Accesibilidad la primera vez que colocas una ventana. Nada al arrancar.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Licencia") {
                 if let license = model.license {
                     LabeledContent("Correo", value: license.email)

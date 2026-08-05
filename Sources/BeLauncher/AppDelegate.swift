@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcuts: [BeLauncherCore.Shortcut] = []
     private var systemShortcuts: [String] = []
     private var vault: Vault?
+    private let calendar = CalendarAccess()
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
@@ -88,7 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     shortcuts: self.shortcuts,
                     systemShortcuts: self.systemShortcuts,
                     memories: self.vault?.current() ?? [],
-                    pendingCommits: self.vault?.commits(state: .proposed) ?? []
+                    pendingCommits: self.vault?.commits(state: .proposed) ?? [],
+                    events: self.calendar.events
                 )
             },
             fileInfo: { path in
@@ -141,6 +143,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if store.setting("clipboard_enabled", default: true) { watcher.start() }
 
         indexApplications()
+        openWithLaunchQueryIfAny()
+    }
+
+    /// `open -a BeLauncher --args --query "algo"` opens the window with that text already typed.
+    /// A development affordance: scripted keystrokes do not reach a non-activating panel, so
+    /// without this the UI can only be checked by hand.
+    private func openWithLaunchQueryIfAny() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flag = arguments.firstIndex(of: "--query"), flag + 1 < arguments.count else { return }
+        let text = arguments[flag + 1]
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self, let model = self.model else { return }
+            self.togglePanel(mode: .all)
+            model.query = text
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -214,6 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appIndex = index
             shortcuts = await Task.detached(priority: .utility) { ShortcutIndex.scan() }.value
             systemShortcuts = Shortcuts.available()
+            calendar.refresh()
             model?.isIndexing = false
         }
     }

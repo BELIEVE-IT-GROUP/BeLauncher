@@ -348,6 +348,14 @@ public final class LauncherModel {
             perform(.copyToClipboard(text: result.title, cursorOffset: nil))
             perform(.dismiss)
 
+        case .answer:
+            if result.id == "answer-remember" {
+                perform(.remember(text: result.payload, source: "Escrito a mano"))
+            } else {
+                perform(.copyToClipboard(text: result.payload, cursorOffset: nil))
+                perform(.dismiss)
+            }
+
         case .pendingCommit:
             perform(.confirmCommit(result.payload))
             refresh()

@@ -95,6 +95,10 @@ public enum DetailBuilder {
             return ResultDetail(body: result.payload, isMonospaced: true,
                                 metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
 
+        case .answer:
+            return ResultDetail(body: result.payload,
+                                metadata: [.init(label: "Basado en", value: result.subtitle)])
+
         case .memory:
             let memory = memories.first { $0.id == result.payload }
             return ResultDetail(

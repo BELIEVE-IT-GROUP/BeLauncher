@@ -212,6 +212,15 @@ public enum ActionRegistry {
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
             ]
 
+        case .answer:
+            return [
+                ResultAction(id: "copy", title: "Copiar la respuesta", symbol: "doc.on.clipboard",
+                             shortcut: .enter, intent: .copy(text: result.payload)),
+                ResultAction(id: "remember", title: "Guardar como memoria", symbol: "brain",
+                             shortcut: .remember, section: .manage,
+                             intent: .remember(text: result.payload, source: result.title)),
+            ]
+
         case .memory:
             return [
                 ResultAction(id: "copy", title: "Copiar la frase", symbol: "doc.on.clipboard",
