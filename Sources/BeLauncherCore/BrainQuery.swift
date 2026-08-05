@@ -43,7 +43,11 @@ public enum BrainQuery {
                            "what did we decide about ", "what did we decide "] where folded.hasPrefix(prefix) {
                 return .whatDidWeDecide(topic: String(trimmed.dropFirst(prefix.count)))
             }
-            for prefix in ["preparame para ", "preparame ", "prepara ", "prepare me for ",
+            // "preparar reunión con Acme" lives here too. It used to fall through to a mission
+            // that only summarised the words you typed, while this path reads the brain and the
+            // calendar: two doors to the same question, one of them worse.
+            for prefix in ["preparame para ", "preparame ", "preparar reunion con ",
+                           "preparar reunion ", "prepara ", "prepare me for ", "prepare for ",
                            "prepare "] where folded.hasPrefix(prefix) {
                 return .prepare(subject: String(trimmed.dropFirst(prefix.count)))
             }

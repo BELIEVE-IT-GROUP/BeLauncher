@@ -155,11 +155,15 @@ struct ShortcutIndexTests {
         #expect(ShortcutIndex.parseChromium(Data(#"{"roots":{}}"#.utf8)).isEmpty)
     }
 
-    @Test("the folders people actually use are offered, and only if they exist")
+    @Test("the folders people actually use are offered without asking permission first")
     func folders() {
         let found = ShortcutIndex.commonFolders(home: NSHomeDirectory())
         #expect(found.contains { $0.title == "Descargas" })
-        #expect(found.allSatisfy { FileManager.default.fileExists(atPath: $0.target) })
+        #expect(found.allSatisfy { $0.target.hasPrefix("/") })
+
+        // Listing them must never stat the protected ones: on recent macOS that pops the
+        // "would like to access your Downloads folder" dialog while the app is still starting.
+        #expect(found.contains { $0.target.hasSuffix("/Downloads") })
 
         #expect(ShortcutIndex.commonFolders(home: "/tmp/no-existe-\(UUID().uuidString)").isEmpty)
     }
