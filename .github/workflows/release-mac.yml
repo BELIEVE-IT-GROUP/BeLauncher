@@ -73,8 +73,12 @@ jobs:
           aws s3 cp "dist/BeLauncher-$VERSION.dmg" \
             "s3://${{ secrets.R2_BUCKET }}/apps/belauncher/BeLauncher-$VERSION.dmg" \
             --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+          # The "latest" name never changes, so without this Cloudflare keeps serving the
+          # previous build from cache — the download link everyone shares would hand out an
+          # old version. The versioned file needs no such header: its name is unique.
           aws s3 cp "dist/BeLauncher-$VERSION.dmg" \
             "s3://${{ secrets.R2_BUCKET }}/apps/belauncher/BeLauncher-latest.dmg" \
+            --cache-control "public, max-age=60, must-revalidate" \
             --endpoint-url "${{ secrets.R2_ENDPOINT }}"
           aws s3 cp dist/latest.json \
             "s3://${{ secrets.R2_BUCKET }}/apps/belauncher/latest.json" \

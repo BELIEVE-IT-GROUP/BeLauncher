@@ -14,7 +14,12 @@ Swift 6 · SwiftUI + AppKit · SQLite · macOS Keychain · macOS 14+
 
 Download the latest signed and notarized build:
 
-**[files.believe-global.com/apps/belauncher/BeLauncher-latest.dmg](https://files.believe-global.com/apps/belauncher/BeLauncher-latest.dmg)**
+**[Latest release on GitHub](https://github.com/BELIEVE-IT-GROUP/BeLauncher/releases/latest)** ·
+[direct download](https://files.believe-global.com/apps/belauncher/BeLauncher-latest.dmg)
+
+The GitHub link is the one to share: the `latest.dmg` name never changes, so a CDN can serve a
+stale copy of it. Versioned files (`BeLauncher-0.5.0.dmg`) are always exact, and that is what the
+in-app update check downloads.
 
 Open the DMG, drag BeLauncher to Applications, launch it. It is signed with the Believe Developer
 ID and notarized by Apple, so there is no "unidentified developer" warning and no right-click-open
