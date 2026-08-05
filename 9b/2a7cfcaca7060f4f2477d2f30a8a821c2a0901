@@ -1,0 +1,21 @@
+.github/workflows/release-mac.yml
+  s_3bf5a4753c6c6c::t_ca9aae7f0fb290 76-78,81
+README.md
+  s_3bf5a4753c6c6c::t_2cfc5c9aa55ddd 17-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "9b2a7cfcaca7060f4f2477d2f30a8a821c2a0901",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
