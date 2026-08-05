@@ -66,6 +66,19 @@ public final class Store {
             )
             """)
         try database.execute("""
+            CREATE TABLE IF NOT EXISTS launches (
+                path TEXT PRIMARY KEY,
+                uses INTEGER NOT NULL DEFAULT 0,
+                last_used REAL NOT NULL
+            )
+            """)
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS aliases (
+                alias TEXT PRIMARY KEY,
+                target TEXT NOT NULL
+            )
+            """)
+        try database.execute("""
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -192,12 +205,47 @@ public final class Store {
         try? database.execute("DELETE FROM flows WHERE id = ?", [.int(id)])
     }
 
+    // MARK: - Launch history and aliases
+
+    /// Applications have no row of their own, so their ranking is kept by path.
+    public func recordLaunch(path: String, at date: Date = .now) {
+        try? database.execute("""
+            INSERT INTO launches (path, uses, last_used) VALUES (?, 1, ?)
+            ON CONFLICT(path) DO UPDATE SET uses = uses + 1, last_used = excluded.last_used
+            """, [.text(path), .double(date.timeIntervalSince1970)])
+    }
+
+    public func applicationUses() -> [String: Int] {
+        let rows = (try? database.query("SELECT path, uses FROM launches")) ?? []
+        return Dictionary(uniqueKeysWithValues: rows.map { ($0.string("path"), Int($0.int("uses"))) })
+    }
+
+    public func aliases() -> [String: String] {
+        let rows = (try? database.query("SELECT alias, target FROM aliases")) ?? []
+        return Dictionary(uniqueKeysWithValues: rows.map { ($0.string("alias"), $0.string("target")) })
+    }
+
+    @discardableResult
+    public func setAlias(_ alias: String, target: String) throws -> String {
+        let key = try Validate.keyword(alias)
+        guard !target.isEmpty else { throw ValidationError.emptyBody }
+        try database.execute(
+            "INSERT INTO aliases (alias, target) VALUES (?, ?) ON CONFLICT(alias) DO UPDATE SET target = excluded.target",
+            [.text(key), .text(target)]
+        )
+        return key
+    }
+
+    public func removeAlias(_ alias: String) {
+        try? database.execute("DELETE FROM aliases WHERE alias = ?", [.text(alias.lowercased())])
+    }
+
     public func recordUse(kind: ResultKind, id: Int64) {
         switch kind {
         case .snippet: try? database.execute("UPDATE snippets SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .workflow: try? database.execute("UPDATE workflows SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .flow: try? database.execute("UPDATE flows SET uses = uses + 1 WHERE id = ?", [.int(id)])
-        case .application, .clipboard, .calculation, .file: break
+        case .application, .clipboard, .calculation, .file, .system: break
         }
     }
 

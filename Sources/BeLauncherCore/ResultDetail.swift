@@ -89,6 +89,17 @@ public enum DetailBuilder {
                 metadata: [.init(label: "Ruta", value: result.payload)] + fileInfo(result.payload)
             )
 
+        case .system:
+            let command = SystemCommand.all.first { $0.kind.rawValue == result.payload }
+            return ResultDetail(
+                body: result.title,
+                metadata: [
+                    .init(label: "Tipo", value: "Comando del sistema"),
+                    .init(label: "Confirmación",
+                          value: command?.needsConfirmation == true ? "Sí, antes de ejecutar" : "No hace falta"),
+                ]
+            )
+
         case .workflow:
             return ResultDetail(
                 body: result.payload.isEmpty ? "Escribe un término después de la palabra clave." : result.payload,

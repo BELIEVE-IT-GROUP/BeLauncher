@@ -44,6 +44,7 @@ public final class LauncherModel {
         case quickLook(path: String)
         case moveToTrash(path: String)
         case openSettings
+        case systemCommand(String)
         case dismiss
     }
 
@@ -131,6 +132,8 @@ public final class LauncherModel {
             return true
         case .moveToTrash(let path):
             perform(.moveToTrash(path: path))
+        case .systemCommand(let kind):
+            perform(.systemCommand(kind))
         case .deleteClip(let id):
             onDelete(.clipboard, id)
             refresh()
@@ -164,6 +167,7 @@ public final class LauncherModel {
     private let fileSearch: FileSearch
     private let fileInfo: @Sendable (String) -> [ResultDetail.Item]
     private let onDelete: @MainActor (ResultKind, Int64) -> Void
+    private let onLaunch: @MainActor (String) -> Void
     private let expanderFactory: @MainActor () -> SnippetExpander
     private let perform: @MainActor (Action) -> Void
     private let recordUse: @MainActor (ResultKind, Int64) -> Void
@@ -172,6 +176,7 @@ public final class LauncherModel {
         dataSource: @escaping @MainActor () throws -> SearchInput,
         fileSearch: FileSearch = FileSearch(),
         fileInfo: @escaping @Sendable (String) -> [ResultDetail.Item] = { _ in [] },
+        onLaunch: @escaping @MainActor (String) -> Void = { _ in },
         onDelete: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
         expander: @escaping @MainActor () -> SnippetExpander = { SnippetExpander() },
         recordUse: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
@@ -181,6 +186,7 @@ public final class LauncherModel {
         self.fileSearch = fileSearch
         self.fileInfo = fileInfo
         self.onDelete = onDelete
+        self.onLaunch = onLaunch
         self.expanderFactory = expander
         self.recordUse = recordUse
         self.perform = perform
@@ -299,8 +305,12 @@ public final class LauncherModel {
         guard let result = selected else { return false }
         switch result.kind {
         case .application:
-            recordUse(.application, result.recordID)
+            onLaunch(result.payload)
             perform(.launchApplication(path: result.payload))
+            perform(.dismiss)
+
+        case .system:
+            perform(.systemCommand(result.payload))
             perform(.dismiss)
 
         case .clipboard, .calculation:

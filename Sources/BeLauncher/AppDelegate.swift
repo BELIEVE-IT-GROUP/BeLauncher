@@ -78,7 +78,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     snippets: store.snippets(),
                     workflows: store.workflows(),
                     clips: store.clips(limit: 300),
-                    flows: store.flows()
+                    flows: store.flows(),
+                    applicationUses: store.applicationUses(),
+                    aliases: store.aliases()
                 )
             },
             fileInfo: { path in
@@ -94,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 return items
             },
+            onLaunch: { [weak self] path in self?.store?.recordLaunch(path: path) },
             onDelete: { [weak self] kind, id in
                 guard let store = self?.store else { return }
                 switch kind {
@@ -386,6 +389,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .openSettings:
             openSettings()
+
+        case .systemCommand(let kind):
+            panel?.orderOut(nil)
+            let failure = SystemCommandRunner.run(kind) { title in
+                let alert = NSAlert()
+                alert.messageText = "¿\(title)?"
+                alert.informativeText = "Esta acción no se puede deshacer."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "Continuar")
+                alert.addButton(withTitle: "Cancelar")
+                return alert.runModal() == .alertFirstButtonReturn
+            }
+            if let failure { report("No se pudo ejecutar el comando", failure) }
 
         case .runShortcut(let name):
             Shortcuts.run(named: name)

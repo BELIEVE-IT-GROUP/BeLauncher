@@ -8,6 +8,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case calculation
     case file
     case flow
+    case system
 
     public var label: String {
         switch self {
@@ -18,6 +19,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .calculation: "Result"
         case .file: "File"
         case .flow: "Flow"
+        case .system: "Sistema"
         }
     }
 
@@ -30,6 +32,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .calculation: "equal.square"
         case .file: "doc"
         case .flow: "arrow.triangle.branch"
+        case .system: "switch.2"
         }
     }
 }
@@ -68,14 +71,21 @@ public struct SearchInput: Sendable {
     public var workflows: [Workflow]
     public var clips: [Clip]
     public var flows: [Flow]
+    /// How often each application has been launched from here, so the list learns.
+    public var applicationUses: [String: Int]
+    /// User-defined aliases: typed text → exact result it should surface.
+    public var aliases: [String: String]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
-                workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = []) {
+                workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
+                applicationUses: [String: Int] = [:], aliases: [String: String] = [:]) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
         self.clips = clips
         self.flows = flows
+        self.applicationUses = applicationUses
+        self.aliases = aliases
     }
 }
 
@@ -132,12 +142,25 @@ public enum SearchEngine {
 
         var results: [SearchResult] = []
 
+        // An alias is an exact instruction, so it wins outright: typing "nav" means that app.
+        let aliasTarget = input.aliases[query.lowercased()]
+
         for application in input.applications {
             guard let match = Fuzzy.match(query: query, candidate: application.name) else { continue }
+            let uses = input.applicationUses[application.path] ?? 0
             results.append(SearchResult(
                 id: "app-\(application.path)", kind: .application, title: application.name,
-                subtitle: application.path, score: match.score + 30, matched: match.matched,
+                subtitle: application.path,
+                score: match.score + 30 + min(uses * 3, 45), matched: match.matched,
                 payload: application.path
+            ))
+        }
+
+        for (command, score) in SystemCommand.search(query) {
+            results.append(SearchResult(
+                id: "system-\(command.id)", kind: .system, title: command.title,
+                subtitle: command.needsConfirmation ? "Pide confirmación" : "Comando del sistema",
+                score: score, matched: [], payload: command.kind.rawValue
             ))
         }
 
@@ -187,7 +210,21 @@ public enum SearchEngine {
             ))
         }
 
-        return Array((pinned + results.sorted { $0.score > $1.score }).prefix(limit))
+        var ordered = results.sorted { $0.score > $1.score }
+        // An alias is an explicit instruction: its target goes first even when the fuzzy matcher
+        // would never have surfaced it ("nav" bears no resemblance to "Safari").
+        if let aliasTarget {
+            if let index = ordered.firstIndex(where: { $0.payload == aliasTarget }) {
+                ordered.insert(ordered.remove(at: index), at: 0)
+            } else if let application = input.applications.first(where: { $0.path == aliasTarget }) {
+                ordered.insert(SearchResult(
+                    id: "app-\(application.path)", kind: .application, title: application.name,
+                    subtitle: "alias · \(query.lowercased())", score: 50_000, matched: [],
+                    payload: application.path
+                ), at: 0)
+            }
+        }
+        return Array((pinned + ordered).prefix(limit))
     }
 
     /// Recent clips shown when the window opens with an empty query.

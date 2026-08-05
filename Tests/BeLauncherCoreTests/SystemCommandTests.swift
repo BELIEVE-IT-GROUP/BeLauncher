@@ -1,0 +1,129 @@
+import Testing
+import Foundation
+@testable import BeLauncherCore
+
+@Suite("System commands, aliases and ranking")
+@MainActor
+struct SystemCommandTests {
+
+    // MARK: - System commands
+
+    @Test("found by title and by keyword, in both languages")
+    func searchByKeyword() {
+        #expect(SystemCommand.search("papelera").contains { $0.command.id == "empty-trash" || $0.command.id == "open-trash" })
+        #expect(SystemCommand.search("trash").contains { $0.command.id == "empty-trash" || $0.command.id == "open-trash" })
+        #expect(SystemCommand.search("bloquear").first?.command.id == "lock")
+        #expect(SystemCommand.search("dark").contains { $0.command.id == "dark-mode" })
+    }
+
+    @Test("a single letter never floods the list with system commands")
+    func needsTwoCharacters() {
+        #expect(SystemCommand.search("l").isEmpty)
+        #expect(SystemCommand.search("").isEmpty)
+    }
+
+    @Test("everything irreversible asks first")
+    func destructiveNeedsConfirmation() {
+        // .ejectDisks is here because a security audit caught it: ejecting every mounted disk
+        // can interrupt a copy in progress and lose data.
+        let mustConfirm: Set<SystemCommand.Kind> = [.logOut, .restart, .shutDown, .emptyTrash, .ejectDisks]
+        for command in SystemCommand.all {
+            #expect(command.needsConfirmation == mustConfirm.contains(command.kind),
+                    "\(command.id) has the wrong confirmation setting")
+        }
+    }
+
+    @Test("ids and kinds are unique, so a payload always resolves to one command")
+    func uniqueIdentifiers() {
+        #expect(Set(SystemCommand.all.map(\.id)).count == SystemCommand.all.count)
+        #expect(Set(SystemCommand.all.map(\.kind)).count == SystemCommand.all.count)
+    }
+
+    @Test("a system command reaches the results and carries its kind as payload")
+    func appearsInSearch() {
+        let results = SearchEngine.search("bloquear", in: SearchInput())
+        let lock = results.first { $0.kind == .system }
+        #expect(lock?.title == "Bloquear pantalla")
+        #expect(lock?.payload == SystemCommand.Kind.lockScreen.rawValue)
+    }
+
+    @Test("running one emits the command, never a shell string")
+    func runEmitsKind() {
+        var performed: [LauncherModel.Action] = []
+        let model = LauncherModel(dataSource: { SearchInput() }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "bloquear"
+        model.handle(.enter)
+        #expect(performed.first == .systemCommand(SystemCommand.Kind.lockScreen.rawValue))
+    }
+
+    // MARK: - Ranking
+
+    @Test("what you launch often climbs the list")
+    func usageRanking() {
+        let apps = [
+            Application(name: "Mail", path: "/Applications/Mail.app"),
+            Application(name: "Maps", path: "/Applications/Maps.app"),
+        ]
+        let cold = SearchEngine.search("ma", in: SearchInput(applications: apps))
+        let warm = SearchEngine.search("ma", in: SearchInput(
+            applications: apps, applicationUses: ["/Applications/Maps.app": 12]
+        ))
+        #expect(cold.first?.title == "Mail")
+        #expect(warm.first?.title == "Maps", "12 launches should outweigh alphabetical luck")
+    }
+
+    @Test("the ranking bonus is capped so an old habit never blocks a better match")
+    func rankingIsCapped() {
+        let apps = [
+            Application(name: "Terminal", path: "/Applications/Terminal.app"),
+            Application(name: "Notion", path: "/Applications/Notion.app"),
+        ]
+        let results = SearchEngine.search("notion", in: SearchInput(
+            applications: apps, applicationUses: ["/Applications/Terminal.app": 5_000]
+        ))
+        #expect(results.first?.title == "Notion")
+    }
+
+    // MARK: - Aliases
+
+    @Test("an alias pulls its target to the top even with a weak fuzzy score")
+    func aliasWins() {
+        let apps = [
+            Application(name: "Safari", path: "/Applications/Safari.app"),
+            Application(name: "Navigator Pro", path: "/Applications/Navigator Pro.app"),
+        ]
+        let plain = SearchEngine.search("nav", in: SearchInput(applications: apps))
+        #expect(plain.first?.title == "Navigator Pro")
+
+        let aliased = SearchEngine.search("nav", in: SearchInput(
+            applications: apps, aliases: ["nav": "/Applications/Safari.app"]
+        ))
+        #expect(aliased.first?.title == "Safari")
+    }
+
+    @Test("aliases and launches survive a restart, and are validated")
+    func persistence() throws {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-alias-\(UUID().uuidString)")
+            .appendingPathComponent("s.sqlite3").path
+        let store = try Store(path: path)
+
+        try store.setAlias("NAV", target: "/Applications/Safari.app")
+        #expect(store.aliases()["nav"] == "/Applications/Safari.app")
+
+        #expect(throws: ValidationError.keywordHasWhitespace) {
+            try store.setAlias("dos palabras", target: "/x")
+        }
+        #expect(throws: ValidationError.emptyBody) {
+            try store.setAlias("x", target: "")
+        }
+
+        store.recordLaunch(path: "/Applications/Safari.app")
+        store.recordLaunch(path: "/Applications/Safari.app")
+        #expect(store.applicationUses()["/Applications/Safari.app"] == 2)
+
+        store.removeAlias("nav")
+        #expect(store.aliases().isEmpty)
+    }
+}

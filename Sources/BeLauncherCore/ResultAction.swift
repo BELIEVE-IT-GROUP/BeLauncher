@@ -49,6 +49,7 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case completeKeyword(String)
         case openSettings
         case moveToTrash(path: String)
+        case systemCommand(String)
     }
 
     public struct Shortcut: Sendable, Equatable {
@@ -186,6 +187,12 @@ public enum ActionRegistry {
                 ResultAction(id: "delete", title: "Borrar flujo", symbol: "trash",
                              shortcut: .delete, section: .danger, isDestructive: true,
                              intent: .deleteFlow(id: result.recordID)),
+            ]
+
+        case .system:
+            return [
+                ResultAction(id: "run", title: "Ejecutar", symbol: "play.fill",
+                             shortcut: .enter, intent: .run),
             ]
 
         case .calculation:
