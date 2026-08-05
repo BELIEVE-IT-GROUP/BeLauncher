@@ -217,9 +217,6 @@ public enum MissionPlanner {
         .init(id: "focus", title: "Ponerme a trabajar",
               triggers: ["enfoque", "concentrar", "focus", "ponerme a trabajar"],
               describe: { _ in "Silencia, abre lo tuyo y arranca un bloque de trabajo." }),
-        .init(id: "prepare-meeting", title: "Prepararme para una reunión",
-              triggers: ["preparar reunion", "preparame para", "prepare for"],
-              describe: { subject in "Reúne lo que sabemos de \(subject) y lo deja copiado." }),
         .init(id: "close-day", title: "Cerrar el día",
               triggers: ["cerrar el dia", "cerrar dia", "close my day"],
               describe: { _ in "Repasa lo pendiente y guarda lo aprendido." }),
@@ -248,7 +245,7 @@ public enum MissionPlanner {
     /// Builds the plan for an intent. Returns nil when nothing in the catalogue fits, which is
     /// the honest answer: better no mission than a made-up one.
     public static func plan(_ intent: String, clipboard: String = "") -> Mission? {
-        guard let (outcome, argument) = outcome(for: intent) else { return nil }
+        guard let (outcome, _) = outcome(for: intent) else { return nil }
 
         var steps: [PlannedStep] = []
         switch outcome.id {
@@ -258,12 +255,6 @@ public enum MissionPlanner {
                       action: .systemCommand(SystemCommand.Kind.toggleDoNotDisturb.rawValue)),
                 .init(title: "Temporizador de 50 minutos",
                       action: .startTimer(minutes: 50, label: "Bloque de enfoque")),
-            ]
-
-        case "prepare-meeting":
-            steps = [
-                .init(title: "Reunir lo que sabemos de \(argument)",
-                      action: .runVerb(id: "summarise", text: argument)),
             ]
 
         case "close-day":

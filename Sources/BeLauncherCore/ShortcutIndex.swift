@@ -84,11 +84,17 @@ public enum ShortcutIndex {
             ("Imágenes", "Pictures"), ("Películas", "Movies"), ("Música", "Music"),
             ("Aplicaciones", "../../Applications"), ("Carpeta personal", ""),
         ]
-        return candidates.compactMap { title, relative in
+        // The home folder is checked; the ones inside it are not, on purpose. Downloads, Desktop
+        // and Documents are TCC-protected on recent macOS, and merely asking whether they are
+        // there pops the "would like to access your Downloads folder" dialog at launch — the exact
+        // thing this app promises not to do. They ship with every Mac; if one is missing, opening
+        // it fails harmlessly and the permission gets asked then, when the user can see why.
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: home, isDirectory: &isDirectory),
+              isDirectory.boolValue else { return [] }
+
+        return candidates.map { title, relative in
             let path = relative.isEmpty ? home : (home as NSString).appendingPathComponent(relative)
-            var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory),
-                  isDirectory.boolValue else { return nil }
             return Shortcut(title: title, target: path, source: .folder)
         }
     }

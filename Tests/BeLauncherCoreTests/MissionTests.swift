@@ -152,6 +152,31 @@ struct MissionInLauncherTests {
         #expect(SearchEngine.search("enfoque", in: SearchInput()).first?.kind == .mission)
     }
 
+    @Test("a mission that works on your notes gets the notes")
+    func missionsSeeTheClipboard() {
+        let clip = Clip(id: 1, text: "Acordamos subir el precio a 90", sourceApp: "Notes",
+                        createdAt: .now, kind: .text)
+        let results = SearchEngine.search("capturar reunion", in: SearchInput(clips: [clip]))
+        guard let mission = results.first(where: { $0.kind == .mission }) else {
+            Issue.record("no mission planned"); return
+        }
+        let plan = MissionPlanner.plan(mission.payload, clipboard: clip.text)
+        #expect(plan?.steps.contains { step in
+            if case .remember(let text, _) = step.action { return text == clip.text }
+            return false
+        } == true, "planning against an empty clipboard produced steps that did nothing")
+    }
+
+    @Test("asking to prepare reaches the brain, not a summary of your own words")
+    func prepareGoesToTheBrain() {
+        for phrase in ["preparame para Acme", "preparar reunion con Acme", "prepare for Acme"] {
+            guard case .prepare(let subject) = BrainQuery.Intent.detect(phrase) else {
+                Issue.record("«\(phrase)» did not reach the brain"); continue
+            }
+            #expect(subject.localizedCaseInsensitiveContains("acme"))
+        }
+    }
+
     @Test("a shortcut of theirs also outranks the mission")
     func shortcutsWinToo() {
         let input = SearchInput(systemShortcuts: ["Enfoque"])

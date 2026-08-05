@@ -178,7 +178,10 @@ public enum SearchEngine {
             let collides = userOwned.contains(folded)
                 || input.systemShortcuts.contains { $0.caseInsensitiveCompare(folded) == .orderedSame }
 
-            if !collides, let mission = MissionPlanner.plan(query) {
+            // The missions that turn notes into memory work on what you just copied. Planning
+            // them without it produced steps that were guaranteed to do nothing.
+            let clipboard = input.clips.first(where: { $0.kind == .text })?.text ?? ""
+            if !collides, let mission = MissionPlanner.plan(query, clipboard: clipboard) {
                 pinned.append(SearchResult(
                     id: "mission-\(mission.id)", kind: .mission, title: mission.intent,
                     subtitle: mission.needsApproval
