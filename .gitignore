@@ -1,0 +1,5 @@
+.build/
+build/
+.env
+*.xcuserdatad
+.DS_Store
