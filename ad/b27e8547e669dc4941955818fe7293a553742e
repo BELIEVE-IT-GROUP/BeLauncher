@@ -1,0 +1,28 @@
+Tests/BeLauncherCoreTests/TeamBrainTests.swift
+  s_3bf5a4753c6c6c::t_4eb7521367e503 1-126,137-157
+  s_3bf5a4753c6c6c::t_d00fba944a5b68 127-136
+Sources/BeLauncherCore/TeamBrain.swift
+  s_3bf5a4753c6c6c::t_3d3be76ad874fa 1-161,168-188,190-199
+  s_3bf5a4753c6c6c::t_d00fba944a5b68 162-167,189
+Sources/BeLauncherCore/Vault.swift
+  s_3bf5a4753c6c6c::t_d00fba944a5b68 197-198
+Sources/BeLauncher/SettingsView.swift
+  s_3bf5a4753c6c6c::t_b913db7428423b 210-290,581-587
+  s_3bf5a4753c6c6c::t_123c0951fe9a30 588
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "adb27e8547e669dc4941955818fe7293a553742e",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
