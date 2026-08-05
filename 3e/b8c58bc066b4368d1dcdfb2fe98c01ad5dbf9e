@@ -1,0 +1,48 @@
+Sources/BeLauncherCore/FlowRunner.swift
+  s_3bf5a4753c6c6c::t_28ba43afabf593 1-51
+Sources/BeLauncherCore/LauncherModel.swift
+  s_3bf5a4753c6c6c::t_bd83eefaafbb2d 39-40,195-196,198
+  s_3bf5a4753c6c6c::t_9004eca5efc529 36-38,194,197
+  s_3bf5a4753c6c6c::t_8a7af537f09b1a 199
+Sources/BeLauncherCore/Store.swift
+  s_3bf5a4753c6c6c::t_bd83eefaafbb2d 59-67,159-193
+  s_3bf5a4753c6c6c::t_9004eca5efc529 199
+  s_3bf5a4753c6c6c::t_03dcce1bc19ccc 275-278
+  s_3bf5a4753c6c6c::t_7aca0ac82f23e1 58,194
+Sources/BeLauncher/SettingsView.swift
+  s_3bf5a4753c6c6c::t_37d95308ba956e 45-46,51,77,79-101,323-324
+  s_3bf5a4753c6c6c::t_082d5c35588fca 325-326
+Sources/BeLauncherCore/Flow.swift
+  s_3bf5a4753c6c6c::t_69f92ee286dffe 1-107
+Sources/BeLauncher/FlowEditor.swift
+  s_3bf5a4753c6c6c::t_2a7a8b326f83d9 1-193
+Sources/BeLauncherCore/SearchEngine.swift
+  s_3bf5a4753c6c6c::t_9004eca5efc529 10,20,32,70,73,78,169-177
+  s_3bf5a4753c6c6c::t_321fda42f2b2e4 178-180
+Sources/BeLauncher/AppDelegate.swift
+  s_3bf5a4753c6c6c::t_bd83eefaafbb2d 52-53,232-243,259-269
+  s_3bf5a4753c6c6c::t_ab60377b24da02 270-273
+Sources/BeLauncher/Shortcuts.swift
+  s_3bf5a4753c6c6c::t_8a7a426800623b 57,59-61,63,65-77
+  s_3bf5a4753c6c6c::t_03bbc930219878 1-56,58,62,64,78-79
+Tests/BeLauncherCoreTests/FlowTests.swift
+  s_3bf5a4753c6c6c::t_d3b1568d523280 1-140
+README.md
+  s_3bf5a4753c6c6c::t_59f71ee9b11cfc 66-68,87-88,233-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3eb8c58bc066b4368d1dcdfb2fe98c01ad5dbf9e",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
