@@ -207,6 +207,87 @@ final class SettingsModel {
         }
     }
 
+    /// Exports the shared part of the brain, encrypted with a passphrase the team already has.
+    /// Believe never sees the key or the contents.
+    func exportTeamBundle() {
+        guard let vault = try? Vault(root: Vault.defaultRoot()) else { return }
+        let shareable = TeamBrain.shareable(vault.objects())
+        guard !shareable.isEmpty else {
+            status = "No hay memorias marcadas como “shared”. Añade esa etiqueta a las que quieras compartir."
+            return
+        }
+        guard let passphrase = askPassphrase(
+            title: "Frase del equipo",
+            message: "La misma que use el resto del equipo. No la guardamos ni la vemos: "
+                   + "si se pierde, el paquete no se puede abrir."
+        ) else { return }
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = SafeFilename.make("brain-believe", extension: "belaunch")
+        panel.message = "Cifrado con la frase del equipo."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let bundle = TeamBrain.Bundle(team: "believe", exportedBy: NSFullUserName(),
+                                          objects: shareable, members: [])
+            let sealed = try TeamBrain.seal(bundle,
+                                            with: TeamBrain.key(fromPassphrase: passphrase,
+                                                                team: "believe"))
+            try sealed.write(to: url, options: .atomic)
+            status = "Exportadas \(shareable.count) memorias cifradas."
+        } catch {
+            status = "No se pudo exportar: \(error)"
+        }
+    }
+
+    /// Imports a teammate's bundle. Everything arrives as a proposal, nothing is applied.
+    func importTeamBundle() {
+        guard let vault = try? Vault(root: Vault.defaultRoot()) else { return }
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.message = "Elige el paquete cifrado del equipo."
+        guard panel.runModal() == .OK, let url = panel.url,
+              let data = try? Data(contentsOf: url) else { return }
+
+        guard let passphrase = askPassphrase(
+            title: "Frase del equipo",
+            message: "La frase con la que se cifró este paquete."
+        ) else { return }
+
+        do {
+            let bundle = try TeamBrain.open(data,
+                                            with: TeamBrain.key(fromPassphrase: passphrase,
+                                                                team: "believe"))
+            let plan = TeamBrain.plan(bundle, against: vault.objects())
+            for object in plan.added {
+                _ = try? vault.propose(object, reason: "Del equipo · \(bundle.exportedBy)")
+            }
+            for conflict in plan.conflicts {
+                _ = try? vault.propose(conflict.incoming,
+                                       reason: "Del equipo · contradice «\(conflict.existing.statement)»")
+            }
+            status = "\(plan.added.count + plan.conflicts.count) memorias del equipo esperan tu "
+                + "confirmación. Nada se aplicó solo."
+        } catch {
+            status = "\(error)"
+        }
+    }
+
+    private func askPassphrase(title: String, message: String) -> String? {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: "Continuar")
+        alert.addButton(withTitle: "Cancelar")
+        let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        guard alert.runModal() == .alertFirstButtonReturn, !field.stringValue.isEmpty else {
+            return nil
+        }
+        return field.stringValue
+    }
+
     /// Alfred keeps its snippets in a known folder, so this needs no file picker.
     func importFromAlfred() {
         let result = Importers.importAlfredSnippets()
@@ -496,6 +577,14 @@ struct SettingsView: View {
                 }
                 Text("Son archivos Markdown normales. Puedes abrirlos en cualquier editor, "
                      + "moverlos a Obsidian o meterlos en un repositorio git.")
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button("Compartir con el equipo…") { model.exportTeamBundle() }
+                    Button("Importar del equipo…") { model.importTeamBundle() }
+                }
+                Text("Solo salen las memorias etiquetadas como “shared”, cifradas con una frase "
+                     + "que solo tiene tu equipo. Believe nunca ve la clave ni el contenido. "
+                     + "Lo que llega llega como propuesta: nada se aplica solo.")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("Permisos: el calendario se pide la primera vez que preparas una reunión, "
                      + "y Accesibilidad la primera vez que colocas una ventana. Nada al arrancar.")

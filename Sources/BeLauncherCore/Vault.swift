@@ -194,8 +194,8 @@ public final class Vault {
         // are both decisions about pricing and both remain true; treating the second as replacing
         // the first would quietly delete a live decision, which is worse than missing a conflict.
         // A shared entity only lowers the bar for how similar the wording has to be.
-        let sharedEntity = !Set(existing.entities.map { $0.lowercased() })
-            .isDisjoint(with: incoming.entities.map { $0.lowercased() })
+        // The share marker is bookkeeping, not a subject.
+        let sharedEntity = !TeamBrain.topics(of: existing).isDisjoint(with: TeamBrain.topics(of: incoming))
         return similarity >= (sharedEntity ? 0.4 : 0.7)
     }
 
