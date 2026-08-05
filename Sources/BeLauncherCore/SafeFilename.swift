@@ -6,7 +6,7 @@ public enum SafeFilename {
 
     /// Turns arbitrary user text into a filename that cannot escape its folder
     /// or collide with a special name. Used for exports and diagnostics.
-    public static func make(_ raw: String, fallback: String = "beacon-export", extension ext: String) -> String {
+    public static func make(_ raw: String, fallback: String = "belauncher-export", extension ext: String) -> String {
         var cleaned = raw
             .replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: "-")

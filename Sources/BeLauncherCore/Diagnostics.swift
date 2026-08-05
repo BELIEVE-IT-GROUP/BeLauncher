@@ -17,7 +17,7 @@ public struct DiagnosticsReport: Sendable {
 
     public func render() -> String {
         var lines: [String] = []
-        lines.append("Beacon diagnostics")
+        lines.append("BeLauncher diagnostics")
         lines.append("generated: \(ISO8601DateFormatter().string(from: generatedAt))")
         lines.append("app version: \(appVersion)")
         lines.append("macOS: \(systemVersion)")

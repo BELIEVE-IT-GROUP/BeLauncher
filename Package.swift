@@ -2,20 +2,20 @@
 import PackageDescription
 
 let package = Package(
-    name: "Beacon",
+    name: "BeLauncher",
     platforms: [.macOS(.v14)],
     targets: [
         .target(
-            name: "BeaconCore",
+            name: "BeLauncherCore",
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .executableTarget(
-            name: "Beacon",
-            dependencies: ["BeaconCore"]
+            name: "BeLauncher",
+            dependencies: ["BeLauncherCore"]
         ),
         .testTarget(
-            name: "BeaconCoreTests",
-            dependencies: ["BeaconCore"]
+            name: "BeLauncherCoreTests",
+            dependencies: ["BeLauncherCore"]
         ),
     ]
 )

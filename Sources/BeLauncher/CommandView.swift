@@ -1,5 +1,5 @@
 import SwiftUI
-import BeaconCore
+import BeLauncherCore
 
 @MainActor
 struct CommandView: View {
@@ -99,7 +99,7 @@ struct CommandView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Beacon could not read its database").fontWeight(.medium)
+                    Text("BeLauncher could not read its database").fontWeight(.medium)
                     Text(reason)
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)

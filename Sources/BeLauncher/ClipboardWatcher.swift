@@ -1,5 +1,5 @@
 import AppKit
-import BeaconCore
+import BeLauncherCore
 
 /// Polls the pasteboard's change counter. No permission is required, and the watcher
 /// deliberately ignores content that is not the user's own text:
@@ -33,7 +33,7 @@ final class ClipboardWatcher {
         isRunning = false
     }
 
-    /// Marks the next pasteboard change as Beacon's own so copying a snippet
+    /// Marks the next pasteboard change as BeLauncher's own so copying a snippet
     /// does not immediately re-enter the history.
     func ignoreNextChange() {
         lastChangeCount = NSPasteboard.general.changeCount + 1

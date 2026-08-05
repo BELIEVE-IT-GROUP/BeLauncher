@@ -1,6 +1,6 @@
 import AppKit
 import SwiftUI
-import BeaconCore
+import BeLauncherCore
 
 /// Borderless floating panel that hosts the command window.
 /// It grows and shrinks with its content while its top edge stays put.

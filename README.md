@@ -1,4 +1,4 @@
-# Beacon
+# BeLauncher
 
 A personal, local-only replacement for the parts of Alfred Powerpack I actually use:
 a keyboard-first launcher with **search**, **snippets**, **clipboard history** and **workflows**,
@@ -14,7 +14,7 @@ Swift 6 · SwiftUI + AppKit · SQLite · macOS Keychain · macOS 14+
 make run
 ```
 
-That builds `build/Beacon.app`, ad-hoc signs it and launches it. Beacon appears in the menu bar
+That builds `build/BeLauncher.app`, ad-hoc signs it and launches it. BeLauncher appears in the menu bar
 (no Dock icon). Press **⌥Space** to open the command window.
 
 Other commands: `make test`, `make build`, `make clean`, `make uninstall`.
@@ -45,7 +45,7 @@ feed. `.env` is git-ignored; credentials never belong in the repo.
 ## Architecture
 
 ```
-Sources/BeaconCore/     no AppKit, no UI — this is what the tests drive
+Sources/BeLauncherCore/     no AppKit, no UI — this is what the tests drive
   Database.swift        ~120-line SQLite wrapper (system libsqlite3, no dependencies)
   Store.swift           snippets / workflows / clips / settings + migrations, seeding, trimming
   Models.swift          types + input validation
@@ -58,7 +58,7 @@ Sources/BeaconCore/     no AppKit, no UI — this is what the tests drive
   Keychain.swift        {secret:NAME} values
   Env.swift, SafeFilename.swift, Diagnostics.swift, AppIndex.swift
 
-Sources/Beacon/         the shell: AppKit windowing + SwiftUI views
+Sources/BeLauncher/         the shell: AppKit windowing + SwiftUI views
   AppDelegate.swift     wiring, status item, actions
   HotKey.swift          Carbon global hotkey (no permission required)
   CommandPanel.swift    borderless floating panel, top-anchored, resizes with content
@@ -67,16 +67,16 @@ Sources/Beacon/         the shell: AppKit windowing + SwiftUI views
   ClipboardWatcher.swift, Permissions.swift, LaunchAtLogin.swift, UpdateCheck.swift
 ```
 
-`BeaconCore` has no UI dependency on purpose: every decision the window makes — what matches,
+`BeLauncherCore` has no UI dependency on purpose: every decision the window makes — what matches,
 what is selected, what Enter does — is testable without a screen.
 
 ## Permissions
 
-Beacon asks for **one** permission, and only when you turn on the feature that needs it:
+BeLauncher asks for **one** permission, and only when you turn on the feature that needs it:
 
 | Permission | When | Why |
 | --- | --- | --- |
-| Accessibility | Only when you enable "Paste into the frontmost app after choosing an item" | macOS only lets an app press ⌘V in another app with this permission. Beacon uses it for nothing else. |
+| Accessibility | Only when you enable "Paste into the frontmost app after choosing an item" | macOS only lets an app press ⌘V in another app with this permission. BeLauncher uses it for nothing else. |
 
 Turning that toggle on shows an explanation first, and only opens System Settings if you agree.
 Decline and everything else keeps working; pasting stays a manual ⌘V.
@@ -90,14 +90,14 @@ auto-generated items, and anything that is not text. Clipboard history can be tu
 ## Where your data lives
 
 ```
-~/Library/Application Support/Beacon/beacon.sqlite3   snippets, workflows, clipboard, settings
-~/Library/Application Support/Beacon/.env             optional config (not created for you)
-Keychain, service "com.beacon.launcher.secrets"       {secret:NAME} values
+~/Library/Application Support/BeLauncher/belauncher.sqlite3   snippets, workflows, clipboard, settings
+~/Library/Application Support/BeLauncher/.env             optional config (not created for you)
+Keychain, service "com.believe.belauncher.secrets"       {secret:NAME} values
 ```
 
 The database directory is created with `0700`. Nothing is written anywhere else, and nothing
 leaves the machine — there is no account, no sync, no telemetry and no server. The only network
-call Beacon can make is the update check, which requires both an explicit opt-in *and* a feed URL
+call BeLauncher can make is the update check, which requires both an explicit opt-in *and* a feed URL
 in `.env`.
 
 ## Backup and export
@@ -107,7 +107,7 @@ in `.env`.
   never exported.
 - **Import…** merges by keyword and never overwrites: entries that already exist are skipped and
   reported.
-- For a full backup, copy `~/Library/Application Support/Beacon/`. Quit Beacon first so SQLite's
+- For a full backup, copy `~/Library/Application Support/BeLauncher/`. Quit BeLauncher first so SQLite's
   WAL is checkpointed.
 - **Export diagnostics…** writes a plain-text report (versions, counts, paths, toggles). It
   deliberately contains no snippet bodies, no clipboard text and no secret values, so you can read
@@ -115,12 +115,12 @@ in `.env`.
 
 ## Uninstall
 
-1. Quit Beacon from the menu bar.
+1. Quit BeLauncher from the menu bar.
 2. Turn off "Launch at login" first (or run `make uninstall`, which handles the rest).
-3. Delete `Beacon.app`.
-4. Delete `~/Library/Application Support/Beacon`.
+3. Delete `BeLauncher.app`.
+4. Delete `~/Library/Application Support/BeLauncher`.
 5. If you stored secrets: open Keychain Access and delete items with the service
-   `com.beacon.launcher.secrets`.
+   `com.believe.belauncher.secrets`.
 
 `make uninstall` does steps 1, 3 and 4 and reminds you about 5.
 
@@ -130,7 +130,7 @@ in `.env`.
 make test      # or: swift test
 ```
 
-40 tests, all against `BeaconCore`:
+40 tests, all against `BeLauncherCore`:
 
 - **Transformation** — snippet expansion (every token, cursor offset, escaping, unknown tokens),
   workflow URL building and the scheme allow-list, fuzzy ranking, safe filenames, `.env` parsing.

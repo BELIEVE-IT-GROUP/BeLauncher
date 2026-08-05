@@ -21,8 +21,8 @@ public final class Store {
 
     public static func defaultPath() -> String {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Beacon", isDirectory: true)
-        return base.appendingPathComponent("beacon.sqlite3").path
+            .appendingPathComponent("BeLauncher", isDirectory: true)
+        return base.appendingPathComponent("belauncher.sqlite3").path
     }
 
     private func migrate() throws {

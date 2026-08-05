@@ -21,7 +21,7 @@ public struct Workflow: Sendable, Equatable, Codable, Identifiable {
     public var keyword: String
     public var title: String
     /// A URL template such as `https://github.com/search?q={query}`.
-    /// Only http/https/mailto survive validation — Beacon never executes scripts.
+    /// Only http/https/mailto survive validation — BeLauncher never executes scripts.
     public var urlTemplate: String
     public var uses: Int
 

@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import BeaconCore
+@testable import BeLauncherCore
 
 /// End-to-end keyboard workflow.
 ///

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Opt-in and inert by default: without an explicit toggle *and* a feed URL in `.env`,
-/// Beacon never touches the network. There is no telemetry of any kind.
+/// BeLauncher never touches the network. There is no telemetry of any kind.
 struct Release: Decodable, Sendable {
     let version: String
     let url: String

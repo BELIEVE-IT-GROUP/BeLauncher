@@ -3,3 +3,4 @@ build/
 .env
 *.xcuserdatad
 .DS_Store
+.claude/

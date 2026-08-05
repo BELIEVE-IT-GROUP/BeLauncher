@@ -1,6 +1,6 @@
 import AppKit
 import SwiftUI
-import BeaconCore
+import BeLauncherCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -96,11 +96,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "Beacon")
+        item.button?.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "BeLauncher")
         item.button?.image?.isTemplate = true
 
         let menu = NSMenu()
-        let open = NSMenuItem(title: "Open Beacon", action: #selector(togglePanel), keyEquivalent: "")
+        let open = NSMenuItem(title: "Open BeLauncher", action: #selector(togglePanel), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
@@ -111,7 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         reindex.target = self
         menu.addItem(reindex)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit Beacon", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit BeLauncher", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         item.menu = menu
         statusItem = item
@@ -142,7 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if hotKey == nil {
             // Another app already owns this shortcut — say so instead of failing silently.
             let alert = NSAlert()
-            alert.messageText = "Beacon could not register \(label)"
+            alert.messageText = "BeLauncher could not register \(label)"
             alert.informativeText = "Another app is already using that shortcut. Pick a different one in Settings."
             alert.runModal()
         }
@@ -172,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsModel = SettingsModel(
             store: store,
             appVersion: appVersion,
-            updateFeedURL: environment["BEACON_UPDATE_FEED_URL"]
+            updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"]
         )
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
@@ -185,7 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false
         )
-        window.title = "Beacon Settings"
+        window.title = "BeLauncher Settings"
         window.contentViewController = NSHostingController(rootView: SettingsView(model: settingsModel))
         window.isReleasedWhenClosed = false
         window.center()
@@ -236,11 +236,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func presentFatal(_ error: Error) {
         let alert = NSAlert()
-        alert.messageText = "Beacon could not open its database"
+        alert.messageText = "BeLauncher could not open its database"
         alert.informativeText = """
             \(error)
 
-            The file lives at \(Store.defaultPath()). Move it aside and relaunch Beacon \
+            The file lives at \(Store.defaultPath()). Move it aside and relaunch BeLauncher \
             to start with an empty database.
             """
         alert.addButton(withTitle: "Reveal in Finder")

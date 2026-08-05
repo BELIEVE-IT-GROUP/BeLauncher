@@ -4,7 +4,7 @@ import Security
 /// Secrets referenced by snippets/workflows as `{secret:NAME}` live here, never in SQLite
 /// and never in an export file.
 public enum Keychain {
-    public static let service = "com.beacon.launcher.secrets"
+    public static let service = "com.belauncher.launcher.secrets"
 
     public enum Failure: Error, CustomStringConvertible {
         case status(OSStatus)

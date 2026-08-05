@@ -1,11 +1,11 @@
 import Testing
 import Foundation
-@testable import BeaconCore
+@testable import BeLauncherCore
 
 @MainActor
 private func temporaryStore() throws -> Store {
     let path = FileManager.default.temporaryDirectory
-        .appendingPathComponent("beacon-test-\(UUID().uuidString)")
+        .appendingPathComponent("belauncher-test-\(UUID().uuidString)")
         .appendingPathComponent("test.sqlite3").path
     return try Store(path: path)
 }

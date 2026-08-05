@@ -2,7 +2,7 @@ import Foundation
 
 /// Plain JSON, human-readable, no proprietary container: your data leaves as easily as it arrives.
 /// Clipboard history is excluded by default and secrets are never included.
-public struct BeaconArchive: Codable, Sendable, Equatable {
+public struct BeLauncherArchive: Codable, Sendable, Equatable {
     public static let currentVersion = 1
 
     public var version: Int
@@ -12,7 +12,7 @@ public struct BeaconArchive: Codable, Sendable, Equatable {
     public var settings: [String: String]
     public var clips: [String]?
 
-    public init(version: Int = BeaconArchive.currentVersion, exportedAt: Date = .now,
+    public init(version: Int = BeLauncherArchive.currentVersion, exportedAt: Date = .now,
                 snippets: [Snippet], workflows: [Workflow],
                 settings: [String: String], clips: [String]? = nil) {
         self.version = version
@@ -30,7 +30,7 @@ public enum ArchiveError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .unsupportedVersion(let v): "This file was written by a newer version of Beacon (format \(v))."
+        case .unsupportedVersion(let v): "This file was written by a newer version of BeLauncher (format \(v))."
         case .unreadable(let m): "The file could not be read: \(m)"
         }
     }
@@ -43,23 +43,23 @@ public struct ImportSummary: Sendable, Equatable {
 }
 
 public enum Archive {
-    public static func encode(_ archive: BeaconArchive) throws -> Data {
+    public static func encode(_ archive: BeLauncherArchive) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         return try encoder.encode(archive)
     }
 
-    public static func decode(_ data: Data) throws -> BeaconArchive {
+    public static func decode(_ data: Data) throws -> BeLauncherArchive {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let archive: BeaconArchive
+        let archive: BeLauncherArchive
         do {
-            archive = try decoder.decode(BeaconArchive.self, from: data)
+            archive = try decoder.decode(BeLauncherArchive.self, from: data)
         } catch {
             throw ArchiveError.unreadable("\(error.localizedDescription)")
         }
-        guard archive.version <= BeaconArchive.currentVersion else {
+        guard archive.version <= BeLauncherArchive.currentVersion else {
             throw ArchiveError.unsupportedVersion(archive.version)
         }
         return archive
@@ -67,12 +67,12 @@ public enum Archive {
 }
 
 extension Store {
-    public func exportArchive(includeClipboard: Bool = false) -> BeaconArchive {
+    public func exportArchive(includeClipboard: Bool = false) -> BeLauncherArchive {
         let keys = ["hotkey", "clipboard_enabled", "clipboard_retention_days",
                     "clipboard_max_items", "launch_at_login", "update_check_enabled"]
         var settings: [String: String] = [:]
         for key in keys { if let value = setting(key) { settings[key] = value } }
-        return BeaconArchive(
+        return BeLauncherArchive(
             snippets: snippets(),
             workflows: workflows(),
             settings: settings,
@@ -82,7 +82,7 @@ extension Store {
 
     /// Merges by keyword; existing entries win, so an import can never silently overwrite.
     @discardableResult
-    public func importArchive(_ archive: BeaconArchive) -> ImportSummary {
+    public func importArchive(_ archive: BeLauncherArchive) -> ImportSummary {
         var summary = ImportSummary()
         for snippet in archive.snippets {
             do {

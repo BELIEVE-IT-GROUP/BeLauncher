@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import BeaconCore
+import BeLauncherCore
 
 @MainActor
 @Observable
@@ -19,7 +19,7 @@ final class SettingsModel {
             guard pasteAfterCopy != oldValue else { return }
             // Just-in-time: the permission is only requested when the user turns this on.
             if pasteAfterCopy, !Permissions.requestAccessibility(
-                reason: "You asked Beacon to paste straight into the app you were using."
+                reason: "You asked BeLauncher to paste straight into the app you were using."
             ) {
                 pasteAfterCopy = false   // don't pretend the feature is on
                 return
@@ -34,7 +34,7 @@ final class SettingsModel {
                 store.setSetting("launch_at_login", launchAtLogin)
             } catch {
                 launchAtLoginError = "Could not change this setting: \(error.localizedDescription). " +
-                    "Launch at login only works when Beacon runs from a real .app bundle."
+                    "Launch at login only works when BeLauncher runs from a real .app bundle."
                 launchAtLogin = LaunchAtLogin.isEnabled
             }
         }
@@ -126,7 +126,7 @@ final class SettingsModel {
     func export(includeClipboard: Bool) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = SafeFilename.make(
-            "beacon-backup-\(dateStamp())", extension: "json"
+            "belauncher-backup-\(dateStamp())", extension: "json"
         )
         panel.allowedContentTypes = [.json]
         panel.message = "Everything except your secrets is written in plain, readable JSON."
@@ -159,7 +159,7 @@ final class SettingsModel {
 
     func exportDiagnostics() {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = SafeFilename.make("beacon-diagnostics-\(dateStamp())", extension: "txt")
+        panel.nameFieldStringValue = SafeFilename.make("belauncher-diagnostics-\(dateStamp())", extension: "txt")
         panel.message = "A plain-text summary. Read it before you share it."
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let report = store.diagnostics(
@@ -186,9 +186,9 @@ final class SettingsModel {
         Task { @MainActor in
             switch await UpdateCheck.run(feedURL: feed, currentVersion: version) {
             case .notConfigured:
-                updateStatus = "No update feed is configured. Set BEACON_UPDATE_FEED_URL in your .env file."
+                updateStatus = "No update feed is configured. Set BELAUNCHER_UPDATE_FEED_URL in your .env file."
             case .upToDate:
-                updateStatus = "Beacon \(version) is up to date."
+                updateStatus = "BeLauncher \(version) is up to date."
             case .available(let release):
                 updateStatus = "Version \(release.version) is available: \(release.url)"
             case .unavailable(let reason):
@@ -224,7 +224,7 @@ struct SettingsView: View {
                 Picker("Global hotkey", selection: $model.hotkey) {
                     ForEach(HotKey.Combo.all, id: \.label) { Text($0.label).tag($0.label) }
                 }
-                Toggle("Launch Beacon at login", isOn: $model.launchAtLogin)
+                Toggle("Launch BeLauncher at login", isOn: $model.launchAtLogin)
                 if let error = model.launchAtLoginError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
@@ -236,7 +236,7 @@ struct SettingsView: View {
                         Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                     }
                 }
-                Text("Beacon has no account, no analytics and no server. Updates are only checked when you ask.")
+                Text("BeLauncher has no account, no analytics and no server. Updates are only checked when you ask.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -322,7 +322,7 @@ struct SettingsView: View {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
                 HStack {
-                    Text("Workflows only open http, https and mailto URLs. Beacon never runs scripts.")
+                    Text("Workflows only open http, https and mailto URLs. BeLauncher never runs scripts.")
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
                     Button("Add workflow") {
@@ -381,9 +381,9 @@ struct SettingsView: View {
                     Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
                 Text("""
-                     To uninstall: quit Beacon, turn off “Launch at login”, delete Beacon.app, then \
-                     delete ~/Library/Application Support/Beacon. Secrets are removed from Keychain \
-                     Access under “com.beacon.launcher.secrets”. Nothing else is written anywhere.
+                     To uninstall: quit BeLauncher, turn off “Launch at login”, delete BeLauncher.app, then \
+                     delete ~/Library/Application Support/BeLauncher. Secrets are removed from Keychain \
+                     Access under “com.believe.belauncher.secrets”. Nothing else is written anywhere.
                      """)
                     .font(.caption).foregroundStyle(.secondary)
             }

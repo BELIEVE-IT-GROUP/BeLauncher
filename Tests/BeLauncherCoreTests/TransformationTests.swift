@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import BeaconCore
+@testable import BeLauncherCore
 
 // MARK: - Snippet expansion (the core transformation)
 
@@ -106,7 +106,7 @@ struct WorkflowURLTests {
         #expect(url?.absoluteString == "https://api.example.com/items?key=abc123")
     }
 
-    @Test("non-web schemes are rejected — Beacon never executes anything")
+    @Test("non-web schemes are rejected — BeLauncher never executes anything")
     func rejectsDangerousSchemes() {
         #expect(WorkflowURL.build(template: "file:///etc/passwd", query: "") == nil)
         #expect(WorkflowURL.build(template: "javascript:alert(1)", query: "") == nil)
@@ -185,9 +185,9 @@ struct SafeFilenameTests {
 
     @Test("empty or reserved names fall back")
     func fallback() {
-        #expect(SafeFilename.make("", fallback: "beacon", extension: "json") == "beacon.json")
-        #expect(SafeFilename.make("..", fallback: "beacon", extension: "json") == "beacon.json")
-        #expect(SafeFilename.make("   ", fallback: "beacon", extension: "json") == "beacon.json")
+        #expect(SafeFilename.make("", fallback: "belauncher", extension: "json") == "belauncher.json")
+        #expect(SafeFilename.make("..", fallback: "belauncher", extension: "json") == "belauncher.json")
+        #expect(SafeFilename.make("   ", fallback: "belauncher", extension: "json") == "belauncher.json")
     }
 
     @Test("control characters are removed and length is bounded")
@@ -207,12 +207,12 @@ struct EnvTests {
     func parsing() {
         let values = Env.parse("""
             # comment
-            BEACON_UPDATE_FEED_URL="https://example.com/feed.json"
+            BELAUNCHER_UPDATE_FEED_URL="https://example.com/feed.json"
 
             export OTHER=plain
             BROKEN
             """)
-        #expect(values["BEACON_UPDATE_FEED_URL"] == "https://example.com/feed.json")
+        #expect(values["BELAUNCHER_UPDATE_FEED_URL"] == "https://example.com/feed.json")
         #expect(values["OTHER"] == "plain")
         #expect(values["BROKEN"] == nil)
     }

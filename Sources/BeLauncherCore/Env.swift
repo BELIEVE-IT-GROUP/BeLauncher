@@ -21,7 +21,7 @@ public enum Env {
         return values
     }
 
-    /// Reads `~/Library/Application Support/Beacon/.env` first, then a `.env` beside the app.
+    /// Reads `~/Library/Application Support/BeLauncher/.env` first, then a `.env` beside the app.
     public static func load(paths: [String]) -> [String: String] {
         var merged: [String: String] = [:]
         for path in paths {

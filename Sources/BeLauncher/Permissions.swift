@@ -1,7 +1,7 @@
 import AppKit
 import ApplicationServices
 
-/// Beacon asks for exactly one optional permission, and only at the moment it is needed.
+/// BeLauncher asks for exactly one optional permission, and only at the moment it is needed.
 /// Search, snippets, clipboard history and workflows all work without it.
 @MainActor
 enum Permissions {
@@ -14,15 +14,15 @@ enum Permissions {
         if accessibilityGranted { return true }
 
         let alert = NSAlert()
-        alert.messageText = "Beacon needs Accessibility permission"
+        alert.messageText = "BeLauncher needs Accessibility permission"
         alert.informativeText = """
             \(reason)
 
             macOS only lets an app press ⌘V in another app if you grant Accessibility \
-            permission. Beacon uses it for nothing else: it does not read your screen, \
+            permission. BeLauncher uses it for nothing else: it does not read your screen, \
             your keystrokes or the contents of other apps.
 
-            You can skip this. Everything else in Beacon keeps working, and pasting stays \
+            You can skip this. Everything else in BeLauncher keeps working, and pasting stays \
             a manual ⌘V.
             """
         alert.alertStyle = .informational
