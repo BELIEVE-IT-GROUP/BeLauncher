@@ -97,7 +97,7 @@ public enum DetailBuilder {
                 body: result.title,
                 isMonospaced: true,
                 metadata: [.init(label: "Operación", value: result.subtitle
-                    .replacingOccurrences(of: " · ↩ copies it", with: ""))]
+                    .replacingOccurrences(of: " · ↩ lo copia", with: ""))]
             )
 
         case .agent:

@@ -48,7 +48,7 @@ public enum Calculator {
         // NSExpression would happily evaluate function calls; the character allow-list above
         // is what keeps this to arithmetic.
         guard let value = evaluateArithmetic(expression) else { return nil }
-        return result(value, detail: "Calculation")
+        return result(value, detail: "Cálculo")
     }
 
     private static func evaluateArithmetic(_ expression: String) -> Double? {
@@ -84,7 +84,7 @@ public enum Calculator {
             .components(separatedBy: CharacterSet.decimalDigits.inverted.subtracting(CharacterSet(charactersIn: ".")))
             .filter { !$0.isEmpty }
         guard parts.count >= 2, let percent = Double(parts[0]), let total = Double(parts[1]) else { return nil }
-        return result(percent / 100 * total, detail: "\(format(percent))% of \(format(total))")
+        return result(percent / 100 * total, detail: "\(format(percent))% de \(format(total))")
     }
 
     // MARK: - Unit conversion

@@ -22,11 +22,11 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         switch self {
         case .application: "App"
         case .snippet: "Snippet"
-        case .clipboard: "Clipboard"
-        case .workflow: "Workflow"
-        case .calculation: "Result"
-        case .file: "File"
-        case .flow: "Flow"
+        case .clipboard: "Portapapeles"
+        case .workflow: "Búsqueda"
+        case .calculation: "Resultado"
+        case .file: "Archivo"
+        case .flow: "Flujo"
         case .system: "Sistema"
         case .bookmark: "Enlace"
         case .window: "Ventana"
@@ -284,7 +284,7 @@ public enum SearchEngine {
         if let calculation {
             pinned.append(SearchResult(
                 id: "calc", kind: .calculation, title: calculation.display,
-                subtitle: "\(calculation.detail) · ↩ copies it",
+                subtitle: "\(calculation.detail) · ↩ lo copia",
                 score: 100_000, matched: [], payload: calculation.raw
             ))
         }
