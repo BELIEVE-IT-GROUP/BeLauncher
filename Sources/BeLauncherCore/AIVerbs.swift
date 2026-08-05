@@ -94,11 +94,20 @@ public struct AIVerbRunner: Sendable {
     public let client: IntelligenceClient
     public let router: ModelRouter
     public let providers: [IntelligenceProvider]
+    /// The model to ask for, per provider id.
+    ///
+    /// Without this the app asked Ollama for the hardcoded `llama3.2` whether or not that was
+    /// installed. Ollama then sat there trying to resolve a model nobody had, which read as the
+    /// whole Mac freezing for a minute and ended in "error comunicándonos con el modelo". The app
+    /// could already list what was installed; it just never used the answer.
+    public let models: [String: String]
 
-    public init(client: IntelligenceClient, router: ModelRouter, providers: [IntelligenceProvider]) {
+    public init(client: IntelligenceClient, router: ModelRouter,
+                providers: [IntelligenceProvider], models: [String: String] = [:]) {
         self.client = client
         self.router = router
         self.providers = providers
+        self.models = models
     }
 
     public func run(_ verb: AIVerb, on text: String) async throws -> String {
@@ -113,7 +122,56 @@ public struct AIVerbRunner: Sendable {
                 prompt: "\(verb.instruction)\n\n---\n\(trimmed)",
                 sensitivity: verb.sensitivity
             ),
-            using: provider
+            using: provider,
+            model: models[provider.id]
         )
+    }
+}
+
+extension AIVerb {
+    /// What someone types when they want this, in the words they would actually use.
+    ///
+    /// The verbs existed and were only reachable by selecting a result and pressing ⌘K — two steps
+    /// nobody guesses. "Traducir esto" is what a person types; a launcher that answers it is a
+    /// launcher, and one that requires the ritual is a keyboard exam.
+    public var triggers: [String] {
+        switch id {
+        case "translate-es": ["traducir", "traduce", "traducir al espanol", "translate to spanish"]
+        case "translate-en": ["traducir al ingles", "translate", "traduce al ingles", "to english"]
+        case "summarise": ["resumir", "resume", "resumen", "summarise", "summarize"]
+        case "bullets": ["puntos", "bullets", "vinetas"]
+        case "fix": ["corregir", "corrige", "ortografia", "fix"]
+        case "shorter": ["acortar", "acorta", "mas corto", "shorten"]
+        case "reply": ["responder", "redactar respuesta", "reply"]
+        case "explain": ["explicar", "explica", "explain"]
+        case "json": ["json", "formatear json", "format json"]
+        case "table": ["tabla", "table"]
+        case "extract-tasks": ["tareas", "sacar tareas", "extract tasks"]
+        default: [title.lowercased()]
+        }
+    }
+
+    /// Finds the verb someone typed, and whatever text they typed after it.
+    ///
+    /// Returns nil for anything shorter than three characters so ordinary typing never turns into
+    /// an AI offer halfway through a word.
+    public static func typed(_ query: String) -> (verb: AIVerb, argument: String)? {
+        let folded = query
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .trimmingCharacters(in: .whitespaces)
+        guard folded.count >= 3 else { return nil }
+
+        var best: (verb: AIVerb, argument: String, length: Int)?
+        for verb in all {
+            for trigger in verb.triggers where folded == trigger || folded.hasPrefix(trigger + " ") {
+                // Longest trigger wins, so "traducir al ingles" never loses to "traducir".
+                if best == nil || trigger.count > best!.length {
+                    best = (verb, String(folded.dropFirst(trigger.count))
+                        .trimmingCharacters(in: .whitespaces), trigger.count)
+                }
+            }
+        }
+        guard let best else { return nil }
+        return (best.verb, best.argument)
     }
 }

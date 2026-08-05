@@ -284,12 +284,17 @@ private struct IntelligenceTab: View {
                     }
                 } else {
                     ForEach(model.localInstallations) { installation in
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Label("\(installation.name) está corriendo",
                                   systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green).font(.system(size: 12))
-                            Text(installation.models.prefix(6).joined(separator: ", "))
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                            Picker("Modelo", selection: Binding(
+                                get: { model.selectedLocalModels[installation.providerID]
+                                        ?? installation.models[0] },
+                                set: { model.chooseLocalModel($0, for: installation.providerID) }
+                            )) {
+                                ForEach(installation.models, id: \.self) { Text($0).tag($0) }
+                            }
                         }
                     }
                     Text("Sin clave, sin coste por token y sin que nada salga de este Mac.")

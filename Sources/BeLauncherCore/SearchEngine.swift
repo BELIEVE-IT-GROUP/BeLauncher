@@ -168,6 +168,24 @@ public enum SearchEngine {
             ))
 
         case .none:
+            // Typing what you want is the whole point of a launcher. "traducir esto", "resume",
+            // "corrige" now surface directly instead of hiding behind select-then-⌘K, which is a
+            // ritual nobody guesses and everybody has to be told.
+            if let (verb, argument) = AIVerb.typed(query) {
+                let source = argument.isEmpty
+                    ? (input.clips.first(where: { $0.kind == .text })?.text ?? "")
+                    : argument
+                if !source.isEmpty {
+                    pinned.append(SearchResult(
+                        id: "verb-\(verb.id)", kind: .answer, title: verb.title,
+                        subtitle: argument.isEmpty
+                            ? "sobre lo último que copiaste · \(preview(source))"
+                            : preview(source),
+                        score: 99_000, matched: [], payload: verb.id + "\u{1F}" + source
+                    ))
+                }
+            }
+
             // Not a question: it might still be something the app knows how to carry out. But a
             // mission is our inference, and anything the user built themselves outranks it — if
             // they named a flow "enfoque", "enfoque" means their flow, full stop.

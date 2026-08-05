@@ -55,7 +55,7 @@ public enum LocalModels {
                     guard let (data, _) = try? await URLSession.shared.data(for: request) else {
                         return nil
                     }
-                    let models = models(in: data)
+                    let models = models(in: data).filter(canChat)
                     guard !models.isEmpty else { return nil }
                     return Installation(providerID: entry.providerID, name: entry.name,
                                         models: models)
@@ -69,10 +69,25 @@ public enum LocalModels {
         }
     }
 
+    /// Models that cannot hold a conversation, however many of them are installed.
+    ///
+    /// An Ollama library is usually a mix: a couple of chat models and several embedding models
+    /// pulled by some other tool. Picking the first name in the list lands on `nomic-embed-text`
+    /// about as often as not, and asking an embedding model to translate a sentence fails in a way
+    /// that looks exactly like the app being broken.
+    static let embeddingMarkers = ["embed", "bge-", "gte-", "e5-", "minilm", "rerank"]
+
+    public static func canChat(_ model: String) -> Bool {
+        let name = model.lowercased()
+        return !embeddingMarkers.contains { name.contains($0) }
+    }
+
     /// What to tell someone who has no local model. One command, not a research project.
     public static let howToGetOne = """
-        Ninguno corriendo. Para tener IA gratis y privada en este Mac:
-        instala Ollama desde ollama.com y ejecuta «ollama pull llama3.2».
+        Ningún modelo de chat disponible. Para tener IA gratis y privada en este Mac:
+        instala Ollama desde ollama.com y ejecuta «ollama pull qwen2.5».
+        Si ya tienes Ollama abierto, puede que solo tengas modelos de embeddings
+        (nomic-embed-text, bge…), que no saben conversar.
         BeLauncher lo detecta solo la próxima vez que abras esta pantalla.
         """
 }

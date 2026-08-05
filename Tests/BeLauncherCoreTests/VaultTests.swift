@@ -482,3 +482,30 @@ struct OnboardingTests {
         #expect(Onboarding.privacy.contains("no tiene cuenta"))
     }
 }
+
+@Suite("Telling a chat model from an embedding model")
+struct ChatCapableTests {
+
+    @Test("embedding models are never offered as the one that answers")
+    func filtersEmbeddings() {
+        for name in ["nomic-embed-text:latest", "bge-m3:latest", "text-embedding-3-small",
+                     "gte-large", "all-minilm"] {
+            #expect(!LocalModels.canChat(name), "\(name) no sabe conversar")
+        }
+    }
+
+    @Test("real chat models survive the filter")
+    func keepsChatModels() {
+        for name in ["qwen2.5:latest", "llama3.2", "mistral-7b", "phi-4", "gemma2:9b"] {
+            #expect(LocalModels.canChat(name))
+        }
+    }
+
+    @Test("a library of only embedding models counts as nothing to talk to")
+    func embeddingsOnlyIsEmpty() {
+        // Exactly the case on the machine where this was found: qwen plus two embedding models,
+        // and the app taking whichever came first.
+        let json = Data(#"{"models":[{"name":"nomic-embed-text:latest"},{"name":"bge-m3:latest"}]}"#.utf8)
+        #expect(LocalModels.models(in: json).filter(LocalModels.canChat).isEmpty)
+    }
+}

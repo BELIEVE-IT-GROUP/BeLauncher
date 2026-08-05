@@ -497,7 +497,27 @@ final class SettingsModel {
         Task { @MainActor in
             localInstallations = await LocalModels.installed()
             localScanned = true
+            // Pick one the person actually has. The app used to ask Ollama for a hardcoded
+            // "llama3.2" whether or not it was installed, which is what made translating hang.
+            for installation in localInstallations {
+                let key = "ai_model_\(installation.providerID)"
+                let saved = store.setting(key) ?? ""
+                if !installation.models.contains(saved) {
+                    store.setSetting(key, installation.models[0])
+                }
+            }
+            selectedLocalModels = Dictionary(uniqueKeysWithValues: localInstallations.map {
+                ($0.providerID, store.setting("ai_model_\($0.providerID)") ?? $0.models[0])
+            })
         }
+    }
+
+    /// Which model each running local runner should be asked for.
+    var selectedLocalModels: [String: String] = [:]
+
+    func chooseLocalModel(_ model: String, for providerID: String) {
+        store.setSetting("ai_model_\(providerID)", model)
+        selectedLocalModels[providerID] = model
     }
 
     var vaultRoot: String { Vault.defaultRoot() }

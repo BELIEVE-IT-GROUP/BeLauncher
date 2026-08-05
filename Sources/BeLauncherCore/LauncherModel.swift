@@ -54,6 +54,8 @@ public final class LauncherModel {
         indirect case runMission(Mission)
         indirect case missionCancelled(Mission)
         case dismiss
+        /// Calls off a model request that is taking longer than the person is willing to wait.
+        case cancelAI
     }
 
     public private(set) var state: State = .loading
@@ -97,7 +99,7 @@ public final class LauncherModel {
     public func aiWorking(_ title: String) { aiState = .working(title) }
     public func aiAnswered(verb: String, text: String) { aiState = .answer(verb: verb, text: text) }
     public func aiFailed(_ message: String) { aiState = .failed(message) }
-    public func clearAI() { aiState = .idle }
+    public func clearAI() { aiState = .idle; perform(.cancelAI) }
 
     public private(set) var isActionPanelOpen = false
     public private(set) var actionSelection = 0
@@ -403,6 +405,14 @@ public final class LauncherModel {
             return true
 
         case .answer:
+            // A typed verb carries "<verb id>\u{1F}<text>": the separator is a unit separator so it
+            // can never collide with anything a person copied.
+            if result.id.hasPrefix("verb-"),
+               let split = result.payload.firstIndex(of: "\u{1F}") {
+                perform(.runVerb(id: String(result.payload[..<split]),
+                                 text: String(result.payload[result.payload.index(after: split)...])))
+                return true
+            }
             if result.id == "answer-remember" {
                 perform(.remember(text: result.payload, source: "Escrito a mano"))
             } else {

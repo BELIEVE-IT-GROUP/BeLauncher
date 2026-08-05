@@ -78,7 +78,11 @@ public enum IntelligenceError: Error, Equatable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .noProviderConfigured:
-            "Todavía no elegiste un modelo. Ajustes › Inteligencia."
+            // The old text sent people to a screen where everything already looked configured.
+            // The usual cause is Ollama simply not running, which nothing was saying out loud.
+            "No hay ningún modelo disponible ahora mismo. Si usas Ollama o LM Studio, ábrelo y "
+            + "vuelve a intentarlo; si prefieres uno en la nube, pon tu clave en "
+            + "Ajustes › Inteligencia."
         case .missingKey(let provider):
             "Falta la clave de \(provider). Guárdala en Ajustes; se queda en tu Llavero."
         case .blockedBySensitivity(let provider):

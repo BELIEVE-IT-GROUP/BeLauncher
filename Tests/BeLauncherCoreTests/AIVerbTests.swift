@@ -191,3 +191,93 @@ struct AIInLauncherTests {
         #expect(model.aiState == .idle)
     }
 }
+
+/// Typing what you want, instead of learning where it is hidden.
+@Suite("Asking for something in your own words")
+@MainActor
+struct TypedVerbTests {
+
+    @Test("«traducir» offers to translate what you last copied")
+    func translatesTheClipboard() {
+        let clip = Clip(id: 1, text: "Hello there", sourceApp: "Mail", kind: .text)
+        let results = SearchEngine.search("traducir", in: SearchInput(clips: [clip]))
+        let offer = results.first { $0.id == "verb-translate-es" }
+        #expect(offer != nil, "traducir sin adivinar el ritual de seleccionar y pulsar ⌘K")
+        #expect(offer?.payload.contains("Hello there") == true)
+    }
+
+    @Test("the longest match wins, so «traducir al ingles» is not «traducir»")
+    func longestTriggerWins() {
+        #expect(AIVerb.typed("traducir al ingles esto")?.verb.id == "translate-en")
+        #expect(AIVerb.typed("traducir esto")?.verb.id == "translate-es")
+    }
+
+    @Test("text typed after the verb beats the clipboard")
+    func explicitArgumentWins() {
+        let clip = Clip(id: 1, text: "lo copiado", sourceApp: "Mail", kind: .text)
+        let results = SearchEngine.search("resume esta frase larga",
+                                          in: SearchInput(clips: [clip]))
+        let offer = results.first { $0.id == "verb-summarise" }
+        #expect(offer?.payload.contains("esta frase larga") == true)
+        #expect(offer?.payload.contains("lo copiado") == false)
+    }
+
+    @Test("nothing to work on means no offer at all")
+    func noSourceNoOffer() {
+        let results = SearchEngine.search("traducir", in: SearchInput())
+        #expect(!results.contains { $0.id.hasPrefix("verb-") },
+                "ofrecer traducir la nada es peor que no ofrecer nada")
+    }
+
+    @Test("ordinary typing never becomes an AI offer by accident")
+    func noFalsePositives() {
+        #expect(AIVerb.typed("tr") == nil)
+        #expect(AIVerb.typed("traduccion automatica") == nil, "solo el verbo, no cualquier palabra")
+        #expect(AIVerb.typed("resumen") != nil)
+    }
+
+    @Test("running it asks for the verb, on the right text")
+    func runsTheVerb() {
+        var performed: [LauncherModel.Action] = []
+        let clip = Clip(id: 1, text: "Hello there", sourceApp: "Mail", kind: .text)
+        let model = LauncherModel(dataSource: { SearchInput(clips: [clip]) },
+                                  perform: { performed.append($0) })
+        model.activate()
+        model.query = "traducir"
+        model.handle(.enter)
+
+        guard case .runVerb(let id, let text)? = performed.first else {
+            Issue.record("no pidió el verbo: \(performed)"); return
+        }
+        #expect(id == "translate-es")
+        #expect(text == "Hello there")
+    }
+}
+
+@Suite("Asking the model that is actually installed")
+struct ModelChoiceTests {
+
+    @Test("the runner asks for the model it was given, not a hardcoded one")
+    func usesTheInstalledModel() async throws {
+        final class Recorder: @unchecked Sendable { var model: String? }
+        let recorder = Recorder()
+        let client = IntelligenceClient(transport: { request in
+            let body = try #require(request.httpBody)
+            let json = try #require(
+                JSONSerialization.jsonObject(with: body) as? [String: Any])
+            recorder.model = json["model"] as? String
+            return (Data(#"{"choices":[{"message":{"content":"hola"}}]}"#.utf8),
+                    URLResponse())
+        })
+        let ollama = try #require(IntelligenceProvider.named("ollama"))
+        let runner = AIVerbRunner(
+            client: client, router: ModelRouter(preferred: "ollama"),
+            providers: [ollama], models: ["ollama": "qwen2.5:7b"]
+        )
+        _ = try await runner.run(try #require(AIVerb.named("translate-es")), on: "hello")
+
+        #expect(recorder.model == "qwen2.5:7b",
+                "pedir un modelo que el usuario no tiene es lo que colgaba la app un minuto")
+        #expect(recorder.model != ollama.defaultModel)
+    }
+}

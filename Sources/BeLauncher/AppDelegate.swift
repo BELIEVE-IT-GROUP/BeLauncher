@@ -12,6 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updateItem: NSMenuItem?
     private var pendingRelease: Release?
     private var welcomeWindow: NSWindow?
+    /// Held so a request that is taking too long can be called off instead of endured.
+    private var aiTask: Task<Void, Never>?
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
     private var clipboard: ClipboardWatcher?
@@ -507,6 +509,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func perform(_ action: LauncherModel.Action) -> String? {
         switch action {
         case .dismiss:
+            aiTask?.cancel()
             panel?.orderOut(nil)
 
         case .launchApplication(let path):
@@ -550,6 +553,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .runMission(let mission):
             runMission(mission)
+
+        case .cancelAI:
+            aiTask?.cancel()
+            aiTask = nil
 
         case .missionCancelled:
             break   // the plan was shown and refused: nothing happened, nothing to report
@@ -669,21 +676,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func runAIVerb(id: String, text: String) {
         guard let verb = AIVerb.named(id), let model, let store else { return }
 
-        let configured = IntelligenceProvider.all.filter { provider in
-            provider.isPrivate || (Keychain.get(provider.keychainAccount)?.isEmpty == false)
-        }
-        guard !configured.isEmpty else {
-            model.aiFailed(IntelligenceError.noProviderConfigured.description)
-            return
-        }
-
-        let runner = AIVerbRunner(
-            client: IntelligenceClient(),
-            router: ModelRouter(preferred: store.setting("ai_provider")),
-            providers: configured
-        )
+        // A local provider counts as available only when it is actually running. Treating every
+        // local provider as present meant picking Ollama with Ollama switched off, then waiting
+        // out a 60-second timeout before being told anything.
         model.aiWorking(verb.title)
-        Task { @MainActor in
+        aiTask?.cancel()
+        aiTask = Task { @MainActor in
+            let running = await LocalModels.installed()
+            var models: [String: String] = [:]
+            for installation in running {
+                models[installation.providerID] = store.setting("ai_model_\(installation.providerID)")
+                    .flatMap { saved in installation.models.contains(saved) ? saved : nil }
+                    ?? installation.models[0]
+            }
+            let runningIDs = Set(running.map(\.providerID))
+            let configured = IntelligenceProvider.all.filter { provider in
+                provider.isPrivate
+                    ? runningIDs.contains(provider.id)
+                    : (Keychain.get(provider.keychainAccount)?.isEmpty == false)
+            }
+            guard !configured.isEmpty else {
+                model.aiFailed(IntelligenceError.noProviderConfigured.description)
+                return
+            }
+
+            let runner = AIVerbRunner(
+                client: IntelligenceClient(),
+                router: ModelRouter(preferred: store.setting("ai_provider")),
+                providers: configured,
+                models: models
+            )
             do {
                 let answer = try await runner.run(verb, on: text)
                 model.aiAnswered(verb: verb.title, text: answer)
