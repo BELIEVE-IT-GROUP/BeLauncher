@@ -19,6 +19,7 @@ struct KeyboardWorkflowTests {
 
     private func makeModel(
         clips: [Clip] = [],
+        files: [FoundFile] = [],
         recorder: Recorder
     ) -> LauncherModel {
         let input = SearchInput(
@@ -33,6 +34,7 @@ struct KeyboardWorkflowTests {
         )
         return LauncherModel(
             dataSource: { input },
+            fileSearch: FileSearch { _, limit in Array(files.prefix(limit)) },
             expander: {
                 SnippetExpander(clipboard: { nil }, secret: { _ in nil }, uuid: { "UUID" },
                                 now: Date(timeIntervalSince1970: 0))
@@ -159,6 +161,72 @@ struct KeyboardWorkflowTests {
         shouldFail = false
         failing.retry()
         #expect(failing.state == .empty)
+    }
+
+    @Test("a calculation is pinned above everything and Enter copies the raw value")
+    func calculation() {
+        let recorder = Recorder()
+        let model = makeModel(recorder: recorder)
+        model.activate()
+        model.query = "15% of 300"
+
+        #expect(model.selected?.kind == .calculation)
+        #expect(model.selected?.title == "45")
+        model.handle(.enter)
+        #expect(recorder.actions == [.copyToClipboard(text: "45", cursorOffset: nil), .dismiss])
+    }
+
+    @Test("the f prefix lists files, Enter opens and Command-Enter reveals")
+    func fileSearch() {
+        let recorder = Recorder()
+        let model = makeModel(
+            files: [FoundFile(name: "budget.numbers", path: "/Users/x/Docs/budget.numbers")],
+            recorder: recorder
+        )
+        model.activate()
+        model.query = "f budget"
+
+        #expect(model.results.map(\.kind) == [.file])
+        #expect(model.selected?.title == "budget.numbers")
+
+        model.handle(.revealInFinder)
+        #expect(recorder.actions == [.revealInFinder(path: "/Users/x/Docs/budget.numbers"), .dismiss])
+
+        recorder.actions.removeAll()
+        model.handle(.enter)
+        #expect(recorder.actions == [.openFile(path: "/Users/x/Docs/budget.numbers"), .dismiss])
+    }
+
+    @Test("Command-Enter reveals an app and does nothing for a snippet")
+    func revealScope() {
+        let recorder = Recorder()
+        let model = makeModel(recorder: recorder)
+        model.activate()
+        model.query = "safari"
+        #expect(model.handle(.revealInFinder) == true)
+        #expect(recorder.actions.first == .revealInFinder(path: "/Applications/Safari.app"))
+
+        recorder.actions.removeAll()
+        model.query = "sig"
+        #expect(model.selected?.kind == .snippet)
+        #expect(model.handle(.revealInFinder) == false)
+        #expect(recorder.actions.isEmpty)
+    }
+
+    @Test("clipboard mode only ever shows clipboard entries")
+    func clipboardMode() {
+        let recorder = Recorder()
+        let model = makeModel(
+            clips: [Clip(id: 1, text: "safari bookmark", sourceApp: "Safari")],
+            recorder: recorder
+        )
+        model.activate(mode: .clipboard)
+        #expect(model.mode == .clipboard)
+
+        // "safari" would match the Safari app in normal mode; here it must not.
+        model.query = "safari"
+        #expect(model.results.map(\.kind) == [.clipboard])
+        #expect(model.selected?.title == "safari bookmark")
     }
 
     @Test("keys do nothing harmful when there is nothing to select")

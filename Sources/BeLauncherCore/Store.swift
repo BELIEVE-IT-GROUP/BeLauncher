@@ -150,7 +150,7 @@ public final class Store {
         switch kind {
         case .snippet: try? database.execute("UPDATE snippets SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .workflow: try? database.execute("UPDATE workflows SET uses = uses + 1 WHERE id = ?", [.int(id)])
-        case .application, .clipboard: break
+        case .application, .clipboard, .calculation, .file: break
         }
     }
 
@@ -170,6 +170,8 @@ public final class Store {
     public func recordClip(text: String, sourceApp: String = "", at date: Date = .now) {
         let trimmed = String(text.prefix(20_000))
         guard !trimmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        // Credentials never enter the history — see SecretGuard for why this is not optional.
+        guard !SecretGuard.looksLikeSecret(trimmed) else { return }
         let digest = Digest.sha256(trimmed)
         try? database.execute("""
             INSERT INTO clips (text, digest, source_app, created_at) VALUES (?, ?, ?, ?)
@@ -183,6 +185,15 @@ public final class Store {
 
     public func clearClips() {
         try? database.execute("DELETE FROM clips")
+    }
+
+    /// Removes credentials that were captured before SecretGuard existed. Runs on every
+    /// launch: a key already in the history is exactly the problem worth fixing.
+    @discardableResult
+    public func purgeSecrets() -> Int {
+        let offenders = clips(limit: 100_000).filter { SecretGuard.looksLikeSecret($0.text) }
+        for clip in offenders { deleteClip(id: clip.id) }
+        return offenders.count
     }
 
     /// Drops clips older than `retentionDays` and anything past `maxItems`.

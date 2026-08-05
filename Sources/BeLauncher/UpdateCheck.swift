@@ -24,6 +24,8 @@ enum UpdateCheck {
             var request = URLRequest(url: url)
             request.timeoutInterval = 8
             request.cachePolicy = .reloadIgnoringLocalCacheData
+            // Cloudflare in front of the feed rejects unknown clients; identify ourselves.
+            request.setValue("BeLauncher/\(currentVersion) (macOS)", forHTTPHeaderField: "User-Agent")
             let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                 return .unavailable("The update feed replied with HTTP \(http.statusCode).")

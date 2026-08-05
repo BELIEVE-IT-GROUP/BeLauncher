@@ -11,13 +11,16 @@ final class HotKey {
         let label: String
 
         static let all: [Combo] = [
+            Combo(keyCode: 49, carbonModifiers: UInt32(cmdKey | shiftKey), label: "⇧⌘ Space"),
             Combo(keyCode: 49, carbonModifiers: UInt32(optionKey), label: "⌥ Space"),
             Combo(keyCode: 49, carbonModifiers: UInt32(controlKey), label: "⌃ Space"),
-            Combo(keyCode: 49, carbonModifiers: UInt32(cmdKey | shiftKey), label: "⇧⌘ Space"),
             Combo(keyCode: 49, carbonModifiers: UInt32(cmdKey | optionKey), label: "⌥⌘ Space"),
         ]
 
         static func named(_ label: String) -> Combo { all.first { $0.label == label } ?? all[0] }
+
+        /// Fixed second shortcut: ⌥C jumps straight into clipboard history.
+        static let clipboardHistory = Combo(keyCode: 8, carbonModifiers: UInt32(optionKey), label: "⌥ C")
     }
 
     private static var handlers: [UInt32: () -> Void] = [:]

@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: CommandPanel?
     private var statusItem: NSStatusItem?
     private var hotKey: HotKey?
+    private var clipboardHotKey: HotKey?
     private var clipboard: ClipboardWatcher?
     private var settingsWindow: NSWindow?
     private var settingsModel: SettingsModel?
@@ -35,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.store = store
         store.seedIfEmpty()
+        store.purgeSecrets()
         store.trimClips(
             retentionDays: store.setting("clipboard_retention_days", default: 30),
             maxItems: store.setting("clipboard_max_items", default: 500)
@@ -79,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         hotKey?.invalidate()
+        clipboardHotKey?.invalidate()
         clipboard?.stop()
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor) }
     }
@@ -101,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image?.isTemplate = true
 
         let menu = NSMenu()
-        let open = NSMenuItem(title: "Open BeLauncher", action: #selector(togglePanel), keyEquivalent: "")
+        let open = NSMenuItem(title: "Open BeLauncher", action: #selector(togglePanelFromMenu), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
@@ -139,7 +142,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func registerHotKey(named label: String) {
         hotKey?.invalidate()
-        hotKey = HotKey(combo: .named(label)) { [weak self] in self?.togglePanel() }
+        hotKey = HotKey(combo: .named(label)) { [weak self] in self?.togglePanel(mode: .all) }
+        // ⌥C opens straight into clipboard history.
+        clipboardHotKey?.invalidate()
+        clipboardHotKey = HotKey(combo: .clipboardHistory) { [weak self] in
+            self?.togglePanel(mode: .clipboard)
+        }
         if hotKey == nil {
             // Another app already owns this shortcut — say so instead of failing silently.
             let alert = NSAlert()
@@ -151,12 +159,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Actions
 
-    @objc func togglePanel() {
+    @objc func togglePanelFromMenu() { togglePanel(mode: .all) }
+
+    func togglePanel(mode: LauncherModel.Mode) {
         guard let panel, let model else { return }
-        if panel.isVisible {
+        if panel.isVisible, model.mode == mode {
             panel.orderOut(nil)
         } else {
-            model.activate()
+            model.activate(mode: mode)
             panel.present()
         }
     }
@@ -211,6 +221,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .openURL(let url):
             NSWorkspace.shared.open(url)
+
+        case .openFile(let path):
+            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+
+        case .revealInFinder(let path):
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
 
         case .copyToClipboard(let text, _):
             clipboard?.ignoreNextChange()

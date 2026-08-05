@@ -157,8 +157,17 @@ struct CommandView: View {
                 .foregroundStyle(.tertiary)
             Spacer()
             KeyCap(symbol: "↑↓", label: "navigate")
-            KeyCap(symbol: "⇥", label: "complete")
-            KeyCap(symbol: "↩", label: "run")
+            if let kind = model.selected?.kind {
+                switch kind {
+                case .application, .file:
+                    KeyCap(symbol: "⌘↩", label: "reveal")
+                case .workflow:
+                    KeyCap(symbol: "⇥", label: "complete")
+                default:
+                    EmptyView()
+                }
+            }
+            KeyCap(symbol: "↩", label: runLabel)
             Button(action: openSettings) {
                 KeyCap(symbol: "⌘,", label: "settings")
             }
@@ -168,10 +177,21 @@ struct CommandView: View {
         .frame(height: 34)
     }
 
+    private var runLabel: String {
+        switch model.selected?.kind {
+        case .calculation, .clipboard, .snippet: "copy"
+        case .file: "open"
+        default: "run"
+        }
+    }
+
     private var countLabel: String {
         switch model.state {
         case .results: "\(model.results.count) result\(model.results.count == 1 ? "" : "s")"
-        case .empty: model.results.isEmpty ? "Type to search" : "Recent items"
+        case .empty:
+            model.results.isEmpty
+                ? "Try 2+2 · 10 km to mi · f report"
+                : (model.mode == .clipboard ? "Clipboard history" : "Recent items")
         case .loading: "Loading"
         case .noMatch: "No results"
         case .failed: "Error"

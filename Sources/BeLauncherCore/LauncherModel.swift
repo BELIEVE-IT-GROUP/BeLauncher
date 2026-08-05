@@ -17,12 +17,22 @@ public final class LauncherModel {
 
     public enum Key: Sendable {
         case up, down, enter, escape, tab
+        /// ⌘↩ — reveal the selected app or file in Finder instead of opening it.
+        case revealInFinder
+    }
+
+    /// The window can be summoned straight into clipboard history (⌥C).
+    public enum Mode: Sendable, Equatable {
+        case all
+        case clipboard
     }
 
     public enum Action: Equatable, Sendable {
         case launchApplication(path: String)
         case copyToClipboard(text: String, cursorOffset: Int?)
         case openURL(URL)
+        case openFile(path: String)
+        case revealInFinder(path: String)
         case dismiss
     }
 
@@ -31,6 +41,7 @@ public final class LauncherModel {
     public private(set) var selection: Int = 0
     /// Bumped every time the window is shown so the text field can re-take focus.
     public private(set) var focusToken: Int = 0
+    public private(set) var mode: Mode = .all
 
     public var query: String = "" {
         didSet { if query != oldValue { refresh() } }
@@ -41,17 +52,20 @@ public final class LauncherModel {
     }
 
     private let dataSource: @MainActor () throws -> SearchInput
+    private let fileSearch: FileSearch
     private let expanderFactory: @MainActor () -> SnippetExpander
     private let perform: @MainActor (Action) -> Void
     private let recordUse: @MainActor (ResultKind, Int64) -> Void
 
     public init(
         dataSource: @escaping @MainActor () throws -> SearchInput,
+        fileSearch: FileSearch = FileSearch(),
         expander: @escaping @MainActor () -> SnippetExpander = { SnippetExpander() },
         recordUse: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
         perform: @escaping @MainActor (Action) -> Void
     ) {
         self.dataSource = dataSource
+        self.fileSearch = fileSearch
         self.expanderFactory = expander
         self.recordUse = recordUse
         self.perform = perform
@@ -60,7 +74,8 @@ public final class LauncherModel {
     // MARK: - Lifecycle
 
     /// Called every time the window is summoned.
-    public func activate() {
+    public func activate(mode: Mode = .all) {
+        self.mode = mode
         query = ""
         selection = 0
         focusToken += 1
@@ -83,8 +98,19 @@ public final class LauncherModel {
             if trimmed.isEmpty {
                 results = SearchEngine.recents(input.clips)
                 state = .empty
+            } else if mode == .clipboard {
+                results = SearchEngine.search(query, in: SearchInput(clips: input.clips))
+                state = results.isEmpty ? .noMatch : .results
             } else {
-                results = SearchEngine.search(query, in: input)
+                // ponytail: mdfind runs synchronously here. It only fires behind the explicit
+                // "f " prefix and returns in a few ms; move it off the main actor if that stops
+                // being true.
+                let files = FileSearch.query(from: query).map { fileSearch.search($0) } ?? []
+                results = SearchEngine.search(
+                    query, in: input,
+                    calculation: Calculator.evaluate(query),
+                    files: files
+                )
                 state = results.isEmpty ? .noMatch : .results
             }
         } catch {
@@ -116,6 +142,13 @@ public final class LauncherModel {
             guard let completion = selected?.completion else { return false }
             query = completion
             return true
+        case .revealInFinder:
+            guard let result = selected,
+                  result.kind == .application || result.kind == .file else { return false }
+            perform(.revealInFinder(path: result.payload))
+            perform(.dismiss)
+            return true
+
         case .enter:
             return runSelected()
         }
@@ -139,8 +172,12 @@ public final class LauncherModel {
             perform(.launchApplication(path: result.payload))
             perform(.dismiss)
 
-        case .clipboard:
+        case .clipboard, .calculation:
             perform(.copyToClipboard(text: result.payload, cursorOffset: nil))
+            perform(.dismiss)
+
+        case .file:
+            perform(.openFile(path: result.payload))
             perform(.dismiss)
 
         case .snippet:

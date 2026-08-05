@@ -43,11 +43,13 @@ feed. `.env` is git-ignored; credentials never belong in the repo.
 
 | Key | Action |
 | --- | --- |
-| ⌥Space | Show / hide the command window |
+| ⇧⌘Space | Show / hide the command window |
+| ⌥C | Open straight into clipboard history |
 | type | Fuzzy search apps, snippets, clipboard history and workflows |
 | ↑ ↓ | Move the selection (wraps) |
 | ⇥ | Complete a workflow keyword so you can type its argument |
 | ↩ | Run the selection |
+| ⌘↩ | Reveal the selected app or file in Finder |
 | ⌘, | Settings |
 | esc | Close |
 
@@ -57,7 +59,12 @@ feed. `.env` is git-ignored; credentials never belong in the repo.
   optionally it also pastes into the app you were in (see Permissions).
 - **Clipboard history** — an empty query lists recent copies; ↩ copies one back.
 - **Workflows** — `gh swift 6` opens `https://github.com/search?q=swift%206`. A workflow is a URL
-  template and nothing else.
+  template and nothing else. Add as many as you like.
+- **Calculation** — `2+2`, `(4+6)/4`, `2^10`, `200+10%`, `15% of 300`. ↩ copies the raw result.
+- **Conversion** — `10 km to mi`, `100 c to f`, `1 gb to mb`, `2 h to min`, `5 km a millas`.
+  Length, mass, temperature, time and data, all computed locally.
+- **Files** — `f budget` searches file names through Spotlight's existing index. ↩ opens,
+  ⌘↩ reveals in Finder.
 
 ## Architecture
 
@@ -71,6 +78,9 @@ Sources/BeLauncherCore/     no AppKit, no UI — this is what the tests drive
   FuzzyMatch.swift      ranking + matched indices for highlighting
   SearchEngine.swift    one query → ranked results across all four sources
   LauncherModel.swift   the keyboard state machine (loading/empty/results/noMatch/failed)
+  Calculator.swift      arithmetic, percentages and unit conversion, all local
+  FileSearch.swift      file names via Spotlight's index, behind the explicit "f " prefix
+  SecretGuard.swift     keeps credentials out of the clipboard history
   ExportImport.swift    JSON archive in and out
   Keychain.swift        {secret:NAME} values
   Env.swift, SafeFilename.swift, Diagnostics.swift, AppIndex.swift
@@ -102,7 +112,11 @@ Everything else needs no permission at all: the global hotkey uses Carbon, the a
 directory scan, and clipboard history reads the pasteboard, which macOS does not gate.
 
 **What is never captured:** items marked concealed (password managers), transient or
-auto-generated items, and anything that is not text. Clipboard history can be turned off entirely.
+auto-generated items, anything that is not text, and — importantly — **anything that looks like a
+credential**. `SecretGuard` refuses Stripe/GitHub/Slack/AWS/OpenAI-shaped tokens, `*_SECRET=`
+style assignments, private-key blocks and JWTs, and it purges any that an older build already
+captured, on every launch. This is not hypothetical: a live Stripe key turned up in a real
+history during development. Clipboard history can also be turned off entirely.
 
 ## Where your data lives
 

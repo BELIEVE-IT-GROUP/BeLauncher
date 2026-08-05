@@ -5,6 +5,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case snippet
     case clipboard
     case workflow
+    case calculation
+    case file
 
     public var label: String {
         switch self {
@@ -12,6 +14,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .snippet: "Snippet"
         case .clipboard: "Clipboard"
         case .workflow: "Workflow"
+        case .calculation: "Result"
+        case .file: "File"
         }
     }
 
@@ -21,6 +25,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .snippet: "text.quote"
         case .clipboard: "doc.on.clipboard"
         case .workflow: "bolt.horizontal"
+        case .calculation: "equal.square"
+        case .file: "doc"
         }
     }
 }
@@ -71,9 +77,36 @@ public struct SearchInput: Sendable {
 public enum SearchEngine {
     public static let resultLimit = 8
 
-    public static func search(_ rawQuery: String, in input: SearchInput, limit: Int = resultLimit) -> [SearchResult] {
+    public static func search(
+        _ rawQuery: String,
+        in input: SearchInput,
+        calculation: CalculationResult? = nil,
+        files: [FoundFile] = [],
+        limit: Int = resultLimit
+    ) -> [SearchResult] {
         let query = rawQuery.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return [] }
+
+        // A calculation always wins: the user typed something only a calculator can answer.
+        var pinned: [SearchResult] = []
+        if let calculation {
+            pinned.append(SearchResult(
+                id: "calc", kind: .calculation, title: calculation.display,
+                subtitle: "\(calculation.detail) · ↩ copies it",
+                score: 100_000, matched: [], payload: calculation.raw
+            ))
+        }
+        // Once the user typed the file prefix they are looking for files, so nothing else
+        // is mixed in — an empty result reads as "no files", not as a pile of stale matches.
+        if FileSearch.query(from: query) != nil {
+            pinned += files.enumerated().map { index, file in
+                SearchResult(
+                    id: "file-\(file.path)", kind: .file, title: file.name,
+                    subtitle: file.path, score: 90_000 - index, matched: [], payload: file.path
+                )
+            }
+            return Array(pinned.prefix(limit))
+        }
 
         // "gh swift concurrency" → run the `gh` workflow with the rest as its query.
         let words = query.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
@@ -137,7 +170,7 @@ public enum SearchEngine {
             ))
         }
 
-        return Array(results.sorted { $0.score > $1.score }.prefix(limit))
+        return Array((pinned + results.sorted { $0.score > $1.score }).prefix(limit))
     }
 
     /// Recent clips shown when the window opens with an empty query.
