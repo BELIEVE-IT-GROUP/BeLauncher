@@ -69,12 +69,17 @@ final class ClipboardWatcher {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL], !urls.isEmpty {
             for url in urls.prefix(5) where url.isFileURL {
                 store.recordClip(text: url.path, sourceApp: source, kind: .file)
+                // How this person names files, learned from the names they use.
+                store.observe(OperatingModel.observeFilename(url.lastPathComponent))
             }
             return
         }
 
         if let text = pasteboard.string(forType: .string) {
             store.recordClip(text: text, sourceApp: source)
+            // Text this person wrote or approved says how they write. Only the conclusion is
+            // kept — "escribe corto" — never the paragraph it came from.
+            store.observe(OperatingModel.observeWriting(text))
             return
         }
 

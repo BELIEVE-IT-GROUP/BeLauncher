@@ -12,10 +12,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var updateItem: NSMenuItem?
     private var pendingRelease: Release?
     private var welcomeWindow: NSWindow?
+    private var canvasWindow: NSWindow?
+    private var canvasModel: CanvasModel?
+    private var trayWindow: NSWindow?
+    var agentRunner: AgentRunner?
     /// Held so a request that is taking too long can be called off instead of endured.
     private var aiTask: Task<Void, Never>?
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
+    private var screenHotKey: HotKey?
     private var clipboard: ClipboardWatcher?
     private var settingsWindow: NSWindow?
     private var settingsModel: SettingsModel?
@@ -97,7 +102,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     systemShortcuts: self.systemShortcuts,
                     memories: self.vault?.current() ?? [],
                     pendingCommits: self.vault?.commits(state: .proposed) ?? [],
-                    events: self.calendar.events
+                    events: self.calendar.events,
+                    packs: store.availablePacks(),
+                    workNodes: store.nodes(),
+                    workEdges: store.nodes().flatMap { store.edges(from: $0.id) },
+                    traits: store.traits()
                 )
             },
             fileInfo: { path in
@@ -141,6 +150,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let panel = CommandPanel(model: model, openSettings: { [weak self] in self?.openSettings() })
         self.panel = panel
 
+        // The agent runner owns the tray and everything that runs unattended.
+        agentRunner = AgentRunner(
+            store: store,
+            ask: { [weak self] prompt, sensitivity in
+                guard let self else { throw IntelligenceError.noProviderConfigured }
+                return try await self.askModel(prompt, sensitivity: sensitivity)
+            },
+            perform: { [weak self] action in self?.perform(action) },
+            context: { [weak self] source in await self?.gather(source) ?? nil },
+            granted: { [weak self] permission in self?.isGranted(permission) ?? false }
+        )
+
         installStatusItem()
         announceUpdateIfAny()
         installKeyMonitor()
@@ -151,6 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if store.setting("clipboard_enabled", default: true) { watcher.start() }
 
         indexApplications()
+        captureCalendarIntoGraph()
         openWithLaunchQueryIfAny()
         showWelcomeOnFirstRun()
     }
@@ -172,6 +194,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         hotKey?.invalidate()
         clipboardHotKey?.invalidate()
+        screenHotKey?.invalidate()
         clipboard?.stop()
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor) }
     }
@@ -376,6 +399,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKey = HotKey(combo: .named(label)) { [weak self] in self?.togglePanel(mode: .all) }
         // ⌥C opens straight into clipboard history.
         clipboardHotKey?.invalidate()
+        screenHotKey?.invalidate()
+        screenHotKey = HotKey(combo: .screenAction) { [weak self] in
+            self?.readScreenAndOffer()
+        }
         clipboardHotKey = HotKey(combo: .clipboardHistory) { [weak self] in
             self?.togglePanel(mode: .clipboard)
         }
@@ -447,6 +474,321 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
     }
 
+    /// Turns today's calendar into people, companies and meetings the graph can answer about.
+    private func captureCalendarIntoGraph() {
+        guard store?.setting("graph_enabled", default: false) == true else { return }
+        Task { @MainActor in
+            await calendar.requestAccessIfNeeded()
+            calendar.refresh()
+            rememberAll(Capture.events(from: calendar.events))
+        }
+    }
+
+    /// What an agent is allowed to look at, gathered only when it says it needs it.
+    func gather(_ source: AgentCommand.ContextSource) async -> AgentRun.Finding? {
+        switch source {
+        case .clipboard:
+            guard let text = NSPasteboard.general.string(forType: .string), !text.isEmpty else {
+                return nil
+            }
+            return AgentRun.Finding(source: source, summary: String(text.prefix(4_000)))
+
+        case .selection, .screen:
+            let context = await ScreenCapture.read()
+            guard !context.isEmpty else { return nil }
+            return AgentRun.Finding(source: source, summary: String(context.text.prefix(4_000)))
+
+        case .calendar:
+            await calendar.requestAccessIfNeeded()
+            calendar.refresh()
+            let upcoming = calendar.events.prefix(6)
+                .map { "\($0.title) · \($0.attendees.joined(separator: ", "))" }
+            guard !upcoming.isEmpty else { return nil }
+            return AgentRun.Finding(source: source, summary: upcoming.joined(separator: "\n"))
+
+        case .brain:
+            guard let vault else { return nil }
+            let current = vault.current().prefix(12).map(\.statement)
+            guard !current.isEmpty else { return nil }
+            return AgentRun.Finding(source: source, summary: current.joined(separator: "\n"))
+
+        case .workGraph:
+            guard let store else { return nil }
+            let recent = store.nodes(limit: 15).map { "\($0.kind.label): \($0.name)" }
+            guard !recent.isEmpty else { return nil }
+            return AgentRun.Finding(source: source, summary: recent.joined(separator: "\n"))
+
+        case .files:
+            guard let store else { return nil }
+            let files = store.nodes(kind: .file, limit: 10).map(\.name)
+            guard !files.isEmpty else { return nil }
+            return AgentRun.Finding(source: source, summary: files.joined(separator: "\n"))
+
+        case .none:
+            return nil
+        }
+    }
+
+    func isGranted(_ permission: Onboarding.Capability.Kind) -> Bool {
+        switch permission {
+        case .accessibility: Permissions.accessibilityGranted
+        case .automation: Permissions.automationGranted()
+        case .calendar: calendar.isAuthorised
+        case .screen: ScreenCapture.screenRecordingGranted
+        case .notifications, .clipboard, .updates, .launchAtLogin: true
+        }
+    }
+
+    // MARK: - Noticing what happens
+
+    /// Records one thing that happened, for habits and for the work graph.
+    ///
+    /// Both are opt-in and both are separate switches: someone may want the graph that answers
+    /// "what was I doing before the call" without wanting the app to propose new commands, and the
+    /// reverse. One toggle for two different kinds of watching would be the lazy answer.
+    private func note(signature: String, label: String) {
+        store?.recordAction(signature: signature, label: label)
+        offerRecipeIfAny()
+    }
+
+    /// Adds a node and its edges to the graph, if the person turned the graph on.
+    private func remember(_ event: Capture.Event) {
+        guard store?.setting("graph_enabled", default: false) == true else { return }
+        store?.upsertNode(event.node)
+        for link in event.links { store?.link(link) }
+    }
+
+    private func rememberAll(_ events: [Capture.Event]) {
+        for event in events { remember(event) }
+        // Things touched close together belong together. This is the edge "retoma lo que estaba
+        // haciendo antes de la llamada" walks, and it only exists if somebody draws it.
+        guard store?.setting("graph_enabled", default: false) == true, let store else { return }
+        for edge in Capture.sessions(store.nodes(limit: 120)) { store.link(edge) }
+    }
+
+    /// A confirmed memory becomes a node, tied to the meeting it came out of when its source names
+    /// one. That link is what lets "¿qué prometimos a Andrés?" find a commitment that never
+    /// mentions him.
+    private func rememberMemory(_ object: MemoryObject) {
+        let meeting = calendar.events.first { object.source.localizedCaseInsensitiveContains($0.title) }
+        remember(Capture.memory(object, fromMeeting: meeting?.title))
+    }
+
+    /// Offers to turn a repeated sequence into a command. Once per habit, never twice.
+    private func offerRecipeIfAny() {
+        guard let store, store.habitsEnabled else { return }
+        let log = store.actionLog()
+        guard let recipe = Autopilot.recipes(
+            from: log, alreadyOffered: { store.recipeAlreadyOffered($0) }
+        ).first else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "¿Lo convierto en un comando?"
+        alert.informativeText = recipe.offer + "\n\nSe guardará como un flujo llamado "
+                              + "«\(recipe.suggestedKeyword)», que puedes editar o borrar cuando "
+                              + "quieras."
+        alert.addButton(withTitle: "Sí, créalo")
+        alert.addButton(withTitle: "No, gracias")
+        let accepted = alert.runModal() == .alertFirstButtonReturn
+        store.markRecipeOffered(recipe.id, accepted: accepted)
+        guard accepted else { return }
+
+        let flow = Autopilot.flow(from: recipe)
+        do {
+            try store.addFlow(keyword: flow.keyword, title: flow.title, steps: flow.steps)
+            report("Listo", "Escribe «\(flow.keyword)» para ejecutarlo.")
+        } catch {
+            report("No se pudo crear el comando", error.localizedDescription)
+        }
+    }
+
+    // MARK: - Screen to action
+
+    /// Reads what is in front of the person and offers the three sensible things to do with it.
+    ///
+    /// The offers come from what it recognised, not from a fixed menu: an error gets "explain" and
+    /// "how do I fix it", an invoice gets "extract the fields" and "file it". Three, never ten —
+    /// this appears over whatever someone is doing, and a long list at that moment costs more
+    /// attention than doing it by hand would have.
+    func readScreenAndOffer() {
+        Task { @MainActor in
+            let context = await ScreenCapture.read()
+            guard ScreenReader.isWorthOffering(context) else {
+                report("No hay nada que leer",
+                       "Selecciona algo, o abre el archivo del que quieres que se ocupe.")
+                return
+            }
+            let subject = ScreenReader.subject(of: context)
+            presentOffers(ScreenReader.offers(for: subject), subject: subject, context: context)
+        }
+    }
+
+    private func presentOffers(_ offers: [ScreenReader.Offer], subject: ScreenReader.Subject,
+                               context: ScreenContext) {
+        let alert = NSAlert()
+        alert.messageText = "\(subject.label), de \(context.origin.label)"
+        alert.informativeText = String(context.text.prefix(240))
+            + (context.text.count > 240 ? "…" : "")
+        for offer in offers { alert.addButton(withTitle: offer.title) }
+        alert.addButton(withTitle: "Nada")
+
+        let response = alert.runModal()
+        let index = response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        guard offers.indices.contains(index) else { return }
+        run(offers[index], on: context)
+    }
+
+    private func run(_ offer: ScreenReader.Offer, on context: ScreenContext) {
+        switch offer.verb {
+        case "open":
+            if let url = URL(string: context.text.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                NSWorkspace.shared.open(url)
+            }
+        case "remember":
+            rememberIntoVault(text: context.text, source: "Visto en \(context.application)")
+        case "search-web":
+            let query = context.text.prefix(180)
+                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            if let url = URL(string: "https://www.google.com/search?q=\(query)") {
+                NSWorkspace.shared.open(url)
+            }
+        default:
+            // Verbs the app already has run as themselves; the rest carry their own instruction.
+            if AIVerb.named(offer.verb) != nil {
+                runAIVerb(id: offer.verb, text: context.text)
+            } else if let instruction = ScreenReader.instruction(for: offer.verb) {
+                runFreeformAI(title: offer.title, instruction: instruction, text: context.text)
+            }
+        }
+    }
+
+    /// Asks the model something the verb catalogue does not cover, showing it in the same pane.
+    private func runFreeformAI(title: String, instruction: String, text: String) {
+        guard let model else { return }
+        model.aiWorking(title)
+        togglePanel(mode: .all)
+        aiTask?.cancel()
+        aiTask = Task { @MainActor in
+            do {
+                let answer = try await askModel("\(instruction)\n\n---\n\(text)")
+                model.aiAnswered(verb: title, text: answer)
+            } catch let error as IntelligenceError {
+                model.aiFailed(error.description)
+            } catch {
+                model.aiFailed(error.localizedDescription)
+            }
+        }
+    }
+
+    // MARK: - The tray
+
+    func openTray() {
+        guard let runner = agentRunner else { return }
+        if let window = trayWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false
+        )
+        window.title = "Misiones"
+        window.contentViewController = NSHostingController(rootView: MissionTrayView(runner: runner))
+        window.isReleasedWhenClosed = false
+        window.center()
+        trayWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: - Canvas
+
+    /// Opens a canvas for an outcome that is a set of pieces rather than one answer.
+    ///
+    /// It gets its own window rather than growing the launcher panel: the panel is a place you
+    /// pass through, and this is a place you stay in for a few minutes.
+    func openCanvas(template: String, brief: String) {
+        guard let definition = CanvasTemplate.named(template), let store else { return }
+        panel?.orderOut(nil)
+
+        // Whatever the brain already knows about the subject goes in as context, so a proposal for
+        // a client the company has history with does not start from nothing.
+        let context = vault.map { vault in
+            BrainQuery.relevant(brief, in: vault.current(), kinds: nil)
+                .prefix(6)
+                .map(\.statement)
+                .joined(separator: "\n")
+        } ?? ""
+
+        let model = CanvasModel(
+            definition: definition, brief: brief, context: context,
+            run: { [weak self] prompt in
+                guard let self else { throw IntelligenceError.noProviderConfigured }
+                return try await self.askModel(prompt)
+            },
+            perform: { [weak self] action in self?.perform(action) },
+            learn: { [weak self] before, after in
+                self?.store?.observe(OperatingModel.observeEdit(before: before, after: after))
+            }
+        )
+        canvasModel = model
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 700),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered, defer: false
+        )
+        window.title = definition.title
+        window.contentViewController = NSHostingController(rootView: CanvasView(model: model))
+        window.isReleasedWhenClosed = false
+        window.center()
+        canvasWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+
+        _ = store
+        model.fillAll()
+    }
+
+    /// One question to whichever model is available, used by canvases and agents alike.
+    ///
+    /// Shared so there is exactly one place that decides which provider answers, which model it
+    /// asks for, and what the person's own style adds to the prompt.
+    func askModel(_ prompt: String, sensitivity: Sensitivity = .personal) async throws -> String {
+        guard let store else { throw IntelligenceError.noProviderConfigured }
+        let running = await LocalModels.installed()
+        var models: [String: String] = [:]
+        for installation in running {
+            models[installation.providerID] = store.setting("ai_model_\(installation.providerID)")
+                .flatMap { saved in installation.models.contains(saved) ? saved : nil }
+                ?? installation.models[0]
+        }
+        let runningIDs = Set(running.map(\.providerID))
+        let available = IntelligenceProvider.all.filter { provider in
+            provider.isPrivate
+                ? runningIDs.contains(provider.id)
+                : (Keychain.get(provider.keychainAccount)?.isEmpty == false)
+        }
+        let router = ModelRouter(
+            preferred: store.setting("ai_provider"),
+            localOnlyFor: store.setting("ai_confidential_local", default: true) ? [.confidential] : []
+        )
+        let provider = try router.provider(for: sensitivity, available: available)
+
+        // How this person writes, when the app has watched long enough to be sure.
+        let style = OperatingModel.systemPrompt(from: store.traits())
+        let system = "Eres una herramienta dentro de un launcher. Respondes solo con el resultado "
+                   + "pedido, sin saludos y sin explicar lo que vas a hacer."
+                   + (style.isEmpty ? "" : "\n\n" + style)
+
+        return try await IntelligenceClient().answer(
+            IntelligenceRequest(system: system, prompt: prompt, sensitivity: sensitivity,
+                                maxTokens: 900),
+            using: provider, model: models[provider.id]
+        )
+    }
+
     // MARK: - Welcome
 
     /// Shown once, and reopenable from the menu bar. Everything the app could do was reachable and
@@ -513,6 +855,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panel?.orderOut(nil)
 
         case .launchApplication(let path):
+            note(signature: Autopilot.signature(forApplication: path),
+                 label: "Abrir \((path as NSString).lastPathComponent.replacingOccurrences(of: ".app", with: ""))")
+            remember(Capture.application(named: (path as NSString).lastPathComponent
+                .replacingOccurrences(of: ".app", with: ""), path: path))
             let url = URL(fileURLWithPath: path)
             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
                 guard let error else { return }
@@ -523,6 +869,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.open(url)
 
         case .openFile(let path):
+            remember(Capture.file(at: path))
+            store?.observe(OperatingModel.observeFilename((path as NSString).lastPathComponent))
+            note(signature: Autopilot.signature(forApplication: path),
+                 label: "Abrir \((path as NSString).lastPathComponent)")
             NSWorkspace.shared.open(URL(fileURLWithPath: path))
 
         case .revealInFinder(let path):
@@ -558,6 +908,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             aiTask?.cancel()
             aiTask = nil
 
+        case .openCanvas(let template, let brief):
+            openCanvas(template: template, brief: brief)
+
+        case .runAgent(let id, let argument):
+            guard let command = agentRunner?.commands.first(where: { $0.id == id }) else {
+                return "Ese comando ya no está instalado."
+            }
+            panel?.orderOut(nil)
+            agentRunner?.start(command, argument: argument)
+            openTray()
+
         case .missionCancelled:
             break   // the plan was shown and refused: nothing happened, nothing to report
 
@@ -567,7 +928,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .confirmCommit(let id):
             do {
                 let object = try vault?.confirm(commitID: id)
-                if let object { report("Guardado en el cerebro", object.statement) }
+                if let object {
+                    rememberMemory(object)
+                    report("Guardado en el cerebro", object.statement)
+                }
             } catch {
                 report("No se pudo confirmar", "\(error)")
             }

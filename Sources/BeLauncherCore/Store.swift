@@ -93,6 +93,83 @@ public final class Store {
                 value TEXT NOT NULL
             )
             """)
+
+        // What you did, so the app can notice what you keep doing. Never the contents of
+        // anything: the kind of thing, and when.
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS action_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                signature TEXT NOT NULL,
+                label TEXT NOT NULL,
+                at REAL NOT NULL
+            )
+            """)
+        try database.execute("CREATE INDEX IF NOT EXISTS action_log_at ON action_log (at)")
+
+        // Habits already suggested, so the same offer does not reappear every single time.
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS recipe_offers (
+                key TEXT PRIMARY KEY,
+                accepted INTEGER NOT NULL,
+                at REAL NOT NULL
+            )
+            """)
+
+        // The graph of work: who, what and how they are connected.
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS work_nodes (
+                id TEXT PRIMARY KEY,
+                kind TEXT NOT NULL,
+                name TEXT NOT NULL,
+                detail TEXT NOT NULL DEFAULT '',
+                target TEXT NOT NULL DEFAULT '',
+                lastSeen REAL NOT NULL,
+                weight INTEGER NOT NULL DEFAULT 1
+            )
+            """)
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS work_edges (
+                source TEXT NOT NULL,
+                target TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                at REAL NOT NULL,
+                PRIMARY KEY (source, target, kind)
+            )
+            """)
+        try database.execute("CREATE INDEX IF NOT EXISTS work_nodes_seen ON work_nodes (lastSeen)")
+
+        // What the app has learned about how this person works.
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS preferences (
+                trait TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                observations INTEGER NOT NULL,
+                updatedAt REAL NOT NULL
+            )
+            """)
+
+        // Missions that keep running while you get on with something else.
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS missions (
+                id TEXT PRIMARY KEY,
+                intent TEXT NOT NULL,
+                state TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                createdAt REAL NOT NULL,
+                updatedAt REAL NOT NULL
+            )
+            """)
+
+        // Outcome packs installed on this Mac.
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS packs (
+                id TEXT PRIMARY KEY,
+                payload TEXT NOT NULL,
+                installedAt REAL NOT NULL,
+                source TEXT NOT NULL DEFAULT ''
+            )
+            """)
     }
 
     // MARK: - Settings

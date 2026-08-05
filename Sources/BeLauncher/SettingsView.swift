@@ -19,7 +19,7 @@ struct SettingsView: View {
     /// as "there are four more sections in here". A sidebar shows all seven at once and has room
     /// for a subtitle, which is where most of the "what is this even for" went.
     enum Section: String, CaseIterable, Identifiable {
-        case general, intelligence, clipboard, commands, content, brain, data
+        case general, intelligence, clipboard, commands, agents, memory, content, brain, data
         var id: String { rawValue }
 
         var title: String {
@@ -28,6 +28,8 @@ struct SettingsView: View {
             case .intelligence: "Inteligencia"
             case .clipboard: "Portapapeles"
             case .commands: "Qué puedo escribir"
+            case .agents: "Encargos"
+            case .memory: "Lo que observa"
             case .content: "Mis atajos"
             case .brain: "Mi cerebro"
             case .data: "Datos y privacidad"
@@ -40,6 +42,8 @@ struct SettingsView: View {
             case .intelligence: "Qué modelo responde y con qué clave"
             case .clipboard: "Qué se guarda y qué no"
             case .commands: "Todo lo que entiende la ventana"
+            case .agents: "Comandos con «/» y misiones en marcha"
+            case .memory: "Historial, memoria de trabajo y lo aprendido"
             case .content: "Snippets, flujos, alias, secretos"
             case .brain: "Dónde viven tus notas y quién puede leerlas"
             case .data: "Exportar, importar, desinstalar"
@@ -52,6 +56,8 @@ struct SettingsView: View {
             case .intelligence: "sparkles"
             case .clipboard: "doc.on.clipboard"
             case .commands: "command"
+            case .agents: "terminal"
+            case .memory: "eye"
             case .content: "text.quote"
             case .brain: "brain"
             case .data: "lock.shield"
@@ -87,6 +93,8 @@ struct SettingsView: View {
                 case .intelligence: IntelligenceTab(model: model)
                 case .clipboard: ClipboardTab(model: model)
                 case .commands: CommandsTab()
+                case .agents: AgentsTab(model: model)
+                case .memory: MemoryTab(model: model)
                 case .content: ContentTab(model: model)
                 case .brain: BrainTab(model: model)
                 case .data: DataTab(model: model)
@@ -95,7 +103,7 @@ struct SettingsView: View {
             .navigationTitle(selection.title)
         }
         .frame(width: 860, height: 620)
-        .onAppear { model.reload(); model.scanLocalModels() }
+        .onAppear { model.reload(); model.scanLocalModels(); model.reloadIntelligenceExtras() }
     }
 }
 
@@ -404,6 +412,22 @@ private struct CommandsTab: View {
                     }
                 }
 
+                Section("Encárgale algo (escribe «/»)") {
+                    ForEach(OutcomePack.builtIn.filter { matches($0.name) }) { pack in
+                        row(pack.name, hint: "/\(pack.verb)", symbol: pack.symbol)
+                    }
+                }
+
+                Section("Memoria de trabajo") {
+                    row("Qué prometimos a alguien", hint: "qué prometimos a Andrés",
+                        symbol: "hand.raised")
+                    row("Abrir lo último de un proyecto", hint: "abre lo último de Atlas",
+                        symbol: "clock.arrow.circlepath")
+                    row("Retomar lo de antes de la llamada",
+                        hint: "retoma lo que estaba haciendo", symbol: "arrow.uturn.backward")
+                    row("Quién es alguien", hint: "quién es Acme", symbol: "person.text.rectangle")
+                }
+
                 Section("Pregúntale al cerebro") {
                     row("Qué decidimos sobre algo", hint: "qué decidimos sobre pricing",
                         symbol: "brain")
@@ -432,6 +456,10 @@ private struct CommandsTab: View {
                     row("Convertir", hint: "10 km to mi", symbol: "arrow.left.arrow.right")
                     row("Buscar archivos", hint: "f informe", symbol: "doc")
                     row("Buscar en Google, Claude, ChatGPT…", hint: "g · c · gpt", symbol: "link")
+                    row("Traducir, resumir, corregir…", hint: "traducir · resume · corrige",
+                        symbol: "sparkles")
+                    row("Leer lo que hay en pantalla", hint: "⌥⇧Espacio",
+                        symbol: "rectangle.dashed.badge.record")
                 }
             }
             .listStyle(.inset)
@@ -695,6 +723,16 @@ private struct BrainTab: View {
                     Button("Compartir…") { model.exportTeamBundle() }
                     Button("Importar…") { model.importTeamBundle() }
                 }
+                Text("Reglas de la casa, una por línea, con el formato «Nombre: valor». Viajan "
+                     + "dentro de cada comando compartido, que es lo que hace que el /propuesta de "
+                     + "tu equipo produzca vuestra propuesta y no la que se le ocurre al modelo.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextEditor(text: Binding(
+                    get: { model.teamStandardsText },
+                    set: { model.teamStandardsText = $0 }
+                ))
+                .font(.system(size: 11, design: .monospaced))
+                .frame(height: 72)
                 Text("Solo salen las memorias etiquetadas como “shared”, cifradas con una frase que "
                      + "solo tiene tu equipo. Believe nunca ve la clave ni el contenido. Lo que "
                      + "llega llega como propuesta: nada se aplica solo.")
@@ -757,6 +795,193 @@ private struct DataTab: View {
                      ningún otro sitio.
                      """)
                     .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - Agents
+
+/// Everything you can encargar, and what it is allowed to look at before it does.
+@MainActor
+private struct AgentsTab: View {
+    @Bindable var model: SettingsModel
+
+    var body: some View {
+        Form {
+            Section("Comandos con «/»") {
+                Text("Escribe «/» en el lanzador y sale la lista. Un comando no es un atajo: mira "
+                     + "el contexto, pide los permisos que necesite, te enseña qué va a hacer y "
+                     + "deja recibo de lo que hizo.")
+                    .font(.caption).foregroundStyle(.secondary)
+                ForEach(model.packs) { pack in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 7) {
+                            Image(systemName: pack.symbol).foregroundStyle(Theme.accent)
+                                .frame(width: 16)
+                            Text("/\(pack.verb)")
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundStyle(Theme.cyan)
+                            Text(pack.name).font(.system(size: 12))
+                            Spacer()
+                            if pack.author != "BeLauncher" {
+                                Button {
+                                    model.removePack(pack)
+                                } label: { Image(systemName: "trash") }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                        Text(pack.outcome).font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !pack.reads.isEmpty {
+                            Text("Mira: " + pack.reads.map(\.label).joined(separator: ", "))
+                                .font(.system(size: 10)).foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+
+            Section("Compartir con el equipo") {
+                HStack {
+                    Button("Exportar mis comandos") { model.exportPacks() }
+                    Button("Importar comandos…") { model.importPacks() }
+                }
+                Text("Los comandos viajan con las reglas de la casa dentro: el tono, los formatos y "
+                     + "quién aprueba. Sin eso, compartir un comando es compartir solo un nombre. "
+                     + "Si ya tienes uno con ese nombre, el tuyo gana y se te dice cuántos se "
+                     + "omitieron.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if let status = model.status {
+                    Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+            }
+
+            Section("Lienzos") {
+                ForEach(CanvasTemplate.all) { definition in
+                    HStack {
+                        Image(systemName: "square.grid.2x2").foregroundStyle(Theme.accent)
+                            .frame(width: 16)
+                        Text(definition.title).font(.system(size: 12))
+                        Spacer()
+                        Text("\(definition.blocks.count) bloques")
+                            .font(.system(size: 10)).foregroundStyle(.tertiary)
+                    }
+                }
+                Text("Cuando un encargo no es una respuesta sino varias piezas, se abre un lienzo: "
+                     + "cada bloque se rellena solo, lo editas y ejecutas lo que quieras. Se cierra "
+                     + "y desaparece: no es un documento más que mantener.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+// MARK: - What it watches
+
+/// The three things the app can watch, each with its own switch, its own explanation and its own
+/// delete button. Nothing here is on when the app is installed.
+@MainActor
+private struct MemoryTab: View {
+    @Bindable var model: SettingsModel
+
+    var body: some View {
+        Form {
+            Section("Memoria de trabajo") {
+                Toggle("Recordar en qué he estado trabajando", isOn: $model.graphEnabled)
+                Text("Guarda quién, qué proyecto, qué archivo y qué reunión, y cómo se conectan. "
+                     + "Es lo que hace que funcione «¿qué prometimos a Andrés?» o «retoma lo que "
+                     + "estaba haciendo antes de la llamada». Guarda **nombres y fechas, nunca el "
+                     + "contenido** de un archivo, un mensaje o una página.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if model.graphSummary.isEmpty {
+                    Text("Todavía vacía.").font(.caption).foregroundStyle(.tertiary)
+                } else {
+                    ForEach(model.graphSummary, id: \.kind) { entry in
+                        HStack {
+                            Image(systemName: entry.kind.symbol).foregroundStyle(Theme.accent)
+                                .frame(width: 16)
+                            Text(entry.kind.label).font(.system(size: 12))
+                            Spacer()
+                            Text("\(entry.count)").font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Button("Borrar la memoria de trabajo") { model.clearGraph() }
+            }
+
+            Section("Detectar rutinas") {
+                Toggle("Proponerme comandos cuando repito algo", isOn: $model.habitsEnabledSetting)
+                Text("Anota **qué tipo de cosa** haces y cuándo — abrir tal app, ejecutar tal "
+                     + "comando — nunca su contenido. Cuando la misma secuencia se repite cuatro "
+                     + "veces, te ofrece convertirla en un comando. Si dices que no, no se vuelve a "
+                     + "preguntar por esa. Se borra sola a los \(Store.habitRetentionDays) días.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if model.recentActions.isEmpty {
+                    Text("Nada anotado.").font(.caption).foregroundStyle(.tertiary)
+                } else {
+                    ForEach(model.recentActions.prefix(12)) { action in
+                        HStack {
+                            Text(action.label).font(.system(size: 11)).lineLimit(1)
+                            Spacer()
+                            Text(action.at.formatted(date: .omitted, time: .shortened))
+                                .font(.system(size: 10)).foregroundStyle(.tertiary)
+                        }
+                    }
+                    Text("Se muestran las 12 últimas de \(model.recentActions.count).")
+                        .font(.system(size: 10)).foregroundStyle(.tertiary)
+                }
+                Button("Borrar el historial") { model.clearHistory() }
+            }
+
+            Section("Cómo trabajas") {
+                Toggle("Aprender mi estilo", isOn: $model.learningEnabledSetting)
+                Text("Aprende de lo que aceptas y de lo que reescribes: si acortas, si saludas, "
+                     + "cómo nombras los archivos. Nada cambia lo que produce hasta que cuatro "
+                     + "observaciones coinciden. **Se guarda la conclusión, nunca el texto** del que "
+                     + "salió.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if model.learnedTraits.isEmpty {
+                    Text("Todavía no ha aprendido nada.").font(.caption).foregroundStyle(.tertiary)
+                } else {
+                    ForEach(model.learnedTraits) { trait in
+                        HStack(alignment: .top) {
+                            Image(systemName: trait.isUsable ? "checkmark.circle.fill" : "eye")
+                                .foregroundStyle(trait.isUsable ? .green : .secondary)
+                                .font(.system(size: 11)).frame(width: 16)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(trait.explanation).font(.system(size: 12))
+                                Text(trait.isUsable
+                                     ? "\(trait.observations) veces · ya se aplica"
+                                     : "\(trait.observations) veces · todavía mirando")
+                                    .font(.system(size: 10)).foregroundStyle(.tertiary)
+                            }
+                            Spacer()
+                            Button {
+                                model.forget(trait)
+                            } label: { Image(systemName: "trash") }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                    Button("Olvidarlo todo") { model.forgetEverythingLearned() }
+                }
+            }
+
+            Section("Leer la pantalla") {
+                LabeledContent("Atajo", value: "⌥⇧Espacio")
+                Text("Con cualquier cosa delante: un error, una factura, un correo, una tabla. "
+                     + "Primero intenta leer lo que tengas **seleccionado**, que no necesita "
+                     + "permiso de pantalla. Solo si no hay selección hace una foto, la lee en tu "
+                     + "Mac con el reconocimiento de Apple y la descarta. **Ninguna imagen se "
+                     + "guarda ni se sube.**")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)

@@ -55,15 +55,33 @@ public enum TeamBrain {
         public var exportedBy: String
         public var objects: [MemoryObject]
         public var members: [Member]
+        /// The team's own commands: `/alta`, `/propuesta`, each carrying the house rules.
+        ///
+        /// Shared memory alone made BeLauncher a company *encyclopedia*. Shared commands make it
+        /// the company's operational layer: everyone's `/propuesta` produces the proposal your
+        /// company makes, with your structure, your voice and your approvals, instead of the
+        /// model's generic idea of one.
+        public var packs: [OutcomePack]
+        /// Flows and snippets the team all share.
+        public var flows: [Flow]
+        public var snippets: [Snippet]
+        /// Standards every shared command has to respect: brand voice, formats, folders.
+        public var standards: [OutcomePack.Rule]
 
         public init(version: Int = Bundle.currentVersion, team: String, exportedAt: Date = .now,
-                    exportedBy: String, objects: [MemoryObject], members: [Member]) {
+                    exportedBy: String, objects: [MemoryObject], members: [Member],
+                    packs: [OutcomePack] = [], flows: [Flow] = [], snippets: [Snippet] = [],
+                    standards: [OutcomePack.Rule] = []) {
             self.version = version
             self.team = team
             self.exportedAt = exportedAt
             self.exportedBy = exportedBy
             self.objects = objects
             self.members = members
+            self.packs = packs
+            self.flows = flows
+            self.snippets = snippets
+            self.standards = standards
         }
     }
 
@@ -163,6 +181,61 @@ public enum TeamBrain {
     /// counting it as one made every shared memory collide with every other shared memory.
     static func topics(of object: MemoryObject) -> Set<String> {
         Set(object.entities.map { $0.lowercased() }).subtracting([sharedMarker])
+    }
+
+    /// What a shared bundle would add beyond memory: commands, flows, snippets and the standards
+    /// that make them the company's rather than the model's.
+    ///
+    /// Kept separate from the memory merge because the rules differ. A memory that contradicts one
+    /// you hold is a conflict for a person to settle. A command whose verb is already taken is a
+    /// collision that must simply be refused: two things answering to `/propuesta` means half the
+    /// time the wrong one runs and nobody can tell which.
+    public struct CommandMerge: Sendable, Equatable {
+        public var packs: [OutcomePack] = []
+        public var flows: [Flow] = []
+        public var snippets: [Snippet] = []
+        public var standards: [OutcomePack.Rule] = []
+        /// Refused because their name is already in use here.
+        public var refused: [String] = []
+    }
+
+    /// Works out what an incoming bundle's commands would change, without changing anything.
+    ///
+    /// Anything of the person's own wins. A team pack is a proposal, exactly like a team memory:
+    /// nothing a colleague exported may quietly replace something you built.
+    public static func planCommands(
+        _ bundle: Bundle, installedPacks: [OutcomePack], flows: [Flow], snippets: [Snippet]
+    ) -> CommandMerge {
+        var merge = CommandMerge(standards: bundle.standards)
+        let takenVerbs = Set(installedPacks.map(\.verb))
+            .union(flows.map(\.keyword))
+            .union(snippets.map(\.keyword))
+
+        for pack in bundle.packs {
+            if takenVerbs.contains(pack.verb), !installedPacks.contains(where: { $0.id == pack.id }) {
+                merge.refused.append("/\(pack.verb)")
+            } else {
+                // The team's standards travel with the command, or the command is just a name.
+                var copy = pack
+                copy.rules = pack.rules + bundle.standards.filter { standard in
+                    !pack.rules.contains { $0.name == standard.name }
+                }
+                merge.packs.append(copy)
+            }
+        }
+        let existingFlows = Set(flows.map(\.keyword))
+        for flow in bundle.flows {
+            existingFlows.contains(flow.keyword)
+                ? merge.refused.append(flow.keyword)
+                : merge.flows.append(flow)
+        }
+        let existingSnippets = Set(snippets.map(\.keyword))
+        for snippet in bundle.snippets {
+            existingSnippets.contains(snippet.keyword)
+                ? merge.refused.append(snippet.keyword)
+                : merge.snippets.append(snippet)
+        }
+        return merge
     }
 
     /// Works out what an incoming bundle would change, without changing anything.

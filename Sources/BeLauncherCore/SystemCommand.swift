@@ -27,6 +27,8 @@ public struct SystemCommand: Sendable, Equatable, Identifiable {
         case ejectDisks
         case openTrash
         case openDownloads
+        /// Opens the Desktop *folder*, which is not the same as `showDesktop` hiding the windows.
+        case openDesktop
         case openHome
         case restartBeLauncher
         case quitBeLauncher
@@ -68,6 +70,9 @@ public struct SystemCommand: Sendable, Equatable, Identifiable {
               symbol: "trash.circle", kind: .openTrash),
         .init(id: "downloads", title: "Abrir Descargas", keywords: ["downloads", "descargas"],
               symbol: "arrow.down.circle", kind: .openDownloads),
+        .init(id: "desktop-folder", title: "Abrir la carpeta Escritorio",
+              keywords: ["escritorio", "desktop folder", "carpeta escritorio"],
+              symbol: "menubar.dock.rectangle", kind: .openDesktop),
         .init(id: "home", title: "Abrir carpeta personal", keywords: ["home", "personal", "casa"],
               symbol: "house", kind: .openHome),
         .init(id: "desktop", title: "Mostrar el escritorio", keywords: ["desktop", "escritorio"],

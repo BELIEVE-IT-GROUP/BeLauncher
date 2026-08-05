@@ -21,6 +21,11 @@ final class HotKey {
 
         /// Fixed second shortcut: ⌥C jumps straight into clipboard history.
         static let clipboardHistory = Combo(keyCode: 8, carbonModifiers: UInt32(optionKey), label: "⌥ C")
+
+        /// Screen-to-Action: whatever is in front of you, plus what to do with it.
+        static let screenAction = Combo(keyCode: 49,
+                                        carbonModifiers: UInt32(optionKey | shiftKey),
+                                        label: "⌥⇧ Espacio")
     }
 
     private static var handlers: [UInt32: () -> Void] = [:]

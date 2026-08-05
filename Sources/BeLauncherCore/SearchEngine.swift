@@ -16,6 +16,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case pendingCommit
     case answer
     case mission
+    case agent
 
     public var label: String {
         switch self {
@@ -34,6 +35,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .pendingCommit: "Por confirmar"
         case .answer: "Respuesta"
         case .mission: "Misión"
+        case .agent: "Comando"
         }
     }
 
@@ -54,6 +56,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .pendingCommit: "checkmark.seal"
         case .answer: "text.bubble"
         case .mission: "wand.and.stars"
+        case .agent: "terminal"
         }
     }
 }
@@ -108,13 +111,21 @@ public struct SearchInput: Sendable {
     public var memories: [MemoryObject]
     public var pendingCommits: [MemoryCommit]
     public var events: [CalendarEvent]
+    /// The outcomes installed on this Mac, which is what `/` offers.
+    public var packs: [OutcomePack]
+    /// Operational memory: what was worked on, and how it is connected.
+    public var workNodes: [WorkNode]
+    public var workEdges: [WorkEdge]
+    /// What the app has learned about how this person works.
+    public var traits: [Trait]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
                 applicationUses: [String: Int] = [:], aliases: [String: String] = [:],
                 shortcuts: [Shortcut] = [], systemShortcuts: [String] = [],
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
-                events: [CalendarEvent] = []) {
+                events: [CalendarEvent] = [], packs: [OutcomePack] = [],
+                workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -127,6 +138,10 @@ public struct SearchInput: Sendable {
         self.memories = memories
         self.pendingCommits = pendingCommits
         self.events = events
+        self.packs = packs
+        self.workNodes = workNodes
+        self.workEdges = workEdges
+        self.traits = traits
     }
 }
 
@@ -143,8 +158,60 @@ public enum SearchEngine {
         let query = rawQuery.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return [] }
 
-        // A question for the brain wins outright: the user asked something, not searched.
         var pinned: [SearchResult] = []
+
+        // A slash is an instruction, not a search. It is unambiguous on purpose: a launcher whose
+        // box does both has to be able to tell "research" the word from "/research" the command,
+        // and guessing from the words is how an agent fires because somebody typed a noun.
+        let commands = input.packs.map(\.command)
+        if query.hasPrefix("/") {
+            if let (command, argument) = AgentCommand.parse(query, in: commands) {
+                return [SearchResult(
+                    id: "agent-\(command.id)", kind: .agent, title: command.title,
+                    subtitle: argument.isEmpty ? command.summary : argument,
+                    score: 100_000, matched: [], payload: command.id + "\u{1F}" + argument
+                )]
+            }
+            return AgentCommand.suggestions(for: query, in: commands).map { command in
+                SearchResult(
+                    id: "agent-\(command.id)", kind: .agent, title: "/\(command.verb)",
+                    subtitle: command.summary, score: 100_000, matched: [],
+                    payload: command.id + "\u{1F}", completion: "/\(command.verb) "
+                )
+            }
+        }
+
+        // Operational memory: what you were doing, as opposed to what the company believes.
+        if let intent = WorkQuery.Intent.detect(query) {
+            let answer: WorkQuery.Answer
+            switch intent {
+            case .promisedTo(let name):
+                answer = WorkQuery.promised(to: name, nodes: input.workNodes,
+                                            edges: input.workEdges, memories: input.memories)
+            case .lastAbout(let subject):
+                answer = WorkQuery.last(about: subject, nodes: input.workNodes,
+                                        edges: input.workEdges)
+            case .resumeBefore:
+                answer = WorkQuery.resume(nodes: input.workNodes, meetings: input.events)
+            case .about(let name):
+                answer = WorkQuery.about(name, nodes: input.workNodes, edges: input.workEdges)
+            }
+            pinned.append(SearchResult(
+                id: "work-answer", kind: .answer, title: answer.headline,
+                subtitle: answer.nodes.first?.name ?? "Memoria de trabajo",
+                score: 99_500, matched: [], payload: answer.body
+            ))
+            // The things it found are offered directly, so "abre lo último de Atlas" opens it.
+            for node in answer.nodes.prefix(4) where !node.target.isEmpty {
+                pinned.append(SearchResult(
+                    id: "work-\(node.id)", kind: node.kind == .file ? .file : .bookmark,
+                    title: node.name, subtitle: node.detail, score: 99_400, matched: [],
+                    payload: node.target
+                ))
+            }
+        }
+
+        // A question for the brain wins outright: the user asked something, not searched.
         switch BrainQuery.Intent.detect(query) {
         case .whatDidWeDecide(let topic):
             let answer = BrainQuery.whatDidWeDecide(topic: topic, in: input.memories)
@@ -159,7 +226,7 @@ public enum SearchEngine {
                 score: 100_000, matched: [], payload: text
             ))
         case .pulse:
-            let signals = Pulse.signals(for: input.memories)
+            let signals = Pulse.signals(for: input.memories, traits: input.traits)
             pinned.append(SearchResult(
                 id: "answer-pulse", kind: .answer,
                 title: signals.isEmpty ? "Nada que señalar" : "\(signals.count) cosa(s) que mirar",

@@ -60,6 +60,9 @@ enum SystemCommandRunner {
         case .openDownloads:
             open(.downloadsDirectory)
 
+        case .openDesktop:
+            open(.desktopDirectory)
+
         case .openHome:
             NSWorkspace.shared.open(FileManager.default.homeDirectoryForCurrentUser)
 

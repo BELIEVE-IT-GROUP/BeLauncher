@@ -240,6 +240,12 @@ public enum ActionRegistry {
                              shortcut: .enter, intent: .run),
             ]
 
+        case .agent:
+            return [
+                ResultAction(id: "run-agent", title: "Encargarlo", symbol: "paperplane",
+                             shortcut: .enter, intent: .run),
+            ]
+
         case .answer:
             return [
                 ResultAction(id: "copy", title: "Copiar la respuesta", symbol: "doc.on.clipboard",

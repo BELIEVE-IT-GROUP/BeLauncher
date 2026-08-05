@@ -13,6 +13,7 @@ public enum Onboarding {
         public enum Kind: String, Sendable, Equatable {
             case accessibility
             case automation
+            case screen
             case calendar
             case notifications
             case clipboard
@@ -82,6 +83,22 @@ public enum Onboarding {
               ifYouSayNo: "Todo lo demás funciona. Los comandos de sistema y los pasos de flujo que "
                         + "tocan el Mac fallan con un aviso, en vez de en silencio.",
               symbol: "gearshape.2", isSystemPermission: true, recommended: true),
+
+        .init(kind: .screen,
+              title: "Leer la pantalla",
+              unlocks: "Pulsas ⌥⇧Espacio con cualquier cosa delante — un error, una factura, un "
+                     + "correo, una tabla — y te ofrece las tres cosas sensatas que hacer con ello. "
+                     + "Sin copiar, sin cambiar de ventana, sin explicar de dónde salió.",
+              accesses: "Casi nunca la pantalla: primero intenta leer lo que tengas seleccionado, "
+                      + "que no necesita esto. Solo si no hay selección hace una foto de la "
+                      + "pantalla, la lee **en tu Mac** con el reconocimiento de texto de Apple y "
+                      + "la descarta. No se guarda ninguna imagen, ni se sube a ningún sitio. Lo "
+                      + "que se reconoce va al modelo que tú elegiste, igual que si lo hubieras "
+                      + "escrito. Nada se captura sin que pulses el atajo.",
+              ifYouSayNo: "Sigue funcionando con lo que tengas seleccionado y con el portapapeles. "
+                        + "Solo pierdes el caso de «lo veo pero no puedo seleccionarlo».",
+              symbol: "rectangle.dashed.badge.record", isSystemPermission: true,
+              recommended: false),
 
         .init(kind: .calendar,
               title: "Calendario",

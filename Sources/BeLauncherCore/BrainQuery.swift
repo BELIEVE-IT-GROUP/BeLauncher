@@ -185,7 +185,7 @@ public enum BrainQuery {
 
     // MARK: - Shared
 
-    static func relevant(
+    public static func relevant(
         _ topic: String, in memories: [MemoryObject], kinds: Set<MemoryObject.Kind>?
     ) -> [MemoryObject] {
         let needle = Fuzzy.folded(topic)
