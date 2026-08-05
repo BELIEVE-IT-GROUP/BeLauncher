@@ -1,0 +1,28 @@
+Sources/BeLauncher/CommandView.swift
+  s_3bf5a4753c6c6c::t_1dce6533dfbbac 45
+Sources/BeLauncher/BrandMark.swift
+  s_3bf5a4753c6c6c::t_1dce6533dfbbac 57-63,69,73-82
+  s_3bf5a4753c6c6c::t_8304d11e0bcb3f 64-68,70-72
+Sources/BeLauncher/ActivationView.swift
+  s_3bf5a4753c6c6c::t_1dce6533dfbbac 85-86
+Scripts/bundle.sh
+  s_3bf5a4753c6c6c::t_8304d11e0bcb3f 20-22
+Scripts/release-mac.sh
+  s_3bf5a4753c6c6c::t_8304d11e0bcb3f 41-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "c43066f4b3a55e214bc78937e26ab7a5a6b651ea",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
