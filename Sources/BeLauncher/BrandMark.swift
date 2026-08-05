@@ -54,3 +54,29 @@ extension BeLauncherMark {
         return image
     }
 }
+
+/// The real app icon — blue glass tile, cyan edge and all — for places big enough to show it.
+/// Falls back to the vector glyph when running outside a bundle (`swift run` during development).
+@MainActor
+struct AppIconView: View {
+    var side: CGFloat
+
+    static let artwork: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "AppIconArt", withExtension: "png") else { return nil }
+        return NSImage(contentsOf: url)
+    }()
+
+    var body: some View {
+        // Deliberately not NSApp.applicationIconImage: macOS 26 hands that back already wrapped
+        // in the system's own icon tile, which shows up as a grey frame around the artwork.
+        if let icon = AppIconView.artwork {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: side, height: side)
+                .accessibilityHidden(true)
+        } else {
+            BeLauncherMark(side: side, color: Theme.believeBlue)
+        }
+    }
+}

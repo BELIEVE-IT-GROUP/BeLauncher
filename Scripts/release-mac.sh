@@ -38,6 +38,9 @@ plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Inf
 plutil -replace CFBundleVersion -string "${GITHUB_RUN_NUMBER:-1}" "$APP/Contents/Info.plist"
 
 bash "$ROOT/Scripts/make-icon.sh" "$APP/Contents/Resources/AppIcon.icns"
+# The raw artwork travels too: the app draws it itself in the activation window and the
+# command bar, because the system-provided icon comes pre-framed on macOS 26.
+[ -f "$ROOT/Resources/AppIcon-1024.png" ] && cp "$ROOT/Resources/AppIcon-1024.png" "$APP/Contents/Resources/AppIconArt.png"
 
 lipo -archs "$APP/Contents/MacOS/BeLauncher"
 

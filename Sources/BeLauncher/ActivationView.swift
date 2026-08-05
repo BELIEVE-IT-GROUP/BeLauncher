@@ -82,8 +82,8 @@ struct ActivationView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: 14) {
-                BeLauncherMark(side: 56, color: Theme.believeBlue)
-                    .padding(.top, 34)
+                AppIconView(side: 88)
+                    .padding(.top, 30)
                 VStack(spacing: 5) {
                     Text("Activa BeLauncher")
                         .font(.system(size: 21, weight: .semibold))

@@ -42,7 +42,7 @@ struct CommandView: View {
 
     private var searchField: some View {
         HStack(spacing: 13) {
-            BeLauncherMark(side: 22, color: .primary.opacity(0.85))
+            AppIconView(side: 26)
 
             TextField("Search apps, snippets and clipboard…", text: $model.query)
                 .textFieldStyle(.plain)

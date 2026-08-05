@@ -17,6 +17,9 @@ cp "$BINARY" "$APP/Contents/MacOS/BeLauncher"
 cp "$ROOT/Scripts/Info.plist" "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 bash "$ROOT/Scripts/make-icon.sh" "$APP/Contents/Resources/AppIcon.icns"
+# The raw artwork travels too: the app draws it itself in the activation window and the
+# command bar, because the system-provided icon comes pre-framed on macOS 26.
+[ -f "$ROOT/Resources/AppIcon-1024.png" ] && cp "$ROOT/Resources/AppIcon-1024.png" "$APP/Contents/Resources/AppIconArt.png"
 
 codesign --force --deep --sign - --identifier com.believe.belauncher "$APP" >/dev/null 2>&1 \
     || echo "warning: ad-hoc signing failed; Accessibility and launch-at-login may not stick"
