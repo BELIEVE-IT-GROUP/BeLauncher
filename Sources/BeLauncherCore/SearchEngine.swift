@@ -11,6 +11,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case system
     case bookmark
     case window
+    case shortcut
 
     public var label: String {
         switch self {
@@ -24,6 +25,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .system: "Sistema"
         case .bookmark: "Enlace"
         case .window: "Ventana"
+        case .shortcut: "Atajo"
         }
     }
 
@@ -39,6 +41,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .system: "switch.2"
         case .bookmark: "bookmark"
         case .window: "macwindow"
+        case .shortcut: "square.stack.3d.up"
         }
     }
 }
@@ -83,11 +86,13 @@ public struct SearchInput: Sendable {
     public var aliases: [String: String]
     /// Browser bookmarks and common folders.
     public var shortcuts: [Shortcut]
+    /// Names of the user's own Shortcuts. The escape hatch that needs no plugin system.
+    public var systemShortcuts: [String]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
                 applicationUses: [String: Int] = [:], aliases: [String: String] = [:],
-                shortcuts: [Shortcut] = []) {
+                shortcuts: [Shortcut] = [], systemShortcuts: [String] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -96,6 +101,7 @@ public struct SearchInput: Sendable {
         self.applicationUses = applicationUses
         self.aliases = aliases
         self.shortcuts = shortcuts
+        self.systemShortcuts = systemShortcuts
     }
 }
 
@@ -172,6 +178,15 @@ public enum SearchEngine {
         }
 
         results += matchShortcuts(input.shortcuts, needle: needle, needleMask: needleMask)
+
+        for name in input.systemShortcuts {
+            guard let match = Fuzzy.match(needle: needle, hay: Fuzzy.folded(name)) else { continue }
+            results.append(SearchResult(
+                id: "shortcut-run-\(name)", kind: .shortcut, title: name,
+                subtitle: "Atajo de macOS", score: match.score + 15, matched: match.matched,
+                payload: name
+            ))
+        }
 
         for (command, score) in WindowCommand.search(query) {
             results.append(SearchResult(

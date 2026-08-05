@@ -93,6 +93,15 @@ public enum DetailBuilder {
             return ResultDetail(body: result.payload, isMonospaced: true,
                                 metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
 
+        case .shortcut:
+            return ResultDetail(
+                body: result.title,
+                metadata: [
+                    .init(label: "Origen", value: "App Atajos"),
+                    .init(label: "Nota", value: "Lo creaste tú; BeLauncher solo lo invoca por nombre."),
+                ]
+            )
+
         case .window:
             return ResultDetail(body: result.title,
                                 metadata: [.init(label: "Requiere", value: "Permiso de Accesibilidad")])

@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyMonitor: Any?
     private var appIndex = AppIndex()
     private var shortcuts: [BeLauncherCore.Shortcut] = []
+    private var systemShortcuts: [String] = []
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
@@ -82,7 +83,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     flows: store.flows(),
                     applicationUses: store.applicationUses(),
                     aliases: store.aliases(),
-                    shortcuts: self.shortcuts
+                    shortcuts: self.shortcuts,
+                    systemShortcuts: self.systemShortcuts
                 )
             },
             fileInfo: { path in
@@ -207,6 +209,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let index = await Task.detached(priority: .userInitiated) { AppIndex.scan() }.value
             appIndex = index
             shortcuts = await Task.detached(priority: .utility) { ShortcutIndex.scan() }.value
+            systemShortcuts = Shortcuts.available()
             model?.isIndexing = false
         }
     }

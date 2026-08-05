@@ -325,6 +325,10 @@ public final class LauncherModel {
             perform(.systemCommand(result.payload))
             perform(.dismiss)
 
+        case .shortcut:
+            perform(.runShortcut(name: result.payload))
+            perform(.dismiss)
+
         case .window:
             // Dismiss first: the front window must be the user's, not ours.
             perform(.dismiss)

@@ -196,3 +196,43 @@ struct ShortcutIndexTests {
         #expect(performed.first == .openFile(path: "/Users/x/Downloads"))
     }
 }
+
+@Suite("Shortcuts as the safe escape hatch")
+@MainActor
+struct SystemShortcutTests {
+
+    @Test("a user's own Shortcut is searchable and runs by name")
+    func runsByName() {
+        var performed: [LauncherModel.Action] = []
+        let input = SearchInput(systemShortcuts: ["Modo enfoque", "Enviar informe semanal"])
+        let model = LauncherModel(dataSource: { input }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "informe semanal"
+
+        #expect(model.selected?.kind == .shortcut)
+        model.handle(.enter)
+        #expect(performed.first == .runShortcut(name: "Enviar informe semanal"),
+                "we invoke by name; we never read or rewrite what the shortcut does")
+    }
+
+    @Test("shortcuts rank above bookmarks, they are deliberate automations")
+    func ranksAboveBookmarks() {
+        let input = SearchInput(
+            shortcuts: [Shortcut(title: "Enfoque", target: "https://x.com/enfoque", source: .bookmark)],
+            systemShortcuts: ["Enfoque"]
+        )
+        let results = SearchEngine.search("enfoque", in: input)
+        #expect(results.first?.kind == .shortcut)
+    }
+
+    @Test("every result kind has actions and a primary — nothing dead ends")
+    func everyKindIsComplete() {
+        for kind in ResultKind.allCases {
+            let result = SearchResult(id: "x", kind: kind, title: "t", subtitle: "s",
+                                      score: 1, matched: [], payload: "/tmp/x", recordID: 1)
+            let actions = ActionRegistry.actions(for: result)
+            #expect(!actions.isEmpty, "\(kind) offers nothing to do")
+            #expect(actions.first?.shortcut?.display == "↩", "\(kind) has no Return action")
+        }
+    }
+}
