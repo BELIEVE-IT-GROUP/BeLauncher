@@ -2,29 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key>
-    <string>BeLauncher</string>
-    <key>CFBundleDisplayName</key>
-    <string>BeLauncher</string>
-    <key>CFBundleExecutable</key>
-    <string>BeLauncher</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.believe.belauncher</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>NSHumanReadableCopyright</key>
-    <string>Local-only launcher. No accounts, no telemetry.</string>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>BeLauncher does not send Apple Events. This entry exists only to make that explicit.</string>
+	<key>CFBundleDisplayName</key>
+	<string>BeLauncher</string>
+	<key>CFBundleExecutable</key>
+	<string>BeLauncher</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.believe.belauncher</string>
+	<key>CFBundleName</key>
+	<string>BeLauncher</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.1</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>BeLauncher does not send Apple Events. This entry exists only to make that explicit.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Local-only launcher. No accounts, no telemetry.</string>
 </dict>
 </plist>
