@@ -463,6 +463,79 @@ final class SettingsModel {
         updater.install(release)
     }
 
+    // MARK: - Permissions, asked from one place
+
+    /// Whether macOS has actually granted these. The onboarding toggles read this, so a switch
+    /// never shows "on" for something the system has not agreed to.
+    var calendarGranted: Bool { calendar?.isAuthorised ?? false }
+    var notificationsGranted = false
+
+    /// Set by the app so Settings can ask for the calendar without owning EventKit.
+    var calendar: CalendarAccess?
+    var onRequestNotifications: (() -> Void)?
+
+    func requestCalendar() {
+        guard let calendar else { return }
+        Task { @MainActor in
+            await calendar.requestAccessIfNeeded()
+            calendar.refresh()
+        }
+    }
+
+    func requestNotifications() {
+        onRequestNotifications?()
+    }
+
+    // MARK: - Vault: the promises, made real
+
+    /// Local models actually running, found by asking them. "Si tienes Ollama funciona" put the
+    /// checking on the person who came here to not have to check.
+    var localInstallations: [LocalModels.Installation] = []
+    var localScanned = false
+
+    func scanLocalModels() {
+        Task { @MainActor in
+            localInstallations = await LocalModels.installed()
+            localScanned = true
+        }
+    }
+
+    var vaultRoot: String { Vault.defaultRoot() }
+
+    func openInObsidian() {
+        guard let url = VaultGuide.obsidianURL(for: vaultRoot) else { return }
+        // Obsidian may not be installed; openURL returns false rather than failing loudly.
+        if !NSWorkspace.shared.open(url) {
+            status = "No encontramos Obsidian. Instálalo y vuelve a intentarlo, o ábrelo tú y elige "
+                   + "«Abrir carpeta como almacén» con esta carpeta."
+        } else {
+            status = "Abriendo tu cerebro en Obsidian."
+        }
+    }
+
+    func makeVaultGitRepository() {
+        switch VaultGuide.makeGitRepository(at: vaultRoot) {
+        case .created:
+            status = "Listo: tu cerebro es un repositorio git. Añade tu remoto con "
+                   + "«git remote add origin …» y haz push cuando quieras."
+        case .alreadyGit:
+            status = "Ya era un repositorio git."
+        case .failed(let reason):
+            status = reason
+        }
+    }
+
+    func rebuildVaultStructure() {
+        do {
+            let created = try VaultGuide.scaffold(at: vaultRoot)
+            status = created.isEmpty
+                ? "La estructura ya estaba completa."
+                : "Creado: " + created.joined(separator: ", ")
+        } catch {
+            status = "No se pudo crear la estructura: \(error.localizedDescription)"
+        }
+    }
+
     func checkForUpdates() {
         updateStatus = "Buscando…"
         let feed = updateFeedURL

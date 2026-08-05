@@ -18,6 +18,9 @@ public final class Vault {
             try manager.createDirectory(atPath: folder, withIntermediateDirectories: true,
                                         attributes: [.posixPermissions: 0o700])
         }
+        // The rest of the structure plus a README, so the first time someone opens this folder it
+        // explains what goes where instead of showing them two folders called objects and commits.
+        try? VaultGuide.scaffold(at: root, manager: manager)
     }
 
     public static func defaultRoot() -> String {

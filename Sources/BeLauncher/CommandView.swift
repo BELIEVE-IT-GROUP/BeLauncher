@@ -1,3 +1,4 @@
+import QuickLookThumbnailing
 import SwiftUI
 import BeLauncherCore
 
@@ -38,7 +39,7 @@ struct CommandView: View {
             footer
         }
         .frame(width: Theme.panelWidth)
-        .background(GlassBackground())
+        .background(GlassSurface())
         .background(Color.black.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
         .overlay(GlassEdge())
@@ -85,7 +86,7 @@ struct CommandView: View {
         HStack(spacing: 13) {
             AppIconView(side: 26)
 
-            TextField("Search apps, snippets and clipboard…", text: $model.query)
+            TextField("Busca, calcula, convierte o escribe lo que quieres hacer", text: $model.query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 21, weight: .regular))
                 .focused($focus, equals: .search)
@@ -101,7 +102,7 @@ struct CommandView: View {
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
-                .help("Clear")
+                .help("Borrar")
             }
         }
         .padding(.horizontal, 20)
@@ -116,7 +117,7 @@ struct CommandView: View {
         case .loading:
             message {
                 ProgressView().controlSize(.small)
-                Text("Indexing your applications…")
+                Text("Buscando tus aplicaciones…")
             }
 
         case .empty, .results:
@@ -126,10 +127,15 @@ struct CommandView: View {
             message {
                 Image(systemName: "sparkle.magnifyingglass").foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("No results for “\(model.query)”").fontWeight(.medium)
-                    Text("Try an app name, a snippet keyword, or a workflow like “gh swift”.")
+                    Text("Nada para “\(model.query)”").fontWeight(.medium)
+                    // The empty state is the one place everybody lands, so it is the one place
+                    // worth spending on teaching what can be typed.
+                    Text("Prueba: **2+2** calcula · **10 km to mi** convierte · **f informe** busca "
+                         + "archivos · **enfoque** arranca un bloque de trabajo · "
+                         + "**qué decidimos sobre …** pregunta a tu cerebro.")
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -137,11 +143,11 @@ struct CommandView: View {
             HStack(alignment: .top, spacing: 11) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("BeLauncher could not read its database").fontWeight(.medium)
+                    Text("BeLauncher no pudo leer su base de datos").fontWeight(.medium)
                     Text(reason).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(2)
                 }
                 Spacer()
-                Button("Retry") { model.retry() }.controlSize(.small)
+                Button("Reintentar") { model.retry() }.controlSize(.small)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -234,6 +240,10 @@ private struct DetailPane: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                if !detail.previewPath.isEmpty {
+                    FilePreview(path: detail.previewPath)
+                }
+
                 Text(detail.body)
                     .font(detail.isMonospaced
                           ? .system(size: 12, design: .monospaced)
@@ -428,7 +438,7 @@ private struct ActionPanelView: View {
             .frame(height: 32)
         }
         .frame(width: 300)
-        .background(GlassBackground())
+        .background(GlassSurface())
         .background(Color.black.opacity(0.28))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
@@ -532,5 +542,89 @@ private struct ResultRow: View {
                 .frame(width: 26, height: 26)
                 .background(Theme.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         }
+    }
+}
+
+// MARK: - Seeing the thing instead of reading about it
+
+/// Shows a copied image or a found file, and lets you do the obvious things with it.
+///
+/// The clipboard could already hold images and files, and the preview described them in words:
+/// a screenshot you copied thirty seconds ago appeared as its dimensions. You cannot pick the right
+/// one out of a list of "PNG · 1284×2778". So: the actual image, a thumbnail for anything else, and
+/// the three things people reach for — drag it into another app, reveal it, open it.
+@MainActor
+private struct FilePreview: View {
+    let path: String
+
+    @State private var thumbnail: NSImage?
+
+    private var url: URL { URL(fileURLWithPath: path) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Group {
+                if let thumbnail {
+                    Image(nsImage: thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(.white.opacity(0.04))
+                        .overlay(ProgressView().controlSize(.small))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 190)
+            .background(.black.opacity(0.20), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.08)))
+            // Dragging out is the whole point of a visual preview: grab the screenshot you copied
+            // and drop it into the message you are writing.
+            .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
+            .help("Arrástralo a cualquier app")
+
+            HStack(spacing: 6) {
+                QuickAction(symbol: "hand.draw", title: "Arrastra desde la imagen")
+                Spacer()
+                Button {
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                } label: { Label("Finder", systemImage: "folder") }
+                Button {
+                    NSWorkspace.shared.open(url)
+                } label: { Label("Abrir", systemImage: "arrow.up.forward.app") }
+            }
+            .buttonStyle(.borderless)
+            .font(.system(size: 10.5))
+        }
+        .task(id: path) { await load() }
+    }
+
+    /// Quick Look renders anything macOS can preview, so a PDF or a video gets a real frame rather
+    /// than a generic document icon. Images are read directly: asking Quick Look for a thumbnail of
+    /// a PNG throws away the resolution we already have.
+    private func load() async {
+        thumbnail = nil
+        if let image = NSImage(contentsOf: url), image.isValid {
+            thumbnail = image
+            return
+        }
+        let request = QLThumbnailGenerator.Request(
+            fileAt: url, size: CGSize(width: 640, height: 380),
+            scale: 2, representationTypes: .all
+        )
+        let generated = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
+        thumbnail = generated.map { NSImage(cgImage: $0.cgImage, size: .zero) }
+            ?? NSWorkspace.shared.icon(forFile: path)
+    }
+}
+
+private struct QuickAction: View {
+    let symbol: String
+    let title: String
+
+    var body: some View {
+        Label(title, systemImage: symbol)
+            .font(.system(size: 10))
+            .foregroundStyle(.tertiary)
     }
 }

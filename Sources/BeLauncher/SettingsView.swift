@@ -12,31 +12,90 @@ import BeLauncherCore
 struct SettingsView: View {
     @Bindable var model: SettingsModel
 
-    var body: some View {
-        TabView {
-            GeneralTab(model: model)
-                .tabItem { Label("General", systemImage: "gearshape") }
+    /// The sections, each with a line saying what it is for.
+    ///
+    /// This used to be a `TabView`. With seven tabs and a window this size, SwiftUI hid the ones
+    /// that did not fit behind a `»` button in the corner: an unlabelled chevron that nobody reads
+    /// as "there are four more sections in here". A sidebar shows all seven at once and has room
+    /// for a subtitle, which is where most of the "what is this even for" went.
+    enum Section: String, CaseIterable, Identifiable {
+        case general, intelligence, clipboard, commands, content, brain, data
+        var id: String { rawValue }
 
-            IntelligenceTab(model: model)
-                .tabItem { Label("Inteligencia", systemImage: "sparkles") }
-
-            ClipboardTab(model: model)
-                .tabItem { Label("Portapapeles", systemImage: "doc.on.clipboard") }
-
-            CommandsTab()
-                .tabItem { Label("Comandos", systemImage: "command") }
-
-            ContentTab(model: model)
-                .tabItem { Label("Contenido", systemImage: "text.quote") }
-
-            BrainTab(model: model)
-                .tabItem { Label("Cerebro", systemImage: "brain") }
-
-            DataTab(model: model)
-                .tabItem { Label("Datos", systemImage: "externaldrive") }
+        var title: String {
+            switch self {
+            case .general: "General"
+            case .intelligence: "Inteligencia"
+            case .clipboard: "Portapapeles"
+            case .commands: "Qué puedo escribir"
+            case .content: "Mis atajos"
+            case .brain: "Mi cerebro"
+            case .data: "Datos y privacidad"
+            }
         }
-        .frame(width: 680, height: 580)
-        .onAppear { model.reload() }
+
+        var subtitle: String {
+            switch self {
+            case .general: "Atajo, arranque, licencia"
+            case .intelligence: "Qué modelo responde y con qué clave"
+            case .clipboard: "Qué se guarda y qué no"
+            case .commands: "Todo lo que entiende la ventana"
+            case .content: "Snippets, flujos, alias, secretos"
+            case .brain: "Dónde viven tus notas y quién puede leerlas"
+            case .data: "Exportar, importar, desinstalar"
+            }
+        }
+
+        var symbol: String {
+            switch self {
+            case .general: "gearshape"
+            case .intelligence: "sparkles"
+            case .clipboard: "doc.on.clipboard"
+            case .commands: "command"
+            case .content: "text.quote"
+            case .brain: "brain"
+            case .data: "lock.shield"
+            }
+        }
+    }
+
+    @State private var selection: Section = .general
+
+    var body: some View {
+        NavigationSplitView {
+            List(Section.allCases, selection: $selection) { section in
+                NavigationLink(value: section) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(section.title)
+                            Text(section.subtitle)
+                                .font(.system(size: 10.5))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    } icon: {
+                        Image(systemName: section.symbol).foregroundStyle(Theme.accent)
+                    }
+                    .padding(.vertical, 3)
+                }
+            }
+            .navigationSplitViewColumnWidth(232)
+        } detail: {
+            Group {
+                switch selection {
+                case .general: GeneralTab(model: model)
+                case .intelligence: IntelligenceTab(model: model)
+                case .clipboard: ClipboardTab(model: model)
+                case .commands: CommandsTab()
+                case .content: ContentTab(model: model)
+                case .brain: BrainTab(model: model)
+                case .data: DataTab(model: model)
+                }
+            }
+            .navigationTitle(selection.title)
+        }
+        .frame(width: 860, height: 620)
+        .onAppear { model.reload(); model.scanLocalModels() }
     }
 }
 
@@ -209,12 +268,35 @@ private struct IntelligenceTab: View {
             }
 
             Section("Modelos en tu Mac") {
-                ForEach(IntelligenceProvider.all.filter(\.isPrivate)) { provider in
-                    LabeledContent(provider.name, value: provider.defaultModel)
+                if !model.localScanned {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text("Buscando modelos locales…").font(.caption).foregroundStyle(.secondary)
+                    }
+                } else if model.localInstallations.isEmpty {
+                    Text(LocalModels.howToGetOne)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Abrir ollama.com") {
+                        if let url = URL(string: "https://ollama.com") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                } else {
+                    ForEach(model.localInstallations) { installation in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label("\(installation.name) está corriendo",
+                                  systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green).font(.system(size: 12))
+                            Text(installation.models.prefix(6).joined(separator: ", "))
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                    }
+                    Text("Sin clave, sin coste por token y sin que nada salga de este Mac.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("Si tienes Ollama o LM Studio corriendo funcionan sin clave y sin coste por "
-                     + "token. Es la opción por defecto.")
-                    .font(.caption).foregroundStyle(.secondary)
+                Button("Volver a buscar") { model.scanLocalModels() }
+                    .controlSize(.small)
             }
 
             Section("Qué puedes pedirle") {
@@ -524,18 +606,68 @@ private struct ContentTab: View {
 private struct BrainTab: View {
     @Bindable var model: SettingsModel
 
+    /// Written here rather than in the README alone: the folder explains the structure, this
+    /// explains how anything ever gets into it.
+    static let howItFills: [(type: String, does: String)] = [
+        ("recordar que …", "Propone guardar algo. Tú confirmas."),
+        ("capturar reunion", "Con tus notas copiadas, saca decisiones y compromisos."),
+        ("qué decidimos sobre …", "Lo que está vigente hoy, no todo lo que se dijo."),
+        ("prepárame para …", "Reúne lo que sabes de alguien antes de verle."),
+        ("pulse", "Qué se está pudriendo: contradicciones, vencidos, sin revisar."),
+    ]
+
     var body: some View {
         Form {
+            Section("Cómo se llena tu cerebro") {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(BrainTab.howItFills, id: \.type) { item in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(item.type)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(Theme.cyan)
+                                .frame(width: 175, alignment: .leading)
+                            Text(item.does).font(.system(size: 11.5))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                Text("Nada entra sin que tú lo confirmes. Un cerebro que se escribe solo es un "
+                     + "cerebro en el que no puedes confiar.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             Section("Dónde vive") {
                 LabeledContent("Carpeta") {
-                    Text(Vault.defaultRoot()).font(.caption).textSelection(.enabled).lineLimit(2)
+                    Text(model.vaultRoot).font(.caption).textSelection(.enabled).lineLimit(2)
                 }
-                Button("Abrir la carpeta") {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: Vault.defaultRoot()))
-                }
-                Text("Archivos Markdown normales. Ábrelos en cualquier editor, muévelos a Obsidian "
-                     + "o mételos en un repositorio git. Irte de BeLauncher no cuesta nada.")
+                Text("Siete carpetas ya creadas, cada una con una nota que dice qué va dentro, y un "
+                     + "LÉEME que lo explica entero. Ábrelo si alguna vez dudas de dónde poner algo.")
                     .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Button("Abrir la carpeta") {
+                        NSWorkspace.shared.open(URL(fileURLWithPath: model.vaultRoot))
+                    }
+                    Button("Leer el LÉEME") {
+                        NSWorkspace.shared.open(URL(fileURLWithPath:
+                            (model.vaultRoot as NSString).appendingPathComponent("LÉEME.md")))
+                    }
+                    Button("Rehacer la estructura") { model.rebuildVaultStructure() }
+                }
+            }
+
+            Section("Llevártelo a otro sitio") {
+                HStack {
+                    Button("Abrir en Obsidian") { model.openInObsidian() }
+                    Button("Convertir en repositorio git") { model.makeVaultGitRepository() }
+                }
+                Text("Obsidian no necesita nada especial: esta carpeta ya es un almacén válido, y "
+                     + "el botón se lo abre. El de git hace `git init` con un `.gitignore` sensato; "
+                     + "el remoto y el push los decides tú, porque dónde acaba la memoria de tu "
+                     + "empresa no es una decisión nuestra.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if let status = model.status {
+                    Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                }
             }
 
             Section("Desde Claude, ChatGPT o Gemini") {

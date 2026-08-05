@@ -339,3 +339,146 @@ struct BrainSearchTests {
         #expect(detail.metadata.contains { $0.label == "Vigente" && $0.value == "No" })
     }
 }
+
+/// The vault has to explain itself without lying to itself.
+@Suite("The vault explains itself")
+@MainActor
+struct VaultGuideTests {
+
+    private func temporaryRoot() -> String {
+        NSTemporaryDirectory() + "vaultguide-\(UUID().uuidString)"
+    }
+
+    @Test("the folders a brain needs exist from day one, with a README")
+    func scaffolds() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+
+        try VaultGuide.scaffold(at: root)
+        for folder in VaultGuide.folders {
+            #expect(FileManager.default.fileExists(
+                atPath: (root as NSString).appendingPathComponent(folder.name)),
+                "falta \(folder.name)")
+        }
+        #expect(FileManager.default.fileExists(
+            atPath: (root as NSString).appendingPathComponent("LÉEME.md")))
+    }
+
+    @Test("nothing explanatory is written where the app reads memories back")
+    func neverPollutesMachineFolders() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+        try VaultGuide.scaffold(at: root)
+
+        // A friendly note dropped into objects/ comes back as a decision the company never made.
+        for folder in VaultGuide.machineRead {
+            let path = (root as NSString).appendingPathComponent(folder)
+            let contents = (try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []
+            #expect(contents.filter { $0.hasSuffix(".md") }.isEmpty,
+                    "\(folder) debe quedar vacía: todo .md ahí dentro se lee como dato")
+        }
+        // The human folders do get their note.
+        #expect(FileManager.default.fileExists(
+            atPath: (root as NSString).appendingPathComponent("inbox/QUÉ VA AQUÍ.md")))
+    }
+
+    @Test("running it twice changes nothing and destroys nothing")
+    func idempotent() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        try FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+
+        let first = try VaultGuide.scaffold(at: root)
+        #expect(!first.isEmpty)
+
+        let mine = (root as NSString).appendingPathComponent("inbox/mi nota.md")
+        try "no me toques".write(toFile: mine, atomically: true, encoding: .utf8)
+
+        let second = try VaultGuide.scaffold(at: root)
+        #expect(second.isEmpty, "la segunda vez no debe crear nada")
+        #expect(try String(contentsOfFile: mine, encoding: .utf8) == "no me toques")
+    }
+
+    @Test("git init happens once and never publishes anything by itself")
+    func gitIsOptOut() {
+        var commands: [[String]] = []
+        let root = temporaryRoot()
+        try? FileManager.default.createDirectory(atPath: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(atPath: root) }
+
+        let result = VaultGuide.makeGitRepository(at: root) { _, arguments in
+            commands.append(arguments); return 0
+        }
+        #expect(result == .created)
+        #expect(commands.contains { $0.contains("init") })
+        // Nothing may add a remote or push: where the company's memory ends up is not our call.
+        #expect(!commands.contains { $0.contains("remote") || $0.contains("push") })
+        #expect(FileManager.default.fileExists(
+            atPath: (root as NSString).appendingPathComponent(".gitignore")))
+    }
+
+    @Test("Obsidian gets a path it can actually open")
+    func obsidianLink() {
+        let url = VaultGuide.obsidianURL(for: "/Users/x/Library/Application Support/BeLauncher/Vault")
+        #expect(url?.scheme == "obsidian")
+        #expect(url?.absoluteString.contains("Application%20Support") == true,
+                "un espacio sin escapar deja el enlace inservible")
+    }
+}
+
+@Suite("Finding the models already on this Mac")
+struct LocalModelsTests {
+
+    @Test("reads what Ollama reports")
+    func ollama() {
+        let json = Data(#"{"models":[{"name":"llama3.2:latest"},{"name":"qwen2.5"}]}"#.utf8)
+        #expect(LocalModels.models(in: json) == ["llama3.2:latest", "qwen2.5"])
+    }
+
+    @Test("reads what LM Studio reports, which is the OpenAI shape")
+    func lmStudio() {
+        let json = Data(#"{"data":[{"id":"mistral-7b"},{"id":"phi-4"}]}"#.utf8)
+        #expect(LocalModels.models(in: json) == ["mistral-7b", "phi-4"])
+    }
+
+    @Test("nothing running is not an error")
+    func nothing() {
+        #expect(LocalModels.models(in: Data("not json".utf8)).isEmpty)
+        #expect(LocalModels.models(in: Data(#"{"models":[]}"#.utf8)).isEmpty)
+    }
+}
+
+@Suite("What we ask for, and why")
+struct OnboardingTests {
+
+    @Test("every capability says what it gives, what it touches and what you lose")
+    func honest() {
+        for capability in Onboarding.capabilities {
+            #expect(capability.unlocks.count > 25, "\(capability.id) no dice qué te da")
+            #expect(capability.accesses.count > 10, "\(capability.id) no dice a qué accede")
+            #expect(capability.ifYouSayNo.count > 15, "\(capability.id) no dice qué pierdes")
+        }
+    }
+
+    @Test("the two permissions macOS has to grant are marked as such")
+    func systemOnes() {
+        let system = Set(Onboarding.capabilities.filter(\.isSystemPermission).map(\.id))
+        #expect(system.contains("accessibility"))
+        #expect(system.contains("calendar"))
+        #expect(system.contains("notifications"))
+        // Our own settings must never claim macOS is involved.
+        #expect(!system.contains("clipboard"))
+        #expect(!system.contains("updates"))
+    }
+
+    @Test("the privacy promise names what leaves the Mac")
+    func privacy() {
+        for expected in ["licencia", "versión nueva", "proveedor"] {
+            #expect(Onboarding.privacy.localizedCaseInsensitiveContains(expected),
+                    "la promesa no menciona \(expected)")
+        }
+        #expect(Onboarding.privacy.contains("no tiene cuenta"))
+    }
+}

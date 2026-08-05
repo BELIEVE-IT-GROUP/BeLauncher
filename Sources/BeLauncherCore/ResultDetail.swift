@@ -18,11 +18,17 @@ public struct ResultDetail: Sendable, Equatable {
     public let body: String
     public let isMonospaced: Bool
     public let metadata: [Item]
+    /// A file worth *looking* at rather than reading: the image you copied, the PDF you found.
+    /// Empty when there is nothing to show. Text-only previews were the reason a copied screenshot
+    /// showed up as the word "imagen" and nothing else.
+    public let previewPath: String
 
-    public init(body: String, isMonospaced: Bool = false, metadata: [Item] = []) {
+    public init(body: String, isMonospaced: Bool = false, metadata: [Item] = [],
+                previewPath: String = "") {
         self.body = body
         self.isMonospaced = isMonospaced
         self.metadata = metadata
+        self.previewPath = previewPath
     }
 }
 
@@ -53,14 +59,23 @@ public enum DetailBuilder {
 
         case .clipboard:
             let clip = clips.first(where: { $0.id == result.recordID })
+            // An image or a copied file is shown, not described. `assetPath` for a copied image,
+            // the payload itself when what was copied *is* a file.
+            let preview = clip?.assetPath.isEmpty == false
+                ? clip!.assetPath
+                : (clip?.kind == .file ? result.payload : "")
+            var metadata: [ResultDetail.Item] = [
+                .init(label: "Origen", value: clip?.sourceApp.isEmpty == false ? clip!.sourceApp : "Desconocido"),
+                .init(label: "Copiado", value: clip.map { relative($0.createdAt) } ?? "—"),
+            ]
+            if preview.isEmpty {
+                metadata.append(ResultDetail.Item(label: "Longitud", value: "\(result.payload.count) caracteres"))
+            }
             return ResultDetail(
-                body: result.payload,
-                isMonospaced: looksLikeData(result.payload),
-                metadata: [
-                    .init(label: "Origen", value: clip?.sourceApp.isEmpty == false ? clip!.sourceApp : "Desconocido"),
-                    .init(label: "Copiado", value: clip.map { relative($0.createdAt) } ?? "—"),
-                    .init(label: "Longitud", value: "\(result.payload.count) caracteres"),
-                ]
+                body: preview.isEmpty ? result.payload : (preview as NSString).lastPathComponent,
+                isMonospaced: preview.isEmpty && looksLikeData(result.payload),
+                metadata: metadata + (preview.isEmpty ? [] : fileInfo(preview)),
+                previewPath: preview
             )
 
         case .flow:
@@ -88,7 +103,8 @@ public enum DetailBuilder {
         case .application, .file:
             return ResultDetail(
                 body: (result.payload as NSString).lastPathComponent,
-                metadata: [.init(label: "Ruta", value: result.payload)] + fileInfo(result.payload)
+                metadata: [.init(label: "Ruta", value: result.payload)] + fileInfo(result.payload),
+                previewPath: result.payload
             )
 
         case .bookmark:
