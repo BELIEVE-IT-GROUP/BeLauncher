@@ -189,7 +189,7 @@ struct KeyboardWorkflowTests {
         #expect(model.results.map(\.kind) == [.file])
         #expect(model.selected?.title == "budget.numbers")
 
-        model.handle(.revealInFinder)
+        model.handle(.secondaryAction)
         #expect(recorder.actions == [.revealInFinder(path: "/Users/x/Docs/budget.numbers"), .dismiss])
 
         recorder.actions.removeAll()
@@ -197,20 +197,21 @@ struct KeyboardWorkflowTests {
         #expect(recorder.actions == [.openFile(path: "/Users/x/Docs/budget.numbers"), .dismiss])
     }
 
-    @Test("Command-Enter reveals an app and does nothing for a snippet")
+    @Test("Command-Enter reveals an app, and on a snippet runs its own second action")
     func revealScope() {
         let recorder = Recorder()
         let model = makeModel(recorder: recorder)
         model.activate()
         model.query = "safari"
-        #expect(model.handle(.revealInFinder) == true)
+        #expect(model.handle(.secondaryAction) == true)
         #expect(recorder.actions.first == .revealInFinder(path: "/Applications/Safari.app"))
 
         recorder.actions.removeAll()
         model.query = "sig"
         #expect(model.selected?.kind == .snippet)
-        #expect(model.handle(.revealInFinder) == false)
-        #expect(recorder.actions.isEmpty)
+        // A snippet's second action opens Settings to edit it — never a reveal.
+        model.handle(.secondaryAction)
+        #expect(recorder.actions == [.openSettings])
     }
 
     @Test("clipboard mode only ever shows clipboard entries")

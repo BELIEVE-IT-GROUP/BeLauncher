@@ -17,8 +17,10 @@ public final class LauncherModel {
 
     public enum Key: Sendable {
         case up, down, enter, escape, tab
-        /// ⌘↩ — reveal the selected app or file in Finder instead of opening it.
-        case revealInFinder
+        /// ⌘↩ — runs the second action of the selected result, the platform convention.
+        case secondaryAction
+        /// ⌘K — opens the action panel for the selected result.
+        case actionPanel
     }
 
     /// The window can be summoned straight into clipboard history (⌥C).
@@ -38,6 +40,10 @@ public final class LauncherModel {
         case wait(seconds: Double)
         /// A whole flow, already planned. The app layer walks it in order and honours waits.
         indirect case runFlow(steps: [Action])
+        case openWith(path: String)
+        case quickLook(path: String)
+        case moveToTrash(path: String)
+        case openSettings
         case dismiss
     }
 
@@ -47,6 +53,104 @@ public final class LauncherModel {
     /// Bumped every time the window is shown so the text field can re-take focus.
     public private(set) var focusToken: Int = 0
     public private(set) var mode: Mode = .all
+
+    // MARK: - Action panel (⌘K)
+
+    public private(set) var isActionPanelOpen = false
+    public private(set) var actionSelection = 0
+    public var actionQuery: String = "" {
+        didSet { if actionQuery != oldValue { actionSelection = 0 } }
+    }
+
+    /// Verbs available for whatever is selected right now.
+    public var actions: [ResultAction] {
+        guard let selected else { return [] }
+        return ActionRegistry.actions(for: selected)
+    }
+
+    public var visibleActions: [ResultAction] {
+        ActionRegistry.filter(actions, query: actionQuery)
+    }
+
+    public var selectedAction: ResultAction? {
+        visibleActions.indices.contains(actionSelection) ? visibleActions[actionSelection] : nil
+    }
+
+    /// The preview shown beside the list.
+    public var detail: ResultDetail? {
+        guard let selected, let input = try? dataSource() else { return nil }
+        return DetailBuilder.detail(
+            for: selected, snippets: input.snippets, flows: input.flows,
+            clips: input.clips, expander: expanderFactory(), fileInfo: fileInfo
+        )
+    }
+
+    public func openActionPanel() {
+        guard selected != nil else { return }
+        actionQuery = ""
+        actionSelection = 0
+        isActionPanelOpen = true
+    }
+
+    public func closeActionPanel() {
+        isActionPanelOpen = false
+        actionQuery = ""
+    }
+
+    public func selectAction(_ index: Int) {
+        guard visibleActions.indices.contains(index) else { return }
+        actionSelection = index
+    }
+
+    /// Runs an action by id, whichever route the user took to reach it.
+    @discardableResult
+    public func run(_ action: ResultAction) -> Bool {
+        closeActionPanel()
+        switch action.intent {
+        case .run:
+            return runSelected()
+        case .reveal(let path):
+            perform(.revealInFinder(path: path))
+        case .openWith(let path):
+            perform(.openWith(path: path))
+        case .quickLook(let path):
+            perform(.quickLook(path: path))
+        case .copy(let text):
+            perform(.copyToClipboard(text: text, cursorOffset: nil))
+        case .paste(let text):
+            perform(.copyToClipboard(text: text, cursorOffset: nil))
+        case .saveClipAsSnippet(let text):
+            perform(.copyToClipboard(text: text, cursorOffset: nil))
+            perform(.openSettings)
+            return true
+        case .completeKeyword(let keyword):
+            query = keyword
+            return true
+        case .openSettings:
+            perform(.openSettings)
+            return true
+        case .moveToTrash(let path):
+            perform(.moveToTrash(path: path))
+        case .deleteClip(let id):
+            onDelete(.clipboard, id)
+            refresh()
+            return true
+        case .deleteSnippet(let id):
+            onDelete(.snippet, id)
+            refresh()
+            return true
+        case .deleteWorkflow(let id):
+            onDelete(.workflow, id)
+            refresh()
+            return true
+        case .deleteFlow(let id):
+            onDelete(.flow, id)
+            refresh()
+            return true
+        }
+        perform(.dismiss)
+        return true
+    }
 
     public var query: String = "" {
         didSet { if query != oldValue { refresh() } }
@@ -58,6 +162,8 @@ public final class LauncherModel {
 
     private let dataSource: @MainActor () throws -> SearchInput
     private let fileSearch: FileSearch
+    private let fileInfo: @Sendable (String) -> [ResultDetail.Item]
+    private let onDelete: @MainActor (ResultKind, Int64) -> Void
     private let expanderFactory: @MainActor () -> SnippetExpander
     private let perform: @MainActor (Action) -> Void
     private let recordUse: @MainActor (ResultKind, Int64) -> Void
@@ -65,12 +171,16 @@ public final class LauncherModel {
     public init(
         dataSource: @escaping @MainActor () throws -> SearchInput,
         fileSearch: FileSearch = FileSearch(),
+        fileInfo: @escaping @Sendable (String) -> [ResultDetail.Item] = { _ in [] },
+        onDelete: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
         expander: @escaping @MainActor () -> SnippetExpander = { SnippetExpander() },
         recordUse: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
         perform: @escaping @MainActor (Action) -> Void
     ) {
         self.dataSource = dataSource
         self.fileSearch = fileSearch
+        self.fileInfo = fileInfo
+        self.onDelete = onDelete
         self.expanderFactory = expander
         self.recordUse = recordUse
         self.perform = perform
@@ -81,6 +191,7 @@ public final class LauncherModel {
     /// Called every time the window is summoned.
     public func activate(mode: Mode = .all) {
         self.mode = mode
+        closeActionPanel()
         query = ""
         selection = 0
         focusToken += 1
@@ -123,6 +234,7 @@ public final class LauncherModel {
             state = .failed("\(error)")
         }
         selection = min(selection, max(results.count - 1, 0))
+        if isActionPanelOpen, results.isEmpty { closeActionPanel() }
     }
 
     // MARK: - Keyboard
@@ -132,13 +244,29 @@ public final class LauncherModel {
     public func handle(_ key: Key) -> Bool {
         switch key {
         case .escape:
+            // The panel closes first: escape means "back one level", not "give up".
+            if isActionPanelOpen { closeActionPanel(); return true }
             perform(.dismiss)
             return true
+
+        case .actionPanel:
+            isActionPanelOpen ? closeActionPanel() : openActionPanel()
+            return true
         case .down:
+            if isActionPanelOpen {
+                guard !visibleActions.isEmpty else { return true }
+                actionSelection = (actionSelection + 1) % visibleActions.count
+                return true
+            }
             guard !results.isEmpty else { return true }
             selection = (selection + 1) % results.count
             return true
         case .up:
+            if isActionPanelOpen {
+                guard !visibleActions.isEmpty else { return true }
+                actionSelection = (actionSelection - 1 + visibleActions.count) % visibleActions.count
+                return true
+            }
             guard !results.isEmpty else { return true }
             selection = (selection - 1 + results.count) % results.count
             return true
@@ -147,14 +275,12 @@ public final class LauncherModel {
             guard let completion = selected?.completion else { return false }
             query = completion
             return true
-        case .revealInFinder:
-            guard let result = selected,
-                  result.kind == .application || result.kind == .file else { return false }
-            perform(.revealInFinder(path: result.payload))
-            perform(.dismiss)
-            return true
+        case .secondaryAction:
+            guard let result = selected, let action = ActionRegistry.secondary(for: result) else { return false }
+            return run(action)
 
         case .enter:
+            if isActionPanelOpen, let action = selectedAction { return run(action) }
             return runSelected()
         }
     }

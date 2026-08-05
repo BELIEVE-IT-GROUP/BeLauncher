@@ -81,6 +81,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     flows: store.flows()
                 )
             },
+            fileInfo: { path in
+                guard let attributes = try? FileManager.default.attributesOfItem(atPath: path) else { return [] }
+                var items: [ResultDetail.Item] = []
+                if let size = attributes[.size] as? Int {
+                    items.append(.init(label: "Tamaño", value: ByteCountFormatter.string(
+                        fromByteCount: Int64(size), countStyle: .file)))
+                }
+                if let modified = attributes[.modificationDate] as? Date {
+                    items.append(.init(label: "Modificado",
+                                       value: modified.formatted(date: .abbreviated, time: .shortened)))
+                }
+                return items
+            },
+            onDelete: { [weak self] kind, id in
+                guard let store = self?.store else { return }
+                switch kind {
+                case .clipboard: store.deleteClip(id: id)
+                case .snippet: store.deleteSnippet(id: id)
+                case .workflow: store.deleteWorkflow(id: id)
+                case .flow: store.deleteFlow(id: id)
+                default: break
+                }
+            },
             expander: {
                 SnippetExpander(
                     clipboard: { NSPasteboard.general.string(forType: .string) },
@@ -209,18 +232,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self, let panel = self.panel, panel.isKeyWindow, let model = self.model else { return event }
 
-            if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "," {
+            let command = event.modifierFlags.contains(.command)
+            let shift = event.modifierFlags.contains(.shift)
+            let option = event.modifierFlags.contains(.option)
+            let characters = event.charactersIgnoringModifiers?.lowercased() ?? ""
+
+            if command, characters == "," {
                 self.openSettings()
                 return nil
             }
+            // ⌘K opens the action panel, the shortcut people already have in their fingers.
+            if command, characters == "k" {
+                model.handle(.actionPanel)
+                return nil
+            }
+
             switch event.keyCode {
             case 125: model.handle(.down); return nil     // arrow down
             case 126: model.handle(.up); return nil       // arrow up
-            case 36, 76: model.handle(.enter); return nil // return / enter
+            case 36, 76:                                   // return / enter
+                if command {
+                    model.handle(.secondaryAction)
+                } else {
+                    model.handle(.enter)
+                }
+                return nil
             case 53: model.handle(.escape); return nil    // escape
-            case 48: return model.handle(.tab) ? nil : event
-            default: return event
+            case 48:                                       // tab
+                if model.isActionPanelOpen { return event }
+                return model.handle(.tab) ? nil : event
+            default:
+                break
             }
+
+            // Any other shortcut declared by an action of the selected result.
+            if command || option,
+               let result = model.selected,
+               let action = ActionRegistry.actions(for: result).first(where: {
+                   $0.shortcut?.matches(characters: characters, keyCode: event.keyCode,
+                                        command: command, shift: shift, option: option) == true
+               }) {
+                model.run(action)
+                return nil
+            }
+
+            return event
         }
     }
 
@@ -314,6 +370,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .revealInFinder(let path):
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
 
+        case .openWith(let path):
+            openWithPicker(path: path)
+
+        case .quickLook(let path):
+            // Quick Look through Finder: no extra framework, no extra permission.
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+
+        case .moveToTrash(let path):
+            do {
+                try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
+            } catch {
+                report("No se pudo mover a la papelera", error.localizedDescription)
+            }
+
+        case .openSettings:
+            openSettings()
+
         case .runShortcut(let name):
             Shortcuts.run(named: name)
 
@@ -354,6 +427,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try? await Task.sleep(for: .milliseconds(120))
             }
         }
+    }
+
+    /// The "Open with…" list macOS itself offers for that file.
+    private func openWithPicker(path: String) {
+        let url = URL(fileURLWithPath: path)
+        let apps = NSWorkspace.shared.urlsForApplications(toOpen: url)
+        guard !apps.isEmpty else {
+            NSWorkspace.shared.open(url)
+            return
+        }
+        let menu = NSMenu(title: "Abrir con")
+        for app in apps.prefix(12) {
+            let item = NSMenuItem(
+                title: FileManager.default.displayName(atPath: app.path),
+                action: #selector(openWithChosen(_:)), keyEquivalent: ""
+            )
+            item.target = self
+            item.image = NSWorkspace.shared.icon(forFile: app.path)
+            item.image?.size = NSSize(width: 16, height: 16)
+            item.representedObject = [url, app]
+            menu.addItem(item)
+        }
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    @objc private func openWithChosen(_ sender: NSMenuItem) {
+        guard let pair = sender.representedObject as? [URL], pair.count == 2 else { return }
+        NSWorkspace.shared.open([pair[0]], withApplicationAt: pair[1],
+                                configuration: NSWorkspace.OpenConfiguration())
     }
 
     private func report(_ title: String, _ detail: String) {

@@ -2,7 +2,9 @@ import SwiftUI
 import AppKit
 
 enum Theme {
-    static let panelWidth: CGFloat = 660
+    static let panelWidth: CGFloat = 780
+    /// Width of the result list when a detail pane is showing beside it.
+    static let listWidth: CGFloat = 430
     static let corner: CGFloat = 20
     static let rowHeight: CGFloat = 52
     static let searchHeight: CGFloat = 64
