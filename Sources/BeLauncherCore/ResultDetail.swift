@@ -125,6 +125,16 @@ public enum DetailBuilder {
             )
 
         case .answer:
+            // A typed verb packs "<verb id>\u{1F}<text>" into the payload so it can be run later.
+            // The preview must show the text it will work on, not the plumbing.
+            if result.id.hasPrefix("verb-"),
+               let split = result.payload.firstIndex(of: "\u{1F}") {
+                let source = String(result.payload[result.payload.index(after: split)...])
+                return ResultDetail(
+                    body: source,
+                    metadata: [.init(label: "Se hará sobre", value: "\(source.count) caracteres")]
+                )
+            }
             return ResultDetail(body: result.payload,
                                 metadata: [.init(label: "Basado en", value: result.subtitle)])
 

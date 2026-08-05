@@ -83,7 +83,7 @@ extension LauncherModel.Action {
         case .moveToTrash, .systemCommand, .runShortcut, .startTimer, .arrangeWindow,
              .remember, .confirmCommit, .discardCommit, .runFlow, .assignAlias, .runMission:
             return true
-        case .missionCancelled:
+        case .missionCancelled, .cancelAI:
             return false
         }
     }
@@ -113,6 +113,7 @@ extension LauncherModel.Action {
         case .assignAlias(_, let suggestion): "Asignar un alias a \(suggestion)"
         case .runMission(let mission): "Ejecutar la misión “\(mission.intent)”"
         case .missionCancelled: "Misión cancelada"
+        case .cancelAI: "Petición cancelada"
         case .dismiss: "Cerrar la ventana"
         }
     }

@@ -77,9 +77,16 @@ struct CommandView: View {
 
     /// Cards only where they beat a list: clipboard history, which is the one thing here you
     /// recognise by looking rather than by reading.
+    ///
+    /// Keyed on what is on screen, not on which key opened the window. Tying it to ⌥C meant the
+    /// same clipboard items were cards through one door and a list through the other, and the
+    /// person who opened with ⇧⌘Espacio — which is most of the time — never saw the cards at all
+    /// and reasonably concluded they were not there.
     private var isCarousel: Bool {
-        model.mode == .clipboard && !model.results.isEmpty && model.mission == nil
-            && model.aiState == .idle
+        guard model.mission == nil, model.aiState == .idle, !model.results.isEmpty else {
+            return false
+        }
+        return model.results.allSatisfy { $0.kind == .clipboard }
     }
 
     private var showsBody: Bool {
@@ -367,9 +374,20 @@ private struct AIPane: View {
                 EmptyView()
 
             case .working(let title):
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text(title).font(.system(size: 12)).foregroundStyle(.secondary)
+                // A local model on a cold start can take half a minute, which without a way out
+                // and without saying why reads as the whole machine having locked up.
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(title).font(.system(size: 12))
+                        Spacer()
+                        Button("Cancelar") { dismiss() }
+                            .controlSize(.small)
+                    }
+                    Text("Un modelo local puede tardar la primera vez, mientras se carga en memoria. "
+                         + "Las siguientes van rápidas.")
+                        .font(.system(size: 10.5)).foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
             case .answer(let verb, let text):
