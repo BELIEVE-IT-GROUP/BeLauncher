@@ -10,6 +10,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case flow
     case system
     case bookmark
+    case window
 
     public var label: String {
         switch self {
@@ -22,6 +23,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .flow: "Flow"
         case .system: "Sistema"
         case .bookmark: "Enlace"
+        case .window: "Ventana"
         }
     }
 
@@ -36,6 +38,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .flow: "arrow.triangle.branch"
         case .system: "switch.2"
         case .bookmark: "bookmark"
+        case .window: "macwindow"
         }
     }
 }
@@ -169,6 +172,14 @@ public enum SearchEngine {
         }
 
         results += matchShortcuts(input.shortcuts, needle: needle, needleMask: needleMask)
+
+        for (command, score) in WindowCommand.search(query) {
+            results.append(SearchResult(
+                id: "window-\(command.id)", kind: .window, title: command.title,
+                subtitle: "Coloca la ventana activa", score: score, matched: [],
+                payload: command.layout.rawValue
+            ))
+        }
 
         for (command, score) in SystemCommand.search(query) {
             results.append(SearchResult(

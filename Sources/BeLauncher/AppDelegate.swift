@@ -396,6 +396,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .assignAlias(let target, let suggestion):
             promptForAlias(target: target, suggestion: suggestion)
 
+        case .arrangeWindow(let layout):
+            // A beat so the previous app is frontmost again before we touch its window.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                if let failure = WindowArranger.arrange(layout) {
+                    self.report("No se pudo colocar la ventana", failure)
+                }
+            }
+
         case .systemCommand(let kind):
             panel?.orderOut(nil)
             let failure = SystemCommandRunner.run(kind) { title in

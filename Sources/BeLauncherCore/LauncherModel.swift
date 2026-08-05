@@ -45,6 +45,7 @@ public final class LauncherModel {
         case moveToTrash(path: String)
         case openSettings
         case systemCommand(String)
+        case arrangeWindow(String)
         case assignAlias(target: String, suggestion: String)
         case dismiss
     }
@@ -316,6 +317,11 @@ public final class LauncherModel {
         case .system:
             perform(.systemCommand(result.payload))
             perform(.dismiss)
+
+        case .window:
+            // Dismiss first: the front window must be the user's, not ours.
+            perform(.dismiss)
+            perform(.arrangeWindow(result.payload))
 
         case .bookmark:
             guard let url = URL(string: result.payload) else { return false }

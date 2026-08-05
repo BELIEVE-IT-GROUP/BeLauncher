@@ -201,6 +201,12 @@ public enum ActionRegistry {
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
             ]
 
+        case .window:
+            return [
+                ResultAction(id: "arrange", title: "Colocar la ventana", symbol: "macwindow",
+                             shortcut: .enter, intent: .run),
+            ]
+
         case .system:
             return [
                 ResultAction(id: "run", title: "Ejecutar", symbol: "play.fill",

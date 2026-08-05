@@ -93,6 +93,10 @@ public enum DetailBuilder {
             return ResultDetail(body: result.payload, isMonospaced: true,
                                 metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
 
+        case .window:
+            return ResultDetail(body: result.title,
+                                metadata: [.init(label: "Requiere", value: "Permiso de Accesibilidad")])
+
         case .system:
             let command = SystemCommand.all.first { $0.kind.rawValue == result.payload }
             return ResultDetail(
