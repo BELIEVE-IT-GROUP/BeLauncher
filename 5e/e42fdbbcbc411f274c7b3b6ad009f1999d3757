@@ -1,0 +1,19 @@
+Scripts/Info.plist
+  s_3bf5a4753c6c6c::t_68a0c7bcbea442 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5ee42fdbbcbc411f274c7b3b6ad009f1999d3757",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "unknown"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
