@@ -90,7 +90,7 @@ struct UpdateInstallerTests {
     @Test("every failure says what happened and that nothing was installed")
     func messages() {
         let failures: [UpdateInstaller.Failure] = [
-            .notWritable("/x"), .translocated, .badArchive,
+            .notWritable("/x"), .translocated, .badArchive, .couldNotMount,
             .notSignedByUs(found: "ABCDE12345"), .notNotarized, .replaceFailed("disco lleno"),
         ]
         for failure in failures {
