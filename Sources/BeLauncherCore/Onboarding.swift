@@ -12,6 +12,7 @@ public enum Onboarding {
     public struct Capability: Sendable, Equatable, Identifiable {
         public enum Kind: String, Sendable, Equatable {
             case accessibility
+            case automation
             case calendar
             case notifications
             case clipboard
@@ -68,6 +69,19 @@ public enum Onboarding {
                       + "ni el contenido de otras apps.",
               ifYouSayNo: "Copias con Enter y pegas tú con ⌘V. La gestión de ventanas no funciona.",
               symbol: "accessibility", isSystemPermission: true, recommended: true),
+
+        .init(kind: .automation,
+              title: "Automatización",
+              unlocks: "Los comandos de sistema y los flujos: silenciar notificaciones, poner el Mac "
+                     + "en reposo, modo oscuro, vaciar la papelera, expulsar discos, ejecutar tus "
+                     + "Atajos de macOS. Sin esto, un flujo como «enfoque» se ejecuta y no pasa nada.",
+              accesses: "macOS pide este permiso porque técnicamente permite pedirle cosas a otras "
+                      + "apps. BeLauncher solo se lo pide a «System Events» y al Finder, y solo "
+                      + "cuando tú ejecutas un comando. No lee el contenido de tus apps ni las "
+                      + "controla por su cuenta.",
+              ifYouSayNo: "Todo lo demás funciona. Los comandos de sistema y los pasos de flujo que "
+                        + "tocan el Mac fallan con un aviso, en vez de en silencio.",
+              symbol: "gearshape.2", isSystemPermission: true, recommended: true),
 
         .init(kind: .calendar,
               title: "Calendario",

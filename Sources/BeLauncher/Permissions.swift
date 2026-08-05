@@ -7,6 +7,36 @@ import ApplicationServices
 enum Permissions {
     static var accessibilityGranted: Bool { AXIsProcessTrusted() }
 
+    /// The one the app leaned on hardest and never mentioned.
+    ///
+    /// Every system command and half the flow steps go through Apple Events to System Events.
+    /// Without this the flow named "enfoque" runs, reports success and changes nothing — the worst
+    /// possible failure, because it looks like the feature is broken rather than unpermitted.
+    ///
+    /// `AEDeterminePermissionToAutomateTarget` is the only way to ask macOS the state without
+    /// firing a real event. `askUserIfNeeded: false` reads it silently; `true` triggers the system
+    /// prompt, which is what the onboarding toggle wants.
+    static func automationGranted(askUserIfNeeded: Bool = false) -> Bool {
+        var target = AEAddressDesc()
+        let bundleID = "com.apple.systemevents"
+        let status = bundleID.withCString { pointer -> OSErr in
+            AECreateDesc(typeApplicationBundleID, pointer, strlen(pointer), &target)
+        }
+        guard status == noErr else { return false }
+        defer { AEDisposeDesc(&target) }
+        return AEDeterminePermissionToAutomateTarget(
+            &target, typeWildCard, typeWildCard, askUserIfNeeded
+        ) == noErr
+    }
+
+    /// Opens the exact pane, because "grant Automation" sends people hunting through System
+    /// Settings and Automation is not where anybody looks first.
+    static func openAutomationSettings() {
+        guard let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     /// Explains first, opens System Settings second — never the other way round.
     /// Returns true when the permission is already granted.
     @discardableResult

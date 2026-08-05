@@ -485,7 +485,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func perform(_ action: LauncherModel.Action) {
+    /// Returns what went wrong, or nil when the step did what it said.
+    ///
+    /// It used to return nothing, so a mission marked every step done whether or not it worked —
+    /// a receipt that exists to not take the machine's word for it, taking the machine's word for it.
+    @discardableResult
+    private func perform(_ action: LauncherModel.Action) -> String? {
         switch action {
         case .dismiss:
             panel?.orderOut(nil)
@@ -569,6 +574,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return alert.runModal() == .alertFirstButtonReturn
             }
             if let failure { report("No se pudo ejecutar el comando", failure) }
+            return failure
 
         case .runShortcut(let name):
             Shortcuts.run(named: name)
@@ -595,6 +601,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
         }
+        return nil
     }
 
     /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole
@@ -606,7 +613,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     try? await Task.sleep(for: .seconds(min(seconds, 30)))
                     continue
                 }
-                perform(step)
+                // A flow stops at the first step that fails. Carrying on means "silencia,
+                // abre Notion, pon un temporizador" ends with a timer running and notifications
+                // still on, which is worse than not running at all.
+                if perform(step) != nil { break }
                 try? await Task.sleep(for: .milliseconds(120))
             }
         }
@@ -619,7 +629,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             for index in executed.steps.indices {
                 let step = executed.steps[index]
-                perform(step.action)
+                if let failure = perform(step.action) {
+                    executed.steps[index].outcome = .failed
+                    executed.steps[index].detail = failure
+                    executed.state = .failed
+                    executed.failure = failure
+                    break
+                }
                 executed.steps[index].outcome = .done
                 try? await Task.sleep(for: .milliseconds(150))
             }

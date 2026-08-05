@@ -211,6 +211,16 @@ private struct CapabilityCard: View {
             Binding(get: { Permissions.accessibilityGranted },
                     set: { if $0 { Permissions.requestAccessibility(
                         reason: capability.unlocks) } })
+        case .automation:
+            // Asking macOS with askUserIfNeeded triggers the real prompt. If the person already
+            // said no once, macOS will not ask again, so the pane is opened for them.
+            Binding(get: { Permissions.automationGranted() },
+                    set: { wanted in
+                        guard wanted else { return }
+                        if !Permissions.automationGranted(askUserIfNeeded: true) {
+                            Permissions.openAutomationSettings()
+                        }
+                    })
         case .calendar:
             Binding(get: { model.calendarGranted },
                     set: { if $0 { model.requestCalendar() } })

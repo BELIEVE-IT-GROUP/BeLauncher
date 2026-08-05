@@ -94,10 +94,24 @@ fi
 # Hardened runtime and a secure timestamp are both mandatory for notarization.
 echo "▸ Signing with: $IDENTITY"
 codesign --force --options runtime --timestamp \
+    --entitlements "$ROOT/Scripts/BeLauncher.entitlements" \
     --sign "$IDENTITY" \
     --identifier com.believe.belauncher \
     "$APP"
 codesign --verify --strict --verbose=2 "$APP"
+
+# Signing with hardened runtime and no entitlements silently killed every system command and flow
+# step in every signed release: macOS refuses the Apple Event before asking, so no prompt appears
+# and the app never even shows up in Privacy › Automation. It only worked on the unsigned dev
+# build. Fail the release rather than ship that again.
+if ! codesign -d --entitlements - --xml "$APP" 2>/dev/null \
+    | plutil -convert xml1 -o - - 2>/dev/null \
+    | grep -q "com.apple.security.automation.apple-events"; then
+    echo "✗ El .app se firmó sin la entitlement de Apple Events." >&2
+    echo "  Los comandos de sistema y los flujos no funcionarían y nadie podría concederlo." >&2
+    exit 1
+fi
+echo "▸ Entitlement de Apple Events presente"
 
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
     echo "▸ SKIP_NOTARIZE=1 — stopping after signing"

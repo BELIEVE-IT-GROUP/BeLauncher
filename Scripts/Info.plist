@@ -23,7 +23,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>BeLauncher does not send Apple Events. This entry exists only to make that explicit.</string>
+	<string>BeLauncher usa esto para los comandos de sistema y los flujos: silenciar notificaciones, poner el Mac en reposo, vaciar la papelera, expulsar discos, cambiar a modo oscuro. Solo cuando tú ejecutas uno. No lee ni controla el contenido de tus apps.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Local-only launcher. No accounts, no telemetry.</string>
 </dict>

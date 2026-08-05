@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	    Without this, every system command and every flow step that touches the Mac is dead in a
+	    signed build. Hardened runtime blocks Apple Events unless the app declares it, and the block
+	    happens *before* macOS asks the person anything: no prompt appears, and BeLauncher never
+	    shows up in System Settings › Privacy › Automation, so there is nothing to switch on either.
+	    The flow reports success and changes nothing.
+
+	    It went unnoticed because the development build is not signed with hardened runtime, so it
+	    worked on the machine where it was tested and only on that path.
+
+	    This is the only entitlement here on purpose. It permits sending events; it does not grant
+	    access to any particular app — macOS still asks per target the first time.
+	-->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>

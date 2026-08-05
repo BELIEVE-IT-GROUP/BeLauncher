@@ -240,3 +240,60 @@ struct SystemShortcutTests {
         }
     }
 }
+
+/// The entitlement that made every system command a no-op in every signed release.
+///
+/// Under hardened runtime macOS refuses Apple Events unless the app declares
+/// `com.apple.security.automation.apple-events`, and it refuses them *before* asking anyone — so no
+/// prompt appears and BeLauncher never even shows up in Privacy › Automation. There is nothing for
+/// the user to switch on. It went unnoticed because the development build is unsigned, so it worked
+/// on exactly the one path it was tested on.
+@Suite("Signing the app so it can actually do its job")
+struct EntitlementsTests {
+
+    static var repositoryRoot: String {
+        // The tests run from .build, so walk up to the package root.
+        var path = URL(fileURLWithPath: #filePath)
+        while path.pathComponents.count > 1 {
+            path.deleteLastPathComponent()
+            if FileManager.default.fileExists(
+                atPath: path.appendingPathComponent("Package.swift").path) {
+                return path.path
+            }
+        }
+        return ""
+    }
+
+    @Test("the app ships an entitlements file that allows Apple Events")
+    func hasEntitlements() throws {
+        let path = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/BeLauncher.entitlements")
+        let contents = try String(contentsOfFile: path, encoding: .utf8)
+        #expect(contents.contains("com.apple.security.automation.apple-events"),
+                "sin esto los comandos de sistema y los flujos no hacen nada en un build firmado")
+    }
+
+    @Test("the release actually passes it to codesign, and refuses to ship without it")
+    func releaseUsesThem() throws {
+        let path = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/release-mac.sh")
+        let script = try String(contentsOfFile: path, encoding: .utf8)
+        #expect(script.contains("--entitlements"),
+                "el fichero puede existir y no usarse: eso ya pasó una vez")
+        #expect(script.contains("com.apple.security.automation.apple-events"),
+                "el release debe verificar el .app firmado, no confiar en que salió bien")
+    }
+
+    @Test("the Info.plist explains Apple Events instead of denying them")
+    func usageStringIsHonest() throws {
+        let path = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/Info.plist")
+        let plist = try String(contentsOfFile: path, encoding: .utf8)
+        #expect(plist.contains("NSAppleEventsUsageDescription"))
+        // This string is what macOS shows in the permission dialog. It used to read "BeLauncher
+        // does not send Apple Events", which was false and was the text shown while asking for
+        // permission to send them.
+        #expect(!plist.contains("does not send Apple Events"),
+                "el texto del diálogo de permiso no puede negar lo que la app hace")
+    }
+}
