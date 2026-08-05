@@ -126,6 +126,31 @@ Endpoints (`…/functions/v1/belauncher_landing_44aa9b_`): `validate-license` an
 `deactivate-device`. The Supabase anon key is public by design and is substituted into the build
 by `Scripts/with-anon-key.sh`, so the repository itself carries only a placeholder.
 
+## Your brain, from Claude or ChatGPT
+
+BeLauncher speaks MCP, so the assistant you already pay for can consult the brain without opening
+the launcher. The inverse move, and the cheap one: instead of putting a chat model inside
+BeLauncher, put BeLauncher's memory inside the model.
+
+In Claude Desktop's config:
+
+```json
+{
+  "mcpServers": {
+    "belauncher": {
+      "command": "/Applications/BeLauncher.app/Contents/MacOS/BeLauncher",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+Four tools: `what_did_we_decide`, `prepare`, `search_memory` and `propose_memory`.
+
+**Read and propose only.** No tool can confirm a memory, delete one or touch a file. An assistant
+may suggest what the company believes; only a person decides it. That rule matters more here than
+in the window, because the caller is not a person.
+
 ## Permissions
 
 BeLauncher asks for **one** permission, and only when you turn on the feature that needs it:
