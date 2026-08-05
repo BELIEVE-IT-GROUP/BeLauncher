@@ -380,8 +380,15 @@ public enum SearchEngine {
         // one-letter query. So: score everything, keep the best handful, build only those.
         func rate(_ index: Int) -> (index: Int, score: Int)? {
             let shortcut = shortcuts[index]
-            guard !Fuzzy.cannotMatch(needleMask: needleMask, candidateMask: shortcut.mask),
-                  let score = Fuzzy.score(needle: needle, hay: shortcut.foldedTitle) else { return nil }
+            guard !Fuzzy.cannotMatch(needleMask: needleMask, candidateMask: shortcut.mask) else {
+                return nil
+            }
+            // Folders are few and behave like app names, so a subsequence is fine. Bookmarks are
+            // tens of thousands, and a scattered match there is noise that buries the real answer.
+            if shortcut.source != .folder, !Fuzzy.containsRun(needle: needle, hay: shortcut.foldedTitle) {
+                return nil
+            }
+            guard let score = Fuzzy.score(needle: needle, hay: shortcut.foldedTitle) else { return nil }
             return (index, score + (shortcut.source == .folder ? 12 : 8))
         }
 

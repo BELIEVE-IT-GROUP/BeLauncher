@@ -8,6 +8,7 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
     public enum Section: String, Sendable, CaseIterable {
         case primary = ""
         case copy = "Copiar"
+        case ai = "Con IA"
         case manage = "Gestionar"
         case danger = "Peligro"
     }
@@ -47,6 +48,7 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case remember(text: String, source: String)
         case confirmCommit(String)
         case discardCommit(String)
+        case runVerb(id: String, text: String)
         case deleteSnippet(id: Int64)
         case deleteWorkflow(id: Int64)
         case deleteFlow(id: Int64)
@@ -111,6 +113,26 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
 public enum ActionRegistry {
 
     public static func actions(for result: SearchResult) -> [ResultAction] {
+        base(for: result) + aiVerbs(for: result)
+    }
+
+    /// The verbs a model can apply to this result, offered only where there is text to work on.
+    static func aiVerbs(for result: SearchResult) -> [ResultAction] {
+        let text: String
+        switch result.kind {
+        case .clipboard, .snippet, .answer: text = result.payload
+        case .memory: text = result.title
+        default: return []
+        }
+        guard text.count >= 12 else { return [] }
+
+        return AIVerb.suggested(for: text).map { verb in
+            ResultAction(id: "ai-\(verb.id)", title: verb.title, symbol: verb.symbol,
+                         section: .ai, intent: .runVerb(id: verb.id, text: text))
+        }
+    }
+
+    private static func base(for result: SearchResult) -> [ResultAction] {
         switch result.kind {
         case .application:
             return [

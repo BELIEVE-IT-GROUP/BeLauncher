@@ -19,7 +19,10 @@ struct CommandView: View {
                     stateContent(model.state)
                         .frame(maxWidth: model.detail == nil ? .infinity : Theme.listWidth,
                                alignment: .topLeading)
-                    if let detail = model.detail {
+                    if model.aiState != .idle {
+                        Divider().overlay(.white.opacity(0.07))
+                        AIPane(state: model.aiState, dismiss: { model.clearAI() })
+                    } else if let detail = model.detail {
                         Divider().overlay(.white.opacity(0.07))
                         DetailPane(detail: detail)
                     }
@@ -256,6 +259,55 @@ private struct DetailPane: View {
             }
             .padding(14)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+}
+
+// MARK: - AI answer
+
+@MainActor
+private struct AIPane: View {
+    let state: LauncherModel.AIState
+    let dismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            switch state {
+            case .idle:
+                EmptyView()
+
+            case .working(let title):
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(title).font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+
+            case .answer(let verb, let text):
+                HStack {
+                    Label(verb, systemImage: "sparkles")
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundStyle(Theme.accent)
+                    Spacer()
+                    Text("↩ copiar").font(.system(size: 10)).foregroundStyle(.tertiary)
+                }
+                ScrollView {
+                    Text(text)
+                        .font(.system(size: 12.5))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+            case .failed(let message):
+                Label(message, systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Volver") { dismiss() }.controlSize(.small)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }

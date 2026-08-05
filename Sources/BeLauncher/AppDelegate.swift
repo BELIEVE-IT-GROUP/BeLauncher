@@ -422,6 +422,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .assignAlias(let target, let suggestion):
             promptForAlias(target: target, suggestion: suggestion)
 
+        case .runVerb(let id, let text):
+            runAIVerb(id: id, text: text)
+
         case .remember(let text, let source):
             rememberIntoVault(text: text, source: source)
 
@@ -495,6 +498,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 perform(step)
                 try? await Task.sleep(for: .milliseconds(120))
+            }
+        }
+    }
+
+    /// Applies a verb and puts the answer in the window. Nothing is copied or pasted behind the
+    /// user's back: they see it, then decide.
+    private func runAIVerb(id: String, text: String) {
+        guard let verb = AIVerb.named(id), let model, let store else { return }
+
+        let configured = IntelligenceProvider.all.filter { provider in
+            provider.isPrivate || (Keychain.get(provider.keychainAccount)?.isEmpty == false)
+        }
+        guard !configured.isEmpty else {
+            model.aiFailed(IntelligenceError.noProviderConfigured.description)
+            return
+        }
+
+        let runner = AIVerbRunner(
+            client: IntelligenceClient(),
+            router: ModelRouter(preferred: store.setting("ai_provider")),
+            providers: configured
+        )
+        model.aiWorking(verb.title)
+        Task { @MainActor in
+            do {
+                let answer = try await runner.run(verb, on: text)
+                model.aiAnswered(verb: verb.title, text: answer)
+            } catch let error as IntelligenceError {
+                model.aiFailed(error.description)
+            } catch {
+                model.aiFailed(error.localizedDescription)
             }
         }
     }

@@ -77,3 +77,59 @@ struct SearchPerformanceTests {
         #expect(parallel.first!.score == serial.first!.score)
     }
 }
+
+@Suite("Bookmarks must not drown the list")
+struct BookmarkNoiseTests {
+
+    @Test("a scattered match in a bookmark title is noise, not a result")
+    func requiresAContiguousRun() {
+        let shortcuts = [
+            Shortcut(title: "Usaria, consultoría en usabilidad", target: "https://usaria.co",
+                     source: .bookmark),
+            Shortcut(title: "Acme: acuerdos comerciales", target: "https://acme.com/acuerdos",
+                     source: .bookmark),
+        ]
+        let results = SearchEngine.search("acuerdos con acme", in: SearchInput(shortcuts: shortcuts))
+        #expect(!results.contains { $0.title.contains("Usaria") },
+                "letters scattered across a title are not a match anyone meant")
+    }
+
+    @Test("what the user actually typed still finds its bookmark")
+    func realMatchesSurvive() {
+        let shortcuts = [Shortcut(title: "Acme: acuerdos comerciales",
+                                  target: "https://acme.com", source: .bookmark)]
+        #expect(!SearchEngine.search("acme", in: SearchInput(shortcuts: shortcuts)).isEmpty)
+        #expect(!SearchEngine.search("acuerdos", in: SearchInput(shortcuts: shortcuts)).isEmpty)
+        #expect(!SearchEngine.search("ACME", in: SearchInput(shortcuts: shortcuts)).isEmpty)
+    }
+
+    @Test("folders keep the forgiving matching, there are only a handful of them")
+    func foldersStayFuzzy() {
+        let shortcuts = [Shortcut(title: "Descargas", target: "/Users/x/Downloads", source: .folder)]
+        #expect(!SearchEngine.search("dscrgs", in: SearchInput(shortcuts: shortcuts)).isEmpty)
+    }
+
+    @Test("a clip beats a bookmark that only matched by accident")
+    func clipWinsOverNoise() {
+        let input = SearchInput(
+            clips: [Clip(id: 1, text: "Acordamos con Acme enviar la propuesta el viernes",
+                         sourceApp: "Mail")],
+            shortcuts: (0..<500).map {
+                Shortcut(title: "Artículo \($0) sobre consultoría y usabilidad",
+                         target: "https://example.com/\($0)", source: .bookmark)
+            }
+        )
+        let results = SearchEngine.search("acordamos con acme", in: input)
+        #expect(results.first?.kind == .clipboard)
+    }
+
+    @Test("containsRun is exact about what counts as contiguous")
+    func runSemantics() {
+        let hay = Fuzzy.folded("acuerdos comerciales")
+        #expect(Fuzzy.containsRun(needle: Fuzzy.folded("acuerdo"), hay: hay))
+        #expect(Fuzzy.containsRun(needle: Fuzzy.folded("comer"), hay: hay))
+        #expect(!Fuzzy.containsRun(needle: Fuzzy.folded("acuerdosx"), hay: hay))
+        #expect(!Fuzzy.containsRun(needle: Fuzzy.folded("acmerciales"), hay: hay))
+        #expect(Fuzzy.containsRun(needle: [], hay: hay))
+    }
+}

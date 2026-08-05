@@ -39,6 +39,23 @@ public enum Fuzzy {
         return mask
     }
 
+    /// Whether the query appears as a contiguous run inside the candidate. Subsequence matching
+    /// is right for a few hundred app names, but against tens of thousands of bookmarks it makes
+    /// almost everything "match" and buries what the user meant.
+    public static func containsRun(needle: [Character], hay: [Character]) -> Bool {
+        guard !needle.isEmpty else { return true }
+        guard needle.count <= hay.count else { return false }
+        let limit = hay.count - needle.count
+        var start = 0
+        while start <= limit {
+            var offset = 0
+            while offset < needle.count, hay[start + offset] == needle[offset] { offset += 1 }
+            if offset == needle.count { return true }
+            start += 1
+        }
+        return false
+    }
+
     /// True when the candidate cannot contain the query, decided in constant time.
     public static func cannotMatch(needleMask: UInt32, candidateMask: UInt32) -> Bool {
         needleMask & ~candidateMask != 0

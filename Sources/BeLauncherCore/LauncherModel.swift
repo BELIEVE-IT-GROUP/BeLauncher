@@ -49,6 +49,7 @@ public final class LauncherModel {
         case remember(text: String, source: String)
         case confirmCommit(String)
         case discardCommit(String)
+        case runVerb(id: String, text: String)
         case assignAlias(target: String, suggestion: String)
         case dismiss
     }
@@ -61,6 +62,21 @@ public final class LauncherModel {
     public private(set) var mode: Mode = .all
 
     // MARK: - Action panel (⌘K)
+
+    /// What a model is doing right now, so the window can show it instead of freezing.
+    public enum AIState: Equatable, Sendable {
+        case idle
+        case working(String)
+        case answer(verb: String, text: String)
+        case failed(String)
+    }
+
+    public private(set) var aiState: AIState = .idle
+
+    public func aiWorking(_ title: String) { aiState = .working(title) }
+    public func aiAnswered(verb: String, text: String) { aiState = .answer(verb: verb, text: text) }
+    public func aiFailed(_ message: String) { aiState = .failed(message) }
+    public func clearAI() { aiState = .idle }
 
     public private(set) var isActionPanelOpen = false
     public private(set) var actionSelection = 0
@@ -151,6 +167,10 @@ public final class LauncherModel {
             perform(.discardCommit(id))
             refresh()
             return true
+        case .runVerb(let id, let text):
+            aiState = .working(AIVerb.named(id)?.title ?? "Pensando")
+            perform(.runVerb(id: id, text: text))
+            return true
         case .assignAlias(let target, let suggestion):
             perform(.assignAlias(target: target, suggestion: suggestion))
             return true
@@ -224,6 +244,7 @@ public final class LauncherModel {
     /// Called every time the window is summoned.
     public func activate(mode: Mode = .all) {
         self.mode = mode
+        aiState = .idle
         closeActionPanel()
         query = ""
         selection = 0
@@ -314,6 +335,12 @@ public final class LauncherModel {
 
         case .enter:
             if isActionPanelOpen, let action = selectedAction { return run(action) }
+            // An answer on screen is what Return is about now.
+            if case .answer(_, let text) = aiState {
+                perform(.copyToClipboard(text: text, cursorOffset: nil))
+                perform(.dismiss)
+                return true
+            }
             return runSelected()
         }
     }
