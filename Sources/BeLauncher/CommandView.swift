@@ -336,10 +336,10 @@ private struct ActionPanelView: View {
             Image(systemName: action.symbol)
                 .font(.system(size: 11))
                 .frame(width: 15)
-                .foregroundStyle(action.isDestructive ? Color.red.opacity(0.9) : Theme.accent)
+                .foregroundStyle(action.isDestructive ? Theme.destructive : Theme.accent)
             Text(action.title)
-                .font(.system(size: 12))
-                .foregroundStyle(action.isDestructive ? Color.red.opacity(0.95) : .primary)
+                .font(.system(size: 12, weight: action.isDestructive ? .medium : .regular))
+                .foregroundStyle(action.isDestructive ? Theme.destructive : .primary)
             Spacer(minLength: 8)
             if let shortcut = action.shortcut {
                 Text(shortcut.display)

@@ -13,6 +13,9 @@ enum Theme {
     /// Believe Blue 700 and Cyan 400 — the brand pair used by the mark.
     static let believeBlue = Color(red: 0.047, green: 0.231, blue: 0.725)
     static let cyan = Color(red: 0, green: 0.667, blue: 1)
+    /// Bright enough to stay legible over the panel's translucent background, which sits over
+    /// whatever the user happens to have on screen.
+    static let destructive = Color(red: 1, green: 0.45, blue: 0.42)
 }
 
 /// Real window-level blur. `.ultraThinMaterial` alone looks flat over a moving desktop.
