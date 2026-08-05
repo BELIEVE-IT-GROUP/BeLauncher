@@ -1,5 +1,7 @@
 # BeLauncher
 
+[![Release macOS](https://github.com/BELIEVE-IT-GROUP/BeLauncher/actions/workflows/release-mac.yml/badge.svg)](https://github.com/BELIEVE-IT-GROUP/BeLauncher/actions/workflows/release-mac.yml)
+
 A personal, local-only replacement for the parts of Alfred Powerpack I actually use:
 a keyboard-first launcher with **search**, **snippets**, **clipboard history** and **workflows**,
 living in the menu bar behind a global hotkey.
@@ -8,7 +10,22 @@ Swift 6 · SwiftUI + AppKit · SQLite · macOS Keychain · macOS 14+
 
 ---
 
-## First run
+## Install
+
+Download the latest signed and notarized build:
+
+**[files.believe-global.com/apps/belauncher/BeLauncher-latest.dmg](https://files.believe-global.com/apps/belauncher/BeLauncher-latest.dmg)**
+
+Open the DMG, drag BeLauncher to Applications, launch it. It is signed with the Believe Developer
+ID and notarized by Apple, so there is no "unidentified developer" warning and no right-click-open
+dance. Verify it yourself with:
+
+```
+spctl --assess --type execute --verbose=2 /Applications/BeLauncher.app
+# → accepted, source=Notarized Developer ID
+```
+
+## First run (from source)
 
 ```
 make run
@@ -123,6 +140,51 @@ in `.env`.
    `com.believe.belauncher.secrets`.
 
 `make uninstall` does steps 1, 3 and 4 and reminds you about 5.
+
+## Releasing
+
+```
+bash Scripts/release.sh patch     # bumps the version and tags it
+git push --follow-tags            # the tag starts the release
+```
+
+The `Release macOS` workflow runs on the **self-hosted Apple Silicon runner** registered at the
+BELIEVE-IT-GROUP org level (GitHub-hosted macOS runners bill 10x; this one bills nothing). It:
+
+1. runs the tests,
+2. builds a universal binary (arm64 + x86_64),
+3. signs with `Developer ID Application: BELIEVE IT GROUP SAS` and the hardened runtime,
+4. notarizes and staples **both** the `.app` and the DMG, so the copy in `/Applications` validates
+   with no network,
+5. attaches the DMG to the GitHub Release,
+6. publishes the DMG and `latest.json` to Cloudflare R2 (`believe-r2`), served from
+   `files.believe-global.com/apps/belauncher/`.
+
+To rehearse it locally without touching Apple's servers:
+
+```
+VERSION=0.1.0 SKIP_NOTARIZE=1 bash Scripts/release-mac.sh
+```
+
+Signing on a fresh Mac needs the private key authorised for `codesign` once, otherwise macOS
+opens a password dialog that a CI job cannot answer:
+
+```
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '<login password>' \
+    ~/Library/Keychains/login.keychain-db
+```
+
+Repository secrets used by the workflow: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`,
+`APPLE_TEAM_ID`, `MAC_SIGN_IDENTITY`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_ENDPOINT`,
+`R2_BUCKET`. All of them come from Infisical; none of them live in the repo.
+
+## The icon
+
+`Resources/AppIcon-1024.png` is the artwork of record — drop a 1024×1024 PNG there and the build
+turns it into `AppIcon.icns`. Without it, `Scripts/draw-icon.swift` draws the mark in code so a
+build never ships a blank tile. The same glyph is drawn as a vector in `BrandMark.swift` for the
+search field and the menu bar, where it is rendered as a monochrome template image.
+
 
 ## Tests
 
