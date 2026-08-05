@@ -260,6 +260,23 @@ public final class Store {
 
     // MARK: - First run
 
+    /// Quick commands everyone expects on day one. Added on every launch, not just the first,
+    /// so people who installed an earlier build get them too — existing keywords are never
+    /// touched, so a workflow you edited stays yours.
+    public func ensureQuickCommands() {
+        let defaults: [(String, String, String)] = [
+            ("g", "Buscar en Google", "https://www.google.com/search?q={query}"),
+            ("c", "Preguntar a Claude", "https://claude.ai/new?q={query}"),
+            ("gpt", "Preguntar a ChatGPT", "https://chatgpt.com/?q={query}"),
+            ("p", "Preguntar a Perplexity", "https://www.perplexity.ai/search?q={query}"),
+            ("yt", "Buscar en YouTube", "https://www.youtube.com/results?search_query={query}"),
+        ]
+        let taken = Set(workflows().map(\.keyword))
+        for (keyword, title, template) in defaults where !taken.contains(keyword) {
+            _ = try? addWorkflow(keyword: keyword, title: title, urlTemplate: template)
+        }
+    }
+
     /// Seeds a handful of examples so the very first launch shows something useful.
     public func seedIfEmpty() {
         guard setting("seeded") == nil else { return }

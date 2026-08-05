@@ -190,3 +190,42 @@ struct LicenseClientTests {
         #expect(headers["Authorization"] == "Bearer ANON123")
     }
 }
+
+@Suite("License storage")
+@MainActor
+struct LicenseVaultTests {
+
+    private func store() throws -> Store {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-vault-\(UUID().uuidString)")
+            .appendingPathComponent("s.sqlite3").path
+        return try Store(path: path)
+    }
+
+    @Test("an activation survives a relaunch on the same Mac")
+    func roundTrip() throws {
+        LicenseVault.use(try store())
+        let identity = LicenseIdentity(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6",
+                                       deviceID: "THIS-MAC", lastCheck: .now)
+        try LicenseVault.save(identity)
+        #expect(LicenseVault.load(currentDeviceID: "THIS-MAC")?.key == "BELN-A1B2-C3D4-E5F6")
+    }
+
+    @Test("a database copied to another Mac does not carry the licence")
+    func deviceBound() throws {
+        LicenseVault.use(try store())
+        try LicenseVault.save(LicenseIdentity(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6",
+                                              deviceID: "MAC-ONE"))
+        #expect(LicenseVault.load(currentDeviceID: "MAC-TWO") == nil)
+        #expect(LicenseVault.load(currentDeviceID: "MAC-ONE") != nil)
+    }
+
+    @Test("clearing it asks for activation again")
+    func clear() throws {
+        LicenseVault.use(try store())
+        try LicenseVault.save(LicenseIdentity(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6",
+                                              deviceID: "M"))
+        LicenseVault.clear()
+        #expect(LicenseVault.load(currentDeviceID: "M") == nil)
+    }
+}

@@ -118,46 +118,43 @@ public struct LicenseClient: Sendable {
     }
 }
 
-/// Where the activation lives once it succeeds: the Keychain, so it survives a reinstall of the
-/// app bundle and never sits in the database or an export file.
+/// Where the activation lives once it succeeds.
+///
+/// Deliberately **not** the Keychain. macOS asks the user to authorise access whenever the
+/// requesting binary's signature differs from the one that wrote the item, and that dialog
+/// blocks launch before the app can draw anything — a frozen menu-bar app with an invisible
+/// prompt is the worst possible first run.
+///
+/// The licence is not a secret worth that cost: it is the user's own key, it is printed in
+/// their purchase email, and the seat limit is enforced by the server against the device id.
+/// Copying the file to another Mac does not grant a seat, because the stored device id no
+/// longer matches the machine and the app asks to activate again.
+///
+/// The Keychain is still used for what it is good at: the `{secret:NAME}` values a user puts
+/// in snippets, where a prompt is survivable because nothing is blocked on it.
+@MainActor
 public enum LicenseVault {
-    public static let service = "com.believe.belauncher.license"
-    private static let account = "activation"
+    private static let settingsKey = "license"
+    private static var store: Store?
+
+    /// Wired once at launch, before anything asks for the licence.
+    public static func use(_ store: Store) { self.store = store }
 
     public static func save(_ identity: LicenseIdentity) throws {
         let data = try JSONEncoder().encode(identity)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(query as CFDictionary)
-        var insert = query
-        insert[kSecValueData as String] = data
-        insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        let status = SecItemAdd(insert as CFDictionary, nil)
-        guard status == errSecSuccess else { throw Keychain.Failure.status(status) }
+        store?.setSetting(settingsKey, String(decoding: data, as: UTF8.self))
     }
 
-    public static func load() -> LicenseIdentity? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data else { return nil }
-        return try? JSONDecoder().decode(LicenseIdentity.self, from: data)
+    /// Returns nil when this Mac is not the one that was activated, so a copied database
+    /// cannot carry a licence to another machine.
+    public static func load(currentDeviceID: String) -> LicenseIdentity? {
+        guard let raw = store?.setting(settingsKey),
+              let identity = try? JSONDecoder().decode(LicenseIdentity.self, from: Data(raw.utf8)),
+              identity.deviceID == currentDeviceID else { return nil }
+        return identity
     }
 
     public static func clear() {
-        SecItemDelete([
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ] as CFDictionary)
+        store?.setSetting(settingsKey, "")
     }
 }

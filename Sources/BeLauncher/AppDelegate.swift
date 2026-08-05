@@ -50,7 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Paid app: nothing else starts until this Mac is activated. An activated Mac never
         // waits on the network again.
-        license = LicenseVault.load()
+        LicenseVault.use(store)
+        license = LicenseVault.load(currentDeviceID: DeviceIdentity.id)
         guard license != nil else {
             presentActivation()
             return
@@ -58,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         revalidateLicenseIfDue()
 
         store.seedIfEmpty()
+        store.ensureQuickCommands()
         store.purgeSecrets()
         finishLaunch(store: store)
     }
@@ -146,6 +148,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         guard let store else { return }
         store.seedIfEmpty()
+        store.ensureQuickCommands()
         store.purgeSecrets()
         finishLaunch(store: store)
     }

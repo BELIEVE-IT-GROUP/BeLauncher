@@ -74,6 +74,30 @@ struct StoreTests {
         #expect(store.clips().count == 3)
     }
 
+    @Test("quick commands appear for everyone, without ever overwriting an edited one")
+    func quickCommands() throws {
+        let store = try temporaryStore()
+        // Someone who already made their own "g" keeps it.
+        try store.addWorkflow(keyword: "g", title: "Mi propio Google", urlTemplate: "https://duckduckgo.com/?q={query}")
+
+        store.ensureQuickCommands()
+        let byKeyword = Dictionary(uniqueKeysWithValues: store.workflows().map { ($0.keyword, $0) })
+        #expect(byKeyword["g"]?.title == "Mi propio Google")
+        #expect(byKeyword["c"]?.title == "Preguntar a Claude")
+        #expect(byKeyword["gpt"] != nil)
+        #expect(byKeyword["p"] != nil)
+        #expect(byKeyword["yt"] != nil)
+
+        // Running again on every launch must not duplicate anything.
+        store.ensureQuickCommands()
+        #expect(store.workflows().count == byKeyword.count)
+
+        // And they actually build a usable URL.
+        let claude = try #require(byKeyword["c"])
+        #expect(WorkflowURL.build(template: claude.urlTemplate, query: "swift 6 concurrency")?.absoluteString
+            == "https://claude.ai/new?q=swift%206%20concurrency")
+    }
+
     @Test("settings persist with typed defaults")
     func settings() throws {
         let store = try temporaryStore()
