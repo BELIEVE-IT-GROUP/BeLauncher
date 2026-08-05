@@ -44,6 +44,9 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case saveClipAsSnippet(text: String)
         case deleteClip(id: Int64)
         case setPinned(Bool, clip: Int64)
+        case remember(text: String, source: String)
+        case confirmCommit(String)
+        case discardCommit(String)
         case deleteSnippet(id: Int64)
         case deleteWorkflow(id: Int64)
         case deleteFlow(id: Int64)
@@ -86,6 +89,7 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         public static let save = Shortcut(display: "⌘S", key: .character("s"), command: true)
         public static let delete = Shortcut(display: "⌘⌫", key: .delete, command: true)
         public static let tab = Shortcut(display: "⇥", key: .tab)
+        public static let remember = Shortcut(display: "⌘R", key: .character("r"), command: true)
 
         /// True when a real key event corresponds to this shortcut.
         public func matches(characters: String, keyCode: UInt16,
@@ -144,6 +148,10 @@ public enum ActionRegistry {
                              shortcut: .enter, intent: .run),
                 ResultAction(id: "copy", title: "Copiar", symbol: "doc.on.doc",
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
+                ResultAction(id: "remember", title: "Recordar esto", symbol: "brain",
+                             shortcut: .remember,
+                             section: .manage,
+                             intent: .remember(text: result.payload, source: result.subtitle)),
                 ResultAction(id: "pin", title: "Fijar arriba", symbol: "pin",
                              section: .manage, intent: .setPinned(true, clip: result.recordID)),
                 ResultAction(id: "as-snippet", title: "Guardar como snippet", symbol: "text.quote",
@@ -202,6 +210,21 @@ public enum ActionRegistry {
                              shortcut: .enter, intent: .run),
                 ResultAction(id: "copy-url", title: "Copiar enlace", symbol: "link",
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
+            ]
+
+        case .memory:
+            return [
+                ResultAction(id: "copy", title: "Copiar la frase", symbol: "doc.on.clipboard",
+                             shortcut: .enter, intent: .run),
+            ]
+
+        case .pendingCommit:
+            return [
+                ResultAction(id: "confirm", title: "Confirmar", symbol: "checkmark.seal.fill",
+                             shortcut: .enter, intent: .confirmCommit(result.payload)),
+                ResultAction(id: "discard", title: "Descartar", symbol: "xmark.bin",
+                             shortcut: .delete, section: .danger, isDestructive: true,
+                             intent: .discardCommit(result.payload)),
             ]
 
         case .shortcut:

@@ -33,6 +33,8 @@ public enum DetailBuilder {
         snippets: [Snippet] = [],
         flows: [Flow] = [],
         clips: [Clip] = [],
+        memories: [MemoryObject] = [],
+        commits: [MemoryCommit] = [],
         expander: SnippetExpander = SnippetExpander(),
         fileInfo: @Sendable (String) -> [ResultDetail.Item] = { _ in [] }
     ) -> ResultDetail? {
@@ -92,6 +94,29 @@ public enum DetailBuilder {
         case .bookmark:
             return ResultDetail(body: result.payload, isMonospaced: true,
                                 metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
+
+        case .memory:
+            let memory = memories.first { $0.id == result.payload }
+            return ResultDetail(
+                body: memory?.body.isEmpty == false ? memory!.body : result.title,
+                metadata: [
+                    .init(label: "Tipo", value: memory?.kind.rawValue.capitalized ?? "Memoria"),
+                    .init(label: "Vigente", value: memory?.isCurrent() == true ? "Sí" : "No"),
+                    .init(label: "Dueño", value: memory?.owner ?? "—"),
+                    .init(label: "Fuente", value: memory?.source ?? "—"),
+                ]
+            )
+
+        case .pendingCommit:
+            let commit = commits.first { $0.id == result.payload }
+            return ResultDetail(
+                body: commit?.object.statement ?? result.title,
+                metadata: [
+                    .init(label: "Motivo", value: commit?.reason ?? "—"),
+                    .init(label: "Sustituiría", value: commit.map { "\($0.conflicts.count)" } ?? "0"),
+                    .init(label: "Nota", value: "Nada entra al cerebro sin que lo confirmes."),
+                ]
+            )
 
         case .shortcut:
             return ResultDetail(

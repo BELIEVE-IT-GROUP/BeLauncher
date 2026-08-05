@@ -12,6 +12,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case bookmark
     case window
     case shortcut
+    case memory
+    case pendingCommit
 
     public var label: String {
         switch self {
@@ -26,6 +28,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .bookmark: "Enlace"
         case .window: "Ventana"
         case .shortcut: "Atajo"
+        case .memory: "Memoria"
+        case .pendingCommit: "Por confirmar"
         }
     }
 
@@ -42,6 +46,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .bookmark: "bookmark"
         case .window: "macwindow"
         case .shortcut: "square.stack.3d.up"
+        case .memory: "brain"
+        case .pendingCommit: "checkmark.seal"
         }
     }
 }
@@ -88,11 +94,15 @@ public struct SearchInput: Sendable {
     public var shortcuts: [Shortcut]
     /// Names of the user's own Shortcuts. The escape hatch that needs no plugin system.
     public var systemShortcuts: [String]
+    /// What the brain currently holds as true, plus anything waiting to be confirmed.
+    public var memories: [MemoryObject]
+    public var pendingCommits: [MemoryCommit]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
                 applicationUses: [String: Int] = [:], aliases: [String: String] = [:],
-                shortcuts: [Shortcut] = [], systemShortcuts: [String] = []) {
+                shortcuts: [Shortcut] = [], systemShortcuts: [String] = [],
+                memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -102,6 +112,8 @@ public struct SearchInput: Sendable {
         self.aliases = aliases
         self.shortcuts = shortcuts
         self.systemShortcuts = systemShortcuts
+        self.memories = memories
+        self.pendingCommits = pendingCommits
     }
 }
 
@@ -178,6 +190,31 @@ public enum SearchEngine {
         }
 
         results += matchShortcuts(input.shortcuts, needle: needle, needleMask: needleMask)
+
+        // The brain answers first when it has something: a decision beats a bookmark.
+        for memory in input.memories {
+            let haystack = Fuzzy.folded(memory.statement + " " + memory.entities.joined(separator: " "))
+            guard let match = Fuzzy.match(needle: needle, hay: haystack) else { continue }
+            results.append(SearchResult(
+                id: "memory-\(memory.id)", kind: .memory, title: memory.statement,
+                subtitle: memorySubtitle(memory),
+                score: match.score + 60, matched: [], payload: memory.id
+            ))
+        }
+
+        for commit in input.pendingCommits {
+            guard let match = Fuzzy.match(needle: needle, hay: Fuzzy.folded(commit.object.statement))
+            else { continue }
+            results.append(SearchResult(
+                id: "commit-\(commit.id)", kind: .pendingCommit, title: commit.object.statement,
+                subtitle: commit.conflicts.isEmpty
+                    ? "Propuesta · confirma o descarta"
+                    : "Propuesta · sustituiría \(commit.conflicts.count) memoria(s)",
+                // A large, deliberate bonus: something waiting on your decision should not lose
+                // to a settled memory just because the wording matched better.
+                score: match.score + 200, matched: [], payload: commit.id
+            ))
+        }
 
         for name in input.systemShortcuts {
             guard let match = Fuzzy.match(needle: needle, hay: Fuzzy.folded(name)) else { continue }
@@ -277,6 +314,14 @@ public enum SearchEngine {
                 score: 0, matched: [], payload: clip.text, recordID: clip.id
             )
         }
+    }
+
+    static func memorySubtitle(_ memory: MemoryObject) -> String {
+        var parts = [memory.kind.rawValue.capitalized]
+        if !memory.owner.isEmpty { parts.append(memory.owner) }
+        if memory.status == .superseded { parts.append("sustituida") }
+        if !memory.source.isEmpty { parts.append(memory.source) }
+        return parts.joined(separator: " · ")
     }
 
     static func clipSubtitle(_ clip: Clip) -> String {

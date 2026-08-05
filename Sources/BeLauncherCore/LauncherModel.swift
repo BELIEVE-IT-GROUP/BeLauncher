@@ -46,6 +46,9 @@ public final class LauncherModel {
         case openSettings
         case systemCommand(String)
         case arrangeWindow(String)
+        case remember(text: String, source: String)
+        case confirmCommit(String)
+        case discardCommit(String)
         case assignAlias(target: String, suggestion: String)
         case dismiss
     }
@@ -84,7 +87,8 @@ public final class LauncherModel {
         guard let selected, let input = try? dataSource() else { return nil }
         return DetailBuilder.detail(
             for: selected, snippets: input.snippets, flows: input.flows,
-            clips: input.clips, expander: expanderFactory(), fileInfo: fileInfo
+            clips: input.clips, memories: input.memories, commits: input.pendingCommits,
+            expander: expanderFactory(), fileInfo: fileInfo
         )
     }
 
@@ -136,6 +140,17 @@ public final class LauncherModel {
             perform(.moveToTrash(path: path))
         case .systemCommand(let kind):
             perform(.systemCommand(kind))
+        case .remember(let text, let source):
+            perform(.remember(text: text, source: source))
+            return true
+        case .confirmCommit(let id):
+            perform(.confirmCommit(id))
+            refresh()
+            return true
+        case .discardCommit(let id):
+            perform(.discardCommit(id))
+            refresh()
+            return true
         case .assignAlias(let target, let suggestion):
             perform(.assignAlias(target: target, suggestion: suggestion))
             return true
@@ -328,6 +343,14 @@ public final class LauncherModel {
         case .shortcut:
             perform(.runShortcut(name: result.payload))
             perform(.dismiss)
+
+        case .memory:
+            perform(.copyToClipboard(text: result.title, cursorOffset: nil))
+            perform(.dismiss)
+
+        case .pendingCommit:
+            perform(.confirmCommit(result.payload))
+            refresh()
 
         case .window:
             // Dismiss first: the front window must be the user's, not ours.

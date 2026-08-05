@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var appIndex = AppIndex()
     private var shortcuts: [BeLauncherCore.Shortcut] = []
     private var systemShortcuts: [String] = []
+    private var vault: Vault?
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
@@ -52,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Paid app: nothing else starts until this Mac is activated. An activated Mac never
         // waits on the network again.
+        vault = try? Vault(root: Vault.defaultRoot())
         LicenseVault.use(store)
         license = LicenseVault.load(currentDeviceID: DeviceIdentity.id)
         guard license != nil else {
@@ -84,7 +86,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     applicationUses: store.applicationUses(),
                     aliases: store.aliases(),
                     shortcuts: self.shortcuts,
-                    systemShortcuts: self.systemShortcuts
+                    systemShortcuts: self.systemShortcuts,
+                    memories: self.vault?.current() ?? [],
+                    pendingCommits: self.vault?.commits(state: .proposed) ?? []
                 )
             },
             fileInfo: { path in
@@ -400,6 +404,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .assignAlias(let target, let suggestion):
             promptForAlias(target: target, suggestion: suggestion)
 
+        case .remember(let text, let source):
+            rememberIntoVault(text: text, source: source)
+
+        case .confirmCommit(let id):
+            do {
+                let object = try vault?.confirm(commitID: id)
+                if let object { report("Guardado en el cerebro", object.statement) }
+            } catch {
+                report("No se pudo confirmar", "\(error)")
+            }
+
+        case .discardCommit(let id):
+            try? vault?.discard(commitID: id)
+
         case .arrangeWindow(let layout):
             // A beat so the previous app is frontmost again before we touch its window.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
@@ -460,6 +478,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 perform(step)
                 try? await Task.sleep(for: .milliseconds(120))
             }
+        }
+    }
+
+    /// Turns a piece of text into a proposed memory. Deliberately a proposal, never a silent
+    /// write: the user decides what their brain believes.
+    private func rememberIntoVault(text: String, source: String) {
+        guard let vault else { return }
+        panel?.orderOut(nil)
+
+        let alert = NSAlert()
+        alert.messageText = "Recordar esto"
+        alert.informativeText = "Escribe la frase con la que lo recordarás. "
+            + "Se guardará como propuesta hasta que la confirmes."
+        alert.addButton(withTitle: "Proponer")
+        alert.addButton(withTitle: "Cancelar")
+
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
+        field.stringValue = String(text.prefix(120)).replacingOccurrences(of: "\n", with: " ")
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        do {
+            let commit = try vault.propose(
+                MemoryObject(level: .extracted, kind: .note, statement: field.stringValue,
+                             body: text, source: source, owner: NSFullUserName()),
+                reason: "Capturado desde BeLauncher"
+            )
+            report("Propuesta guardada",
+                   commit.conflicts.isEmpty
+                     ? "Búscala y confírmala cuando quieras."
+                     : "Ojo: chocaría con \(commit.conflicts.count) memoria(s) vigente(s).")
+        } catch {
+            report("No se pudo guardar", "\(error)")
         }
     }
 

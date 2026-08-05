@@ -1,0 +1,236 @@
+import Foundation
+
+/// Bring Your Own Intelligence.
+///
+/// The model is a swappable part, never the product. Someone can run everything on-device for
+/// free, or point BeLauncher at their own provider account and pay that provider directly. What
+/// we never do is put ourselves in the middle: no proxy of ours sees the prompts, and no tokens
+/// are resold. That is a real difference from launchers whose "bring your own key" still routes
+/// every request through their servers.
+public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
+    public enum Transport: String, Sendable, Equatable, Codable {
+        /// Runs on the Mac. No key, no network, no cost per token.
+        case local
+        /// The user's own key, straight to the provider.
+        case directKey
+    }
+
+    public let id: String
+    public let name: String
+    public let transport: Transport
+    public let endpoint: String
+    public let defaultModel: String
+    /// Keychain account holding the key, empty for local providers.
+    public let keychainAccount: String
+    /// Everything stays on the Mac with this provider.
+    public var isPrivate: Bool { transport == .local }
+
+    public init(id: String, name: String, transport: Transport, endpoint: String,
+                defaultModel: String, keychainAccount: String = "") {
+        self.id = id
+        self.name = name
+        self.transport = transport
+        self.endpoint = endpoint
+        self.defaultModel = defaultModel
+        self.keychainAccount = keychainAccount
+    }
+
+    public static let all: [IntelligenceProvider] = [
+        .init(id: "ollama", name: "Ollama (local)", transport: .local,
+              endpoint: "http://127.0.0.1:11434/v1/chat/completions",
+              defaultModel: "llama3.2"),
+        .init(id: "lmstudio", name: "LM Studio (local)", transport: .local,
+              endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+              defaultModel: "local-model"),
+        .init(id: "anthropic", name: "Anthropic", transport: .directKey,
+              endpoint: "https://api.anthropic.com/v1/messages",
+              defaultModel: "claude-sonnet-5", keychainAccount: "anthropic_api_key"),
+        .init(id: "openai", name: "OpenAI", transport: .directKey,
+              endpoint: "https://api.openai.com/v1/chat/completions",
+              defaultModel: "gpt-5", keychainAccount: "openai_api_key"),
+        .init(id: "gemini", name: "Google Gemini", transport: .directKey,
+              endpoint: "https://generativelanguage.googleapis.com/v1beta/models",
+              defaultModel: "gemini-2.5-pro", keychainAccount: "gemini_api_key"),
+    ]
+
+    public static func named(_ id: String) -> IntelligenceProvider? {
+        all.first { $0.id == id }
+    }
+}
+
+/// How sensitive a request is. The router uses it to decide what may leave the Mac.
+public enum Sensitivity: String, Sendable, Equatable, Codable, CaseIterable {
+    /// Nothing private: a definition, a translation of public text.
+    case ordinary
+    /// The user's own working material.
+    case personal
+    /// Company memory: decisions, commitments, client material.
+    case confidential
+}
+
+public enum IntelligenceError: Error, Equatable, CustomStringConvertible {
+    case noProviderConfigured
+    case missingKey(String)
+    case blockedBySensitivity(String)
+    case transport(String)
+    case emptyAnswer
+
+    public var description: String {
+        switch self {
+        case .noProviderConfigured:
+            "Todavía no elegiste un modelo. Ajustes › Inteligencia."
+        case .missingKey(let provider):
+            "Falta la clave de \(provider). Guárdala en Ajustes; se queda en tu Llavero."
+        case .blockedBySensitivity(let provider):
+            "Este contenido está marcado como confidencial y \(provider) no es local. "
+            + "Cámbialo en Ajustes o usa un modelo en tu Mac."
+        case .transport(let reason):
+            "No se pudo hablar con el modelo: \(reason)"
+        case .emptyAnswer:
+            "El modelo no devolvió nada."
+        }
+    }
+}
+
+/// Decides which provider serves a request, and refuses rather than leaking.
+public struct ModelRouter: Sendable {
+    public let preferred: String?
+    public let localOnlyFor: Set<Sensitivity>
+
+    public init(preferred: String?, localOnlyFor: Set<Sensitivity> = [.confidential]) {
+        self.preferred = preferred
+        self.localOnlyFor = localOnlyFor
+    }
+
+    /// `available` is the set of providers the user has actually set up.
+    public func provider(
+        for sensitivity: Sensitivity,
+        available: [IntelligenceProvider]
+    ) throws -> IntelligenceProvider {
+        guard !available.isEmpty else { throw IntelligenceError.noProviderConfigured }
+
+        let chosen = available.first { $0.id == preferred } ?? available[0]
+        guard localOnlyFor.contains(sensitivity), !chosen.isPrivate else { return chosen }
+
+        // The preferred provider would send confidential material off the Mac: fall back to a
+        // local one if there is any, and refuse outright rather than doing it quietly.
+        guard let local = available.first(where: \.isPrivate) else {
+            throw IntelligenceError.blockedBySensitivity(chosen.name)
+        }
+        return local
+    }
+}
+
+public struct IntelligenceRequest: Sendable, Equatable {
+    public let system: String
+    public let prompt: String
+    public let sensitivity: Sensitivity
+    public let maxTokens: Int
+
+    public init(system: String = "", prompt: String, sensitivity: Sensitivity = .personal,
+                maxTokens: Int = 1024) {
+        self.system = system
+        self.prompt = prompt
+        self.sensitivity = sensitivity
+        self.maxTokens = maxTokens
+    }
+}
+
+/// Talks to whichever provider the router picked. One shape in, one shape out, so the rest of the
+/// app never learns which vendor answered.
+public struct IntelligenceClient: Sendable {
+    public typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
+    public var transport: Transport
+    public var keyLookup: @Sendable (String) -> String?
+
+    public init(
+        transport: @escaping Transport = { try await URLSession.shared.data(for: $0) },
+        keyLookup: @escaping @Sendable (String) -> String? = { Keychain.get($0) }
+    ) {
+        self.transport = transport
+        self.keyLookup = keyLookup
+    }
+
+    public func answer(
+        _ request: IntelligenceRequest,
+        using provider: IntelligenceProvider,
+        model: String? = nil
+    ) async throws -> String {
+        let urlRequest = try build(request, provider: provider, model: model ?? provider.defaultModel)
+        let data: Data
+        do {
+            (data, _) = try await transport(urlRequest)
+        } catch {
+            throw IntelligenceError.transport(error.localizedDescription)
+        }
+        guard let text = Self.extractText(from: data), !text.isEmpty else {
+            throw IntelligenceError.emptyAnswer
+        }
+        return text
+    }
+
+    func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String) throws -> URLRequest {
+        guard let url = URL(string: provider.endpoint) else {
+            throw IntelligenceError.transport("endpoint inválido")
+        }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.timeoutInterval = 60
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if provider.transport == .directKey {
+            guard let key = keyLookup(provider.keychainAccount), !key.isEmpty else {
+                throw IntelligenceError.missingKey(provider.name)
+            }
+            switch provider.id {
+            case "anthropic":
+                urlRequest.setValue(key, forHTTPHeaderField: "x-api-key")
+                urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            default:
+                urlRequest.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            }
+        }
+
+        var messages: [[String: String]] = []
+        if !request.system.isEmpty, provider.id != "anthropic" {
+            messages.append(["role": "system", "content": request.system])
+        }
+        messages.append(["role": "user", "content": request.prompt])
+
+        var body: [String: Any] = [
+            "model": model,
+            "messages": messages,
+            "max_tokens": request.maxTokens,
+        ]
+        if provider.id == "anthropic", !request.system.isEmpty {
+            body["system"] = request.system
+        }
+        urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return urlRequest
+    }
+
+    /// Providers disagree on the shape of an answer; this reads all of the common ones so the
+    /// caller never has to care which one replied.
+    static func extractText(from data: Data) -> String? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        // OpenAI-compatible, which also covers Ollama and LM Studio.
+        if let choices = root["choices"] as? [[String: Any]],
+           let message = choices.first?["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // Anthropic.
+        if let content = root["content"] as? [[String: Any]] {
+            let text = content.compactMap { $0["text"] as? String }.joined()
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // An error the provider bothered to explain.
+        if let error = root["error"] as? [String: Any], let message = error["message"] as? String {
+            return "⚠︎ " + message
+        }
+        return nil
+    }
+}

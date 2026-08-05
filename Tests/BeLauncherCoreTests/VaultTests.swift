@@ -1,0 +1,341 @@
+import Testing
+import Foundation
+@testable import BeLauncherCore
+
+@Suite("Vault and memory commits")
+@MainActor
+struct VaultTests {
+
+    private func vault() throws -> Vault {
+        try Vault(root: FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-\(UUID().uuidString)").path)
+    }
+
+    private func decision(_ statement: String, entities: [String] = ["pricing"],
+                          createdAt: Date = .now) -> MemoryObject {
+        MemoryObject(level: .extracted, kind: .decision, statement: statement,
+                     owner: "Jorge", createdAt: createdAt, entities: entities)
+    }
+
+    // MARK: - The file format
+
+    @Test("an object survives a round trip through Markdown, and stays readable")
+    func roundTrip() {
+        let object = MemoryObject(
+            level: .committed, kind: .decision,
+            statement: "No lanzar reporting hasta Attribution v2",
+            body: "Acordado en la reunión de producto.",
+            source: "Reunión 2026-08-04", owner: "Jorge",
+            entities: ["reporting", "attribution"], evidence: ["nota-123"]
+        )
+        let text = VaultDocument.render(object)
+        #expect(text.hasPrefix("---"), "front matter first, so any editor understands it")
+        #expect(text.contains("# No lanzar reporting hasta Attribution v2"))
+
+        let parsed = try! #require(VaultDocument.parse(text))
+        #expect(parsed.id == object.id)
+        #expect(parsed.statement == object.statement)
+        #expect(parsed.entities == object.entities)
+        #expect(parsed.body == object.body)
+        #expect(parsed.owner == "Jorge")
+    }
+
+    @Test("quotes and accents in a statement do not corrupt the file")
+    func awkwardCharacters() {
+        let object = MemoryObject(level: .committed, kind: .policy,
+                                  statement: #"El cliente dijo "no" al "plan pro": ¿revisamos?"#)
+        let parsed = try! #require(VaultDocument.parse(VaultDocument.render(object)))
+        #expect(parsed.statement == object.statement)
+    }
+
+    @Test("a file that is not one of ours is ignored, not half-parsed")
+    func rejectsForeignFiles() {
+        #expect(VaultDocument.parse("# Just a note\n\nsome text") == nil)
+        #expect(VaultDocument.parse("---\nid: x\n---\n") == nil, "no statement, no object")
+    }
+
+    // MARK: - Temporal truth
+
+    @Test("only committed and current objects answer 'what is true now'")
+    func currentTruth() throws {
+        let vault = try vault()
+        let now = Date(timeIntervalSince1970: 2_000_000)
+
+        var committed = decision("Precio enterprise: 2000", createdAt: now.addingTimeInterval(-100))
+        committed.level = .committed
+        var guess = decision("Quizá subimos el precio", createdAt: now.addingTimeInterval(-100))
+        guess.level = .extracted
+        var expired = decision("Precio enterprise: 1500", createdAt: now.addingTimeInterval(-200))
+        expired.level = .committed
+        expired.validUntil = now.addingTimeInterval(-1)
+
+        try [committed, guess, expired].forEach(vault.save)
+
+        let current = vault.current(at: now)
+        #expect(current.map(\.statement) == ["Precio enterprise: 2000"],
+                "an interpretation is not a decision, and an expired decision is not current")
+    }
+
+    // MARK: - Commits
+
+    @Test("nothing enters the brain without a person confirming it")
+    func proposeThenConfirm() throws {
+        let vault = try vault()
+        let commit = try vault.propose(decision("Precio enterprise: 2000"), reason: "Reunión")
+
+        #expect(commit.state == .proposed)
+        #expect(vault.current().isEmpty, "a proposal is not yet part of the brain")
+
+        let object = try vault.confirm(commitID: commit.id)
+        #expect(object.level == .committed)
+        #expect(vault.current().map(\.statement) == ["Precio enterprise: 2000"])
+        #expect(vault.commits(state: .confirmed).count == 1)
+    }
+
+    @Test("discarding leaves no trace in the brain, but keeps the record")
+    func discard() throws {
+        let vault = try vault()
+        let commit = try vault.propose(decision("Algo dudoso"))
+        try vault.discard(commitID: commit.id)
+
+        #expect(vault.current().isEmpty)
+        #expect(vault.commits(state: .discarded).count == 1)
+        #expect(throws: MemoryError.notProposed) { try vault.confirm(commitID: commit.id) }
+    }
+
+    @Test("a new decision supersedes the old one, and the link is walkable both ways")
+    func supersede() throws {
+        let vault = try vault()
+        let now = Date(timeIntervalSince1970: 3_000_000)
+        let first = try vault.confirm(
+            commitID: try vault.propose(decision("Precio: 1500", createdAt: now.addingTimeInterval(-500))).id,
+            at: now.addingTimeInterval(-400)
+        )
+
+        let second = try vault.propose(decision("Precio: 2000", createdAt: now.addingTimeInterval(-100)))
+        #expect(second.conflicts == [first.id], "the person deciding must see what this replaces")
+        let applied = try vault.confirm(commitID: second.id, at: now)
+
+        #expect(applied.supersedes == [first.id])
+        let previous = try #require(vault.load(id: first.id))
+        #expect(previous.status == .superseded)
+        #expect(previous.supersededBy == applied.id)
+        #expect(previous.validUntil == now, "history keeps when it stopped being true")
+        #expect(vault.current(at: now).map(\.statement) == ["Precio: 2000"])
+    }
+
+    @Test("unrelated decisions do not collide")
+    func noFalseConflict() throws {
+        let vault = try vault()
+        _ = try vault.confirm(commitID: try vault.propose(
+            decision("Precio enterprise: 1500", entities: ["pricing"])).id)
+
+        let unrelated = try vault.propose(
+            MemoryObject(level: .extracted, kind: .decision,
+                         statement: "Contratar diseñador en septiembre", entities: ["hiring"]))
+        #expect(unrelated.conflicts.isEmpty)
+    }
+
+    @Test("two different decisions about the same topic both stay alive")
+    func sameTopicDifferentDecisions() throws {
+        let vault = try vault()
+        _ = try vault.confirm(commitID: try vault.propose(
+            decision("Precio base del plan Pro: 1000", entities: ["pricing"])).id)
+
+        let discount = try vault.propose(
+            decision("Descuento anual del 10 por ciento", entities: ["pricing"]))
+        #expect(discount.conflicts.isEmpty,
+                "sharing a topic is not the same as contradicting; deleting a live decision is worse")
+
+        _ = try vault.confirm(commitID: discount.id)
+        #expect(vault.current().count == 2)
+    }
+
+    @Test("an empty statement is refused everywhere")
+    func refusesEmpty() throws {
+        let vault = try vault()
+        let empty = MemoryObject(level: .extracted, kind: .note, statement: "   ")
+        #expect(throws: MemoryError.emptyStatement) { try vault.save(empty) }
+        #expect(throws: MemoryError.emptyStatement) { try vault.propose(empty) }
+    }
+
+    @Test("the vault is a folder of plain files, not a container")
+    func portability() throws {
+        let vault = try vault()
+        _ = try vault.confirm(commitID: try vault.propose(decision("Algo decidido")).id)
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: vault.objectsFolder)
+        #expect(files.count == 1)
+        #expect(files.allSatisfy { $0.hasSuffix(".md") }, "openable in any editor")
+
+        let contents = try String(contentsOfFile: (vault.objectsFolder as NSString)
+            .appendingPathComponent(files[0]), encoding: .utf8)
+        #expect(contents.contains("Algo decidido"))
+    }
+
+    // MARK: - Defects the audit found
+
+    @Test("editing a statement replaces the file instead of leaving an orphan")
+    func editingDoesNotDuplicate() throws {
+        let vault = try vault()
+        var object = MemoryObject(level: .committed, kind: .decision,
+                                  statement: "Precio enterprise 1500")
+        try vault.save(object)
+
+        object.statement = "Precio enterprise 2000"   // a typo fixed, same object
+        try vault.save(object)
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: vault.objectsFolder)
+        #expect(files.count == 1, "an edit must not leave a second file claiming the same id")
+        #expect(vault.objects().count == 1)
+        #expect(vault.load(id: object.id)?.statement == "Precio enterprise 2000")
+    }
+
+    @Test("a decision that settles several older ones records all of them")
+    func supersedesEverythingItReplaces() throws {
+        let vault = try vault()
+        // Two live decisions that both talk about the enterprise price. Saved directly so the
+        // test is about superseding many at once, not about the conflict heuristic.
+        var first = decision("Precio enterprise 1500 al año", entities: ["pricing"])
+        first.level = .committed
+        var second = decision("Precio enterprise anual 1500", entities: ["pricing"])
+        second.level = .committed
+        try vault.save(first)
+        try vault.save(second)
+
+        let merged = try vault.propose(
+            decision("Precio enterprise 2000 al año", entities: ["pricing"]))
+        #expect(merged.conflicts.count == 2)
+
+        let applied = try vault.confirm(commitID: merged.id)
+        #expect(Set(applied.supersedes) == Set([first.id, second.id]),
+                "history must stay walkable forward, not only backward")
+        #expect(vault.current().count == 1)
+    }
+
+    @Test("a horizontal rule in the body does not corrupt the object")
+    func markdownRuleInBody() {
+        let object = MemoryObject(level: .committed, kind: .note, statement: "Notas de la reunión",
+                                  body: "Primera parte\n\n---\n\nSegunda parte")
+        let parsed = try! #require(VaultDocument.parse(VaultDocument.render(object)))
+        #expect(parsed.statement == "Notas de la reunión")
+        #expect(parsed.body.contains("Primera parte"))
+        #expect(parsed.body.contains("Segunda parte"))
+    }
+
+    @Test("a validity window that ends before it starts is refused")
+    func refusesImpossibleValidity() throws {
+        let vault = try vault()
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let object = MemoryObject(level: .committed, kind: .policy, statement: "Imposible",
+                                  createdAt: now, validFrom: now,
+                                  validUntil: now.addingTimeInterval(-100))
+        #expect(throws: MemoryError.invalidValidity) { try vault.save(object) }
+    }
+
+    @Test("a vault reopened from disk sees everything again")
+    func reopen() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-\(UUID().uuidString)").path
+        do {
+            let vault = try Vault(root: root)
+            _ = try vault.confirm(commitID: try vault.propose(decision("Persistente")).id)
+        }
+        let reopened = try Vault(root: root)
+        #expect(reopened.current().map(\.statement) == ["Persistente"])
+    }
+}
+
+@Suite("The brain inside the launcher")
+@MainActor
+struct BrainSearchTests {
+
+    private func memory(_ statement: String, entities: [String] = []) -> MemoryObject {
+        MemoryObject(level: .committed, kind: .decision, statement: statement,
+                     source: "Reunión", owner: "Jorge", entities: entities)
+    }
+
+    @Test("a decision outranks a bookmark that happens to share words")
+    func brainAnswersFirst() {
+        let input = SearchInput(
+            shortcuts: [Shortcut(title: "Pricing enterprise", target: "https://x.com/pricing",
+                                 source: .bookmark)],
+            memories: [memory("Precio enterprise: 2000 al año", entities: ["pricing"])]
+        )
+        let results = SearchEngine.search("precio enterprise", in: input)
+        #expect(results.first?.kind == .memory)
+    }
+
+    @Test("a memory is found through its entities, not only its wording")
+    func findsByEntity() {
+        let input = SearchInput(memories: [memory("Subimos a 2000", entities: ["pricing"])])
+        #expect(!SearchEngine.search("pricing", in: input).isEmpty)
+    }
+
+    @Test("something waiting to be confirmed sits above everything, and Return confirms it")
+    func pendingCommitsSurface() {
+        var performed: [LauncherModel.Action] = []
+        let commit = MemoryCommit(object: MemoryObject(level: .extracted, kind: .decision,
+                                                       statement: "Cambiar el precio a 2500"),
+                                  reason: "Reunión de hoy")
+        let input = SearchInput(memories: [memory("Precio enterprise: 2000")],
+                                pendingCommits: [commit])
+
+        let model = LauncherModel(dataSource: { input }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "precio"
+
+        #expect(model.results.first?.kind == .pendingCommit,
+                "what needs a decision from you comes before what is already settled")
+
+        model.handle(.enter)
+        #expect(performed.contains(.confirmCommit(commit.id)))
+    }
+
+    @Test("a proposal can be discarded from the panel, and that is destructive")
+    func discardFromPanel() {
+        var performed: [LauncherModel.Action] = []
+        let commit = MemoryCommit(object: MemoryObject(level: .extracted, kind: .note,
+                                                       statement: "Idea suelta"))
+        let input = SearchInput(pendingCommits: [commit])
+        let model = LauncherModel(dataSource: { input }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "idea suelta"
+
+        let discard = try! #require(model.actions.first { $0.id == "discard" })
+        #expect(discard.isDestructive)
+        model.run(discard)
+        #expect(performed.contains(.discardCommit(commit.id)))
+    }
+
+    @Test("any clipboard entry can become a memory")
+    func rememberFromClipboard() {
+        var performed: [LauncherModel.Action] = []
+        let input = SearchInput(clips: [Clip(id: 4, text: "El cliente pidió cambiar el alcance",
+                                             sourceApp: "Mail")])
+        let model = LauncherModel(dataSource: { input }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "cliente pidió"
+
+        let remember = try! #require(model.actions.first { $0.id == "remember" })
+        #expect(remember.shortcut?.display == "⌘R")
+        model.run(remember)
+        #expect(performed.contains {
+            if case .remember(let text, _) = $0 { return text.contains("cambiar el alcance") }
+            return false
+        })
+    }
+
+    @Test("the preview of a memory says whether it is still true")
+    func memoryPreview() {
+        var stale = memory("Precio viejo: 1500")
+        stale.status = .superseded
+        let input = SearchInput(memories: [stale])
+        let model = LauncherModel(dataSource: { input }, perform: { _ in })
+        model.activate()
+        model.query = "precio viejo"
+
+        let detail = try! #require(model.detail)
+        #expect(detail.metadata.contains { $0.label == "Vigente" && $0.value == "No" })
+    }
+}
