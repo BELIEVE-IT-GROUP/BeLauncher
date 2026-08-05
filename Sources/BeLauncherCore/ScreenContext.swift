@@ -246,6 +246,13 @@ public enum ScreenReader {
         case "review-code":
             "Señala los problemas reales de este código: fallos, casos no cubiertos, riesgos. "
             + "Nada de comentarios de estilo."
+        case "file-invoice":
+            "Propón un nombre de archivo y una carpeta para guardar esta factura. Formato del "
+            + "nombre: AAAA-MM-proveedor-importe. Devuelve solo la línea «carpeta/nombre.pdf», "
+            + "sin explicaciones."
+        case "research":
+            "Investiga lo que sigue y devuelve: qué es, quién está detrás, para quién sirve y dos "
+            + "alternativas. Si no tienes información suficiente, dilo en vez de rellenar."
         case "describe-image":
             "Describe lo que se ve, para alguien que no lo está mirando."
         case "extract-text":
