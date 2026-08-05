@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var model: LauncherModel?
     private var panel: CommandPanel?
     private var statusItem: NSStatusItem?
+    private var updateItem: NSMenuItem?
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
     private var clipboard: ClipboardWatcher?
@@ -136,6 +137,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.panel = panel
 
         installStatusItem()
+        announceUpdateIfAny()
         installKeyMonitor()
         registerHotKey(named: store.setting("hotkey") ?? HotKey.Combo.all[0].label)
 
@@ -244,21 +246,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image?.isTemplate = true
 
         let menu = NSMenu()
-        let open = NSMenuItem(title: "Open BeLauncher", action: #selector(togglePanelFromMenu), keyEquivalent: "")
+        let open = NSMenuItem(title: "Abrir BeLauncher", action: #selector(togglePanelFromMenu), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
+
+        // Hidden until there is something to say. An update the person has to go looking for in
+        // Settings is not an announcement.
+        let update = NSMenuItem(title: "", action: #selector(openSettings), keyEquivalent: "")
+        update.target = self
+        update.isHidden = true
+        menu.addItem(update)
+        updateItem = update
+
         menu.addItem(.separator())
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: "Ajustes…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
-        let reindex = NSMenuItem(title: "Rescan Applications", action: #selector(rescan), keyEquivalent: "")
+        let reindex = NSMenuItem(title: "Volver a buscar aplicaciones", action: #selector(rescan), keyEquivalent: "")
         reindex.target = self
         menu.addItem(reindex)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit BeLauncher", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Salir de BeLauncher", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         item.menu = menu
         statusItem = item
+    }
+
+    /// Looks for a new version once, quietly, and only if the person turned that on.
+    ///
+    /// It never interrupts: no dialog, no notification, no badge on the icon while you are working.
+    /// The menu bar grows one line, which is there when you next look and invisible when you do not.
+    private func announceUpdateIfAny() {
+        guard store?.setting("update_check_enabled", default: false) == true else { return }
+        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString")
+            as? String ?? "0.0.0"
+        Task { @MainActor in
+            let feed = environment["BELAUNCHER_UPDATE_FEED_URL"] ?? UpdateCheck.defaultFeedURL
+            guard case .available(let release) = await UpdateCheck.run(feedURL: feed,
+                                                                      currentVersion: current)
+            else { return }
+            updateItem?.title = "Actualizar a \(release.version)…"
+            updateItem?.isHidden = false
+        }
     }
 
     private func installKeyMonitor() {

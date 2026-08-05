@@ -454,8 +454,17 @@ final class SettingsModel {
         NSWorkspace.shared.selectFile(store.path, inFileViewerRootedAtPath: "")
     }
 
+    /// Installs the update in place. Downloading a DMG and asking the person to drag the app over
+    /// the old one is homework, not an update.
+    let updater = Updater()
+
+    func installUpdate() {
+        guard let release = availableUpdate else { return }
+        updater.install(release)
+    }
+
     func checkForUpdates() {
-        updateStatus = "Checking…"
+        updateStatus = "Buscando…"
         let feed = updateFeedURL
         let version = appVersion
         Task { @MainActor in
