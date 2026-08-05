@@ -84,6 +84,8 @@ Sources/BeLauncherCore/     no AppKit, no UI — this is what the tests drive
   Calculator.swift      arithmetic, percentages and unit conversion, all local
   FileSearch.swift      file names via Spotlight's index, behind the explicit "f " prefix
   SecretGuard.swift     keeps credentials out of the clipboard history
+  License.swift         key/email normalisation, outcomes, the 30-day re-check rule
+  LicenseClient.swift   the two endpoints plus the Keychain vault
   Flow.swift            the step catalogue plus validation
   FlowRunner.swift      flow → ordered list of actions (pure, so flows are testable)
   ExportImport.swift    JSON archive in and out
@@ -101,6 +103,23 @@ Sources/BeLauncher/         the shell: AppKit windowing + SwiftUI views
 
 `BeLauncherCore` has no UI dependency on purpose: every decision the window makes — what matches,
 what is selected, what Enter does — is testable without a screen.
+
+## Licensing
+
+BeLauncher is paid, one licence for life, up to **3 Macs**. On first launch it asks for the
+purchase email and the key (`BELN-XXXX-XXXX-XXXX`) and validates them against the server; the app
+never issues licences of its own.
+
+- This Mac is identified by its **hardware UUID** (`IOPlatformUUID`) plus a readable machine name.
+- On success the activation is stored in the **Keychain** and BeLauncher works offline from then
+  on. It is not re-validated at every launch — at most once every 30 days, and a failed check
+  never locks a Mac that was already activated.
+- If the licence is already on 3 Macs, the screen lists them and offers to free one.
+- Settings › Licencia has **Desactivar en este equipo**, which frees this seat.
+
+Endpoints (`…/functions/v1/belauncher_landing_44aa9b_`): `validate-license` and
+`deactivate-device`. The Supabase anon key is public by design and is substituted into the build
+by `Scripts/with-anon-key.sh`, so the repository itself carries only a placeholder.
 
 ## Permissions
 

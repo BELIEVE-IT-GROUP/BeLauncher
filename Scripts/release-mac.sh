@@ -26,7 +26,7 @@ mkdir -p "$DIST"
 
 # ---------------------------------------------------------------- build (universal)
 echo "▸ Building universal binary (arm64 + x86_64)"
-swift build -c release --arch arm64 --arch x86_64
+bash "$ROOT/Scripts/with-anon-key.sh" swift build -c release --arch arm64 --arch x86_64
 BINARY="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/BeLauncher"
 
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

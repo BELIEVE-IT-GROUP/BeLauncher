@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP="$ROOT/build/BeLauncher.app"
 
 cd "$ROOT"
-swift build -c "$CONFIGURATION"
+bash "$ROOT/Scripts/with-anon-key.sh" swift build -c "$CONFIGURATION"
 BINARY="$(swift build -c "$CONFIGURATION" --show-bin-path)/BeLauncher"
 
 rm -rf "$APP"

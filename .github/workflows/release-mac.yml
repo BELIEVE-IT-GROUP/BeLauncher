@@ -38,6 +38,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+          BELAUNCHER_SUPABASE_ANON_KEY: ${{ secrets.BELAUNCHER_SUPABASE_ANON_KEY }}
         run: |
           export VERSION="${GITHUB_REF_NAME#v}"
           bash Scripts/release-mac.sh

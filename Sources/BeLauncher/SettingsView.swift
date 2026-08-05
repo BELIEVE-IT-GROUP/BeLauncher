@@ -56,6 +56,9 @@ final class SettingsModel {
 
     var appVersion: String
     var updateFeedURL: String?
+    var license: LicenseIdentity?
+    var licenseClient: LicenseClient?
+    var licenseStatus: String?
 
     init(store: Store, appVersion: String, updateFeedURL: String?) {
         self.store = store
@@ -222,6 +225,29 @@ final class SettingsModel {
                 updateStatus = "Could not reach the update feed: \(reason)"
             }
             store.setSetting("last_update_check", ISO8601DateFormatter().string(from: .now))
+        }
+    }
+
+    var maskedKey: String {
+        guard let key = license?.key, key.count > 9 else { return "BELN-••••-••••-••••" }
+        return "BELN-••••-••••-" + String(key.suffix(4))
+    }
+
+    /// Frees this Mac's seat, forgets the license and quits: the next launch asks to activate.
+    func deactivateThisMac() {
+        guard let license, let client = licenseClient else { return }
+        licenseStatus = "Desactivando…"
+        Task { @MainActor in
+            let ok = await client.deactivate(
+                email: license.email, key: license.key, deviceID: license.deviceID
+            )
+            guard ok else {
+                licenseStatus = "No pudimos desactivar ahora. Intenta de nuevo en un momento."
+                return
+            }
+            LicenseVault.clear()
+            licenseStatus = "Equipo liberado."
+            NSApp.terminate(nil)
         }
     }
 
@@ -417,6 +443,25 @@ struct SettingsView: View {
                      Access under “com.believe.belauncher.secrets”. Nothing else is written anywhere.
                      """)
                     .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section("Licencia") {
+                if let license = model.license {
+                    LabeledContent("Correo", value: license.email)
+                    LabeledContent("Clave") {
+                        Text(model.maskedKey).font(.system(.caption, design: .monospaced))
+                    }
+                    LabeledContent("Este equipo", value: DeviceIdentity.name)
+                    Button("Desactivar en este equipo") { model.deactivateThisMac() }
+                    Text("Libera uno de los 3 equipos de tu licencia. BeLauncher se cerrará y "
+                         + "pedirá activación la próxima vez.")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("Sin licencia activa.").font(.caption).foregroundStyle(.secondary)
+                }
+                if let status = model.licenseStatus {
+                    Text(status).font(.caption).foregroundStyle(.secondary)
+                }
             }
 
             Section {

@@ -16,6 +16,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyMonitor: Any?
     private var appIndex = AppIndex()
     private var environment: [String: String] = [:]
+    private var activationWindow: NSWindow?
+    private var activationModel: ActivationModel?
+    private var license: LicenseIdentity?
+
+    /// Public anon key, the same one the landing page ships. Overridable from .env.
+    private var anonKey: String {
+        environment["BELAUNCHER_SUPABASE_ANON_KEY"] ?? BuildConfig.supabaseAnonKey
+    }
+
+    private var licenseClient: LicenseClient {
+        LicenseClient(baseURL: LicenseClient.productionBaseURL, anonKey: anonKey)
+    }
 
     var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0-dev"
@@ -35,8 +47,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         self.store = store
+
+        // Paid app: nothing else starts until this Mac is activated. An activated Mac never
+        // waits on the network again.
+        license = LicenseVault.load()
+        guard license != nil else {
+            presentActivation()
+            return
+        }
+        revalidateLicenseIfDue()
+
         store.seedIfEmpty()
         store.purgeSecrets()
+        finishLaunch(store: store)
+    }
+
+    private func finishLaunch(store: Store) {
         store.trimClips(
             retentionDays: store.setting("clipboard_retention_days", default: 30),
             maxItems: store.setting("clipboard_max_items", default: 500)
@@ -85,6 +111,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboardHotKey?.invalidate()
         clipboard?.stop()
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor) }
+    }
+
+    // MARK: - Licensing
+
+    private func presentActivation() {
+        let model = ActivationModel(client: licenseClient) { [weak self] identity in
+            guard let self else { return }
+            self.license = identity
+            self.activationWindow?.close()
+            self.activationWindow = nil
+            self.activationModel = nil
+            self.startAfterActivation()
+        }
+        activationModel = model
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 430),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false
+        )
+        window.title = "BeLauncher"
+        window.contentViewController = NSHostingController(rootView: ActivationView(model: model))
+        window.isReleasedWhenClosed = false
+        window.center()
+        activationWindow = window
+
+        NSApp.setActivationPolicy(.regular)   // the activation window needs to be reachable
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    /// Runs the normal launch path once a license exists.
+    private func startAfterActivation() {
+        NSApp.setActivationPolicy(.accessory)
+        guard let store else { return }
+        store.seedIfEmpty()
+        store.purgeSecrets()
+        finishLaunch(store: store)
+    }
+
+    /// A monthly courtesy check. It can only ever *confirm*; a failure never locks the app.
+    private func revalidateLicenseIfDue() {
+        guard let license, LicenseGate.shouldRevalidate(lastCheck: license.lastCheck) else { return }
+        let client = licenseClient
+        Task { @MainActor in
+            let outcome = await client.activate(
+                email: license.email, key: license.key,
+                deviceID: license.deviceID, deviceName: DeviceIdentity.name
+            )
+            guard case .activated = outcome else { return }   // offline or hiccup: leave it be
+            var refreshed = license
+            refreshed.lastCheck = .now
+            try? LicenseVault.save(refreshed)
+            self.license = refreshed
+        }
     }
 
     // MARK: - Wiring
@@ -186,6 +266,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appVersion: appVersion,
             updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"]
         )
+        settingsModel.license = license
+        settingsModel.licenseClient = licenseClient
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
             enabled ? self?.clipboard?.start() : self?.clipboard?.stop()
