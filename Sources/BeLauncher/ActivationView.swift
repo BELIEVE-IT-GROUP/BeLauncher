@@ -53,7 +53,7 @@ final class ActivationModel {
                 }
             case .deviceLimit(let devices, let max):
                 phase = .limit(devices: devices, maxDevices: max)
-            case .invalid, .serverError, .unreachable:
+            case .invalid, .serverError, .unreachable, .rejected:
                 phase = .failed(outcome.message)
             }
         }

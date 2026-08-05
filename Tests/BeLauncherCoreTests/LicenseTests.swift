@@ -111,15 +111,33 @@ struct LicenseClientTests {
         let outcome = await offline.activate(
             email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac"
         )
-        #expect(outcome == .unreachable("network"))
+        guard case .unreachable = outcome else {
+            Issue.record("offline must not read as anything else, got \(outcome)")
+            return
+        }
         #expect(outcome != .invalid)
+        #expect(outcome.message.contains("conexión"))
+    }
+
+    @Test("a gateway rejection never reads as a wrong key")
+    func gatewayRejection() async {
+        // What a build with no anon key actually gets back from Supabase.
+        let outcome = await client(status: 401, json: #"{"message":"No API key found in request"}"#)
+            .activate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac")
+        #expect(outcome == .rejected(status: 401))
+        #expect(outcome != .invalid)
+        #expect(outcome.message.contains("No es tu clave"))
+
+        let notFound = await client(status: 404, json: #"{"error":"not found"}"#)
+            .activate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac")
+        #expect(notFound == .rejected(status: 404))
     }
 
     @Test("garbage from the server is a retry, not a rejection")
     func garbage() async {
         let outcome = await client(json: "<html>502</html>")
             .activate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac")
-        #expect(outcome == .serverError)
+        #expect(outcome == .serverError)   // HTTP 200 with a broken body: worth retrying
     }
 
     @Test("deactivation reports ok, and anything else is a failure")
@@ -131,6 +149,18 @@ struct LicenseClientTests {
         let refused = await client(json: #"{"ok":false,"error":"invalid_license"}"#)
             .deactivate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D")
         #expect(!refused)
+    }
+
+    @Test("the function name is concatenated onto the prefix, never appended as a path")
+    func urlShape() {
+        let real = LicenseClient(baseURL: LicenseClient.productionBaseURL, anonKey: "k")
+        #expect(real.url(for: "validate-license").absoluteString ==
+            "https://supabase.believe-global.com/functions/v1/belauncher_landing_44aa9b_validate-license")
+        #expect(real.url(for: "deactivate-device").absoluteString ==
+            "https://supabase.believe-global.com/functions/v1/belauncher_landing_44aa9b_deactivate-device")
+        // The bug this replaces: a slash turned the prefix into a folder and the Edge runtime
+        // answered 500 "could not find an appropriate entrypoint".
+        #expect(!real.url(for: "validate-license").absoluteString.contains("_/"))
     }
 
     @Test("the request carries the anon key and normalised fields")

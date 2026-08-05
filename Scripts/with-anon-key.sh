@@ -12,6 +12,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG="$ROOT/Sources/BeLauncher/BuildConfig.swift"
 KEY="${BELAUNCHER_SUPABASE_ANON_KEY:-}"
 
+# Local convenience: on a machine with the Believe Infisical helper, pull it automatically so a
+# dev build is never silently shipped without a key (which shows up as "wrong licence key").
+if [ -z "$KEY" ] && [ -x "$HOME/.believe/bin/infra" ]; then
+    KEY="$("$HOME/.believe/bin/infra" bash -c 'printf "%s" "$SUPABASE_SELFHOST_ANON_KEY"' 2>/dev/null || true)"
+    [ -n "$KEY" ] && echo "▸ anon key taken from Infisical"
+fi
+
 if [ -z "$KEY" ]; then
     echo "warning: BELAUNCHER_SUPABASE_ANON_KEY is not set — activation will not reach the server"
     exec "$@"

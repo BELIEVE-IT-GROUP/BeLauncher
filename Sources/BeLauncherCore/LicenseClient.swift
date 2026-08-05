@@ -20,9 +20,16 @@ public struct LicenseClient: Sendable {
         self.transport = transport
     }
 
+    /// A prefix, not a directory: the function name is appended straight onto it.
     public static let productionBaseURL = URL(
         string: "https://supabase.believe-global.com/functions/v1/belauncher_landing_44aa9b_"
     )!
+
+    /// `appendingPathComponent` would insert a slash and turn the prefix into a folder,
+    /// which is a 500 from the Edge runtime. Concatenation is the whole point here.
+    func url(for function: String) -> URL {
+        URL(string: baseURL.absoluteString + function) ?? baseURL
+    }
 
     // MARK: - Activate
 
@@ -38,11 +45,19 @@ public struct LicenseClient: Sendable {
             "device_id": deviceID,
             "device_name": deviceName,
         ]
-        guard let data = try? await send("validate-license", body: body) else {
-            return .unreachable("network")
+        let response: (data: Data, status: Int)
+        do {
+            response = try await send("validate-license", body: body)
+        } catch {
+            return .unreachable("\(error.localizedDescription)")
         }
-        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return .serverError
+
+        let payload = (try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any]
+
+        // A rejection from the Supabase gateway (401 with no anon key, 404 on a wrong path)
+        // is not the user's key being wrong. Only a 200 carrying `valid` is a verdict.
+        guard let payload, payload["valid"] != nil else {
+            return (200..<300).contains(response.status) ? .serverError : .rejected(status: response.status)
         }
 
         guard payload["valid"] as? Bool == true else { return .invalid }
@@ -81,8 +96,8 @@ public struct LicenseClient: Sendable {
             "key": LicenseKey.normalise(key),
             "device_id": deviceID,
         ]
-        guard let data = try? await send("deactivate-device", body: body),
-              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        guard let response = try? await send("deactivate-device", body: body),
+              let payload = try? JSONSerialization.jsonObject(with: response.data) as? [String: Any] else {
             return false
         }
         return payload["ok"] as? Bool == true
@@ -90,16 +105,16 @@ public struct LicenseClient: Sendable {
 
     // MARK: - Transport
 
-    private func send(_ function: String, body: [String: String]) async throws -> Data {
-        var request = URLRequest(url: baseURL.appendingPathComponent(function))
+    private func send(_ function: String, body: [String: String]) async throws -> (data: Data, status: Int) {
+        var request = URLRequest(url: url(for: function))
         request.httpMethod = "POST"
         request.timeoutInterval = 20
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (data, _) = try await transport(request)
-        return data
+        let (data, response) = try await transport(request)
+        return (data, (response as? HTTPURLResponse)?.statusCode ?? 200)
     }
 }
 

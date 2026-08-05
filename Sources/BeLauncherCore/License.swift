@@ -38,6 +38,9 @@ public enum ActivationOutcome: Sendable, Equatable {
     case deviceLimit(devices: [LicenseDevice], maxDevices: Int)
     case serverError
     case unreachable(String)
+    /// The request never reached the function: gateway rejection, wrong URL, bad anon key.
+    /// Kept apart from `.invalid` so a misconfigured build never accuses the user's key.
+    case rejected(status: Int)
 
     /// Message shown to the user, in the app's voice.
     public var message: String {
@@ -52,6 +55,9 @@ public enum ActivationOutcome: Sendable, Equatable {
             "Intenta de nuevo en un momento."
         case .unreachable:
             "No pudimos conectar. Revisa tu conexión e intenta otra vez."
+        case .rejected(let status):
+            "El servidor de licencias rechazó la petición (HTTP \(status)). "
+            + "No es tu clave: escríbenos si sigue pasando."
         }
     }
 }
