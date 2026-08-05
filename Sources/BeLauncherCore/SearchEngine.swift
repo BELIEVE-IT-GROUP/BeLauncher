@@ -70,10 +70,14 @@ public struct SearchResult: Sendable, Identifiable, Equatable {
     public let recordID: Int64
     /// Text that Tab (or Enter on an incomplete workflow) writes into the search field.
     public let completion: String?
+    /// A file the result can be *shown* as. Carried on the result rather than resolved later so a
+    /// grid of clipboard cards can render every thumbnail, not only the selected one.
+    public let previewPath: String
 
     public init(id: String, kind: ResultKind, title: String, subtitle: String,
                 score: Int, matched: [Int], payload: String, recordID: Int64 = 0,
-                completion: String? = nil) {
+                completion: String? = nil, previewPath: String = "") {
+        self.previewPath = previewPath
         self.id = id
         self.kind = kind
         self.title = title
@@ -344,7 +348,9 @@ public enum SearchEngine {
                 id: "clip-\(clip.id)", kind: .clipboard, title: preview(clip.text),
                 subtitle: clipSubtitle(clip),
                 score: match.score - 10 + (clip.isPinned ? 25 : 0), matched: [],
-                payload: clip.text, recordID: clip.id
+                payload: clip.text, recordID: clip.id,
+                previewPath: clip.assetPath.isEmpty && clip.kind == .file
+                    ? clip.text : clip.assetPath
             ))
         }
 
@@ -371,7 +377,9 @@ public enum SearchEngine {
             SearchResult(
                 id: "clip-\(clip.id)", kind: .clipboard, title: preview(clip.text),
                 subtitle: clipSubtitle(clip),
-                score: 0, matched: [], payload: clip.text, recordID: clip.id
+                score: 0, matched: [], payload: clip.text, recordID: clip.id,
+                previewPath: clip.assetPath.isEmpty && clip.kind == .file
+                    ? clip.text : clip.assetPath
             )
         }
     }

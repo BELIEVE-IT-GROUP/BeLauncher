@@ -322,7 +322,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return nil
             }
 
+            // ⌃⌘0..9 grabs a clipboard card without moving the selection at all — the fastest
+            // route there is, and the reason the cards carry a number.
+            if command, event.modifierFlags.contains(.control), model.mode == .clipboard,
+               let digit = Int(characters), model.results.indices.contains(digit) {
+                model.select(digit)
+                model.runSelected()
+                return nil
+            }
+
             switch event.keyCode {
+            // In the carousel the cards run left to right, so the arrows that move along them are
+            // the horizontal ones. Up and down keep working: muscle memory is not worth breaking
+            // to make a point about layout.
+            case 124 where model.mode == .clipboard: model.handle(.down); return nil   // arrow right
+            case 123 where model.mode == .clipboard: model.handle(.up); return nil     // arrow left
             case 125: model.handle(.down); return nil     // arrow down
             case 126: model.handle(.up); return nil       // arrow up
             case 36, 76:                                   // return / enter

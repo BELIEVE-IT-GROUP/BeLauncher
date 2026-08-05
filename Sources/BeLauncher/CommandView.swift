@@ -16,6 +16,19 @@ struct CommandView: View {
             searchField
             if showsBody {
                 Divider().overlay(.white.opacity(0.08))
+                if isCarousel {
+                    // Clipboard gets the full width: the cards are the point, and a 430pt column
+                    // would fit two and a half of them. The preview keeps its place, just below
+                    // rather than beside.
+                    VStack(spacing: 0) {
+                        ClipboardCarousel(model: model)
+                        if let detail = model.detail {
+                            Divider().overlay(.white.opacity(0.07))
+                            DetailPane(detail: detail)
+                                .frame(height: 172)
+                        }
+                    }
+                } else {
                 HStack(spacing: 0) {
                     stateContent(model.state)
                         .frame(maxWidth: model.detail == nil ? .infinity : Theme.listWidth,
@@ -34,6 +47,7 @@ struct CommandView: View {
                     }
                 }
                 .frame(height: bodyHeight)
+                }
             }
             Divider().overlay(.white.opacity(0.08))
             footer
@@ -59,6 +73,13 @@ struct CommandView: View {
         .animation(.easeOut(duration: 0.12), value: model.results)
         .animation(.easeOut(duration: 0.12), value: model.state)
         .animation(.easeOut(duration: 0.1), value: model.isActionPanelOpen)
+    }
+
+    /// Cards only where they beat a list: clipboard history, which is the one thing here you
+    /// recognise by looking rather than by reading.
+    private var isCarousel: Bool {
+        model.mode == .clipboard && !model.results.isEmpty && model.mission == nil
+            && model.aiState == .idle
     }
 
     private var showsBody: Bool {
@@ -626,5 +647,173 @@ private struct QuickAction: View {
         Label(title, systemImage: symbol)
             .font(.system(size: 10))
             .foregroundStyle(.tertiary)
+    }
+}
+
+// MARK: - The clipboard, as things you can see
+
+/// Clipboard history as a row of cards instead of a list of lines.
+///
+/// This is the one place in the app where a card beats a row, and the reason is specific: clipboard
+/// items are the only results you recognise by *looking* — a screenshot, a logo, a block of JSON, a
+/// paragraph. A vertical list of truncated text throws that away and makes you read to identify
+/// something you would have known at a glance.
+///
+/// Everything else stays a list on purpose. Commands and recents are recognised by *reading*, and
+/// scanning text horizontally is slower than scanning it down a column. A carousel there would look
+/// better and work worse.
+@MainActor
+struct ClipboardCarousel: View {
+    @Bindable var model: LauncherModel
+
+    static let cardWidth: CGFloat = 168
+    static let cardHeight: CGFloat = 152
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, result in
+                        ClipCard(result: result,
+                                 index: index,
+                                 selected: index == model.selection)
+                            .id(index)
+                            .onTapGesture {
+                                model.select(index)
+                                model.runSelected()
+                            }
+                            .onHover { inside in
+                                if inside, !model.isActionPanelOpen { model.select(index) }
+                            }
+                            // Right-click is where people already look for "what can I do with
+                            // this", so the same verbs as ⌘K live here too.
+                            .contextMenu {
+                                ForEach(model.actions) { action in
+                                    Button(action.title) { model.select(index); model.run(action) }
+                                }
+                            }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+            .onChange(of: model.selection) { _, new in
+                withAnimation(.easeOut(duration: 0.16)) { proxy.scrollTo(new, anchor: .center) }
+            }
+        }
+        .frame(height: Self.cardHeight + 24)
+    }
+}
+
+/// One clipboard item, big enough to recognise without reading.
+@MainActor
+private struct ClipCard: View {
+    let result: SearchResult
+    let index: Int
+    let selected: Bool
+
+    @State private var image: NSImage?
+
+    private var previewPath: String { result.previewPath }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .clipped()
+
+            HStack(spacing: 5) {
+                // The icon of the app you copied from does the recognising faster than its name
+                // ever could, and it fits where "Copiado de Google C…" did not.
+                if let icon = sourceIcon {
+                    Image(nsImage: icon).resizable().frame(width: 13, height: 13)
+                }
+                if result.subtitle.contains("Fijado") {
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 8)).foregroundStyle(Theme.cyan)
+                }
+                Text(sourceName)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                if index < 10 {
+                    Text("⌃⌘\(index)")
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .padding(.horizontal, 4).padding(.vertical, 2)
+                        .background(.white.opacity(0.09),
+                                    in: RoundedRectangle(cornerRadius: 4))
+                }
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
+        }
+        .frame(width: ClipboardCarousel.cardWidth, height: ClipboardCarousel.cardHeight)
+        .background(.white.opacity(selected ? 0.09 : 0.04),
+                    in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .strokeBorder(selected ? Theme.cyan : .white.opacity(0.07),
+                              lineWidth: selected ? 1.6 : 1)
+        )
+        .task(id: previewPath) { await loadImage() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let image {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: ClipboardCarousel.cardWidth,
+                       height: ClipboardCarousel.cardHeight - 30)
+                .clipped()
+        } else {
+            Text(result.title)
+                .font(.system(size: 11.5,
+                              design: looksLikeCode ? .monospaced : .default))
+                .foregroundStyle(.primary)
+                .lineLimit(6)
+                .multilineTextAlignment(.leading)
+                .padding(.horizontal, 9)
+                .padding(.top, 9)
+        }
+    }
+
+    /// "📌 Fijado · Imagen · Copiado de Google Chrome" → "Google Chrome".
+    private var sourceName: String {
+        guard let last = result.subtitle.split(separator: "·").last else { return "" }
+        return last.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "Copiado de ", with: "")
+    }
+
+    /// Resolved by name because that is all a clip records. A miss simply shows no icon rather
+    /// than a generic placeholder, which would be noise repeated on every card.
+    private var sourceIcon: NSImage? {
+        let name = sourceName
+        guard !name.isEmpty, name != "Portapapeles" else { return nil }
+        for base in ["/Applications", "/System/Applications",
+                     NSHomeDirectory() + "/Applications"] {
+            let path = "\(base)/\(name).app"
+            if FileManager.default.fileExists(atPath: path) {
+                return IconCache.applicationIcon(path: path)
+            }
+        }
+        return nil
+    }
+
+    /// Code reads as code. A JSON blob in a proportional font is another wall of grey.
+    private var looksLikeCode: Bool {
+        let text = result.title
+        return text.contains("{") || text.contains("</") || text.contains("=>")
+            || text.hasPrefix("$ ") || text.contains(";\n")
+    }
+
+    private func loadImage() async {
+        image = nil
+        guard !previewPath.isEmpty else { return }
+        let url = URL(fileURLWithPath: previewPath)
+        guard let loaded = NSImage(contentsOf: url), loaded.isValid else { return }
+        image = loaded
     }
 }

@@ -116,3 +116,40 @@ struct RichClipboardTests {
         #expect(pinned.first?.1 == 9)
     }
 }
+
+/// The carousel renders a thumbnail per card, so the path has to travel on the result itself.
+@Suite("Clipboard cards carry what they need to be seen")
+@MainActor
+struct ClipboardCardTests {
+
+    @Test("an image clip carries its file, so every card can show it — not only the selected one")
+    func imagesCarryTheirAsset() {
+        let clip = Clip(id: 1, text: "Imagen", sourceApp: "Safari", kind: .image,
+                        assetPath: "/tmp/shot.png")
+        let recents = SearchEngine.recents([clip])
+        #expect(recents.first?.previewPath == "/tmp/shot.png")
+    }
+
+    @Test("a copied file previews itself")
+    func filesPreviewThemselves() {
+        let clip = Clip(id: 2, text: "/Users/x/informe.pdf", sourceApp: "Finder", kind: .file)
+        #expect(SearchEngine.recents([clip]).first?.previewPath == "/Users/x/informe.pdf")
+    }
+
+    @Test("plain text has nothing to show, and says so by being empty")
+    func textHasNoPreview() {
+        let clip = Clip(id: 3, text: "hola", sourceApp: "Notes", kind: .text)
+        #expect(SearchEngine.recents([clip]).first?.previewPath.isEmpty == true)
+        // Searching returns the same thing: the two paths must not disagree.
+        let found = SearchEngine.search("hola", in: SearchInput(clips: [clip]))
+        #expect(found.first?.previewPath.isEmpty == true)
+    }
+
+    @Test("searching keeps the preview a card needs")
+    func searchKeepsIt() {
+        let clip = Clip(id: 4, text: "captura", sourceApp: "Safari", kind: .image,
+                        assetPath: "/tmp/a.png")
+        let found = SearchEngine.search("captura", in: SearchInput(clips: [clip]))
+        #expect(found.first?.previewPath == "/tmp/a.png")
+    }
+}
