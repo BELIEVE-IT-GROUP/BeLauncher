@@ -1,0 +1,31 @@
+Tests/BeLauncherCoreTests/LicenseTests.swift
+  s_3bf5a4753c6c6c::t_d7dbf620c7e416 114-117,119
+  s_3bf5a4753c6c6c::t_d23c69b417e492 120,154-165
+  s_3bf5a4753c6c6c::t_17ace48781a1fe 122-133,140
+  s_3bf5a4753c6c6c::t_9233c6548121ec 121
+Sources/BeLauncherCore/LicenseClient.swift
+  s_3bf5a4753c6c6c::t_d23c69b417e492 23,28-33,109
+  s_3bf5a4753c6c6c::t_eac5e29de5b5c4 48-52,54-60,99-100,108,116-117
+Sources/BeLauncherCore/License.swift
+  s_3bf5a4753c6c6c::t_eac5e29de5b5c4 41-43,58-60
+Sources/BeLauncher/ActivationView.swift
+  s_3bf5a4753c6c6c::t_eac5e29de5b5c4 56
+Scripts/with-anon-key.sh
+  s_3bf5a4753c6c6c::t_0c46ea15052236 15-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "640c039ede9e441888656d6fb2dddfa7049405a4",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
