@@ -30,6 +30,7 @@ public enum BrainQuery {
         case whatDidWeDecide(topic: String)
         case prepare(subject: String)
         case remember(text: String)
+        case pulse
         case none
 
         public static func detect(_ query: String) -> Intent {
@@ -48,6 +49,10 @@ public enum BrainQuery {
             }
             for prefix in ["recordar ", "recuerda ", "remember "] where folded.hasPrefix(prefix) {
                 return .remember(text: String(trimmed.dropFirst(prefix.count)))
+            }
+            for word in ["pulse", "pulso", "que se me escapa", "que esta en riesgo",
+                         "riesgos"] where folded == word || folded.hasPrefix(word) {
+                return .pulse
             }
             return .none
         }

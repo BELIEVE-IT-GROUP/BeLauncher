@@ -154,6 +154,15 @@ public enum SearchEngine {
                 subtitle: "Se guardará como propuesta hasta que la confirmes",
                 score: 100_000, matched: [], payload: text
             ))
+        case .pulse:
+            let signals = Pulse.signals(for: input.memories)
+            pinned.append(SearchResult(
+                id: "answer-pulse", kind: .answer,
+                title: signals.isEmpty ? "Nada que señalar" : "\(signals.count) cosa(s) que mirar",
+                subtitle: signals.first?.headline ?? "El cerebro está en orden",
+                score: 100_000, matched: [], payload: Pulse.render(signals)
+            ))
+
         case .none:
             // Not a question: it might still be something the app knows how to carry out. But a
             // mission is our inference, and anything the user built themselves outranks it — if
