@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: CommandPanel?
     private var statusItem: NSStatusItem?
     private var updateItem: NSMenuItem?
+    private var pendingRelease: Release?
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
     private var clipboard: ClipboardWatcher?
@@ -287,6 +288,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             else { return }
             updateItem?.title = "Actualizar a \(release.version)…"
             updateItem?.isHidden = false
+            // The menu bar and Settings have to agree. Announcing an update in one place and then
+            // making the person press "Buscar ahora" in the other to see the button is the same
+            // half-wired thing as not announcing it at all.
+            pendingRelease = release
+            settingsModel?.availableUpdate = release
+            settingsModel?.updateStatus = "Hay una versión nueva: \(release.version)"
         }
     }
 
@@ -389,6 +396,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         settingsModel.license = license
         settingsModel.licenseClient = licenseClient
+        // Carried over from the launch check, so the button is there the moment Settings opens.
+        settingsModel.availableUpdate = pendingRelease
+        if let pending = pendingRelease {
+            settingsModel.updateStatus = "Hay una versión nueva: \(pending.version)"
+        }
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
             enabled ? self?.clipboard?.start() : self?.clipboard?.stop()

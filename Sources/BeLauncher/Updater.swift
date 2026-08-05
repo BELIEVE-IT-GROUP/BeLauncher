@@ -93,17 +93,23 @@ final class Updater {
         return destination
     }
 
+    /// Mounts the image and returns where it landed.
+    ///
+    /// Asks for a plist rather than scraping the human-readable table: that output is columns of
+    /// tab-separated text whose shape is not a promise, and the first attempt at parsing it also
+    /// passed `-quiet`, which suppresses the very lines it was parsing. A `-mountrandom` point
+    /// keeps this out of `/Volumes`, so an image already mounted by the person is left alone.
     private func mount(_ dmg: URL) throws -> String {
         let output = shell("/usr/bin/hdiutil",
-                           ["attach", "-nobrowse", "-noverify", "-quiet", "-mountrandom",
+                           ["attach", "-nobrowse", "-noverify", "-plist", "-mountrandom",
                             NSTemporaryDirectory(), dmg.path])
-        // -mountrandom prints the mount point on the last non-empty line of the plist-free output.
-        guard let point = output.split(separator: "\n")
-            .map({ $0.trimmingCharacters(in: .whitespaces) })
-            .last(where: { $0.hasPrefix("/") })
-            .map({ String($0.split(separator: "\t").last ?? "") })
-            .flatMap({ $0.isEmpty ? nil : $0 })
-        else { throw UpdateInstaller.Failure.badArchive }
+        guard let data = output.data(using: .utf8),
+              let plist = try? PropertyListSerialization.propertyList(
+                from: data, options: [], format: nil) as? [String: Any],
+              let entities = plist["system-entities"] as? [[String: Any]],
+              let point = entities.compactMap({ $0["mount-point"] as? String })
+                .first(where: { !$0.isEmpty })
+        else { throw UpdateInstaller.Failure.couldNotMount }
         return point
     }
 

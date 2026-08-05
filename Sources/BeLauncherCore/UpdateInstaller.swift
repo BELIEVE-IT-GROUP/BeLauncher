@@ -36,6 +36,7 @@ public struct UpdateInstaller: Sendable {
         case notWritable(String)
         case translocated
         case badArchive
+        case couldNotMount
         case notSignedByUs(found: String)
         case notNotarized
         case replaceFailed(String)
@@ -48,7 +49,9 @@ public struct UpdateInstaller: Sendable {
                 "macOS está ejecutando la app desde una copia de solo lectura. Muévela a Aplicaciones "
                 + "y ábrela desde ahí."
             case .badArchive:
-                "La descarga no contiene una app de BeLauncher."
+                "La descarga no contiene una app de BeLauncher. No se instaló nada."
+            case .couldNotMount:
+                "No se pudo abrir la descarga. Puede que se cortara a medias; reintenta."
             case .notSignedByUs(let found):
                 "La descarga no está firmada por Believe (encontrado: \(found.isEmpty ? "sin firma" : found)). "
                 + "No se instaló nada."
