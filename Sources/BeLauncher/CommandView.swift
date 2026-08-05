@@ -42,9 +42,7 @@ struct CommandView: View {
 
     private var searchField: some View {
         HStack(spacing: 13) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.secondary)
+            BeLauncherMark(side: 22, color: .primary.opacity(0.85))
 
             TextField("Search apps, snippets and clipboard…", text: $model.query)
                 .textFieldStyle(.plain)

@@ -1,0 +1,83 @@
+name: Release macOS
+
+# Builds, signs and notarizes BeLauncher on the self-hosted Apple Silicon runner
+# (mac-jorge, registered at the BELIEVE-IT-GROUP org level — GitHub-hosted macOS runners
+# bill 10x, this one bills nothing). Triggered by pushing a vX.Y.Z tag.
+#
+# When it finishes:
+#   1. The GitHub Release for the tag carries the notarized DMG.
+#   2. The DMG and the update feed are on R2, served from files.believe-global.com.
+#
+# The certificate lives in this Mac's login keychain; there is no p12 to import.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: [self-hosted, macOS, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+
+      # The self-hosted workspace persists between runs: without this, a DMG from an
+      # earlier version would still be sitting in dist/ and get attached to this release.
+      - name: Clean previous artifacts
+        run: rm -rf build dist
+
+      - name: Test
+        run: swift test
+
+      - name: Build, sign & notarize
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+        run: |
+          export VERSION="${GITHUB_REF_NAME#v}"
+          bash Scripts/release-mac.sh
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "BeLauncher $VERSION" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" dist/*.dmg dist/*.sha256 --clobber
+
+      # Public download + the feed the opt-in update check reads.
+      - name: Publish to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BASE="https://files.believe-global.com/apps/belauncher"
+
+          cat > dist/latest.json <<JSON
+          {
+            "version": "$VERSION",
+            "url": "$BASE/BeLauncher-$VERSION.dmg",
+            "notes": "https://github.com/$GITHUB_REPOSITORY/releases/tag/$GITHUB_REF_NAME"
+          }
+          JSON
+
+          aws s3 cp "dist/BeLauncher-$VERSION.dmg" \
+            "s3://${{ secrets.R2_BUCKET }}/apps/belauncher/BeLauncher-$VERSION.dmg" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+          aws s3 cp "dist/BeLauncher-$VERSION.dmg" \
+            "s3://${{ secrets.R2_BUCKET }}/apps/belauncher/BeLauncher-latest.dmg" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+          aws s3 cp dist/latest.json \
+            "s3://${{ secrets.R2_BUCKET }}/apps/belauncher/latest.json" \
+            --content-type application/json --cache-control "max-age=300" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+
+          echo "Published $BASE/BeLauncher-$VERSION.dmg"

@@ -16,6 +16,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BINARY" "$APP/Contents/MacOS/BeLauncher"
 cp "$ROOT/Scripts/Info.plist" "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
+bash "$ROOT/Scripts/make-icon.sh" "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --deep --sign - --identifier com.believe.belauncher "$APP" >/dev/null 2>&1 \
     || echo "warning: ad-hoc signing failed; Accessibility and launch-at-login may not stick"

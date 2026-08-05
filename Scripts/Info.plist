@@ -8,6 +8,8 @@
     <string>BeLauncher</string>
     <key>CFBundleExecutable</key>
     <string>BeLauncher</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.believe.belauncher</string>
     <key>CFBundlePackageType</key>

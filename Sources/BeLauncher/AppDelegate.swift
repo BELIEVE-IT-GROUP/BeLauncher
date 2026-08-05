@@ -96,7 +96,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "BeLauncher")
+        item.button?.image = BeLauncherMark.menuBarImage()
+            ?? NSImage(systemSymbolName: "chevron.up", accessibilityDescription: "BeLauncher")
         item.button?.image?.isTemplate = true
 
         let menu = NSMenu()

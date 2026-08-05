@@ -8,6 +8,9 @@ enum Theme {
     static let searchHeight: CGFloat = 64
     static let shadowPadding: CGFloat = 26
     static let accent = Color(nsColor: .controlAccentColor)
+    /// Believe Blue 700 and Cyan 400 — the brand pair used by the mark.
+    static let believeBlue = Color(red: 0.047, green: 0.231, blue: 0.725)
+    static let cyan = Color(red: 0, green: 0.667, blue: 1)
 }
 
 /// Real window-level blur. `.ultraThinMaterial` alone looks flat over a moving desktop.
