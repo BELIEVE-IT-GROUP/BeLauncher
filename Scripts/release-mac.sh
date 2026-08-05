@@ -42,6 +42,52 @@ bash "$ROOT/Scripts/make-icon.sh" "$APP/Contents/Resources/AppIcon.icns"
 lipo -archs "$APP/Contents/MacOS/BeLauncher"
 
 # ---------------------------------------------------------------- sign
+# The Developer ID is imported from Believe's .p12 into a throwaway keychain, which is
+# what keeps macOS from opening a password dialog a CI job could never answer.
+#
+# Note what this deliberately does NOT do: `security list-keychains -s`. Replacing the
+# runner's search list would strip the other signing keychains this Mac uses — codesign
+# is pointed at the keychain explicitly instead.
+P12="${BELIEVE_P12:-$HOME/.believe/apple-devid/developerID.p12}"
+P12_PW_FILE="${BELIEVE_P12_PW_FILE:-$HOME/.believe/apple-devid/p12.pw}"
+
+if [ -f "$P12" ] && [ -f "$P12_PW_FILE" ]; then
+    # Capture the runner's real search list so it can be put back byte for byte.
+    ORIGINAL_KEYCHAINS=()
+    while IFS= read -r line; do
+        line="${line//\"/}"
+        line="$(echo "$line" | xargs)"
+        [ -n "$line" ] && ORIGINAL_KEYCHAINS+=("$line")
+    done < <(security list-keychains -d user)
+
+    SIGN_KEYCHAIN="${TMPDIR:-/tmp}/belauncher-signing-$$.keychain-db"
+    SIGN_KEYCHAIN_PW="$(openssl rand -hex 24)"
+
+    restore_keychains() {
+        security list-keychains -d user -s "${ORIGINAL_KEYCHAINS[@]}" >/dev/null 2>&1 || true
+        security delete-keychain "$SIGN_KEYCHAIN" >/dev/null 2>&1 || true
+    }
+    trap restore_keychains EXIT
+
+    echo "▸ Importing the Developer ID into a throwaway keychain"
+    security create-keychain -p "$SIGN_KEYCHAIN_PW" "$SIGN_KEYCHAIN"
+    security unlock-keychain -p "$SIGN_KEYCHAIN_PW" "$SIGN_KEYCHAIN"
+    security set-keychain-settings -lut 7200 "$SIGN_KEYCHAIN"
+    security import "$P12" -k "$SIGN_KEYCHAIN" \
+        -P "$(tr -d '\r\n' < "$P12_PW_FILE")" \
+        -T /usr/bin/codesign -T /usr/bin/security >/dev/null
+    # Pre-authorises the private key so codesign never opens a password dialog.
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+        -k "$SIGN_KEYCHAIN_PW" "$SIGN_KEYCHAIN" >/dev/null
+
+    # codesign resolves the private key through the search list, not through --keychain.
+    # This Mac holds the SAME Developer ID in another, locked keychain; if that one stays
+    # in the list codesign picks it first and dies with errSecInternalComponent. So for the
+    # duration of the signing the throwaway keychain is the only one in the list — and the
+    # trap above puts the real list back on every exit path, including a crash mid-build.
+    security list-keychains -d user -s "$SIGN_KEYCHAIN" >/dev/null
+fi
+
 # Hardened runtime and a secure timestamp are both mandatory for notarization.
 echo "▸ Signing with: $IDENTITY"
 codesign --force --options runtime --timestamp \

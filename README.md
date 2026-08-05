@@ -166,13 +166,18 @@ To rehearse it locally without touching Apple's servers:
 VERSION=0.1.0 SKIP_NOTARIZE=1 bash Scripts/release-mac.sh
 ```
 
-Signing on a fresh Mac needs the private key authorised for `codesign` once, otherwise macOS
-opens a password dialog that a CI job cannot answer:
+Signing has one non-obvious requirement, learned the hard way. `codesign` resolves the private
+key through the **keychain search list**, not through `--keychain`, and this Mac holds the same
+Developer ID in a second, locked keychain. If that one is in the list, codesign picks it first and
+fails with `errSecInternalComponent`. So `release-mac.sh`:
 
-```
-security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '<login password>' \
-    ~/Library/Keychains/login.keychain-db
-```
+1. imports `~/.believe/apple-devid/developerID.p12` into a throwaway keychain,
+2. pre-authorises the key with `set-key-partition-list` (no password dialog a CI job could answer),
+3. makes that keychain the **only** one in the search list while it signs,
+4. restores the real search list and deletes the throwaway keychain on every exit path.
+
+Step 4 matters: the runner is a real Mac with other signing keychains, and leaving a truncated
+search list behind would break unrelated builds.
 
 Repository secrets used by the workflow: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`,
 `APPLE_TEAM_ID`, `MAC_SIGN_IDENTITY`, `R2_ACCESS_KEY`, `R2_SECRET_KEY`, `R2_ENDPOINT`,
