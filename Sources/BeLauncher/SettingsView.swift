@@ -42,10 +42,13 @@ final class SettingsModel {
 
     var snippets: [Snippet] = []
     var workflows: [Workflow] = []
+    var flows: [Flow] = []
+    var shortcutNames: [String] = []
     var secretNames: [String] = []
 
     var snippetError: String?
     var workflowError: String?
+    var flowError: String?
     var secretError: String?
     var launchAtLoginError: String?
     var status: String?
@@ -71,7 +74,31 @@ final class SettingsModel {
     func reload() {
         snippets = store.snippets()
         workflows = store.workflows()
+        flows = store.flows()
         secretNames = Keychain.names()
+        if shortcutNames.isEmpty { shortcutNames = Shortcuts.available() }
+    }
+
+    func addFlow(keyword: String, title: String, steps: [FlowStep]) -> Bool {
+        do {
+            try store.addFlow(keyword: keyword, title: title, steps: steps)
+            flowError = nil
+            reload()
+            return true
+        } catch {
+            flowError = "\(error)"
+            return false
+        }
+    }
+
+    func updateFlow(_ id: Int64, steps: [FlowStep]) {
+        do {
+            try store.updateFlowSteps(id: id, steps: steps)
+            flowError = nil
+            reload()
+        } catch {
+            flowError = "\(error)"
+        }
     }
 
     // MARK: - Editing
@@ -291,6 +318,10 @@ struct SettingsView: View {
                         }
                     }
                 }
+            }
+
+            Section("Flows") {
+                FlowEditor(model: model)
             }
 
             Section("Workflows") {

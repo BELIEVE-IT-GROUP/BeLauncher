@@ -7,6 +7,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case workflow
     case calculation
     case file
+    case flow
 
     public var label: String {
         switch self {
@@ -16,6 +17,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .workflow: "Workflow"
         case .calculation: "Result"
         case .file: "File"
+        case .flow: "Flow"
         }
     }
 
@@ -27,6 +29,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .workflow: "bolt.horizontal"
         case .calculation: "equal.square"
         case .file: "doc"
+        case .flow: "arrow.triangle.branch"
         }
     }
 }
@@ -64,13 +67,15 @@ public struct SearchInput: Sendable {
     public var snippets: [Snippet]
     public var workflows: [Workflow]
     public var clips: [Clip]
+    public var flows: [Flow]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
-                workflows: [Workflow] = [], clips: [Clip] = []) {
+                workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
         self.clips = clips
+        self.flows = flows
     }
 }
 
@@ -158,6 +163,18 @@ public enum SearchEngine {
                 subtitle: "\(workflow.keyword) · type a search term, then ↩",
                 score: best.score + 20 + min(workflow.uses, 20), matched: [],
                 payload: "", recordID: workflow.id, completion: "\(workflow.keyword) "
+            ))
+        }
+
+        for flow in input.flows {
+            let byKeyword = Fuzzy.match(query: query, candidate: flow.keyword)
+            let byTitle = Fuzzy.match(query: query, candidate: flow.title)
+            guard let best = [byKeyword, byTitle].compactMap({ $0 }).max(by: { $0.score < $1.score }) else { continue }
+            results.append(SearchResult(
+                id: "flow-\(flow.id)", kind: .flow, title: flow.title,
+                subtitle: "\(flow.keyword) · \(flow.steps.count) step\(flow.steps.count == 1 ? "" : "s")",
+                score: best.score + 45 + min(flow.uses, 20), matched: [],
+                payload: "", recordID: flow.id
             ))
         }
 

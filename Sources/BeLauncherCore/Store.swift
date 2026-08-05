@@ -56,6 +56,16 @@ public final class Store {
             )
             """)
         try database.execute("""
+            CREATE TABLE IF NOT EXISTS flows (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                keyword TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                steps TEXT NOT NULL,
+                uses INTEGER NOT NULL DEFAULT 0,
+                created_at REAL NOT NULL
+            )
+            """)
+        try database.execute("""
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
@@ -146,10 +156,47 @@ public final class Store {
         try? database.execute("DELETE FROM workflows WHERE id = ?", [.int(id)])
     }
 
+    // MARK: - Flows
+
+    public func flows() -> [Flow] {
+        let rows = (try? database.query("SELECT * FROM flows ORDER BY uses DESC, keyword ASC")) ?? []
+        return rows.compactMap { row in
+            guard let data = row.string("steps").data(using: .utf8),
+                  let steps = try? JSONDecoder().decode([FlowStep].self, from: data) else { return nil }
+            return Flow(id: row.int("id"), keyword: row.string("keyword"), title: row.string("title"),
+                        steps: steps, uses: Int(row.int("uses")))
+        }
+    }
+
+    @discardableResult
+    public func addFlow(keyword: String, title: String, steps: [FlowStep]) throws -> Flow {
+        let key = try Validate.keyword(keyword)
+        let name = try Validate.title(title)
+        try FlowValidator.validate(steps, snippetKeywords: Set(snippets().map(\.keyword)))
+        guard flows().allSatisfy({ $0.keyword != key }) else { throw ValidationError.duplicateKeyword(key) }
+        let encoded = String(decoding: try JSONEncoder().encode(steps), as: UTF8.self)
+        try database.execute(
+            "INSERT INTO flows (keyword, title, steps, uses, created_at) VALUES (?, ?, ?, 0, ?)",
+            [.text(key), .text(name), .text(encoded), .double(Date.now.timeIntervalSince1970)]
+        )
+        return Flow(id: database.lastInsertID, keyword: key, title: name, steps: steps)
+    }
+
+    public func updateFlowSteps(id: Int64, steps: [FlowStep]) throws {
+        try FlowValidator.validate(steps, snippetKeywords: Set(snippets().map(\.keyword)))
+        let encoded = String(decoding: try JSONEncoder().encode(steps), as: UTF8.self)
+        try database.execute("UPDATE flows SET steps = ? WHERE id = ?", [.text(encoded), .int(id)])
+    }
+
+    public func deleteFlow(id: Int64) {
+        try? database.execute("DELETE FROM flows WHERE id = ?", [.int(id)])
+    }
+
     public func recordUse(kind: ResultKind, id: Int64) {
         switch kind {
         case .snippet: try? database.execute("UPDATE snippets SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .workflow: try? database.execute("UPDATE workflows SET uses = uses + 1 WHERE id = ?", [.int(id)])
+        case .flow: try? database.execute("UPDATE flows SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .application, .clipboard, .calculation, .file: break
         }
     }
@@ -225,5 +272,9 @@ public final class Store {
                          urlTemplate: "https://github.com/search?q={query}")
         _ = try? addWorkflow(keyword: "w", title: "Search Wikipedia",
                          urlTemplate: "https://en.wikipedia.org/w/index.php?search={query}")
+        _ = try? addFlow(keyword: "focus", title: "Modo enfoque", steps: [
+            .openApp(path: "/System/Applications/Utilities/Terminal.app"),
+            .timer(minutes: 50, label: "Bloque de enfoque"),
+        ])
     }
 }

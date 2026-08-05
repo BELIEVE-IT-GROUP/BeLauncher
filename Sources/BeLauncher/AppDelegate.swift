@@ -49,7 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     applications: self.appIndex.applications,
                     snippets: store.snippets(),
                     workflows: store.workflows(),
-                    clips: store.clips(limit: 300)
+                    clips: store.clips(limit: 300),
+                    flows: store.flows()
                 )
             },
             expander: {
@@ -228,6 +229,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .revealInFinder(let path):
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
 
+        case .runShortcut(let name):
+            Shortcuts.run(named: name)
+
+        case .startTimer(let minutes, let label):
+            Timers.schedule(minutes: minutes, label: label)
+
+        case .wait:
+            break   // only meaningful inside a flow, handled by runFlow
+
+        case .runFlow(let steps):
+            runFlow(steps)
+
         case .copyToClipboard(let text, _):
             clipboard?.ignoreNextChange()
             let pasteboard = NSPasteboard.general
@@ -239,6 +252,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                     Permissions.pasteToFrontmostApp()
                 }
+            }
+        }
+    }
+
+    /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole
+    /// point of a flow is that step 3 happens after step 2.
+    private func runFlow(_ steps: [LauncherModel.Action]) {
+        Task { @MainActor in
+            for step in steps {
+                if case .wait(let seconds) = step {
+                    try? await Task.sleep(for: .seconds(min(seconds, 30)))
+                    continue
+                }
+                perform(step)
+                try? await Task.sleep(for: .milliseconds(120))
             }
         }
     }

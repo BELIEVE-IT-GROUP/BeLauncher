@@ -33,6 +33,11 @@ public final class LauncherModel {
         case openURL(URL)
         case openFile(path: String)
         case revealInFinder(path: String)
+        case runShortcut(name: String)
+        case startTimer(minutes: Int, label: String)
+        case wait(seconds: Double)
+        /// A whole flow, already planned. The app layer walks it in order and honours waits.
+        indirect case runFlow(steps: [Action])
         case dismiss
     }
 
@@ -185,6 +190,12 @@ public final class LauncherModel {
             recordUse(.snippet, result.recordID)
             perform(.copyToClipboard(text: expanded.text, cursorOffset: expanded.cursorOffset))
             perform(.dismiss)
+
+        case .flow:
+            guard let input = try? dataSource(),
+                  let flow = input.flows.first(where: { $0.id == result.recordID }) else { return true }
+            recordUse(.flow, result.recordID)
+            perform(.runFlow(steps: FlowRunner.plan(flow, snippets: input.snippets, expander: expanderFactory())))
 
         case .workflow:
             guard !result.payload.isEmpty, let url = URL(string: result.payload) else {

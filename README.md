@@ -63,6 +63,9 @@ feed. `.env` is git-ignored; credentials never belong in the repo.
 - **Calculation** — `2+2`, `(4+6)/4`, `2^10`, `200+10%`, `15% of 300`. ↩ copies the raw result.
 - **Conversion** — `10 km to mi`, `100 c to f`, `1 gb to mb`, `2 h to min`, `5 km a millas`.
   Length, mass, temperature, time and data, all computed locally.
+- **Flows** — a keyword that runs several steps in order: `enfoque` → silence notifications,
+  open Notion and Terminal, start a 50 minute timer. You build them in Settings by picking a step
+  kind and filling one field; there is no scripting language to learn.
 - **Files** — `f budget` searches file names through Spotlight's existing index. ↩ opens,
   ⌘↩ reveals in Finder.
 
@@ -81,6 +84,8 @@ Sources/BeLauncherCore/     no AppKit, no UI — this is what the tests drive
   Calculator.swift      arithmetic, percentages and unit conversion, all local
   FileSearch.swift      file names via Spotlight's index, behind the explicit "f " prefix
   SecretGuard.swift     keeps credentials out of the clipboard history
+  Flow.swift            the step catalogue plus validation
+  FlowRunner.swift      flow → ordered list of actions (pure, so flows are testable)
   ExportImport.swift    JSON archive in and out
   Keychain.swift        {secret:NAME} values
   Env.swift, SafeFilename.swift, Diagnostics.swift, AppIndex.swift
@@ -224,6 +229,27 @@ The keyboard tests drive `LauncherModel` through the exact entry point the panel
 calls. SwiftPM cannot host an XCUITest target for a menu-bar-only executable, so the "UI test" is
 an end-to-end test of the full keyboard loop rather than a screen-driven one; the SwiftUI layer
 above it holds no logic of its own.
+
+## What a flow can do (and what it deliberately cannot)
+
+A flow is a named chain of steps from a **closed catalogue** that BeLauncher implements itself:
+
+| Step | Does |
+| --- | --- |
+| Open app / Open file / Open URL | launches it |
+| Copy text / Paste snippet | puts text on the clipboard, snippets expanded at run time |
+| Run shortcut | runs a shortcut **you already built** in Apple's Shortcuts app |
+| Start timer | schedules a local notification |
+| Wait | pauses before the next step |
+
+"Run shortcut" is the only step that reaches outside BeLauncher, and it is how a flow silences
+notifications or sets a Focus: macOS exposes those only through Shortcuts. The name is passed as a
+process argument to `/usr/bin/shortcuts`, never through a shell, so a name cannot become a command.
+BeLauncher does not create, edit or import shortcuts.
+
+There is no "run this script" step, on purpose. A launcher that executes arbitrary shell or
+AppleScript is one imported flow away from being a malware delivery mechanism, and the whole point
+of this app is that nothing runs that you did not explicitly build.
 
 ## Deliberately not here
 
