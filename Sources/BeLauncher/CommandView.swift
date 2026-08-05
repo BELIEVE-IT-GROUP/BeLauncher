@@ -19,7 +19,12 @@ struct CommandView: View {
                     stateContent(model.state)
                         .frame(maxWidth: model.detail == nil ? .infinity : Theme.listWidth,
                                alignment: .topLeading)
-                    if model.aiState != .idle {
+                    if let mission = model.mission {
+                        Divider().overlay(.white.opacity(0.07))
+                        MissionPane(mission: mission,
+                                    approve: { model.approveMission() },
+                                    cancel: { model.cancelMission() })
+                    } else if model.aiState != .idle {
                         Divider().overlay(.white.opacity(0.07))
                         AIPane(state: model.aiState, dismiss: { model.clearAI() })
                     } else if let detail = model.detail {
@@ -259,6 +264,60 @@ private struct DetailPane: View {
             }
             .padding(14)
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+}
+
+// MARK: - Mission approval
+
+@MainActor
+private struct MissionPane: View {
+    let mission: Mission
+    let approve: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Esto es lo que haría", systemImage: "wand.and.stars")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Theme.accent)
+
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(Array(mission.steps.enumerated()), id: \.element.id) { index, step in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("\(index + 1)")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 14, alignment: .trailing)
+                        Text(step.title)
+                            .font(.system(size: 12))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        if step.action.changesSomething {
+                            Image(systemName: "exclamationmark.circle")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.orange)
+                                .help("Cambia algo fuera de BeLauncher")
+                        }
+                    }
+                }
+            }
+
+            Text("Nada se ejecuta hasta que lo apruebes, y después verás un recibo de lo que cambió.")
+                .font(.system(size: 10.5))
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Button("Ejecutar") { approve() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                Button("Cancelar") { cancel() }
+                    .controlSize(.small)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }

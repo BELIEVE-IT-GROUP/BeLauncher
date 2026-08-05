@@ -51,6 +51,8 @@ public final class LauncherModel {
         case discardCommit(String)
         case runVerb(id: String, text: String)
         case assignAlias(target: String, suggestion: String)
+        indirect case runMission(Mission)
+        indirect case missionCancelled(Mission)
         case dismiss
     }
 
@@ -72,6 +74,25 @@ public final class LauncherModel {
     }
 
     public private(set) var aiState: AIState = .idle
+
+    /// The mission waiting for approval, if any. Shown as a plan the user reads before anything
+    /// runs; there is no path that starts a mission without this step.
+    public private(set) var mission: Mission?
+
+    public func approveMission() {
+        guard var current = mission else { return }
+        current.state = .running
+        mission = current
+        perform(.runMission(current))
+        mission = nil
+    }
+
+    public func cancelMission() {
+        guard var current = mission else { return }
+        current.state = .cancelled
+        mission = nil
+        perform(.missionCancelled(current))
+    }
 
     public func aiWorking(_ title: String) { aiState = .working(title) }
     public func aiAnswered(verb: String, text: String) { aiState = .answer(verb: verb, text: text) }
@@ -245,6 +266,7 @@ public final class LauncherModel {
     public func activate(mode: Mode = .all) {
         self.mode = mode
         aiState = .idle
+        mission = nil
         closeActionPanel()
         query = ""
         selection = 0
@@ -374,6 +396,11 @@ public final class LauncherModel {
         case .memory:
             perform(.copyToClipboard(text: result.title, cursorOffset: nil))
             perform(.dismiss)
+
+        case .mission:
+            guard let planned = MissionPlanner.plan(result.payload) else { return false }
+            mission = planned
+            return true
 
         case .answer:
             if result.id == "answer-remember" {

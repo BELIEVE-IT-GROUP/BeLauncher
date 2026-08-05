@@ -234,6 +234,12 @@ public enum ActionRegistry {
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
             ]
 
+        case .mission:
+            return [
+                ResultAction(id: "plan", title: "Ver el plan", symbol: "list.bullet.rectangle",
+                             shortcut: .enter, intent: .run),
+            ]
+
         case .answer:
             return [
                 ResultAction(id: "copy", title: "Copiar la respuesta", symbol: "doc.on.clipboard",

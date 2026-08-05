@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcuts: [BeLauncherCore.Shortcut] = []
     private var systemShortcuts: [String] = []
     private var vault: Vault?
+    private var lastReceipt: MissionReceipt?
     private let calendar = CalendarAccess()
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
@@ -425,6 +426,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .runVerb(let id, let text):
             runAIVerb(id: id, text: text)
 
+        case .runMission(let mission):
+            runMission(mission)
+
+        case .missionCancelled:
+            break   // the plan was shown and refused: nothing happened, nothing to report
+
         case .remember(let text, let source):
             rememberIntoVault(text: text, source: source)
 
@@ -498,6 +505,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 perform(step)
                 try? await Task.sleep(for: .milliseconds(120))
+            }
+        }
+    }
+
+    /// Walks an approved mission and writes a receipt of what actually happened. The receipt is
+    /// assembled from the steps that ran, never from a model's account of its own work.
+    private func runMission(_ mission: Mission) {
+        var executed = mission
+        Task { @MainActor in
+            for index in executed.steps.indices {
+                let step = executed.steps[index]
+                perform(step.action)
+                executed.steps[index].outcome = .done
+                try? await Task.sleep(for: .milliseconds(150))
+            }
+            executed.state = .done
+            executed.finishedAt = .now
+
+            let receipt = MissionReceipt.of(executed, requestedBy: NSFullUserName())
+            lastReceipt = receipt
+            if !receipt.changed.isEmpty {
+                report("Misión terminada", receipt.render())
             }
         }
     }

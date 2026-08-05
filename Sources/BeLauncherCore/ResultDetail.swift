@@ -95,6 +95,19 @@ public enum DetailBuilder {
             return ResultDetail(body: result.payload, isMonospaced: true,
                                 metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
 
+        case .mission:
+            let mission = MissionPlanner.plan(result.payload)
+            let steps = (mission?.steps ?? []).enumerated()
+                .map { "\($0.offset + 1). \($0.element.title)" }
+                .joined(separator: "\n")
+            return ResultDetail(
+                body: steps,
+                metadata: [
+                    .init(label: "Antes de nada", value: "Verás el plan y podrás cancelar"),
+                    .init(label: "Después", value: "Un recibo de lo que cambió"),
+                ]
+            )
+
         case .answer:
             return ResultDetail(body: result.payload,
                                 metadata: [.init(label: "Basado en", value: result.subtitle)])

@@ -15,6 +15,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case memory
     case pendingCommit
     case answer
+    case mission
 
     public var label: String {
         switch self {
@@ -32,6 +33,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .memory: "Memoria"
         case .pendingCommit: "Por confirmar"
         case .answer: "Respuesta"
+        case .mission: "Misión"
         }
     }
 
@@ -51,6 +53,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .memory: "brain"
         case .pendingCommit: "checkmark.seal"
         case .answer: "text.bubble"
+        case .mission: "wand.and.stars"
         }
     }
 }
@@ -152,7 +155,29 @@ public enum SearchEngine {
                 score: 100_000, matched: [], payload: text
             ))
         case .none:
-            break
+            // Not a question: it might still be something the app knows how to carry out. But a
+            // mission is our inference, and anything the user built themselves outranks it — if
+            // they named a flow "enfoque", "enfoque" means their flow, full stop.
+            let userOwned = Set(
+                input.flows.map(\.keyword)
+                + input.workflows.map(\.keyword)
+                + input.snippets.map(\.keyword)
+                + input.systemShortcuts.map { $0.lowercased() }
+                + Array(input.aliases.keys)
+            )
+            let folded = query.lowercased().trimmingCharacters(in: .whitespaces)
+            let collides = userOwned.contains(folded)
+                || input.systemShortcuts.contains { $0.caseInsensitiveCompare(folded) == .orderedSame }
+
+            if !collides, let mission = MissionPlanner.plan(query) {
+                pinned.append(SearchResult(
+                    id: "mission-\(mission.id)", kind: .mission, title: mission.intent,
+                    subtitle: mission.needsApproval
+                        ? "\(mission.steps.count) pasos · te enseño el plan antes de tocar nada"
+                        : "\(mission.steps.count) pasos",
+                    score: 95_000, matched: [], payload: mission.intent
+                ))
+            }
         }
 
         if let calculation {
