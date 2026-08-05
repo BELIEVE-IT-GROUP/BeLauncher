@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import BeLauncherCore
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -10,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var updateItem: NSMenuItem?
     private var pendingRelease: Release?
+    private var welcomeWindow: NSWindow?
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
     private var clipboard: ClipboardWatcher?
@@ -148,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         indexApplications()
         openWithLaunchQueryIfAny()
+        showWelcomeOnFirstRun()
     }
 
     /// `open -a BeLauncher --args --query "algo"` opens the window with that text already typed.
@@ -260,6 +263,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateItem = update
 
         menu.addItem(.separator())
+        let guide = NSMenuItem(title: "Guía rápida", action: #selector(openWelcome), keyEquivalent: "")
+        guide.target = self
+        menu.addItem(guide)
         let settings = NSMenuItem(title: "Ajustes…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -401,6 +407,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let pending = pendingRelease {
             settingsModel.updateStatus = "Hay una versión nueva: \(pending.version)"
         }
+        settingsModel.calendar = calendar
+        settingsModel.onRequestNotifications = { [weak self] in self?.requestNotifications() }
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
             enabled ? self?.clipboard?.start() : self?.clipboard?.stop()
@@ -412,7 +420,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false
         )
-        window.title = "BeLauncher Settings"
+        window.title = "Ajustes de BeLauncher"
         window.contentViewController = NSHostingController(rootView: SettingsView(model: settingsModel))
         window.isReleasedWhenClosed = false
         window.center()
@@ -421,6 +429,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel?.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: - Welcome
+
+    /// Shown once, and reopenable from the menu bar. Everything the app could do was reachable and
+    /// nothing was findable; this is where that gets fixed.
+    @objc func openWelcome() {
+        guard let store else { return }
+        if let window = welcomeWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let model = settingsModel ?? SettingsModel(
+            store: store, appVersion: appVersion,
+            updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"] ?? UpdateCheck.defaultFeedURL
+        )
+        model.calendar = calendar
+        model.onRequestNotifications = { [weak self] in self?.requestNotifications() }
+        settingsModel = model
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 620),
+            styleMask: [.titled, .closable],
+            backing: .buffered, defer: false
+        )
+        window.title = "Bienvenido a BeLauncher"
+        window.contentViewController = NSHostingController(rootView: WelcomeView(model: model) {
+            [weak self] in
+            self?.store?.setSetting("welcomed", true)
+            self?.welcomeWindow?.close()
+            self?.welcomeWindow = nil
+        })
+        window.isReleasedWhenClosed = false
+        window.center()
+        welcomeWindow = window
+
+        panel?.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func showWelcomeOnFirstRun() {
+        guard store?.setting("welcomed", default: false) == false else { return }
+        openWelcome()
+    }
+
+    /// Asked here rather than in the model so EventKit and UserNotifications stay in the app layer.
+    private func requestNotifications() {
+        Task { @MainActor in
+            let granted = (try? await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound])) ?? false
+            settingsModel?.notificationsGranted = granted
+        }
     }
 
     private func perform(_ action: LauncherModel.Action) {

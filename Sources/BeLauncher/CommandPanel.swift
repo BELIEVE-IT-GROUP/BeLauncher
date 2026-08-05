@@ -23,6 +23,9 @@ final class CommandPanel: NSPanel {
         isMovable = false
         hidesOnDeactivate = false
         animationBehavior = .utilityWindow
+        // The panel appears over whatever is on screen. Following the system appearance meant a
+        // launcher summoned over a white page rendered light-on-light and could not be read.
+        appearance = NSAppearance(named: .darkAqua)
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
         let controller = NSHostingController(rootView: CommandView(model: model, openSettings: openSettings))

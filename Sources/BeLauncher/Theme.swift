@@ -19,6 +19,12 @@ enum Theme {
 }
 
 /// Real window-level blur. `.ultraThinMaterial` alone looks flat over a moving desktop.
+///
+/// Two things keep it readable over anything. The effect view is pinned to the dark appearance, so
+/// a launcher summoned over a white page does not turn into a pale sheet with white text on it —
+/// the blur alone follows what is behind the window, and a bright background made the whole panel
+/// illegible. And a floor of opacity underneath guarantees contrast no matter how bright that
+/// background is: translucency is a nice effect, but text you cannot read is not a style choice.
 struct GlassBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
@@ -26,10 +32,22 @@ struct GlassBackground: NSViewRepresentable {
         view.blendingMode = .behindWindow
         view.state = .active
         view.isEmphasized = true
+        view.appearance = NSAppearance(named: .darkAqua)
         return view
     }
 
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.appearance = NSAppearance(named: .darkAqua)
+    }
+}
+
+/// The blur plus the contrast floor. Everything that used `GlassBackground` directly should use
+/// this instead: on a white desktop the blur alone leaves body text at roughly 1.6:1.
+struct GlassSurface: View {
+    var body: some View {
+        GlassBackground()
+            .overlay(Color(red: 0.04, green: 0.05, blue: 0.09).opacity(0.55))
+    }
 }
 
 /// Glass edge: a hairline that is brighter at the top, like light landing on a pane.
