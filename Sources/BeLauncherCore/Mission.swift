@@ -78,7 +78,11 @@ extension LauncherModel.Action {
     public var changesSomething: Bool {
         switch self {
         case .copyToClipboard, .openURL, .openFile, .revealInFinder, .launchApplication,
-             .quickLook, .openWith, .dismiss, .wait, .openSettings, .runVerb:
+             .quickLook, .openWith, .dismiss, .wait, .openSettings, .runVerb, .openCanvas,
+             .runAgent:
+            // An agent asks before it touches anything; handing it the job changes nothing yet.
+            // A canvas is a proposal on screen. Nothing outside the app moves until the person
+            // runs one of its blocks.
             return false
         case .moveToTrash, .systemCommand, .runShortcut, .startTimer, .arrangeWindow,
              .remember, .confirmCommit, .discardCommit, .runFlow, .assignAlias, .runMission:
@@ -114,6 +118,8 @@ extension LauncherModel.Action {
         case .runMission(let mission): "Ejecutar la misión “\(mission.intent)”"
         case .missionCancelled: "Misión cancelada"
         case .cancelAI: "Petición cancelada"
+        case .openCanvas(_, let brief): "Abrir un lienzo: \(brief.prefix(40))"
+        case .runAgent(let id, _): "Encargar «\(id)»"
         case .dismiss: "Cerrar la ventana"
         }
     }
@@ -214,6 +220,12 @@ public enum MissionPlanner {
         }
     }
 
+    /// What the app knows how to get done.
+    ///
+    /// Every one of these is an *outcome*, phrased the way someone would say it out loud, never the
+    /// name of a tool. "Organiza mis descargas", not "abre Finder". The catalogue is closed on
+    /// purpose: nine things it does properly beats a universal agent that produces something
+    /// plausible for anything and something useful for nothing.
     public static let outcomes: [Outcome] = [
         .init(id: "focus", title: "Ponerme a trabajar",
               triggers: ["enfoque", "concentrar", "focus", "ponerme a trabajar"],
@@ -225,8 +237,30 @@ public enum MissionPlanner {
               triggers: ["guardar notas", "capturar reunion", "capture meeting"],
               describe: { _ in "Saca decisiones y compromisos de tus notas y los propone." }),
         .init(id: "tidy-downloads", title: "Ordenar las descargas",
-              triggers: ["ordenar descargas", "limpiar descargas", "tidy downloads"],
+              triggers: ["ordenar descargas", "limpiar descargas", "organiza mis descargas",
+                         "tidy downloads"],
               describe: { _ in "Enseña qué hay y te deja moverlo o tirarlo." }),
+        .init(id: "make-proposal", title: "Convertir esto en una propuesta",
+              triggers: ["convierte esto en una propuesta", "haz una propuesta",
+                         "convertir en propuesta", "make a proposal"],
+              describe: { subject in
+                  subject.isEmpty
+                      ? "Monta la propuesta con lo que tengas copiado."
+                      : "Monta la propuesta para \(subject)."
+              }),
+        .init(id: "answer-urgent", title: "Responder lo urgente",
+              triggers: ["responde lo urgente", "responder lo urgente", "que es urgente",
+                         "answer what is urgent"],
+              describe: { _ in "Mira qué está vencido o a punto y te dice por dónde empezar." }),
+        .init(id: "publish-idea", title: "Publicar esta idea",
+              triggers: ["publica esta idea", "publicar esta idea", "publish this"],
+              describe: { _ in "Convierte la nota en algo publicable y te lo deja copiado." }),
+        .init(id: "clean-desktop", title: "Limpiar el escritorio",
+              triggers: ["limpia el escritorio", "limpiar escritorio", "clean desktop"],
+              describe: { _ in "Abre el escritorio para que veas qué sobra." }),
+        .init(id: "start-week", title: "Arrancar la semana",
+              triggers: ["arrancar la semana", "empezar la semana", "start my week"],
+              describe: { _ in "Repasa compromisos abiertos y lo que se está pudriendo." }),
     ]
 
     public static func outcome(for intent: String) -> (outcome: Outcome, argument: String)? {
@@ -246,7 +280,7 @@ public enum MissionPlanner {
     /// Builds the plan for an intent. Returns nil when nothing in the catalogue fits, which is
     /// the honest answer: better no mission than a made-up one.
     public static func plan(_ intent: String, clipboard: String = "") -> Mission? {
-        guard let (outcome, _) = outcome(for: intent) else { return nil }
+        guard let (outcome, argument) = outcome(for: intent) else { return nil }
 
         var steps: [PlannedStep] = []
         switch outcome.id {
@@ -278,6 +312,39 @@ public enum MissionPlanner {
             steps = [
                 .init(title: "Abrir Descargas",
                       action: .systemCommand(SystemCommand.Kind.openDownloads.rawValue)),
+            ]
+
+        case "make-proposal":
+            // A proposal is not one answer, it is six pieces, so this opens a canvas rather than
+            // producing a wall of text nobody can edit piece by piece.
+            steps = [
+                .init(title: "Montar la propuesta",
+                      action: .openCanvas(template: "proposal", brief: argument.isEmpty
+                          ? clipboard : argument)),
+            ]
+
+        case "answer-urgent":
+            steps = [
+                .init(title: "Mirar qué está vencido o a punto",
+                      action: .runVerb(id: "extract-tasks", text: clipboard)),
+            ]
+
+        case "publish-idea":
+            steps = [
+                .init(title: "Convertirlo en algo publicable",
+                      action: .runVerb(id: "publish", text: clipboard)),
+            ]
+
+        case "clean-desktop":
+            steps = [
+                .init(title: "Abrir el escritorio",
+                      action: .systemCommand(SystemCommand.Kind.openDesktop.rawValue)),
+            ]
+
+        case "start-week":
+            steps = [
+                .init(title: "Repasar lo que se está pudriendo",
+                      action: .runVerb(id: "week-review", text: clipboard)),
             ]
 
         default:

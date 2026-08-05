@@ -51,6 +51,13 @@ public struct AIVerb: Sendable, Equatable, Identifiable {
                          + "di en una línea qué falla.", sensitivity: .ordinary),
         .init(id: "table", title: "Convertir en tabla", symbol: "tablecells",
               instruction: "Convierte estos datos en una tabla Markdown. Solo la tabla."),
+        .init(id: "publish", title: "Convertir en algo publicable", symbol: "paperplane",
+              instruction: "Convierte esta nota en un texto publicable: un titular y tres o cuatro "
+                         + "párrafos cortos. Sin hashtags, sin emojis, sin «en este hilo te "
+                         + "cuento». Devuelve solo el texto."),
+        .init(id: "week-review", title: "Repasar la semana", symbol: "calendar.badge.clock",
+              instruction: "Con lo que sigue, dime qué quedó abierto, qué está vencido y por dónde "
+                         + "empezar el lunes. Tres bloques cortos, sin introducción."),
         .init(id: "extract-tasks", title: "Sacar las tareas", symbol: "checklist",
               instruction: "Extrae las tareas y compromisos concretos con su responsable si se "
                          + "menciona. Una por línea. Si no hay ninguna, dilo en una línea.",

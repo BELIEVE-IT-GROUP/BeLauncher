@@ -26,6 +26,9 @@ public enum FlowRunner {
             case .openFile(let path):
                 actions.append(.openFile(path: path))
 
+            case .systemCommand(let kind):
+                actions.append(.systemCommand(kind))
+
             case .copyText(let text):
                 actions.append(.copyToClipboard(text: text, cursorOffset: nil))
 

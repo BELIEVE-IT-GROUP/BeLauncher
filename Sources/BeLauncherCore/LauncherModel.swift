@@ -56,6 +56,11 @@ public final class LauncherModel {
         case dismiss
         /// Calls off a model request that is taking longer than the person is willing to wait.
         case cancelAI
+        /// Opens a canvas: a small workspace of blocks for outcomes that are a set of pieces
+        /// rather than one answer.
+        case openCanvas(template: String, brief: String)
+        /// Hands an outcome to the agent runner, which puts it in the tray.
+        case runAgent(id: String, argument: String)
     }
 
     public private(set) var state: State = .loading
@@ -398,6 +403,18 @@ public final class LauncherModel {
         case .memory:
             perform(.copyToClipboard(text: result.title, cursorOffset: nil))
             perform(.dismiss)
+
+        case .agent:
+            // "<pack id>\u{1F}<argument>". A trailing separator with nothing after it means the
+            // person picked from the slash menu and still has to type the argument.
+            guard let split = result.payload.firstIndex(of: "\u{1F}") else { return false }
+            let argument = String(result.payload[result.payload.index(after: split)...])
+            if argument.isEmpty, let completion = result.completion {
+                query = completion
+                return true
+            }
+            perform(.runAgent(id: String(result.payload[..<split]), argument: argument))
+            return true
 
         case .mission:
             guard let planned = MissionPlanner.plan(result.payload) else { return false }

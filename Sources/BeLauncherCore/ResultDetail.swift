@@ -100,6 +100,12 @@ public enum DetailBuilder {
                     .replacingOccurrences(of: " · ↩ copies it", with: ""))]
             )
 
+        case .agent:
+            return ResultDetail(
+                body: result.subtitle,
+                metadata: [.init(label: "Se ejecuta", value: "en segundo plano, con recibo")]
+            )
+
         case .application, .file:
             return ResultDetail(
                 body: (result.payload as NSString).lastPathComponent,

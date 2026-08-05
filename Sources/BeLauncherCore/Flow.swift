@@ -31,6 +31,9 @@ public enum FlowStep: Sendable, Equatable, Codable {
     /// Runs a Shortcut by name via Apple's `shortcuts` tool: this is how a flow can set a
     /// Focus, toggle Do Not Disturb or touch anything else macOS exposes only through Shortcuts.
     case runShortcut(name: String)
+    /// One of the app's own system commands. A flow could open apps and set timers but not
+    /// silence notifications, which is the first step of the focus flow on the landing page.
+    case systemCommand(kind: String)
     case timer(minutes: Int, label: String)
     case wait(seconds: Double)
 
@@ -42,6 +45,8 @@ public enum FlowStep: Sendable, Equatable, Codable {
         case .copyText(let text): "Copy “\(text.prefix(30))\(text.count > 30 ? "…" : "")”"
         case .runSnippet(let keyword): "Paste snippet \(keyword)"
         case .runShortcut(let name): "Run shortcut “\(name)”"
+        case .systemCommand(let kind):
+            SystemCommand.all.first { $0.kind.rawValue == kind }?.title ?? kind
         case .timer(let minutes, let label): "Timer \(minutes) min · \(label)"
         case .wait(let seconds): "Wait \(Calculator.format(seconds))s"
         }
@@ -55,6 +60,8 @@ public enum FlowStep: Sendable, Equatable, Codable {
         case .copyText: "doc.on.clipboard"
         case .runSnippet: "text.quote"
         case .runShortcut: "square.stack.3d.up"
+        case .systemCommand(let kind):
+            SystemCommand.all.first { $0.kind.rawValue == kind }?.symbol ?? "switch.2"
         case .timer: "timer"
         case .wait: "hourglass"
         }
@@ -67,6 +74,7 @@ public enum FlowError: Error, Equatable, CustomStringConvertible {
     case badShortcutName(String)
     case badTimer(Int)
     case unknownSnippet(String)
+    case unknownSystemCommand(String)
 
     public var description: String {
         switch self {
@@ -75,6 +83,7 @@ public enum FlowError: Error, Equatable, CustomStringConvertible {
         case .badShortcutName(let name): "“\(name)” is not a usable Shortcut name."
         case .badTimer(let minutes): "A timer must be between 1 and 1440 minutes (got \(minutes))."
         case .unknownSnippet(let keyword): "There is no snippet with the keyword “\(keyword)”."
+        case .unknownSystemCommand(let kind): "There is no system command called “\(kind)”."
         }
     }
 }
@@ -98,6 +107,12 @@ public enum FlowValidator {
             case .runSnippet(let keyword):
                 guard snippetKeywords.isEmpty || snippetKeywords.contains(keyword.lowercased()) else {
                     throw FlowError.unknownSnippet(keyword)
+                }
+            case .systemCommand(let kind):
+                // A flow that names a command the app does not have would fail silently at the
+                // step, which is the worst place to discover a typo.
+                guard SystemCommand.all.contains(where: { $0.kind.rawValue == kind }) else {
+                    throw FlowError.unknownSystemCommand(kind)
                 }
             case .openApp, .openFile, .copyText, .wait:
                 break

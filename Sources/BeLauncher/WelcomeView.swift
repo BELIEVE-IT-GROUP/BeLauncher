@@ -221,6 +221,9 @@ private struct CapabilityCard: View {
                             Permissions.openAutomationSettings()
                         }
                     })
+        case .screen:
+            Binding(get: { ScreenCapture.screenRecordingGranted },
+                    set: { if $0 { ScreenCapture.requestScreenRecording() } })
         case .calendar:
             Binding(get: { model.calendarGranted },
                     set: { if $0 { model.requestCalendar() } })
