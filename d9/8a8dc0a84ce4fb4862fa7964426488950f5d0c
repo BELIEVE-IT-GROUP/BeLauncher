@@ -1,0 +1,97 @@
+Sources/BeLauncherCore/FlowRunner.swift
+  s_3bf5a4753c6c6c::t_8b9c37783172e1 29-31
+Sources/BeLauncherCore/ScreenContext.swift
+  s_3bf5a4753c6c6c::t_5ec18212de9eb3 1-257
+Sources/BeLauncher/HotKey.swift
+  s_3bf5a4753c6c6c::t_7792d830c90b7c 24-28
+Sources/BeLauncherCore/OperatingModel.swift
+  s_3bf5a4753c6c6c::t_8e036ddedfeaf4 144,147-148,235
+  s_3bf5a4753c6c6c::t_a838e1a6ad08c5 1-143,145-146,149-234,236-263
+Sources/BeLauncherCore/ResultDetail.swift
+  s_3bf5a4753c6c6c::t_2ba00d831f3ad6 103-108
+Sources/BeLauncherCore/SearchEngine.swift
+  s_3bf5a4753c6c6c::t_dce53081ac2a61 19,38,59,159-211
+  s_3bf5a4753c6c6c::t_db15e4d1eb888c 114-118,125-126,139-141
+Sources/BeLauncherCore/LauncherModel.swift
+  s_3bf5a4753c6c6c::t_7ca83a6a73471d 59-61
+  s_3bf5a4753c6c6c::t_2ba00d831f3ad6 62-63,407-417
+  s_3bf5a4753c6c6c::t_dc1126705b3b8d 418
+Sources/BeLauncher/WelcomeView.swift
+  s_3bf5a4753c6c6c::t_c2017cb6cb5a27 224-226
+Sources/BeLauncherCore/Canvas.swift
+  s_3bf5a4753c6c6c::t_f26d646866f14b 1-12,17,19-208
+  s_3bf5a4753c6c6c::t_a09f18500109de 13-16,18
+Sources/BeLauncher/AgentRunner.swift
+  s_3bf5a4753c6c6c::t_f9531fff35d2c7 1-286
+Sources/BeLauncherCore/WorkGraph.swift
+  s_3bf5a4753c6c6c::t_34b1139e431f84 1-382
+Sources/BeLauncherCore/ResultAction.swift
+  s_3bf5a4753c6c6c::t_9bd0fa25b4c428 243-248
+Sources/BeLauncherCore/Capture.swift
+  s_3bf5a4753c6c6c::t_7fced1d6918043 1-190
+Sources/BeLauncherCore/Onboarding.swift
+  s_3bf5a4753c6c6c::t_c2017cb6cb5a27 16,87-101
+  s_3bf5a4753c6c6c::t_ca410e26f187f5 102
+Sources/BeLauncherCore/Store.swift
+  s_3bf5a4753c6c6c::t_ee688f20ce6244 96-172
+Sources/BeLauncherCore/AIVerbs.swift
+  s_3bf5a4753c6c6c::t_cfd6f0e9146fa1 54-60
+Sources/BeLauncherCore/Agent.swift
+  s_3bf5a4753c6c6c::t_39461d8339fb1f 1-306
+Sources/BeLauncher/CanvasView.swift
+  s_3bf5a4753c6c6c::t_a2123f4a7a0678 14,65,177
+  s_3bf5a4753c6c6c::t_7aaa43d3bb448f 1-13,15-64,66-176,178-236
+Tests/BeLauncherCoreTests/WorkGraphTests.swift
+  s_3bf5a4753c6c6c::t_248ac5611d03e2 1-306
+Sources/BeLauncherCore/Autopilot.swift
+  s_3bf5a4753c6c6c::t_35a0f6f5c2250d 1-93,95-97,101-114
+  s_3bf5a4753c6c6c::t_25bd1793e9bc00 94,98-99
+  s_3bf5a4753c6c6c::t_b0c90129cbe87d 100
+Sources/BeLauncherCore/ActionLog.swift
+  s_3bf5a4753c6c6c::t_ed99b1fe4e013f 1-93
+Sources/BeLauncherCore/Mission.swift
+  s_3bf5a4753c6c6c::t_7d2cd56c71f936 223-228,240-241,243-263
+  s_3bf5a4753c6c6c::t_c4ebe15f624533 81-83,122
+  s_3bf5a4753c6c6c::t_5714ddaa803242 84-85,121
+  s_3bf5a4753c6c6c::t_7ca83a6a73471d 283
+  s_3bf5a4753c6c6c::t_9cb41f92bf32e1 317-349
+Sources/BeLauncher/SystemCommandRunner.swift
+  s_3bf5a4753c6c6c::t_643c22e11e60c0 63-65
+Sources/BeLauncherCore/Flow.swift
+  s_3bf5a4753c6c6c::t_35b4165c29c730 34-36,48-49,63-64,77,86
+  s_3bf5a4753c6c6c::t_b0b2a8b19d822f 111-116
+Sources/BeLauncher/ScreenCapture.swift
+  s_3bf5a4753c6c6c::t_aa845259a05a1f 1-129
+Sources/BeLauncher/AppDelegate.swift
+  s_3bf5a4753c6c6c::t_300ec3f993332e 842-845,893-900
+  s_3bf5a4753c6c6c::t_83c69e98d3d862 17-18,539-588,667-687
+  s_3bf5a4753c6c6c::t_7792d830c90b7c 23,196,401-404,589-666
+  s_3bf5a4753c6c6c::t_f75048e9262fe8 891-892,901
+  s_3bf5a4753c6c6c::t_c170f8ca840365 15-16,688-774
+  s_3bf5a4753c6c6c::t_7b20134db37d94 105-108,152-163,174,476-538
+  s_3bf5a4753c6c6c::t_8f609d03c5c0b2 775
+Sources/BeLauncherCore/MissionTray.swift
+  s_3bf5a4753c6c6c::t_1137cb4f601336 1-226
+Sources/BeLauncherCore/OutcomePack.swift
+  s_3bf5a4753c6c6c::t_87b0a4850f3395 1-221
+Sources/BeLauncherCore/BrainQuery.swift
+  s_3bf5a4753c6c6c::t_bd6fbc2b759ff2 188
+Sources/BeLauncherCore/SystemCommand.swift
+  s_3bf5a4753c6c6c::t_643c22e11e60c0 30-31,73-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "d98a8dc0a84ce4fb4862fa7964426488950f5d0c",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
