@@ -143,6 +143,10 @@ public final class LauncherModel {
             onDelete(.clipboard, id)
             refresh()
             return true
+        case .setPinned(let pinned, let id):
+            onPin(pinned, id)
+            refresh()
+            return true
         case .deleteSnippet(let id):
             onDelete(.snippet, id)
             refresh()
@@ -173,6 +177,7 @@ public final class LauncherModel {
     private let fileInfo: @Sendable (String) -> [ResultDetail.Item]
     private let onDelete: @MainActor (ResultKind, Int64) -> Void
     private let onLaunch: @MainActor (String) -> Void
+    private let onPin: @MainActor (Bool, Int64) -> Void
     private let expanderFactory: @MainActor () -> SnippetExpander
     private let perform: @MainActor (Action) -> Void
     private let recordUse: @MainActor (ResultKind, Int64) -> Void
@@ -182,6 +187,7 @@ public final class LauncherModel {
         fileSearch: FileSearch = FileSearch(),
         fileInfo: @escaping @Sendable (String) -> [ResultDetail.Item] = { _ in [] },
         onLaunch: @escaping @MainActor (String) -> Void = { _ in },
+        onPin: @escaping @MainActor (Bool, Int64) -> Void = { _, _ in },
         onDelete: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
         expander: @escaping @MainActor () -> SnippetExpander = { SnippetExpander() },
         recordUse: @escaping @MainActor (ResultKind, Int64) -> Void = { _, _ in },
@@ -192,6 +198,7 @@ public final class LauncherModel {
         self.fileInfo = fileInfo
         self.onDelete = onDelete
         self.onLaunch = onLaunch
+        self.onPin = onPin
         self.expanderFactory = expander
         self.recordUse = recordUse
         self.perform = perform

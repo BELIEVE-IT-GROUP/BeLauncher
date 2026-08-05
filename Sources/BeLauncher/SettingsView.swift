@@ -207,6 +207,34 @@ final class SettingsModel {
         }
     }
 
+    /// Alfred keeps its snippets in a known folder, so this needs no file picker.
+    func importFromAlfred() {
+        let result = Importers.importAlfredSnippets()
+        guard !result.snippets.isEmpty || !result.skipped.isEmpty else {
+            status = "No encontré snippets de Alfred en este Mac."
+            return
+        }
+        let summary = store.apply(result)
+        reload()
+        status = "Alfred: \(summary.addedSnippets) snippets importados"
+            + (summary.skipped > 0 ? ", \(summary.skipped) omitidos." : ".")
+    }
+
+    /// Raycast exports to a JSON file the user picks.
+    func importFromRaycast() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.message = "Elige el archivo que exportaste desde Raycast."
+        guard panel.runModal() == .OK, let url = panel.url,
+              let data = try? Data(contentsOf: url) else { return }
+
+        let result = Importers.parseRaycastExport(data)
+        let summary = store.apply(result)
+        reload()
+        status = "Raycast: \(summary.addedSnippets) snippets y \(summary.addedWorkflows) enlaces"
+            + (summary.skipped > 0 ? ", \(summary.skipped) omitidos." : ".")
+    }
+
     func revealDataFolder() {
         NSWorkspace.shared.selectFile(store.path, inFileViewerRootedAtPath: "")
     }
@@ -443,6 +471,13 @@ struct SettingsView: View {
                     Button("Export diagnostics…") { model.exportDiagnostics() }
                     Button("Reveal in Finder") { model.revealDataFolder() }
                 }
+                HStack {
+                    Button("Importar de Alfred") { model.importFromAlfred() }
+                    Button("Importar de Raycast…") { model.importFromRaycast() }
+                }
+                Text("Trae tus snippets y enlaces. Nunca sobrescribe: si ya tienes esa palabra "
+                     + "clave, la tuya gana y te decimos cuántas se omitieron.")
+                    .font(.caption).foregroundStyle(.secondary)
                 if let status = model.status {
                     Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }

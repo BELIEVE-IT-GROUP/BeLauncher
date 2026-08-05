@@ -43,6 +43,7 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case paste(text: String)
         case saveClipAsSnippet(text: String)
         case deleteClip(id: Int64)
+        case setPinned(Bool, clip: Int64)
         case deleteSnippet(id: Int64)
         case deleteWorkflow(id: Int64)
         case deleteFlow(id: Int64)
@@ -143,6 +144,8 @@ public enum ActionRegistry {
                              shortcut: .enter, intent: .run),
                 ResultAction(id: "copy", title: "Copiar", symbol: "doc.on.doc",
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
+                ResultAction(id: "pin", title: "Fijar arriba", symbol: "pin",
+                             section: .manage, intent: .setPinned(true, clip: result.recordID)),
                 ResultAction(id: "as-snippet", title: "Guardar como snippet", symbol: "text.quote",
                              shortcut: .save, section: .manage,
                              intent: .saveClipAsSnippet(text: result.payload)),

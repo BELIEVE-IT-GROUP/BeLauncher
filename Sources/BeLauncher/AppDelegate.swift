@@ -99,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return items
             },
             onLaunch: { [weak self] path in self?.store?.recordLaunch(path: path) },
+            onPin: { [weak self] pinned, id in self?.store?.setPinned(pinned, clip: id) },
             onDelete: { [weak self] kind, id in
                 guard let store = self?.store else { return }
                 switch kind {

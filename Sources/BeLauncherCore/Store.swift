@@ -52,9 +52,18 @@ public final class Store {
                 text TEXT NOT NULL,
                 digest TEXT NOT NULL UNIQUE,
                 source_app TEXT NOT NULL DEFAULT '',
-                created_at REAL NOT NULL
+                created_at REAL NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'text',
+                pinned INTEGER NOT NULL DEFAULT 0,
+                asset_path TEXT NOT NULL DEFAULT ''
             )
             """)
+        // Columns added after the first release; ignoring the error is the migration.
+        for column in ["kind TEXT NOT NULL DEFAULT 'text'",
+                       "pinned INTEGER NOT NULL DEFAULT 0",
+                       "asset_path TEXT NOT NULL DEFAULT ''"] {
+            try? database.execute("ALTER TABLE clips ADD COLUMN \(column)")
+        }
         try database.execute("""
             CREATE TABLE IF NOT EXISTS flows (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -252,26 +261,57 @@ public final class Store {
     // MARK: - Clipboard
 
     public func clips(limit: Int = 200) -> [Clip] {
+        // Pinned first, then most recent: a pinned clip is one you want at hand, not one you
+        // happened to copy last.
         let rows = (try? database.query(
-            "SELECT * FROM clips ORDER BY created_at DESC LIMIT ?", [.int(Int64(limit))]
+            "SELECT * FROM clips ORDER BY pinned DESC, created_at DESC LIMIT ?", [.int(Int64(limit))]
         )) ?? []
         return rows.map {
             Clip(id: $0.int("id"), text: $0.string("text"), sourceApp: $0.string("source_app"),
-                 createdAt: Date(timeIntervalSince1970: $0.double("created_at")))
+                 createdAt: Date(timeIntervalSince1970: $0.double("created_at")),
+                 kind: Clip.Kind(rawValue: $0.string("kind")) ?? .text,
+                 isPinned: $0.int("pinned") == 1,
+                 assetPath: $0.string("asset_path"))
         }
     }
 
+    public func setPinned(_ pinned: Bool, clip id: Int64) {
+        try? database.execute("UPDATE clips SET pinned = ? WHERE id = ?",
+                              [.int(pinned ? 1 : 0), .int(id)])
+    }
+
+    /// Apps whose copies are never recorded. Password managers already mark their own, this is
+    /// for everything else the user would rather keep out.
+    public func excludedApps() -> Set<String> {
+        Set((setting("clipboard_excluded_apps") ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces).lowercased() }
+            .filter { !$0.isEmpty })
+    }
+
+    public func setExcludedApps(_ apps: Set<String>) {
+        setSetting("clipboard_excluded_apps", apps.sorted().joined(separator: ","))
+    }
+
     /// Re-copying the same text moves it back to the top instead of creating a duplicate row.
-    public func recordClip(text: String, sourceApp: String = "", at date: Date = .now) {
+    @discardableResult
+    public func recordClip(text: String, sourceApp: String = "", at date: Date = .now,
+                           kind: Clip.Kind? = nil, assetPath: String = "") -> Bool {
         let trimmed = String(text.prefix(20_000))
-        guard !trimmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !trimmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         // Credentials never enter the history — see SecretGuard for why this is not optional.
-        guard !SecretGuard.looksLikeSecret(trimmed) else { return }
+        guard !SecretGuard.looksLikeSecret(trimmed) else { return false }
+        guard !excludedApps().contains(sourceApp.lowercased()) else { return false }
+
+        let resolved = kind ?? Clip.detectKind(trimmed)
         let digest = Digest.sha256(trimmed)
         try? database.execute("""
-            INSERT INTO clips (text, digest, source_app, created_at) VALUES (?, ?, ?, ?)
+            INSERT INTO clips (text, digest, source_app, created_at, kind, asset_path)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(digest) DO UPDATE SET created_at = excluded.created_at
-            """, [.text(trimmed), .text(digest), .text(sourceApp), .double(date.timeIntervalSince1970)])
+            """, [.text(trimmed), .text(digest), .text(sourceApp),
+                  .double(date.timeIntervalSince1970), .text(resolved.rawValue), .text(assetPath)])
+        return true
     }
 
     public func deleteClip(id: Int64) {
@@ -295,12 +335,13 @@ public final class Store {
     public func trimClips(retentionDays: Int, maxItems: Int, now: Date = .now) {
         if retentionDays > 0 {
             let cutoff = now.addingTimeInterval(-Double(retentionDays) * 86_400).timeIntervalSince1970
-            try? database.execute("DELETE FROM clips WHERE created_at < ?", [.double(cutoff)])
+            // Pinned clips are exempt: pinning is the user saying "keep this".
+            try? database.execute("DELETE FROM clips WHERE pinned = 0 AND created_at < ?", [.double(cutoff)])
         }
         if maxItems > 0 {
             try? database.execute("""
-                DELETE FROM clips WHERE id NOT IN (
-                    SELECT id FROM clips ORDER BY created_at DESC LIMIT ?
+                DELETE FROM clips WHERE pinned = 0 AND id NOT IN (
+                    SELECT id FROM clips ORDER BY pinned DESC, created_at DESC LIMIT ?
                 )
                 """, [.int(Int64(maxItems))])
         }

@@ -230,8 +230,9 @@ public enum SearchEngine {
             guard let match = Fuzzy.match(query: query, candidate: clip.text) else { continue }
             results.append(SearchResult(
                 id: "clip-\(clip.id)", kind: .clipboard, title: preview(clip.text),
-                subtitle: clip.sourceApp.isEmpty ? "Clipboard" : "Copied from \(clip.sourceApp)",
-                score: match.score - 10, matched: [], payload: clip.text, recordID: clip.id
+                subtitle: clipSubtitle(clip),
+                score: match.score - 10 + (clip.isPinned ? 25 : 0), matched: [],
+                payload: clip.text, recordID: clip.id
             ))
         }
 
@@ -257,10 +258,23 @@ public enum SearchEngine {
         clips.prefix(limit).map { clip in
             SearchResult(
                 id: "clip-\(clip.id)", kind: .clipboard, title: preview(clip.text),
-                subtitle: clip.sourceApp.isEmpty ? "Clipboard" : "Copied from \(clip.sourceApp)",
+                subtitle: clipSubtitle(clip),
                 score: 0, matched: [], payload: clip.text, recordID: clip.id
             )
         }
+    }
+
+    static func clipSubtitle(_ clip: Clip) -> String {
+        var parts: [String] = []
+        if clip.isPinned { parts.append("📌 Fijado") }
+        switch clip.kind {
+        case .image: parts.append("Imagen")
+        case .file: parts.append("Archivo")
+        case .link: parts.append("Enlace")
+        case .text: break
+        }
+        parts.append(clip.sourceApp.isEmpty ? "Portapapeles" : "Copiado de \(clip.sourceApp)")
+        return parts.joined(separator: " · ")
     }
 
     /// A real bookmark file can hold tens of thousands of entries, and scoring them one by one
