@@ -20,15 +20,20 @@ final class CanvasModel {
     private let context: String
     private let run: @MainActor (String) async throws -> String
     private let perform: @MainActor (LauncherModel.Action) -> Void
+    /// Told what changed when someone rewrites a block. The strongest signal in the product: a
+    /// person editing a draft is saying exactly what was wrong with it, without being asked.
+    private let learn: @MainActor (String, String) -> Void
     private var task: Task<Void, Never>?
 
     init(definition: CanvasTemplate.Definition, brief: String, context: String = "",
          run: @escaping @MainActor (String) async throws -> String,
-         perform: @escaping @MainActor (LauncherModel.Action) -> Void) {
+         perform: @escaping @MainActor (LauncherModel.Action) -> Void,
+         learn: @escaping @MainActor (String, String) -> Void = { _, _ in }) {
         self.definition = definition
         self.context = context
         self.run = run
         self.perform = perform
+        self.learn = learn
         self.canvas = CanvasTemplate.canvas(definition, brief: brief)
     }
 
@@ -75,7 +80,9 @@ final class CanvasModel {
     }
 
     func edit(_ blockID: String, body: String) {
+        let before = canvas.blocks.first { $0.id == blockID }?.body ?? ""
         canvas.edit(blockID, body: body)
+        if !before.isEmpty { learn(before, body) }
     }
 
     func cancel() {

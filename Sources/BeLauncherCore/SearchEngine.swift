@@ -116,6 +116,8 @@ public struct SearchInput: Sendable {
     /// Operational memory: what was worked on, and how it is connected.
     public var workNodes: [WorkNode]
     public var workEdges: [WorkEdge]
+    /// What the app has learned about how this person works.
+    public var traits: [Trait]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
@@ -123,7 +125,7 @@ public struct SearchInput: Sendable {
                 shortcuts: [Shortcut] = [], systemShortcuts: [String] = [],
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
-                workNodes: [WorkNode] = [], workEdges: [WorkEdge] = []) {
+                workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -139,6 +141,7 @@ public struct SearchInput: Sendable {
         self.packs = packs
         self.workNodes = workNodes
         self.workEdges = workEdges
+        self.traits = traits
     }
 }
 
@@ -223,7 +226,7 @@ public enum SearchEngine {
                 score: 100_000, matched: [], payload: text
             ))
         case .pulse:
-            let signals = Pulse.signals(for: input.memories)
+            let signals = Pulse.signals(for: input.memories, traits: input.traits)
             pinned.append(SearchResult(
                 id: "answer-pulse", kind: .answer,
                 title: signals.isEmpty ? "Nada que señalar" : "\(signals.count) cosa(s) que mirar",

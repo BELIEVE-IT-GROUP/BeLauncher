@@ -231,3 +231,74 @@ struct MissionInLauncherTests {
         #expect(model.mission == nil, "a plan must never linger into the next thing you do")
     }
 }
+
+/// The new outcomes, and the fact that they reach something real.
+@Suite("Saying what you want")
+@MainActor
+struct IntentCatalogueTests {
+
+    @Test("every outcome in the catalogue produces a plan with steps")
+    func allOutcomesPlan() {
+        for outcome in MissionPlanner.outcomes {
+            let trigger = try? #require(outcome.triggers.first)
+            guard let trigger else { continue }
+            let mission = MissionPlanner.plan(trigger, clipboard: "algo copiado")
+            #expect(mission != nil, "«\(trigger)» no produce nada")
+            #expect(mission?.steps.isEmpty == false, "«\(trigger)» produce un plan vacío")
+        }
+    }
+
+    @Test("«convierte esto en una propuesta» abre un lienzo con lo copiado")
+    func proposalOpensACanvas() throws {
+        let mission = try #require(MissionPlanner.plan("convierte esto en una propuesta",
+                                                       clipboard: "Nike quiere una tienda"))
+        guard case .openCanvas(let template, let brief) = mission.steps[0].action else {
+            Issue.record("no abre un lienzo: \(mission.steps[0].action)"); return
+        }
+        #expect(template == "proposal")
+        #expect(brief == "Nike quiere una tienda")
+        #expect(CanvasTemplate.named(template) != nil, "abre un lienzo que no existe")
+    }
+
+    @Test("every canvas an outcome opens actually exists")
+    func canvasesReferencedExist() {
+        for outcome in MissionPlanner.outcomes {
+            guard let trigger = outcome.triggers.first,
+                  let mission = MissionPlanner.plan(trigger, clipboard: "x") else { continue }
+            for step in mission.steps {
+                if case .openCanvas(let template, _) = step.action {
+                    #expect(CanvasTemplate.named(template) != nil,
+                            "«\(trigger)» abre el lienzo «\(template)», que no existe")
+                }
+            }
+        }
+    }
+
+    @Test("every verb an outcome asks for actually exists")
+    func verbsReferencedExist() {
+        for outcome in MissionPlanner.outcomes {
+            guard let trigger = outcome.triggers.first,
+                  let mission = MissionPlanner.plan(trigger, clipboard: "x") else { continue }
+            for step in mission.steps {
+                if case .runVerb(let id, _) = step.action {
+                    #expect(AIVerb.named(id) != nil,
+                            "«\(trigger)» pide el verbo «\(id)», que no existe")
+                }
+            }
+        }
+    }
+
+    @Test("every system command an outcome uses actually exists")
+    func systemCommandsReferencedExist() {
+        for outcome in MissionPlanner.outcomes {
+            guard let trigger = outcome.triggers.first,
+                  let mission = MissionPlanner.plan(trigger, clipboard: "x") else { continue }
+            for step in mission.steps {
+                if case .systemCommand(let kind) = step.action {
+                    #expect(SystemCommand.all.contains { $0.kind.rawValue == kind },
+                            "«\(trigger)» usa el comando «\(kind)», que no existe")
+                }
+            }
+        }
+    }
+}

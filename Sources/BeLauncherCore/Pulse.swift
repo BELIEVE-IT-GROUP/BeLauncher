@@ -48,7 +48,8 @@ public enum Pulse {
     public static let staleAfter: TimeInterval = 180 * 24 * 3600
 
     public static func signals(
-        for objects: [MemoryObject], at date: Date = .now, limit: Int = 8
+        for objects: [MemoryObject], at date: Date = .now, limit: Int = 8,
+        traits: [Trait] = []
     ) -> [Signal] {
         let live = objects.filter { $0.level == .committed && $0.isCurrent(at: date) }
         var signals: [Signal] = []
@@ -62,7 +63,16 @@ public enum Pulse {
         signals += ownerless(in: live)
         signals += gaps(in: objects, at: date)
 
-        return signals.sorted { $0.weight > $1.weight }.prefix(limit).map { $0 }
+        // What this person considers urgent outranks the generic weighting. Two people with the
+        // same brain should not get the same order if one of them treats invoices as on fire.
+        return signals
+            .map { signal -> Signal in
+                guard OperatingModel.isUrgent(signal.detail, traits: traits) else { return signal }
+                return Signal(id: signal.id, kind: signal.kind, headline: signal.headline,
+                              detail: signal.detail, weight: signal.weight + 25,
+                              objects: signal.objects)
+            }
+            .sorted { $0.weight > $1.weight }.prefix(limit).map { $0 }
     }
 
     // MARK: - The checks

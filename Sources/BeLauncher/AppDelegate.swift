@@ -105,7 +105,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     events: self.calendar.events,
                     packs: store.availablePacks(),
                     workNodes: store.nodes(),
-                    workEdges: store.nodes().flatMap { store.edges(from: $0.id) }
+                    workEdges: store.nodes().flatMap { store.edges(from: $0.id) },
+                    traits: store.traits()
                 )
             },
             fileInfo: { path in
@@ -559,6 +560,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func rememberAll(_ events: [Capture.Event]) {
         for event in events { remember(event) }
+        // Things touched close together belong together. This is the edge "retoma lo que estaba
+        // haciendo antes de la llamada" walks, and it only exists if somebody draws it.
+        guard store?.setting("graph_enabled", default: false) == true, let store else { return }
+        for edge in Capture.sessions(store.nodes(limit: 120)) { store.link(edge) }
+    }
+
+    /// A confirmed memory becomes a node, tied to the meeting it came out of when its source names
+    /// one. That link is what lets "¿qué prometimos a Andrés?" find a commitment that never
+    /// mentions him.
+    private func rememberMemory(_ object: MemoryObject) {
+        let meeting = calendar.events.first { object.source.localizedCaseInsensitiveContains($0.title) }
+        remember(Capture.memory(object, fromMeeting: meeting?.title))
     }
 
     /// Offers to turn a repeated sequence into a command. Once per habit, never twice.
@@ -714,7 +727,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { throw IntelligenceError.noProviderConfigured }
                 return try await self.askModel(prompt)
             },
-            perform: { [weak self] action in self?.perform(action) }
+            perform: { [weak self] action in self?.perform(action) },
+            learn: { [weak self] before, after in
+                self?.store?.observe(OperatingModel.observeEdit(before: before, after: after))
+            }
         )
         canvasModel = model
 
@@ -853,6 +869,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.open(url)
 
         case .openFile(let path):
+            remember(Capture.file(at: path))
+            store?.observe(OperatingModel.observeFilename((path as NSString).lastPathComponent))
+            note(signature: Autopilot.signature(forApplication: path),
+                 label: "Abrir \((path as NSString).lastPathComponent)")
             NSWorkspace.shared.open(URL(fileURLWithPath: path))
 
         case .revealInFinder(let path):
@@ -908,7 +928,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .confirmCommit(let id):
             do {
                 let object = try vault?.confirm(commitID: id)
-                if let object { report("Guardado en el cerebro", object.statement) }
+                if let object {
+                    rememberMemory(object)
+                    report("Guardado en el cerebro", object.statement)
+                }
             } catch {
                 report("No se pudo confirmar", "\(error)")
             }

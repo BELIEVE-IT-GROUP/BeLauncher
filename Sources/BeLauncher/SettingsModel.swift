@@ -200,6 +200,9 @@ final class SettingsModel {
         retentionDays = store.setting("clipboard_retention_days", default: 30)
         maxItems = store.setting("clipboard_max_items", default: 500)
         updateCheckEnabled = store.setting("update_check_enabled", default: false)
+        graphEnabled = store.setting("graph_enabled", default: false)
+        habitsEnabledSetting = store.setting("habits_enabled", default: false)
+        learningEnabledSetting = store.setting("learning_enabled", default: false)
         aiProvider = store.setting("ai_provider") ?? "ollama"
         confidentialStaysLocal = store.setting("ai_confidential_local", default: true)
         pasteAfterCopy = store.setting("paste_after_copy", default: false) && Permissions.accessibilityGranted
@@ -343,11 +346,70 @@ final class SettingsModel {
 
     /// Exports the shared part of the brain, encrypted with a passphrase the team already has.
     /// Believe never sees the key or the contents.
+    /// The house rules that travel with every shared command. Editable as plain text so a team can
+    /// say "el tono es directo" without anyone writing code.
+    func teamStandards() -> [OutcomePack.Rule] {
+        (store.setting("team_standards") ?? "")
+            .split(separator: "\n")
+            .compactMap { line in
+                let parts = line.split(separator: ":", maxSplits: 1).map {
+                    $0.trimmingCharacters(in: .whitespaces)
+                }
+                guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
+                return OutcomePack.Rule(name: parts[0], value: parts[1])
+            }
+    }
+
+    var teamStandardsText: String {
+        get { store.setting("team_standards") ?? "" }
+        set { store.setSetting("team_standards", newValue) }
+    }
+
+    /// Installs the commands from a team bundle, refusing anything whose name is already taken.
+    func applyCommands(from bundle: TeamBrain.Bundle) -> String {
+        let merge = TeamBrain.planCommands(
+            bundle, installedPacks: store.availablePacks(),
+            flows: store.flows(), snippets: store.snippets()
+        )
+        for pack in merge.packs {
+            try? store.installPack(pack, source: "equipo: \(bundle.team)")
+        }
+        for flow in merge.flows {
+            try? store.addFlow(keyword: flow.keyword, title: flow.title, steps: flow.steps)
+        }
+        for snippet in merge.snippets {
+            try? store.addSnippet(keyword: snippet.keyword, title: snippet.title,
+                                  body: snippet.body)
+        }
+        if !merge.standards.isEmpty {
+            teamStandardsText = merge.standards.map { "\($0.name): \($0.value)" }
+                .joined(separator: "\n")
+        }
+        reloadIntelligenceExtras()
+
+        var parts: [String] = []
+        if !merge.packs.isEmpty { parts.append("\(merge.packs.count) comando(s)") }
+        if !merge.flows.isEmpty { parts.append("\(merge.flows.count) flujo(s)") }
+        if !merge.snippets.isEmpty { parts.append("\(merge.snippets.count) snippet(s)") }
+        var text = parts.isEmpty ? "" : "Instalados " + parts.joined(separator: ", ") + ". "
+        if !merge.refused.isEmpty {
+            text += "Omitidos porque ya tienes uno con ese nombre: "
+                  + merge.refused.joined(separator: ", ") + "."
+        }
+        return text
+    }
+
     func exportTeamBundle() {
         guard let vault = try? Vault(root: Vault.defaultRoot()) else { return }
         let shareable = TeamBrain.shareable(vault.objects())
-        guard !shareable.isEmpty else {
-            status = "No hay memorias marcadas como “shared”. Añade esa etiqueta a las que quieras compartir."
+        // Commands travel too: shared memory alone makes this a company encyclopedia, shared
+        // commands make it the company's way of working.
+        let sharedPacks = store.installedPacks()
+        let sharedFlows = store.flows()
+        let sharedSnippets = store.snippets()
+        guard !shareable.isEmpty || !sharedPacks.isEmpty || !sharedFlows.isEmpty else {
+            status = "No hay nada que compartir todavía: ni memorias marcadas como “shared”, ni "
+                   + "comandos, ni flujos propios."
             return
         }
         guard let passphrase = askPassphrase(
@@ -362,13 +424,18 @@ final class SettingsModel {
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         do {
-            let bundle = TeamBrain.Bundle(team: "believe", exportedBy: NSFullUserName(),
-                                          objects: shareable, members: [])
+            let bundle = TeamBrain.Bundle(
+                team: "believe", exportedBy: NSFullUserName(),
+                objects: shareable, members: [],
+                packs: sharedPacks, flows: sharedFlows, snippets: sharedSnippets,
+                standards: teamStandards()
+            )
             let sealed = try TeamBrain.seal(bundle,
                                             with: TeamBrain.key(fromPassphrase: passphrase,
                                                                 team: "believe"))
             try sealed.write(to: url, options: .atomic)
-            status = "Exportadas \(shareable.count) memorias cifradas."
+            status = "Exportadas \(shareable.count) memorias, \(sharedPacks.count) comando(s) y "
+                   + "\(sharedFlows.count) flujo(s), todo cifrado."
         } catch {
             status = "No se pudo exportar: \(error)"
         }
@@ -400,7 +467,8 @@ final class SettingsModel {
                 _ = try? vault.propose(conflict.incoming,
                                        reason: "Del equipo · contradice «\(conflict.existing.statement)»")
             }
-            status = "\(plan.added.count + plan.conflicts.count) memorias del equipo esperan tu "
+            let commands = applyCommands(from: bundle)
+            status = commands + "\(plan.added.count + plan.conflicts.count) memorias del equipo esperan tu "
                 + "confirmación. Nada se aplicó solo."
         } catch {
             status = "\(error)"
@@ -553,6 +621,103 @@ final class SettingsModel {
                 : "Creado: " + created.joined(separator: ", ")
         } catch {
             status = "No se pudo crear la estructura: \(error.localizedDescription)"
+        }
+    }
+
+    // MARK: - What it watches, and what it learned
+
+    /// Two separate switches on purpose. Someone may want the graph that answers "what was I doing
+    /// before the call" without wanting the app to propose new commands, and the reverse.
+    var graphEnabled: Bool {
+        didSet { store.setSetting("graph_enabled", graphEnabled) }
+    }
+    var habitsEnabledSetting: Bool {
+        didSet { store.setSetting("habits_enabled", habitsEnabledSetting) }
+    }
+    var learningEnabledSetting: Bool {
+        didSet { store.setSetting("learning_enabled", learningEnabledSetting) }
+    }
+
+    var recentActions: [LoggedAction] = []
+    var learnedTraits: [Trait] = []
+    var graphSummary: [(kind: WorkNode.Kind, count: Int)] = []
+    var packs: [OutcomePack] = []
+
+    func reloadIntelligenceExtras() {
+        recentActions = store.actionLog(limit: 60).reversed()
+        learnedTraits = store.traits()
+        packs = store.availablePacks()
+        let nodes = store.nodes(limit: 2_000)
+        graphSummary = WorkNode.Kind.allCases.compactMap { kind in
+            let count = nodes.count { $0.kind == kind }
+            return count == 0 ? nil : (kind, count)
+        }
+    }
+
+    func clearHistory() {
+        store.clearActionLog()
+        store.clearRecipeOffers()
+        reloadIntelligenceExtras()
+        status = "Historial de acciones borrado."
+    }
+
+    func clearGraph() {
+        store.clearWorkGraph()
+        reloadIntelligenceExtras()
+        status = "Memoria de trabajo borrada."
+    }
+
+    func forget(_ trait: Trait) {
+        store.forgetTrait(trait.name)
+        reloadIntelligenceExtras()
+    }
+
+    func forgetEverythingLearned() {
+        store.forgetAllTraits()
+        reloadIntelligenceExtras()
+        status = "Olvidado todo lo aprendido sobre cómo trabajas."
+    }
+
+    func removePack(_ pack: OutcomePack) {
+        store.removePack(id: pack.id)
+        reloadIntelligenceExtras()
+    }
+
+    /// Exports the installed outcomes so a team can share the same commands.
+    func exportPacks() {
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "comandos-belauncher.json"
+        panel.message = "Comparte tus comandos con el equipo."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try OutcomePack.encode(store.installedPacks()).write(to: url)
+            status = "Comandos exportados."
+        } catch {
+            status = "No se pudieron exportar: \(error.localizedDescription)"
+        }
+    }
+
+    func importPacks() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.message = "Importar comandos compartidos."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let incoming = try OutcomePack.decode(Data(contentsOf: url))
+            let conflicts = OutcomePack.conflicts(incoming, with: store.availablePacks())
+            let installable = incoming.filter { pack in
+                !conflicts.contains(.verbTaken(pack.verb))
+            }
+            for pack in installable {
+                try store.installPack(pack, source: url.lastPathComponent)
+            }
+            reloadIntelligenceExtras()
+            status = conflicts.isEmpty
+                ? "Instalados \(installable.count) comando(s)."
+                : "Instalados \(installable.count). Omitidos \(conflicts.count) porque ya tienes "
+                  + "un comando con ese nombre."
+        } catch {
+            status = "\(error)"
         }
     }
 

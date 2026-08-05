@@ -304,3 +304,58 @@ struct ActionLogTests {
                 "repetir una sugerencia rechazada es como se desactiva una función")
     }
 }
+
+/// The wiring, tested where it is easy to leave a promise unconnected.
+@Suite("What the graph learns from what happens")
+struct CaptureWiringTests {
+
+    @Test("an address becomes a person with a readable name and a company")
+    func personFromAddress() {
+        let event = Capture.person(named: "jorge.beltran@believe-global.com")
+        #expect(event.node.name == "Jorge Beltran")
+        #expect(event.node.kind == .person)
+        #expect(event.links.first?.kind == .worksAt)
+
+        // A plain name stays a plain name and carries no company.
+        let plain = Capture.person(named: "Andrés")
+        #expect(plain.node.name == "Andrés")
+        #expect(plain.links.isEmpty)
+    }
+
+    @Test("a file remembers where it can be opened from")
+    func filesAreOpenable() {
+        let event = Capture.file(at: "/Users/x/Clientes/Acme/propuesta.pdf")
+        #expect(event.node.target == "/Users/x/Clientes/Acme/propuesta.pdf")
+        #expect(event.node.name == "propuesta.pdf")
+        #expect(event.links.first?.kind == .partOf, "la carpeta es el proyecto")
+    }
+}
+
+@Suite("Urgency is personal")
+struct PersonalUrgencyTests {
+
+    static func overdue(_ statement: String) -> MemoryObject {
+        MemoryObject(level: .committed, kind: .commitment, statement: statement,
+                     validUntil: Date().addingTimeInterval(-86_400))
+    }
+
+    @Test("what this person calls urgent comes first")
+    func learnedUrgencyReorders() {
+        let objects = [Self.overdue("Revisar el diseño del logo"), Self.overdue("Pagar la factura de marzo")]
+        let neutral = Pulse.signals(for: objects)
+        let trait = Trait(name: "priority.urgent", value: "factura", confidence: 0.9,
+                          observations: 9)
+        let personal = Pulse.signals(for: objects, traits: [trait])
+
+        #expect(neutral.count == personal.count, "no se inventa ni se pierde ninguna señal")
+        #expect(personal.first?.detail.localizedCaseInsensitiveContains("factura") == true,
+                "dos personas con el mismo cerebro no deberían recibir el mismo orden")
+    }
+
+    @Test("without anything learned, the order is the ordinary one")
+    func noTraitsNoChange() {
+        let objects = [Self.overdue("A"), Self.overdue("B")]
+        #expect(Pulse.signals(for: objects).map(\.detail)
+                == Pulse.signals(for: objects, traits: []).map(\.detail))
+    }
+}
