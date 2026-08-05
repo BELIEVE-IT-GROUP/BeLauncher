@@ -1,0 +1,14 @@
+Scripts/Info.plist
+  h_c5ca005a78c880 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5d38b43fe862036dc583c613f80f8eafbb7e9c08",
+  "prompts": {},
+  "humans": {
+    "h_c5ca005a78c880": {
+      "author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
