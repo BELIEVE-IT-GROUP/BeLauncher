@@ -1,0 +1,21 @@
+Sources/BeLauncher/CommandView.swift
+  s_3bf5a4753c6c6c::t_474c4aab25a8ed 339,341-342
+Sources/BeLauncher/Theme.swift
+  s_3bf5a4753c6c6c::t_474c4aab25a8ed 16-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e788bb7ba7816b9868570595ba80bd50b1cc55d7",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}

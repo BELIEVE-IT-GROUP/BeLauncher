@@ -1,0 +1,39 @@
+Sources/BeLauncher/CommandView.swift
+  s_3bf5a4753c6c6c::t_c4c845b622323f 9-11,18-27,37-44,47-49,52,62-73,83,89,130,133,136,154,161,171,173,187-193,195,198,208,211-214,220-366,413
+Sources/BeLauncherCore/LauncherModel.swift
+  s_3bf5a4753c6c6c::t_65f00dabdeddfd 20-23,57-154,165-166,174-175,182-183,194,237,247-248,251-254,256-260,265-269,278-280,283
+  s_3bf5a4753c6c6c::t_0318417bdc5954 43-46
+Tests/BeLauncherCoreTests/ActionPanelTests.swift
+  s_3bf5a4753c6c6c::t_d4430b28d41b79 57-59
+  s_3bf5a4753c6c6c::t_8895c95da2c8f8 1-56,60-207
+Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift
+  s_3bf5a4753c6c6c::t_d4430b28d41b79 192,200,206,212-214
+Sources/BeLauncherCore/ResultDetail.swift
+  s_3bf5a4753c6c6c::t_84f6b49082c984 1-123
+Sources/BeLauncher/AppDelegate.swift
+  s_3bf5a4753c6c6c::t_8064d4c33df9fd 373-389,432-459
+  s_3bf5a4753c6c6c::t_0cc8adfe7079a7 84-106
+  s_3bf5a4753c6c6c::t_650870c8b91072 235-240,244-249,253-259,261-265,267-279
+  s_3bf5a4753c6c6c::t_527abbb7b1c76b 460
+Sources/BeLauncherCore/ResultAction.swift
+  s_3bf5a4753c6c6c::t_650870c8b91072 86-98
+  s_3bf5a4753c6c6c::t_b3d232035ddd36 1-85,99-219
+Sources/BeLauncher/Theme.swift
+  s_3bf5a4753c6c6c::t_650870c8b91072 5-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "2bd4d22c28256c81cf8d87a611186147b39a25d0",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
