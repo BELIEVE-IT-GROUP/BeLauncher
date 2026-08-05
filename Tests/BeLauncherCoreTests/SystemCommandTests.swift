@@ -127,3 +127,72 @@ struct SystemCommandTests {
         #expect(store.aliases().isEmpty)
     }
 }
+
+@Suite("Bookmarks and folders")
+struct ShortcutIndexTests {
+
+    @Test("Chromium bookmarks are read from the tree the browsers already keep")
+    func chromium() {
+        let json = """
+        {"roots":{"bookmark_bar":{"children":[
+            {"type":"url","name":"GitHub","url":"https://github.com"},
+            {"type":"folder","name":"Trabajo","children":[
+                {"type":"url","name":"Linear","url":"https://linear.app"}
+            ]},
+            {"type":"url","name":"Local","url":"file:///tmp/x"}
+        ]}}}
+        """
+        let found = ShortcutIndex.parseChromium(Data(json.utf8))
+        #expect(found.map(\.title).sorted() == ["GitHub", "Linear"])
+        #expect(found.allSatisfy { $0.source == .bookmark })
+        #expect(!found.contains { $0.target.hasPrefix("file://") }, "only web links belong here")
+    }
+
+    @Test("malformed bookmark files are ignored instead of crashing")
+    func malformed() {
+        #expect(ShortcutIndex.parseChromium(Data("not json".utf8)).isEmpty)
+        #expect(ShortcutIndex.parseChromium(Data()).isEmpty)
+        #expect(ShortcutIndex.parseChromium(Data(#"{"roots":{}}"#.utf8)).isEmpty)
+    }
+
+    @Test("the folders people actually use are offered, and only if they exist")
+    func folders() {
+        let found = ShortcutIndex.commonFolders(home: NSHomeDirectory())
+        #expect(found.contains { $0.title == "Descargas" })
+        #expect(found.allSatisfy { FileManager.default.fileExists(atPath: $0.target) })
+
+        #expect(ShortcutIndex.commonFolders(home: "/tmp/no-existe-\(UUID().uuidString)").isEmpty)
+    }
+
+    @Test("a bookmark is searchable and opens as a URL")
+    @MainActor
+    func bookmarkFlow() {
+        var performed: [LauncherModel.Action] = []
+        let input = SearchInput(shortcuts: [
+            Shortcut(title: "Linear", target: "https://linear.app", source: .bookmark),
+        ])
+        let model = LauncherModel(dataSource: { input }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "linear"
+
+        #expect(model.selected?.kind == .bookmark)
+        model.handle(.enter)
+        #expect(performed.first == .openURL(URL(string: "https://linear.app")!))
+    }
+
+    @Test("a folder is searchable and opens as a file")
+    @MainActor
+    func folderFlow() {
+        var performed: [LauncherModel.Action] = []
+        let input = SearchInput(shortcuts: [
+            Shortcut(title: "Descargas", target: "/Users/x/Downloads", source: .folder),
+        ])
+        let model = LauncherModel(dataSource: { input }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "descargas"
+
+        #expect(model.selected?.kind == .file)
+        model.handle(.enter)
+        #expect(performed.first == .openFile(path: "/Users/x/Downloads"))
+    }
+}

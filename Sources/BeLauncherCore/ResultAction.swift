@@ -50,6 +50,7 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case openSettings
         case moveToTrash(path: String)
         case systemCommand(String)
+        case assignAlias(target: String, suggestion: String)
     }
 
     public struct Shortcut: Sendable, Equatable {
@@ -114,6 +115,9 @@ public enum ActionRegistry {
                              shortcut: .commandEnter, intent: .reveal(path: result.payload)),
                 ResultAction(id: "copy-path", title: "Copiar ruta", symbol: "doc.on.doc",
                              shortcut: .copyPath, section: .copy, intent: .copy(text: result.payload)),
+                ResultAction(id: "alias", title: "Asignar un alias", symbol: "textformat.abc",
+                             section: .manage,
+                             intent: .assignAlias(target: result.payload, suggestion: result.title)),
             ]
 
         case .file:
@@ -187,6 +191,14 @@ public enum ActionRegistry {
                 ResultAction(id: "delete", title: "Borrar flujo", symbol: "trash",
                              shortcut: .delete, section: .danger, isDestructive: true,
                              intent: .deleteFlow(id: result.recordID)),
+            ]
+
+        case .bookmark:
+            return [
+                ResultAction(id: "open", title: "Abrir enlace", symbol: "safari",
+                             shortcut: .enter, intent: .run),
+                ResultAction(id: "copy-url", title: "Copiar enlace", symbol: "link",
+                             shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
             ]
 
         case .system:

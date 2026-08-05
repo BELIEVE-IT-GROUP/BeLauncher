@@ -9,6 +9,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case file
     case flow
     case system
+    case bookmark
 
     public var label: String {
         switch self {
@@ -20,6 +21,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .file: "File"
         case .flow: "Flow"
         case .system: "Sistema"
+        case .bookmark: "Enlace"
         }
     }
 
@@ -33,6 +35,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .file: "doc"
         case .flow: "arrow.triangle.branch"
         case .system: "switch.2"
+        case .bookmark: "bookmark"
         }
     }
 }
@@ -75,10 +78,13 @@ public struct SearchInput: Sendable {
     public var applicationUses: [String: Int]
     /// User-defined aliases: typed text → exact result it should surface.
     public var aliases: [String: String]
+    /// Browser bookmarks and common folders.
+    public var shortcuts: [Shortcut]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
-                applicationUses: [String: Int] = [:], aliases: [String: String] = [:]) {
+                applicationUses: [String: Int] = [:], aliases: [String: String] = [:],
+                shortcuts: [Shortcut] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -86,6 +92,7 @@ public struct SearchInput: Sendable {
         self.flows = flows
         self.applicationUses = applicationUses
         self.aliases = aliases
+        self.shortcuts = shortcuts
     }
 }
 
@@ -141,12 +148,17 @@ public enum SearchEngine {
         }
 
         var results: [SearchResult] = []
+        // Folded once for the whole search instead of once per candidate: with a real bookmark
+        // file this was the difference between 95 ms and a usable keystroke.
+        let needle = Fuzzy.folded(query)
+        let needleMask = Fuzzy.mask(needle)
 
         // An alias is an exact instruction, so it wins outright: typing "nav" means that app.
         let aliasTarget = input.aliases[query.lowercased()]
 
         for application in input.applications {
-            guard let match = Fuzzy.match(query: query, candidate: application.name) else { continue }
+            guard !Fuzzy.cannotMatch(needleMask: needleMask, candidateMask: application.mask),
+                  let match = Fuzzy.match(needle: needle, hay: application.foldedName) else { continue }
             let uses = input.applicationUses[application.path] ?? 0
             results.append(SearchResult(
                 id: "app-\(application.path)", kind: .application, title: application.name,
@@ -155,6 +167,8 @@ public enum SearchEngine {
                 payload: application.path
             ))
         }
+
+        results += matchShortcuts(input.shortcuts, needle: needle, needleMask: needleMask)
 
         for (command, score) in SystemCommand.search(query) {
             results.append(SearchResult(
@@ -236,6 +250,61 @@ public enum SearchEngine {
                 score: 0, matched: [], payload: clip.text, recordID: clip.id
             )
         }
+    }
+
+    /// A real bookmark file can hold tens of thousands of entries, and scoring them one by one
+    /// costs ~50 ms per keystroke on this machine — visible stutter. The work is embarrassingly
+    /// parallel, so above a threshold it is split across cores; each chunk writes its own slot,
+    /// so nothing is shared.
+    static func matchShortcuts(
+        _ shortcuts: [Shortcut], needle: [Character], needleMask: UInt32, keep: Int = resultLimit
+    ) -> [SearchResult] {
+        // Two passes on purpose. Scoring is cheap; building a result (string interpolation plus a
+        // highlight array) is not, and with a real bookmark file almost every entry matches a
+        // one-letter query. So: score everything, keep the best handful, build only those.
+        func rate(_ index: Int) -> (index: Int, score: Int)? {
+            let shortcut = shortcuts[index]
+            guard !Fuzzy.cannotMatch(needleMask: needleMask, candidateMask: shortcut.mask),
+                  let score = Fuzzy.score(needle: needle, hay: shortcut.foldedTitle) else { return nil }
+            return (index, score + (shortcut.source == .folder ? 12 : 8))
+        }
+
+        var rated: [(index: Int, score: Int)] = []
+        let parallelThreshold = 2_000
+
+        if shortcuts.count < parallelThreshold {
+            rated = (0..<shortcuts.count).compactMap(rate)
+        } else {
+            let chunkCount = min(ProcessInfo.processInfo.activeProcessorCount, 12)
+            let chunkSize = (shortcuts.count + chunkCount - 1) / chunkCount
+            var partial = [[(index: Int, score: Int)]](repeating: [], count: chunkCount)
+            partial.withUnsafeMutableBufferPointer { buffer in
+                nonisolated(unsafe) let slots = buffer
+                DispatchQueue.concurrentPerform(iterations: chunkCount) { chunk in
+                    let start = chunk * chunkSize
+                    guard start < shortcuts.count else { return }
+                    slots[chunk] = (start..<min(start + chunkSize, shortcuts.count)).compactMap(rate)
+                }
+            }
+            rated = partial.flatMap { $0 }
+        }
+
+        return rated
+            .sorted { $0.score > $1.score }
+            .prefix(keep)
+            .map { entry in
+                let shortcut = shortcuts[entry.index]
+                let isFolder = shortcut.source == .folder
+                return SearchResult(
+                    id: "shortcut-\(shortcut.target)",
+                    kind: isFolder ? .file : .bookmark,
+                    title: shortcut.title,
+                    subtitle: shortcut.target,
+                    score: entry.score,
+                    matched: Fuzzy.match(needle: needle, hay: shortcut.foldedTitle)?.matched ?? [],
+                    payload: shortcut.target
+                )
+            }
     }
 
     static func preview(_ text: String) -> String {

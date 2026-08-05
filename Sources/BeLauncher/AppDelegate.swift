@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsModel: SettingsModel?
     private var keyMonitor: Any?
     private var appIndex = AppIndex()
+    private var shortcuts: [BeLauncherCore.Shortcut] = []
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
@@ -80,7 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     clips: store.clips(limit: 300),
                     flows: store.flows(),
                     applicationUses: store.applicationUses(),
-                    aliases: store.aliases()
+                    aliases: store.aliases(),
+                    shortcuts: self.shortcuts
                 )
             },
             fileInfo: { path in
@@ -203,6 +205,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             let index = await Task.detached(priority: .userInitiated) { AppIndex.scan() }.value
             appIndex = index
+            shortcuts = await Task.detached(priority: .utility) { ShortcutIndex.scan() }.value
             model?.isIndexing = false
         }
     }
@@ -390,6 +393,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .openSettings:
             openSettings()
 
+        case .assignAlias(let target, let suggestion):
+            promptForAlias(target: target, suggestion: suggestion)
+
         case .systemCommand(let kind):
             panel?.orderOut(nil)
             let failure = SystemCommandRunner.run(kind) { title in
@@ -442,6 +448,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 perform(step)
                 try? await Task.sleep(for: .milliseconds(120))
             }
+        }
+    }
+
+    /// Asks for the short name and stores it. Kept as a sheet-free alert on purpose: assigning
+    /// an alias is a two-second action and should not open a settings window.
+    private func promptForAlias(target: String, suggestion: String) {
+        panel?.orderOut(nil)
+        let alert = NSAlert()
+        alert.messageText = "Alias para \((suggestion as NSString).deletingPathExtension)"
+        alert.informativeText = "Escribe el texto corto con el que quieres encontrarlo. "
+            + "Una sola palabra, sin espacios."
+        alert.addButton(withTitle: "Guardar")
+        alert.addButton(withTitle: "Cancelar")
+
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+        field.placeholderString = "nav"
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        do {
+            let alias = try store?.setAlias(field.stringValue, target: target)
+            if let alias { report("Alias guardado", "Escribe “\(alias)” para encontrarlo.") }
+        } catch {
+            report("No se pudo guardar el alias", "\(error)")
         }
     }
 

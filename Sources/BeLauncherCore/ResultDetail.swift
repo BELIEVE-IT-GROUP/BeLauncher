@@ -89,6 +89,10 @@ public enum DetailBuilder {
                 metadata: [.init(label: "Ruta", value: result.payload)] + fileInfo(result.payload)
             )
 
+        case .bookmark:
+            return ResultDetail(body: result.payload, isMonospaced: true,
+                                metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
+
         case .system:
             let command = SystemCommand.all.first { $0.kind.rawValue == result.payload }
             return ResultDetail(

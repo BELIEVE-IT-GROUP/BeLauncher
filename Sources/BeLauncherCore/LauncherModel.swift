@@ -45,6 +45,7 @@ public final class LauncherModel {
         case moveToTrash(path: String)
         case openSettings
         case systemCommand(String)
+        case assignAlias(target: String, suggestion: String)
         case dismiss
     }
 
@@ -134,6 +135,9 @@ public final class LauncherModel {
             perform(.moveToTrash(path: path))
         case .systemCommand(let kind):
             perform(.systemCommand(kind))
+        case .assignAlias(let target, let suggestion):
+            perform(.assignAlias(target: target, suggestion: suggestion))
+            return true
         case .deleteClip(let id):
             onDelete(.clipboard, id)
             refresh()
@@ -311,6 +315,11 @@ public final class LauncherModel {
 
         case .system:
             perform(.systemCommand(result.payload))
+            perform(.dismiss)
+
+        case .bookmark:
+            guard let url = URL(string: result.payload) else { return false }
+            perform(.openURL(url))
             perform(.dismiss)
 
         case .clipboard, .calculation:

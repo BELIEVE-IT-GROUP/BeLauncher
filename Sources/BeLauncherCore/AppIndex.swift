@@ -1,13 +1,45 @@
 import Foundation
 
+/// A browser bookmark or a recently used document: things a launcher is expected to find
+/// without the user having to remember where they live.
+public struct Shortcut: Sendable, Equatable, Identifiable {
+    public enum Source: String, Sendable {
+        case bookmark
+        case recentDocument
+        case folder
+    }
+
+    public var id: String { target }
+    public let title: String
+    public let target: String
+    public let source: Source
+    /// Folded once at index time; see Fuzzy.folded for why.
+    public let foldedTitle: [Character]
+    public let mask: UInt32
+
+    public init(title: String, target: String, source: Source) {
+        self.title = title
+        self.target = target
+        self.source = source
+        let folded = Fuzzy.folded(title)
+        self.foldedTitle = folded
+        self.mask = Fuzzy.mask(folded)
+    }
+}
+
 public struct Application: Sendable, Equatable, Identifiable {
     public var id: String { path }
     public let name: String
     public let path: String
+    public let foldedName: [Character]
+    public let mask: UInt32
 
     public init(name: String, path: String) {
         self.name = name
         self.path = path
+        let folded = Fuzzy.folded(name)
+        self.foldedName = folded
+        self.mask = Fuzzy.mask(folded)
     }
 }
 

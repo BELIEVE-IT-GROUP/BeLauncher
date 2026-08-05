@@ -245,7 +245,7 @@ public final class Store {
         case .snippet: try? database.execute("UPDATE snippets SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .workflow: try? database.execute("UPDATE workflows SET uses = uses + 1 WHERE id = ?", [.int(id)])
         case .flow: try? database.execute("UPDATE flows SET uses = uses + 1 WHERE id = ?", [.int(id)])
-        case .application, .clipboard, .calculation, .file, .system: break
+        case .application, .clipboard, .calculation, .file, .system, .bookmark: break
         }
     }
 
