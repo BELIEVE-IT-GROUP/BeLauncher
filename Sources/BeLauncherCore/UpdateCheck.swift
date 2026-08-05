@@ -2,21 +2,25 @@ import Foundation
 
 /// Opt-in and inert by default: without an explicit toggle *and* a feed URL in `.env`,
 /// BeLauncher never touches the network. There is no telemetry of any kind.
-struct Release: Decodable, Sendable {
-    let version: String
-    let url: String
-    let notes: String?
+public struct Release: Decodable, Sendable, Equatable {
+    public let version: String
+    public let url: String
+    public let notes: String?
 }
 
-enum UpdateCheck {
-    enum Outcome: Sendable {
+public enum UpdateCheck {
+    /// The real feed, shipped as the default. It used to come only from `.env`, which no user
+    /// has, so "Check for updates" could never find anything. `.env` now only overrides it.
+    public static let defaultFeedURL = "https://files.believe-global.com/apps/belauncher/latest.json"
+
+    public enum Outcome: Sendable, Equatable {
         case notConfigured
         case upToDate
         case available(Release)
         case unavailable(String)   // offline, bad JSON, HTTP error — always recoverable
     }
 
-    static func run(feedURL: String?, currentVersion: String) async -> Outcome {
+    public static func run(feedURL: String?, currentVersion: String) async -> Outcome {
         guard let feedURL, let url = URL(string: feedURL), url.scheme?.hasPrefix("http") == true else {
             return .notConfigured
         }
@@ -37,7 +41,7 @@ enum UpdateCheck {
         }
     }
 
-    static func isNewer(_ candidate: String, than current: String) -> Bool {
+    public static func isNewer(_ candidate: String, than current: String) -> Bool {
         let a = candidate.split(separator: ".").map { Int($0) ?? 0 }
         let b = current.split(separator: ".").map { Int($0) ?? 0 }
         for index in 0..<max(a.count, b.count) {

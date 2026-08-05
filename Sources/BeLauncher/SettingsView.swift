@@ -59,6 +59,8 @@ final class SettingsModel {
     var license: LicenseIdentity?
     var licenseClient: LicenseClient?
     var licenseStatus: String?
+    /// Set when a newer version is available, so the UI can offer a download button.
+    var availableUpdate: Release?
 
     init(store: Store, appVersion: String, updateFeedURL: String?) {
         self.store = store
@@ -216,13 +218,14 @@ final class SettingsModel {
         Task { @MainActor in
             switch await UpdateCheck.run(feedURL: feed, currentVersion: version) {
             case .notConfigured:
-                updateStatus = "No update feed is configured. Set BELAUNCHER_UPDATE_FEED_URL in your .env file."
+                updateStatus = "No hay feed de actualizaciones configurado."
             case .upToDate:
-                updateStatus = "BeLauncher \(version) is up to date."
+                updateStatus = "Estás en la última versión (\(version))."
             case .available(let release):
-                updateStatus = "Version \(release.version) is available: \(release.url)"
+                availableUpdate = release
+                updateStatus = "Hay una versión nueva: \(release.version)"
             case .unavailable(let reason):
-                updateStatus = "Could not reach the update feed: \(reason)"
+                updateStatus = "No pudimos consultar las actualizaciones: \(reason)"
             }
             store.setSetting("last_update_check", ISO8601DateFormatter().string(from: .now))
         }
@@ -283,8 +286,14 @@ struct SettingsView: View {
                 }
                 Toggle("Check for updates (opt-in)", isOn: $model.updateCheckEnabled)
                 HStack {
-                    Button("Check now") { model.checkForUpdates() }
+                    Button("Buscar ahora") { model.checkForUpdates() }
                         .disabled(!model.updateCheckEnabled)
+                    if let release = model.availableUpdate {
+                        Button("Descargar \(release.version)") {
+                            if let url = URL(string: release.url) { NSWorkspace.shared.open(url) }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                     if let status = model.updateStatus {
                         Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                     }

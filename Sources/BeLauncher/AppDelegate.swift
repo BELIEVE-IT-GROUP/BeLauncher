@@ -267,7 +267,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsModel = SettingsModel(
             store: store,
             appVersion: appVersion,
-            updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"]
+            updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"] ?? UpdateCheck.defaultFeedURL
         )
         settingsModel.license = license
         settingsModel.licenseClient = licenseClient
