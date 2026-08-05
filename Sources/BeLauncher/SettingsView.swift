@@ -61,22 +61,10 @@ private struct GeneralTab: View {
 
             Section("Actualizaciones") {
                 Toggle("Buscar actualizaciones", isOn: $model.updateCheckEnabled)
-                HStack {
-                    Button("Buscar ahora") { model.checkForUpdates() }
-                        .disabled(!model.updateCheckEnabled)
-                    if let release = model.availableUpdate {
-                        Button("Descargar \(release.version)") {
-                            if let url = URL(string: release.url) { NSWorkspace.shared.open(url) }
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    if let status = model.updateStatus {
-                        Text(status).font(.caption).foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
-                }
+                UpdateRow(model: model)
                 Text("BeLauncher no tiene cuenta, ni analítica, ni servidor. Solo mira si hay "
-                     + "versión nueva cuando se lo pides.")
+                     + "versión nueva cuando se lo pides, y la instala él mismo: nada de arrastrar "
+                     + "la app encima de la vieja.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -98,6 +86,70 @@ private struct GeneralTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// The update, as one row that always says exactly where it is.
+///
+/// Every state is named: nothing to do, something to install, working on it, done and waiting for
+/// you, or a failure you can read. A progress bar that can only spin is how people end up force
+/// quitting halfway through a replace.
+@MainActor
+private struct UpdateRow: View {
+    @Bindable var model: SettingsModel
+
+    var body: some View {
+        switch model.updater.phase {
+        case .idle:
+            HStack {
+                Button("Buscar ahora") { model.checkForUpdates() }
+                    .disabled(!model.updateCheckEnabled)
+                if let release = model.availableUpdate {
+                    Button("Actualizar a \(release.version)") { model.installUpdate() }
+                        .buttonStyle(.borderedProminent)
+                }
+                if let status = model.updateStatus {
+                    Text(status).font(.caption).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
+
+        case .downloading(let fraction):
+            HStack {
+                ProgressView(value: fraction).frame(width: 150)
+                Text("Descargando…").font(.caption).foregroundStyle(.secondary)
+                Button("Cancelar") { model.updater.cancel() }.controlSize(.small)
+            }
+
+        case .verifying:
+            Label("Comprobando la firma de Apple…", systemImage: "checkmark.shield")
+                .font(.caption).foregroundStyle(.secondary)
+
+        case .installing:
+            Label("Instalando…", systemImage: "arrow.down.app")
+                .font(.caption).foregroundStyle(.secondary)
+
+        case .readyToRelaunch(let version):
+            HStack {
+                Label("Listo: la \(version) se instaló.", systemImage: "checkmark.circle.fill")
+                    .font(.caption).foregroundStyle(.green)
+                Spacer()
+                Button("Reiniciar ahora") { model.updater.relaunch() }
+                    .buttonStyle(.borderedProminent)
+            }
+
+        case .failed(let reason):
+            VStack(alignment: .leading, spacing: 4) {
+                Text(reason).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
+                HStack {
+                    Button("Reintentar") { model.installUpdate() }.controlSize(.small)
+                    if let release = model.availableUpdate, let url = URL(string: release.url) {
+                        Button("Descargar a mano") { NSWorkspace.shared.open(url) }
+                            .controlSize(.small)
+                    }
+                }
+            }
+        }
     }
 }
 
