@@ -45,8 +45,8 @@ public enum ProcessList {
 
         public var label: String {
             switch self {
-            case .cpu: "Por CPU"
-            case .memory: "Por memoria"
+            case .cpu: L("By CPU")
+            case .memory: L("By memory")
             }
         }
     }
@@ -73,21 +73,17 @@ public enum ProcessList {
     public static func refusal(for process: RunningProcess) -> String? {
         switch process.name {
         case "WindowServer":
-            "WindowServer dibuja todo lo que ves. Cerrarlo te saca de la sesión al instante y "
-            + "pierdes lo que no hayas guardado. Suele estar arriba porque el Mac está ocupado, "
-            + "no porque esté colgado."
+            L("WindowServer draws everything you see. Closing it throws you out of the session instantly and you lose whatever you had not saved.")
         case "kernel_task":
-            "kernel_task es el propio macOS. No se puede cerrar, y cuando sube suele ser el "
-            + "sistema gestionando el calor: se baja solo."
+            L("kernel_task is macOS itself. It cannot be closed, and when it climbs it is usually the system managing heat: it will come down on its own.")
         case "Finder", "Dock", "SystemUIServer":
-            "\(process.name) es parte del escritorio. Si de verdad quieres reiniciarlo, hazlo "
-            + "desde Forzar salida de macOS, que lo vuelve a abrir solo."
+            L("%@ is part of the desktop. If you really want to restart it, do it from macOS's Force Quit, which reopens it on its own.", process.name)
         case "launchd", "loginwindow":
-            "\(process.name) sostiene tu sesión entera. Cerrarlo te desconecta."
+            L("%@ holds your whole session up. Closing it logs you out.", process.name)
         default:
             isProtected(process)
-                ? "\(process.name) es un servicio del sistema. Cerrarlo deja el Mac en un estado "
-                + "raro hasta que reinicies."
+                ? L("%@ is a system service. Closing it leaves the Mac in an odd state until you restart.",
+                    process.name)
                 : nil
         }
     }
@@ -145,7 +141,7 @@ public enum ProcessList {
     public static func subtitle(for process: RunningProcess, order: Order) -> String {
         var parts = ["CPU \(process.cpuLabel)", process.memoryLabel]
         if order == .memory { parts.reverse() }
-        if isProtected(process) { parts.append("del sistema") }
+        if isProtected(process) { parts.append(L("system")) }
         return parts.joined(separator: " · ")
     }
 

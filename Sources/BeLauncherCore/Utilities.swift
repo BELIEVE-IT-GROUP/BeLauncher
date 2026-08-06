@@ -13,7 +13,7 @@ public enum StayAwake {
     /// The lengths worth offering. Ending at "hasta que lo apague" because the honest answer to
     /// "how long is this render going to take" is usually "I do not know".
     public static let durations: [(minutes: Int?, label: String)] = [
-        (nil, "Hasta que lo apague"),
+        (nil, L("Until I turn it off")),
         (15, "15 minutos"),
         (30, "30 minutos"),
         (60, "1 hora"),
@@ -65,12 +65,12 @@ public enum StayAwake {
 
     /// What the menu bar says while it is on.
     public static func remaining(until end: Date?, now: Date = .now) -> String {
-        guard let end else { return "Sin dormir · indefinido" }
+        guard let end else { return L("Awake · no end") }
         let left = Int(end.timeIntervalSince(now) / 60)
-        guard left > 0 else { return "Sin dormir · terminando" }
+        guard left > 0 else { return L("Awake · finishing") }
         return left >= 60
-            ? "Sin dormir · \(left / 60) h \(left % 60) min"
-            : "Sin dormir · \(left) min"
+            ? L("Awake · %1$@ h %2$@ min", String(left / 60), String(left % 60))
+            : L("Awake · %@ min", String(left))
     }
 }
 

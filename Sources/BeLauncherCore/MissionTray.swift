@@ -25,11 +25,11 @@ public struct TrayMission: Sendable, Equatable, Identifiable {
         public var label: String {
             switch self {
             case .preparing: "Preparando"
-            case .awaitingPermission: "Falta un permiso"
-            case .needsDecision: "Necesita que decidas"
+            case .awaitingPermission: L("A permission is missing")
+            case .needsDecision: L("It needs you to decide")
             case .working: "Trabajando"
             case .completed: "Terminado"
-            case .failed: "Falló"
+            case .failed: L("Failed")
             case .cancelled: "Cancelado"
             }
         }
@@ -117,22 +117,22 @@ public struct TrayMission: Sendable, Equatable, Identifiable {
             lines += ["", "## Plan"] + plan.map { "- \($0.title)" }
         }
         if !sources.isEmpty {
-            lines += ["", "## De dónde salió"] + sources.map { "- \($0.title) \($0.detail)" }
+            lines += ["", L("## Where it came from")] + sources.map { "- \($0.title) \($0.detail)" }
         }
         if !performed.isEmpty {
-            lines += ["", "## Qué hizo"] + performed.map { "- \($0)" }
+            lines += ["", L("## What it did")] + performed.map { "- \($0)" }
         }
-        lines += ["", "## Coste", tokensUsed == 0
-            ? "Nada: se hizo con un modelo local."
-            : "≈\(tokensUsed) tokens de tu proveedor."]
+        lines += ["", L("## Cost"), tokensUsed == 0
+            ? L("Nothing: it was done with a local model.")
+            : L("≈%@ tokens from your provider.", String(tokensUsed))]
         if !permissionsUsed.isEmpty {
-            lines += ["", "## Permisos usados"] + permissionsUsed.map { "- \($0)" }
+            lines += ["", L("## Permissions used")] + permissionsUsed.map { "- \($0)" }
         }
         if !undoable.isEmpty {
-            lines += ["", "## Se puede deshacer"] + undoable.map { "- \($0.label)" }
+            lines += ["", L("## Can be undone")] + undoable.map { "- \($0.label)" }
         }
         if !result.isEmpty {
-            lines += ["", "## Resultado", result]
+            lines += ["", L("## Result"), result]
         }
         return lines.joined(separator: "\n")
     }

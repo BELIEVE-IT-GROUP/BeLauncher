@@ -46,11 +46,11 @@ public enum Sound {
 
         public var label: String {
             switch self {
-            case .taken: "Al copiar"
-            case .proposed: "Al proponer una memoria"
-            case .refused: "Cuando algo falla"
-            case .opened: "Al abrir la ventana"
-            case .closed: "Al cerrarla"
+            case .taken: L("When you copy")
+            case .proposed: L("When it offers a memory")
+            case .refused: L("When something fails")
+            case .opened: L("When the window opens")
+            case .closed: L("When it closes")
             }
         }
 

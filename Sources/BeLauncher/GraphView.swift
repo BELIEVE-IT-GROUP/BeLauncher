@@ -29,10 +29,10 @@ final class GraphModel {
 
         var label: String {
             switch self {
-            case .week: "7 días"
-            case .month: "30 días"
+            case .week: L("7 days")
+            case .month: L("30 days")
             case .quarter: "3 meses"
-            case .everything: "Todo"
+            case .everything: L("Everything")
             }
         }
 
@@ -341,15 +341,15 @@ final class GraphModel {
 
     /// Why something is in here, in words.
     func why(_ id: String) -> String {
-        if documents[id]?.corrections.pinned == true { return "Lo marcaste tú como importante." }
+        if documents[id]?.corrections.pinned == true { return L("You marked it as important yourself.") }
         if let episode = episodes[id] {
             return Relevance.explain(Relevance.signals(for: episode,
                                                        neighbours: episode.subjects.count))
         }
         guard let node = workNodes[id] else { return "" }
         return node.weight > 1
-            ? "Ha aparecido \(node.weight) veces en lo que haces."
-            : "Ha aparecido una vez. Con eso apenas pesa."
+            ? L("It has turned up %@ times in what you do.", String(node.weight))
+            : L("It has turned up once. That barely weighs anything.")
     }
 
     // MARK: - Corrections
@@ -362,7 +362,7 @@ final class GraphModel {
     func askAboutPair() {
         proposal = nil
         guard let left = selected.flatMap(entity(for:)), let right = compared.flatMap(entity(for:)) else {
-            status = "Elige dos entidades para poder unirlas."
+            status = L("Pick two entities to be able to join them.")
             return
         }
         switch Identity.decide(left, right, rejected: rejected) {
@@ -374,8 +374,8 @@ final class GraphModel {
             status = nil
         case .leaveAlone:
             status = rejected.isEmpty
-                ? "No veo nada que diga que «\(left.canonical)» y «\(right.canonical)» son lo mismo."
-                : "Ya me dijiste que no son lo mismo. No vuelvo a preguntarlo."
+                ? L("I see nothing saying “%1$@” and “%2$@” are the same thing.", left.canonical, right.canonical)
+                : L("You already told me they are not the same. I will not ask again.")
         }
     }
 
@@ -404,7 +404,8 @@ final class GraphModel {
                 _ = try? corpus.apply(.mergedInto(merged.id), to: document)
             }
         }
-        status = "«\(loser.name)» ahora es un alias de «\(merged.canonical)». \(proposal.reason.explanation.prefix(1).uppercased() + proposal.reason.explanation.dropFirst())."
+        status = L("“%1$@” is now an alias of “%2$@”. %3$@.", loser.name, merged.canonical,
+                    proposal.reason.explanation.prefix(1).uppercased() + proposal.reason.explanation.dropFirst())
         self.proposal = nil
         compared = nil
         selected = merged.id
@@ -425,7 +426,7 @@ final class GraphModel {
                 documents[id] = saved
             }
         }
-        status = "Anotado: no son lo mismo. No vuelvo a proponerlo."
+        status = L("Noted: not the same thing. I will not offer it again.")
         self.proposal = nil
         compared = nil
     }
@@ -448,7 +449,7 @@ final class GraphModel {
         }
         store.upsertNode(WorkNode(id: WorkNode.identifier(kind: workKind(entity.kind), name: alias),
                                   kind: workKind(entity.kind), name: alias, lastSeen: now))
-        status = "«\(alias)» vuelve a ser algo aparte."
+        status = L("“%@” is a separate thing again.", alias)
         load()
     }
 
@@ -463,8 +464,8 @@ final class GraphModel {
             documents[id] = saved
         }
         status = value
-            ? "Marcado. A partir de ahora pesa lo máximo en las búsquedas."
-            : "Quitada la marca."
+            ? L("Marked. From now on it weighs the most in searches.")
+            : L("Mark removed.")
         load()
     }
 
@@ -515,7 +516,7 @@ final class GraphModel {
         try? store.database.execute("DELETE FROM work_edges WHERE source = ? OR target = ?",
                                     [.text(id), .text(id)])
         store.removePassages(for: IndexedSource(kind: .node, id: id))
-        status = "«\(name)» fuera del cerebro."
+        status = L("“%@” is out of the brain.", name)
         selected = nil
         load()
     }
@@ -638,7 +639,7 @@ struct GraphView: View {
                 Divider()
                 HStack {
                     Spacer()
-                    Button("Cerrar") { self.reader = nil }.keyboardShortcut(.escape)
+                    Button(L("Close")) { self.reader = nil }.keyboardShortcut(.escape)
                 }
                 .padding(10)
             }
@@ -653,7 +654,7 @@ struct GraphView: View {
             HStack(spacing: 8) {
                 BeLauncherMark(side: 18)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Lo que el cerebro sabe de ti")
+                    Text(L("What the brain knows about you"))
                         .font(.system(size: 13, weight: .semibold))
                     Text("\(model.counted) nodos · \(model.drawing.lines.count) relaciones")
                         .font(.system(size: 10.5)).foregroundStyle(.secondary)
@@ -666,7 +667,7 @@ struct GraphView: View {
                 ForEach(GraphModel.Span.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented).labelsHidden().frame(width: 260)
-            .help("El tiempo es un eje de primera: esto es un grafo de cosas que pasaron.")
+            .help(L("Time is a first-class axis: this is a graph of things that happened."))
 
             Picker("", selection: $model.arrangement) {
                 ForEach(GraphLayout.Arrangement.allCases, id: \.self) { Text($0.label).tag($0) }
@@ -678,7 +679,7 @@ struct GraphView: View {
                     .font(.system(size: 10)).foregroundStyle(.secondary)
                 Slider(value: $model.floor, in: 0...0.9).frame(width: 84)
             }
-            .help("Sube el listón de relevancia y se va lo que apenas pesa.")
+            .help(L("Raise the relevance bar and whatever barely weighs anything goes."))
 
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(.secondary)
@@ -724,12 +725,12 @@ struct GraphView: View {
         VStack(spacing: 8) {
             Mascot(height: 92)
             Text(model.query.isEmpty
-                 ? "Todavía no hay nada que dibujar aquí."
-                 : "Nada coincide con «\(model.query)».")
+                 ? L("There is nothing to draw here yet.")
+                 : L("Nothing matches “%@”.", model.query))
                 .font(.system(size: 13, weight: .medium))
             Text(model.query.isEmpty
-                 ? "El cerebro se llena solo mientras trabajas, si activaste la captura. Prueba con «Todo» arriba."
-                 : "Prueba con menos palabras o amplía el periodo.")
+                 ? L("The brain fills itself while you work, if you turned capture on. Try “Everything” up top.")
+                 : L("Try fewer words, or widen the period."))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -840,7 +841,7 @@ struct GraphView: View {
             } else {
                 HStack(spacing: 12) {
                     KeyCap(symbol: "↑↓←→", label: "moverte")
-                    KeyCap(symbol: "⏎", label: "abrir")
+                    KeyCap(symbol: "⏎", label: L("open"))
                     KeyCap(symbol: "L", label: "leer")
                     KeyCap(symbol: "␣", label: "importante")
                     KeyCap(symbol: "⌫", label: "olvidar")
@@ -868,7 +869,7 @@ struct GraphView: View {
 
     private func openReader() {
         guard let corpus = model.corpus else {
-            model.status = "No hay carpeta de corpus configurada todavía."
+            model.status = L("No corpus folder is set up yet.")
             return
         }
         reader = CorpusReaderModel(folder: corpus, selecting: model.selected)
@@ -922,7 +923,7 @@ private struct Inspector: View {
                 Tag(text: node.shape.label)
                 Tag(text: stamp(node.at))
                 if model.document(node.id)?.corrections.editedByHand == true {
-                    Tag(text: "escrito por ti", tone: .mine)
+                    Tag(text: L("written by you"), tone: .mine)
                 }
             }
         }
@@ -934,11 +935,11 @@ private struct Inspector: View {
                 .font(.system(size: 12))
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
-                Button("Sí, son lo mismo") { model.confirmMerge() }
+                Button(L("Yes, they are the same")) { model.confirmMerge() }
                     .buttonStyle(.borderedProminent).controlSize(.small)
-                Button("No") { model.rejectMerge() }.controlSize(.small)
+                Button(L("No")) { model.rejectMerge() }.controlSize(.small)
             }
-            Text("Un «no» se recuerda para siempre: no vuelvo a preguntarlo.")
+            Text(L("A “no” is remembered for good: I will not ask again."))
                 .font(.system(size: 10)).foregroundStyle(.tertiary)
         }
         .padding(11)
@@ -949,7 +950,7 @@ private struct Inspector: View {
         let pinned = model.document(node.id)?.corrections.pinned == true
         return VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
-                Button("Abrir") { model.open() }.controlSize(.small)
+                Button(L("Open")) { model.open() }.controlSize(.small)
                 Button("Leer") { read() }.controlSize(.small)
             }
             HStack(spacing: 7) {
@@ -965,13 +966,13 @@ private struct Inspector: View {
 
     private func contents(_ episode: Episode) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("QUÉ TOCASTE").font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.tertiary)
+            Text(L("WHAT YOU TOUCHED")).font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.tertiary)
             ForEach(Array(episode.signals.prefix(10).enumerated()), id: \.offset) { _, signal in
                 Text("\(clock(signal.at)) · \(signal.title)")
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
             if episode.signals.count > 10 {
-                Text("y \(episode.signals.count - 10) más")
+                Text(L("and %@ more", String(episode.signals.count - 10)))
                     .font(.system(size: 10)).foregroundStyle(.tertiary)
             }
         }
@@ -982,7 +983,7 @@ private struct Inspector: View {
         let names = (model.entity(for: id)?.aliases ?? []).sorted()
         if !names.isEmpty {
             VStack(alignment: .leading, spacing: 5) {
-                Text("TAMBIÉN SE LLAMA")
+                Text(L("ALSO CALLED"))
                     .font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.tertiary)
                 ForEach(names, id: \.self) { alias in
                     HStack(spacing: 6) {
@@ -990,7 +991,7 @@ private struct Inspector: View {
                         Spacer(minLength: 4)
                         Button("Separar") { model.separate(alias: alias) }
                             .buttonStyle(.link).font(.system(size: 10))
-                            .help("Esto no era lo mismo: devuélvele su ficha propia.")
+                            .help(L("These were not the same thing: give it its own entry back."))
                     }
                 }
             }
@@ -1002,7 +1003,7 @@ private struct Inspector: View {
         let around = model.neighbours(of: id)
         if !around.isEmpty {
             VStack(alignment: .leading, spacing: 5) {
-                Text("CONECTADO CON")
+                Text(L("CONNECTED WITH"))
                     .font(.system(size: 9.5, weight: .semibold)).foregroundStyle(.tertiary)
                 ForEach(around.prefix(12)) { node in
                     Button {

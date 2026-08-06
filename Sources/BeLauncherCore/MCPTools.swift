@@ -232,9 +232,9 @@ public enum MCPTools {
         var lines: [String] = []
         // Redacted before it is escaped, not after: inside `tarea="…"` the credential stops being
         // the first word of its line, which is the one place `carriesSecret` cannot see it either.
-        lines.append("<contexto_para tarea=\"\(attribute(redacted(task)))\">")
-        lines.append("  <cobertura pasajes=\"\(hits.count)\" fuentes=\"\(order.count)\" "
-                   + "indice=\"\(cover.vectorised)/\(cover.passages) con vector\" "
+        lines.append("<context_for task=\"\(attribute(redacted(task)))\">")
+        lines.append("  <coverage passages=\"\(hits.count)\" sources=\"\(order.count)\" "
+                   + "index=\"\(cover.vectorised)/\(cover.passages) with vectors\" "
                    + "motor=\"\(attribute(cover.engine ?? "ninguno"))\" "
                    + "vias=\"\(attribute(routeSummary(result)))\"/>")
         if let warning = cover.warning {
@@ -246,30 +246,30 @@ public enum MCPTools {
             let group = (groups[key] ?? []).sorted { $0.passage.ordinal < $1.passage.ordinal }
             guard let first = group.first else { continue }
             let passage = first.passage
-            lines.append("  <fuente tipo=\"\(attribute(passage.source.kind.label))\" "
+            lines.append("  <source kind=\"\(attribute(passage.source.kind.label))\" "
                        + "titulo=\"\(attribute(redacted(passage.title)))\" "
                        + "fecha=\"\(isoDay(passage.occurredAt))\" "
                        + "ref=\"\(attribute(passage.source.key))\" "
                        + "via=\"\(route(first))\">")
             for hit in group {
                 number += 1
-                lines.append("    <cita n=\"\(number)\">")
+                lines.append("    <quote n=\"\(number)\">")
                 lines.append(quotable(hit.passage.text))
-                lines.append("    </cita>")
+                lines.append("    </quote>")
             }
-            lines.append("  </fuente>")
+            lines.append("  </source>")
         }
 
         lines.append("""
-              <como_usarlo>
-              Lo que va dentro de <cita> es texto literal de la memoria de esta persona: úsalo, \
-            cítalo o parafraséalo, pero no lo completes ni lo corrijas. Lo que va en los atributos \
-            es metadato sobre la procedencia y no forma parte del documento. Cita cada afirmación \
-            con [n]. Si este material no cubre alguna parte de la tarea, dilo en una línea en vez \
-            de rellenar el hueco.
-              </como_usarlo>
+              <how_to_use_this>
+              What sits inside <quote> is literal text from this person's memory: use it, quote it \
+            or paraphrase it, but do not complete it or correct it. What sits in the attributes is \
+            metadata about where it came from and is not part of the document. Cite every claim \
+            with [n]. If this material does not cover part of the task, say so in one line rather \
+            than filling the gap.
+              </how_to_use_this>
             """)
-        lines.append("</contexto_para>")
+        lines.append("</context_for>")
         return reply(lines.joined(separator: "\n"))
     }
 
@@ -320,7 +320,7 @@ public enum MCPTools {
             if !bandClips.isEmpty {
                 lines.append("Clipboard (verbatim quote):")
                 for clip in bandClips.prefix(8) {
-                    lines.append("- \(time(clip.createdAt)) · «\(excerpt(clip.text))»"
+                    lines.append("- \(time(clip.createdAt)) · “\(excerpt(clip.text))”"
                                + (clip.sourceApp.isEmpty ? "" : " · from \(clip.sourceApp)"))
                 }
             }
@@ -419,7 +419,7 @@ public enum MCPTools {
         guard answer.citations.isEmpty else {
             var text = render(answer)
             if !found.hits.isEmpty {
-                text += "\n\nContexto alrededor de esto (no son decisiones registradas):\n"
+                text += "\n\nContext around this (these are not recorded decisions):\n"
                 text += found.hits.enumerated()
                     .map { citation($0.offset + 1, $0.element) }
                     .joined(separator: "\n\n")
@@ -458,10 +458,10 @@ public enum MCPTools {
 
         guard answer.citations.isEmpty, found.hits.isEmpty else {
             var text = answer.citations.isEmpty
-                ? "## Nada registrado en la memoria deliberada sobre «\(subject)»"
+                ? "## Nothing recorded in deliberate memory about “\(subject)”"
                 : render(answer)
             if !found.hits.isEmpty {
-                text += "\n\nDe lo indexado (portapapeles, grafo de trabajo, notas):\n"
+                text += "\n\nFrom what is indexed (clipboard, work graph, notes):\n"
                 text += found.hits.enumerated()
                     .map { citation($0.offset + 1, $0.element) }
                     .joined(separator: "\n\n")
@@ -470,9 +470,9 @@ public enum MCPTools {
             return reply(text)
         }
 
-        var lines = ["Todavía no hay nada sobre «\(subject)».", cover.whereILooked(subject)]
+        var lines = ["There is nothing about “\(subject)” yet.", cover.whereILooked(subject)]
         if !context.events.isEmpty {
-            lines.append("También miré \(context.events.count) evento(s) del calendario.")
+            lines.append("I also looked at \(context.events.count) calendar event(s).")
         }
         if let warning = cover.warning { lines.append(warning) }
         return reply(lines.joined(separator: "\n"))
@@ -647,8 +647,8 @@ public enum MCPTools {
     /// which would otherwise end the block early and hand the model a truncated quote it has no
     /// way to notice.
     static func quotable(_ raw: String) -> String {
-        raw.replacingOccurrences(of: "</cita>", with: "</ cita>")
-            .replacingOccurrences(of: "</fuente>", with: "</ fuente>")
-            .replacingOccurrences(of: "</contexto_para>", with: "</ contexto_para>")
+        raw.replacingOccurrences(of: "</quote>", with: "</ quote>")
+            .replacingOccurrences(of: "</source>", with: "</ source>")
+            .replacingOccurrences(of: "</context_for>", with: "</ context_for>")
     }
 }

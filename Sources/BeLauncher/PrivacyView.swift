@@ -61,7 +61,7 @@ struct PrivacyView: View {
                 }
             }
 
-            Section("Webs que nunca mira") {
+            Section(L("Sites it never looks at")) {
                 ExclusionList(
                     entries: model.excludedCaptureDomains,
                     emptyLine: PrivacyCopy.domainsEmpty,
@@ -191,7 +191,7 @@ private struct ExclusionList: View {
                     }
                 }
                 if isFactory(entry) {
-                    Text("de fábrica")
+                    Text(L("factory setting"))
                         .font(.system(size: 9.5, weight: .medium))
                         .padding(.horizontal, 6).padding(.vertical, 1.5)
                         .background(.secondary.opacity(0.15), in: Capsule())
@@ -200,7 +200,7 @@ private struct ExclusionList: View {
                 Spacer(minLength: 6)
                 Button { remove(entry) } label: { Image(systemName: "trash") }
                     .buttonStyle(.borderless)
-                    .help("Quitar de la lista. Vuelve a mirarla desde ese momento.")
+                    .help(L("Take it off the list. It gets looked at again from that moment on."))
             }
         }
     }
@@ -271,7 +271,7 @@ private struct ForgetBlock: View {
 
             switch model.forgetState {
             case .idle:
-                Button("Ver qué se borraría") { model.countWhatWouldBeForgotten() }
+                Button(L("See what would be deleted")) { model.countWhatWouldBeForgotten() }
                     .disabled(model.forgetChoice == .range && model.forgetTo < model.forgetFrom)
 
             case .counting:
@@ -294,7 +294,7 @@ private struct ForgetBlock: View {
                             .buttonStyle(.borderedProminent)
                             .tint(Theme.destructive)
                         }
-                        Button("Volver atrás") { model.cancelForgetPreview() }
+                        Button(L("Go back")) { model.cancelForgetPreview() }
                             .controlSize(.small)
                     }
                 }
@@ -308,7 +308,7 @@ private struct ForgetBlock: View {
                     Text(reason).font(.system(size: 12)).foregroundStyle(Theme.destructive)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Reintentar") { model.countWhatWouldBeForgotten() }
+                    Button(L("Try again")) { model.countWhatWouldBeForgotten() }
                         .controlSize(.small)
                 }
             }
@@ -404,7 +404,7 @@ final class PauseIndicator: NSObject {
     private func install() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.image = NSImage(systemSymbolName: "pause.circle.fill",
-                                     accessibilityDescription: "La captura está en pausa")
+                                     accessibilityDescription: L("Capture is paused"))
         item.button?.image?.isTemplate = true
         item.button?.imagePosition = .imageLeading
         item.button?.font = .systemFont(ofSize: 12, weight: .medium)
@@ -423,7 +423,7 @@ final class PauseIndicator: NSObject {
         resume.target = self
         menu.addItem(resume)
 
-        let open = NSMenuItem(title: "Abrir privacidad…", action: #selector(openPrivacy),
+        let open = NSMenuItem(title: L("Open privacy…"), action: #selector(openPrivacy),
                               keyEquivalent: "")
         open.target = self
         menu.addItem(open)

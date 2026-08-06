@@ -97,12 +97,32 @@ struct CommandView: View {
     }
 
     /// The list drives the height, so showing a detail never makes the window jump.
+    /// How tall the list is allowed to be.
+    ///
+    /// There was no ceiling, so the panel simply grew with the number of rows. Thirteen results
+    /// asked for around 800 points, the window is anchored a sixth of the way down the screen, and
+    /// what did not fit went off the top: the first row ended up drawn over the search field with
+    /// the text showing through it, and typing became impossible because the field was underneath
+    /// its own results.
+    ///
+    /// Measured against the screen the panel is actually on, and it scrolls inside whatever is
+    /// left. A launcher that covers its own input is worse than one that shows six results.
+    private var maximumBodyHeight: CGFloat {
+        let available = (NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
+                         ?? NSScreen.main)?.visibleFrame.height ?? 900
+        // The panel sits with its top edge at 16 % from the top, and the field and footer take
+        // their own space above and below the list.
+        let below = available * 0.84 - Theme.searchHeight - 46
+        return max(Theme.rowHeight * 3, below)
+    }
+
     private var bodyHeight: CGFloat? {
         switch model.state {
         case .results, .empty:
             let rows = min(model.results.count, SearchEngine.resultLimit)
             let header: CGFloat = (model.state == .empty && !model.results.isEmpty) ? 24 : 0
-            return CGFloat(rows) * (Theme.rowHeight + 2) + 16 + header
+            let wanted = CGFloat(rows) * (Theme.rowHeight + 2) + 16 + header
+            return min(wanted, maximumBodyHeight)
         case .loading, .noMatch, .failed:
             return nil
         }
@@ -130,7 +150,7 @@ struct CommandView: View {
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
-                .help("Borrar")
+                .help(L("Clear"))
             }
         }
         .padding(.horizontal, 20)
@@ -145,7 +165,7 @@ struct CommandView: View {
         case .loading:
             message {
                 ProgressView().controlSize(.small)
-                Text("Buscando tus aplicaciones…")
+                Text(L("Looking through your apps…"))
             }
 
         case .empty, .results:
@@ -175,7 +195,7 @@ struct CommandView: View {
                     Text(reason).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(2)
                 }
                 Spacer()
-                Button("Reintentar") { model.retry() }.controlSize(.small)
+                Button(L("Try again")) { model.retry() }.controlSize(.small)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -189,11 +209,36 @@ struct CommandView: View {
             .font(.system(size: 13))
     }
 
+    /// The results, scrolling inside whatever height the panel allows.
+    ///
+    /// This used to be a bare `VStack` inside a `.frame(height:)`. That is not a clamp: a stack
+    /// whose rows ask for more room than the frame gives them does not scroll and does not clip —
+    /// it overflows, centred, so half the excess spills out of the *top*. With thirteen results the
+    /// first rows landed on the search field and drew over it, the typed text showing through from
+    /// underneath, and typing became impossible because the field was buried under its own results.
+    ///
+    /// A `ScrollView` is what makes the height a real ceiling. The reader keeps the selected row in
+    /// view, so arrow keys still walk the whole list once it stops fitting on screen.
     private var resultList: some View {
+        ScrollViewReader { reader in
+            ScrollView(.vertical) {
+                resultRows
+            }
+            .scrollIndicators(.never)
+            .onChange(of: model.selection) { _, index in
+                guard model.results.indices.contains(index) else { return }
+                withAnimation(.easeOut(duration: 0.12)) {
+                    reader.scrollTo(model.results[index].id, anchor: .center)
+                }
+            }
+        }
+    }
+
+    private var resultRows: some View {
         VStack(spacing: 2) {
             if case .empty = model.state, !model.results.isEmpty {
                 HStack {
-                    Text(model.mode == .clipboard ? "PORTAPAPELES" : "RECIENTES")
+                    Text(model.mode == .clipboard ? L("CLIPBOARD") : L("RECENT"))
                         .font(.system(size: 9.5, weight: .semibold))
                         .tracking(0.8)
                         .foregroundStyle(.tertiary)
@@ -205,6 +250,7 @@ struct CommandView: View {
 
             ForEach(Array(model.results.enumerated()), id: \.element.id) { index, result in
                 ResultRow(result: result, selected: index == model.selection)
+                    .id(result.id)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         model.select(index)
@@ -212,7 +258,6 @@ struct CommandView: View {
                     }
                     .onHover { inside in if inside, !model.isActionPanelOpen { model.select(index) } }
             }
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
@@ -232,12 +277,12 @@ struct CommandView: View {
             if model.selected != nil {
                 Divider().frame(height: 12).overlay(.white.opacity(0.12))
                 Button { model.handle(.actionPanel) } label: {
-                    KeyCap(symbol: "⌘K", label: "Acciones")
+                    KeyCap(symbol: "⌘K", label: L("Actions"))
                 }
                 .buttonStyle(.plain)
             }
             Button(action: openSettings) {
-                KeyCap(symbol: "⌘,", label: "Ajustes")
+                KeyCap(symbol: "⌘,", label: L("Settings"))
             }
             .buttonStyle(.plain)
         }
@@ -247,14 +292,20 @@ struct CommandView: View {
 
     private var countLabel: String {
         switch model.state {
-        case .results: "\(model.results.count) resultado\(model.results.count == 1 ? "" : "s")"
+        // Singular and plural are separate strings rather than one string plus an "s". English and
+        // Spanish happen to agree on adding one letter; most languages this product might reach
+        // later do not, and a counter is exactly where that shows.
+        case .results:
+            model.results.count == 1
+                ? L("%@ result", "1")
+                : L("%@ results", String(model.results.count))
         case .empty:
             model.results.isEmpty
-                ? "Prueba 2+2 · 10 km to mi · f informe"
-                : (model.mode == .clipboard ? L("Clipboard history") : "Recientes")
-        case .loading: "Cargando"
-        case .noMatch: "Sin resultados"
-        case .failed: "Error"
+                ? L("Try 2+2 · 10 km to mi · f report")
+                : (model.mode == .clipboard ? L("Clipboard history") : L("Recent"))
+        case .loading: L("Loading")
+        case .noMatch: L("No results")
+        case .failed: L("Error")
         }
     }
 }
@@ -335,7 +386,7 @@ private struct MissionPane: View {
                             Image(systemName: "exclamationmark.circle")
                                 .font(.system(size: 10))
                                 .foregroundStyle(.orange)
-                                .help("Cambia algo fuera de BeLauncher")
+                                .help(L("It changes something outside BeLauncher"))
                         }
                     }
                 }
@@ -350,7 +401,7 @@ private struct MissionPane: View {
                 Button("Ejecutar") { approve() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                Button("Cancelar") { cancel() }
+                Button(L("Cancel")) { cancel() }
                     .controlSize(.small)
             }
             Spacer(minLength: 0)
@@ -383,7 +434,7 @@ private struct AIPane: View {
                         Mascot(height: 34, isWorking: true)
                         Text(title).font(.system(size: 12))
                         Spacer()
-                        Button("Cancelar") { dismiss() }
+                        Button(L("Cancel")) { dismiss() }
                             .controlSize(.small)
                     }
                     Text(L("The first time each day takes a few seconds while the model loads into memory. After that it starts writing almost instantly."))
@@ -397,7 +448,7 @@ private struct AIPane: View {
                         .font(.system(size: 10.5, weight: .medium))
                         .foregroundStyle(Theme.accent)
                     Spacer()
-                    Text("↩ copiar").font(.system(size: 10)).foregroundStyle(.tertiary)
+                    Text(L("↩ copy")).font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
                 ScrollView {
                     Text(text)
@@ -435,8 +486,8 @@ private struct ActionPanelView: View {
                     ForEach(ResultAction.Section.allCases, id: \.self) { section in
                         let items = model.visibleActions.filter { $0.section == section }
                         if !items.isEmpty {
-                            if !section.rawValue.isEmpty {
-                                Text(section.rawValue.uppercased())
+                            if !section.label.isEmpty {
+                                Text(section.label.uppercased())
                                     .font(.system(size: 9, weight: .semibold))
                                     .tracking(0.7)
                                     .foregroundStyle(.tertiary)
@@ -466,7 +517,7 @@ private struct ActionPanelView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
-                TextField("Buscar acciones…", text: $model.actionQuery)
+                TextField(L("Search actions…"), text: $model.actionQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .focused($focus, equals: .actions)
@@ -631,7 +682,7 @@ private struct FilePreview: View {
                 } label: { Label("Finder", systemImage: "folder") }
                 Button {
                     NSWorkspace.shared.open(url)
-                } label: { Label("Abrir", systemImage: "arrow.up.forward.app") }
+                } label: { Label(L("Open"), systemImage: "arrow.up.forward.app") }
             }
             .buttonStyle(.borderless)
             .font(.system(size: 10.5))
@@ -803,14 +854,14 @@ private struct ClipCard: View {
     private var sourceName: String {
         guard let last = result.subtitle.split(separator: "·").last else { return "" }
         return last.trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: "Copiado de ", with: "")
+            .replacingOccurrences(of: L("Copied from "), with: "")
     }
 
     /// Resolved by name because that is all a clip records. A miss simply shows no icon rather
     /// than a generic placeholder, which would be noise repeated on every card.
     private var sourceIcon: NSImage? {
         let name = sourceName
-        guard !name.isEmpty, name != "Portapapeles" else { return nil }
+        guard !name.isEmpty, name != L("Clipboard") else { return nil }
         for base in ["/Applications", "/System/Applications",
                      NSHomeDirectory() + "/Applications"] {
             let path = "\(base)/\(name).app"

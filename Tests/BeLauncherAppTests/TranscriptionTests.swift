@@ -76,10 +76,10 @@ struct TranscriptionTests {
         let said = Transcription.Failure.untrustworthy(0.3).errorDescription ?? ""
 
         #expect(said.contains("no"))
-        #expect(said.contains("Ajustes"))
+        #expect(said.contains("Settings"))
         // Lo importante: dice que NO se guarda nada. Un error que no aclare eso deja a alguien
         // creyendo que la reunión quedó transcrita.
-        #expect(said.contains("se guarda"))
+        #expect(said.contains("nothing is kept"))
     }
 
     @Test("las palabras cortas no inflan la puntuación")
@@ -93,6 +93,6 @@ struct TranscriptionTests {
     @Test("el aviso de macOS viejo se explica sin jerga")
     func elAvisoDeMacOSViejo() {
         #expect(Transcription.unsupportedReason.contains("macOS 26"))
-        #expect(Transcription.unsupportedReason.contains("sin enviar el audio fuera del Mac"))
+        #expect(Transcription.unsupportedReason.contains("without sending the audio off the Mac"))
     }
 }

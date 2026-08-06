@@ -34,7 +34,7 @@ final class ServiceProvider: NSObject {
     private func text(from pasteboard: NSPasteboard, error: AutoreleasingUnsafeMutablePointer<NSString>?) -> String? {
         guard let text = pasteboard.string(forType: .string),
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            error?.pointee = "Selecciona un texto primero." as NSString
+            error?.pointee = L("Select some text first.") as NSString
             return nil
         }
         return text
@@ -75,6 +75,6 @@ final class ServiceProvider: NSObject {
         guard let text = text(from: pasteboard, error: error) else { return }
         // A memory is a proposal, here as everywhere: coming in through a right-click menu does
         // not make it something the company has decided.
-        remember?(text, "Seleccionado en otra app")
+        remember?(text, L("Selected in another app"))
     }
 }

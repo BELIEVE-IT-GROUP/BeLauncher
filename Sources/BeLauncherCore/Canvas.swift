@@ -112,7 +112,7 @@ public struct Canvas: Sendable, Equatable, Identifiable {
         var text = ["# \(title)", ""]
         for block in blocks {
             text.append("## \(block.title)")
-            text.append(block.body.isEmpty ? "_(vacío)_" : block.body)
+            text.append(block.body.isEmpty ? L("_(empty)_") : block.body)
             text.append("")
         }
         return text.joined(separator: "\n")
@@ -141,42 +141,42 @@ public enum CanvasTemplate {
     }
 
     public static let all: [Definition] = [
-        .init(id: "campaign", title: "Campaña", blocks: [
-            ("Audiencia", .draft, "Describe a quién va dirigida esta campaña: quién es, qué le duele y qué le mueve. Tres frases."),
-            ("Oferta", .draft, "Formula la oferta concreta en una frase, sin adjetivos de relleno."),
-            ("Concepto", .draft, "Propón el concepto creativo: la idea que sostiene toda la campaña."),
-            ("Landing", .draft, "Escribe el titular, subtitular y la llamada a la acción de la página."),
-            ("Anuncios", .draft, "Tres variantes de anuncio, una línea cada una."),
-            ("Email", .draft, "Un correo corto de lanzamiento: asunto y cuerpo."),
-            ("Tareas", .checklist, "Lista lo que hay que hacer para lanzar esto, en orden."),
+        .init(id: "campaign", title: L("Campaign"), blocks: [
+            ("Audiencia", .draft, "Describe who this campaign is aimed at: who they are, what hurts and what moves them. Three sentences."),
+            ("Oferta", .draft, "State the concrete offer in one sentence, no filler adjectives."),
+            ("Concepto", .draft, "Propose the creative concept: the idea the whole campaign hangs on."),
+            ("Landing", .draft, "Write the headline, subhead and call to action for the page."),
+            ("Anuncios", .draft, "Three ad variants, one line each."),
+            ("Email", .draft, "A short launch email: subject and body."),
+            ("Tareas", .checklist, "List what has to happen to launch this, in order."),
         ]),
-        .init(id: "proposal", title: "Propuesta", blocks: [
-            ("Contexto", .reference, "Resume qué sabemos del cliente y de la conversación previa."),
-            ("Problema", .draft, "Enuncia el problema con las palabras del cliente, no con las nuestras."),
-            ("Solución", .draft, "Qué proponemos, concreto, sin jerga."),
-            ("Alcance", .checklist, "Qué incluye y qué no incluye. Lo que no incluye evita la mitad de los problemas."),
-            ("Precio y plazos", .draft, "Propón una estructura de precio y un plazo realista."),
-            ("Siguiente paso", .draft, "Una sola acción clara para que el cliente diga que sí."),
+        .init(id: "proposal", title: L("Proposal"), blocks: [
+            ("Contexto", .reference, "Sum up what we know about the client and the previous conversation."),
+            ("Problema", .draft, "State the problem in the client’s words, not ours."),
+            (L("Solution"), .draft, "What we propose: concrete, no jargon."),
+            ("Alcance", .checklist, "What is included and what is not. What is not included prevents half the trouble."),
+            (L("Price and timings"), .draft, "Propose a price structure and a realistic timeline."),
+            (L("Next step"), .draft, "One clear action for the client to say yes to."),
         ]),
-        .init(id: "meeting-prep", title: "Preparación de reunión", blocks: [
-            ("Quién es", .reference, "Quién viene y qué sabemos de ellos."),
-            ("Dónde lo dejamos", .reference, "Lo último que se decidió o se prometió."),
-            ("Objetivo", .draft, "Qué queremos sacar de esta reunión, en una frase."),
-            ("Preguntas", .checklist, "Las tres preguntas que hay que hacer sí o sí."),
-            ("Riesgos", .draft, "Qué puede salir mal o qué objeción va a aparecer."),
+        .init(id: "meeting-prep", title: L("Meeting prep"), blocks: [
+            (L("Who they are"), .reference, "Who is coming and what we know about them."),
+            (L("Where we left it"), .reference, "The last thing decided or promised."),
+            ("Objetivo", .draft, "What we want out of this meeting, in one sentence."),
+            ("Preguntas", .checklist, "The three questions that have to be asked."),
+            ("Riesgos", .draft, "What could go wrong, or which objection is coming."),
         ]),
-        .init(id: "post-mortem", title: "Cierre de proyecto", blocks: [
-            ("Qué pasó", .draft, "Resume lo ocurrido, sin culpables."),
-            ("Qué funcionó", .checklist, "Lo que hay que repetir."),
-            ("Qué no", .checklist, "Lo que hay que dejar de hacer."),
-            ("Decisiones", .draft, "Qué decidimos a partir de esto. Esto va al cerebro."),
+        .init(id: "post-mortem", title: L("Project wrap-up"), blocks: [
+            (L("What happened"), .draft, "Sum up what happened, without blame."),
+            (L("What worked"), .checklist, "What is worth doing again, and why it worked."),
+            (L("What did not"), .checklist, "What to stop doing, stated plainly."),
+            ("Decisiones", .draft, "What we decide from this. This goes into the brain."),
         ]),
-        .init(id: "onboarding", title: "Alta de cliente", blocks: [
-            ("Ficha", .draft, "Datos del cliente: quién es, qué hace, quién es el contacto."),
-            ("Accesos", .checklist, "Qué accesos hay que pedirles."),
-            ("Entregables", .checklist, "Qué recibirán y cuándo."),
-            ("Carpeta", .action, "Crear la carpeta del cliente."),
-            ("Primera reunión", .draft, "Agenda de la reunión de arranque."),
+        .init(id: "onboarding", title: L("Client onboarding"), blocks: [
+            ("Ficha", .draft, "Client details: who they are, what they do, who the contact is."),
+            ("Accesos", .checklist, "Which accesses to ask them for."),
+            ("Entregables", .checklist, "What they will receive and when."),
+            (L("Folder"), .action, "Create the client folder."),
+            (L("First meeting"), .draft, "Agenda for the kick-off meeting."),
         ]),
     ]
 

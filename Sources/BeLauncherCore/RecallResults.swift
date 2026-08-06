@@ -60,10 +60,10 @@ public enum RecallResults {
 
     static func reason(_ hit: Retrieved) -> String {
         switch hit.route {
-        case .meaning: "por significado"
-        case .words: "por palabras"
-        case .both: "coincide en todo"
-        case .related: "relacionado con \(hit.via ?? "otro resultado")"
+        case .meaning: L("by meaning")
+        case .words: L("by words")
+        case .both: L("matches on everything")
+        case .related: L("related to %@", hit.via ?? L("another result"))
         }
     }
 }

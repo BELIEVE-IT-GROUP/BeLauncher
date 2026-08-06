@@ -32,7 +32,7 @@ final class CalendarAccess {
             .map { event in
                 CalendarEvent(
                     id: event.eventIdentifier ?? UUID().uuidString,
-                    title: event.title ?? "Sin título",
+                    title: event.title ?? L("No title"),
                     start: event.startDate,
                     end: event.endDate,
                     attendees: (event.attendees ?? []).compactMap { $0.name },

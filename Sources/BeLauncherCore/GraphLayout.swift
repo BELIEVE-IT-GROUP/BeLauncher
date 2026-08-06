@@ -120,7 +120,7 @@ public enum GraphLayout {
         /// knows is worse than one that shows less and admits it.
         public var omittedNote: String? {
             guard omitted > 0 else { return nil }
-            return "Faltan \(omitted) nodos menos relevantes. Acota por fecha o sube el listón."
+            return L("%@ less relevant nodes are missing. Narrow the dates or raise the bar.", String(omitted))
         }
     }
 
@@ -132,8 +132,8 @@ public enum GraphLayout {
 
         public var label: String {
             switch self {
-            case .force: "Por relación"
-            case .timeline: "Por tiempo"
+            case .force: L("By relation")
+            case .timeline: L("By time")
             }
         }
     }

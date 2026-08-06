@@ -123,10 +123,10 @@ final class SettingsModel {
             }
             providerKeys[provider.id] = trimmed
             aiStatus = trimmed.isEmpty
-                ? "Clave de \(provider.name) borrada."
-                : "Clave de \(provider.name) guardada en el Llavero."
+                ? L("%@ key deleted.", provider.name)
+                : L("%@ key saved to the Keychain.", provider.name)
         } catch {
-            aiStatus = "El Llavero rechazó la clave: \(error)"
+            aiStatus = L("The Keychain refused the key: %@", String(describing: error))
         }
     }
 
@@ -146,7 +146,7 @@ final class SettingsModel {
             do {
                 let provider = try router.provider(for: .personal, available: available)
                 let answer = try await IntelligenceClient().answer(
-                    IntelligenceRequest(prompt: "Responde solo con la palabra: listo",
+                    IntelligenceRequest(prompt: L("Reply with one word only: ready"),
                                         sensitivity: .personal, maxTokens: 20),
                     using: provider
                 )
@@ -212,7 +212,7 @@ final class SettingsModel {
     func copyMCPConfig() {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(mcpConfig, forType: .string)
-        status = "Configuración copiada. Pégala en el archivo de Claude Desktop."
+        status = L("Configuration copied. Paste it into the Claude Desktop file.")
     }
     var license: LicenseIdentity?
     var licenseClient: LicenseClient?
@@ -403,8 +403,7 @@ final class SettingsModel {
         // An empty stored list reads as "never configured", which brings the factory ones back on
         // the next read. Rather than let the row reappear with no explanation, it is said.
         if apps.isEmpty {
-            exclusionNote = "Era la última de la lista, así que vuelven las de fábrica. Para no "
-                          + "excluir ninguna app, deja solo una que no uses."
+            exclusionNote = L("That was the last one on the list, so the factory ones come back. To exclude no app at all, leave one you never use.")
         } else {
             exclusionNote = nil
         }
@@ -585,7 +584,7 @@ final class SettingsModel {
             flows: store.flows(), snippets: store.snippets()
         )
         for pack in merge.packs {
-            try? store.installPack(pack, source: "equipo: \(bundle.team)")
+            try? store.installPack(pack, source: L("team: %@", bundle.team))
         }
         for flow in merge.flows {
             try? store.addFlow(keyword: flow.keyword, title: flow.title, steps: flow.steps)
@@ -606,7 +605,7 @@ final class SettingsModel {
         if !merge.snippets.isEmpty { parts.append("\(merge.snippets.count) snippet(s)") }
         var text = parts.isEmpty ? "" : "Instalados " + parts.joined(separator: ", ") + ". "
         if !merge.refused.isEmpty {
-            text += "Omitidos porque ya tienes uno con ese nombre: "
+            text += L("Skipped because you already have one by that name:")
                   + merge.refused.joined(separator: ", ") + "."
         }
         return text
@@ -621,19 +620,17 @@ final class SettingsModel {
         let sharedFlows = store.flows()
         let sharedSnippets = store.snippets()
         guard !shareable.isEmpty || !sharedPacks.isEmpty || !sharedFlows.isEmpty else {
-            status = "No hay nada que compartir todavía: ni memorias marcadas como “shared”, ni "
-                   + "comandos, ni flujos propios."
+            status = L("There is nothing to share yet: no memories marked “shared”, no commands, no flows of your own.")
             return
         }
         guard let passphrase = askPassphrase(
-            title: "Frase del equipo",
-            message: "La misma que use el resto del equipo. No la guardamos ni la vemos: "
-                   + "si se pierde, el paquete no se puede abrir."
+            title: L("Team phrase"),
+            message: L("The same one the rest of the team uses. We neither keep it nor see it: if it is lost, the package cannot be opened.")
         ) else { return }
 
         let panel = NSSavePanel()
         panel.nameFieldStringValue = SafeFilename.make("brain-believe", extension: "belaunch")
-        panel.message = "Cifrado con la frase del equipo."
+        panel.message = L("Encrypted with the team phrase.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         do {
@@ -647,10 +644,10 @@ final class SettingsModel {
                                             with: TeamBrain.key(fromPassphrase: passphrase,
                                                                 team: "believe"))
             try sealed.write(to: url, options: .atomic)
-            status = "Exportadas \(shareable.count) memorias, \(sharedPacks.count) comando(s) y "
-                   + "\(sharedFlows.count) flujo(s), todo cifrado."
+            status = L("Exported %1$@ memories, %2$@ command(s) and %3$@ flow(s), all encrypted.",
+                       String(shareable.count), String(sharedPacks.count), String(sharedFlows.count))
         } catch {
-            status = "No se pudo exportar: \(error)"
+            status = L("It could not be exported: %@", String(describing: error))
         }
     }
 
@@ -659,13 +656,13 @@ final class SettingsModel {
         guard let vault = try? Vault(root: Vault.defaultRoot()) else { return }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = false
-        panel.message = "Elige el paquete cifrado del equipo."
+        panel.message = L("Pick the team's encrypted package.")
         guard panel.runModal() == .OK, let url = panel.url,
               let data = try? Data(contentsOf: url) else { return }
 
         guard let passphrase = askPassphrase(
-            title: "Frase del equipo",
-            message: "La frase con la que se cifró este paquete."
+            title: L("Team phrase"),
+            message: L("The phrase this package was encrypted with.")
         ) else { return }
 
         do {
@@ -674,15 +671,16 @@ final class SettingsModel {
                                                                 team: "believe"))
             let plan = TeamBrain.plan(bundle, against: vault.objects())
             for object in plan.added {
-                _ = try? vault.propose(object, reason: "Del equipo · \(bundle.exportedBy)")
+                _ = try? vault.propose(object, reason: L("From the team · %@", bundle.exportedBy))
             }
             for conflict in plan.conflicts {
                 _ = try? vault.propose(conflict.incoming,
-                                       reason: "Del equipo · contradice «\(conflict.existing.statement)»")
+                                       reason: L("From the team · contradicts “%@”", conflict.existing.statement))
             }
             let commands = applyCommands(from: bundle)
-            status = commands + "\(plan.added.count + plan.conflicts.count) memorias del equipo esperan tu "
-                + "confirmación. Nada se aplicó solo."
+            status = commands
+                + L("%@ memories from the team are waiting for you to confirm them. Nothing applied itself.",
+                    String(plan.added.count + plan.conflicts.count))
         } catch {
             status = "\(error)"
         }
@@ -692,8 +690,8 @@ final class SettingsModel {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
-        alert.addButton(withTitle: "Continuar")
-        alert.addButton(withTitle: "Cancelar")
+        alert.addButton(withTitle: L("Continue"))
+        alert.addButton(withTitle: L("Cancel"))
         let field = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
         alert.accessoryView = field
         alert.window.initialFirstResponder = field
@@ -707,7 +705,7 @@ final class SettingsModel {
     func importFromAlfred() {
         let result = Importers.importAlfredSnippets()
         guard !result.snippets.isEmpty || !result.skipped.isEmpty else {
-            status = "No encontré snippets de Alfred en este Mac."
+            status = L("I found no Alfred snippets on this Mac.")
             return
         }
         let summary = store.apply(result)
@@ -720,14 +718,14 @@ final class SettingsModel {
     func importFromRaycast() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
-        panel.message = "Elige el archivo que exportaste desde Raycast."
+        panel.message = L("Pick the file you exported from Raycast.")
         guard panel.runModal() == .OK, let url = panel.url,
               let data = try? Data(contentsOf: url) else { return }
 
         let result = Importers.parseRaycastExport(data)
         let summary = store.apply(result)
         reload()
-        status = "Raycast: \(summary.addedSnippets) snippets y \(summary.addedWorkflows) enlaces"
+        status = L("Raycast: %1$@ snippets and %2$@ links", String(summary.addedSnippets), String(summary.addedWorkflows))
             + (summary.skipped > 0 ? ", \(summary.skipped) omitidos." : ".")
     }
 
@@ -803,37 +801,20 @@ final class SettingsModel {
 
     var vaultRoot: String { Vault.defaultRoot() }
 
-    func openInObsidian() {
-        guard let url = VaultGuide.obsidianURL(for: vaultRoot) else { return }
-        // Obsidian may not be installed; openURL returns false rather than failing loudly.
-        if !NSWorkspace.shared.open(url) {
-            status = "No encontramos Obsidian. Instálalo y vuelve a intentarlo, o ábrelo tú y elige "
-                   + "«Abrir carpeta como almacén» con esta carpeta."
-        } else {
-            status = "Abriendo tu cerebro en Obsidian."
-        }
-    }
-
-    func makeVaultGitRepository() {
-        switch VaultGuide.makeGitRepository(at: vaultRoot) {
-        case .created:
-            status = "Listo: tu cerebro es un repositorio git. Añade tu remoto con "
-                   + "«git remote add origin …» y haz push cuando quieras."
-        case .alreadyGit:
-            status = "Ya era un repositorio git."
-        case .failed(let reason):
-            status = reason
-        }
-    }
+    // "Open in Obsidian" and "turn the vault into a git repository" used to live here. Both are
+    // gone: the brain is what this product sells, and a button that hands the corpus to another
+    // note-taking app — or sets up the sync we intend to charge for — sends people out of the door
+    // we are trying to get them through. The vault is still an ordinary folder of .md files on
+    // disk, so anyone who wants either can do it themselves; the app just does not offer it.
 
     func rebuildVaultStructure() {
         do {
             let created = try VaultGuide.scaffold(at: vaultRoot)
             status = created.isEmpty
-                ? "La estructura ya estaba completa."
+                ? L("The structure was already complete.")
                 : "Creado: " + created.joined(separator: ", ")
         } catch {
-            status = "No se pudo crear la estructura: \(error.localizedDescription)"
+            status = L("The structure could not be made: %@", error.localizedDescription)
         }
     }
 
@@ -885,13 +866,13 @@ final class SettingsModel {
         store.clearActionLog()
         store.clearRecipeOffers()
         reloadIntelligenceExtras()
-        status = "Historial de acciones borrado."
+        status = L("Action history cleared.")
     }
 
     func clearGraph() {
         store.clearWorkGraph()
         reloadIntelligenceExtras()
-        status = "Memoria de trabajo borrada."
+        status = L("Working memory cleared.")
     }
 
     func forget(_ trait: Trait) {
@@ -902,7 +883,7 @@ final class SettingsModel {
     func forgetEverythingLearned() {
         store.forgetAllTraits()
         reloadIntelligenceExtras()
-        status = "Olvidado todo lo aprendido sobre cómo trabajas."
+        status = L("Everything it learned about how you work has been forgotten.")
     }
 
     func removePack(_ pack: OutcomePack) {
@@ -914,20 +895,20 @@ final class SettingsModel {
     func exportPacks() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "comandos-belauncher.json"
-        panel.message = "Comparte tus comandos con el equipo."
+        panel.message = L("Share your commands with the team.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try OutcomePack.encode(store.installedPacks()).write(to: url)
             status = "Comandos exportados."
         } catch {
-            status = "No se pudieron exportar: \(error.localizedDescription)"
+            status = L("They could not be exported: %@", error.localizedDescription)
         }
     }
 
     func importPacks() {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
-        panel.message = "Importar comandos compartidos."
+        panel.message = L("Import shared commands.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let incoming = try OutcomePack.decode(Data(contentsOf: url))
@@ -940,9 +921,9 @@ final class SettingsModel {
             }
             reloadIntelligenceExtras()
             status = conflicts.isEmpty
-                ? "Instalados \(installable.count) comando(s)."
-                : "Instalados \(installable.count). Omitidos \(conflicts.count) porque ya tienes "
-                  + "un comando con ese nombre."
+                ? L("%@ command(s) installed.", String(installable.count))
+                : L("%1$@ installed. %2$@ skipped because you already have a command by that name.",
+                    String(installable.count), String(conflicts.count))
         } catch {
             status = "\(error)"
         }
@@ -1127,7 +1108,7 @@ final class SettingsModel {
             self.refreshBrainState()
 
             guard brain.engine != nil else {
-                self.brainStatus = "Índice rehecho. Sin modelo, se busca por palabras exactas."
+                self.brainStatus = L("Index rebuilt. With no model, it searches for exact words.")
                 return
             }
             // One batch at a time rather than `embedEverything`, so the counter climbs while it
@@ -1140,8 +1121,7 @@ final class SettingsModel {
                 self.brainStatus = BrainSetupCopy.rebuildFinished(
                     passages: progress.passages, vectorised: progress.vectorised)
             } catch {
-                self.brainStatus = "El modelo dejó de responder a mitad. Lo indexado se queda "
-                    + "guardado: vuelve a pulsar y sigue desde donde iba."
+                self.brainStatus = L("The model stopped answering halfway. What was indexed stays: press again and it carries on from where it was.")
             }
             self.refreshBrainState()
         }
@@ -1172,14 +1152,14 @@ final class SettingsModel {
         Task { @MainActor in
             switch await UpdateCheck.run(feedURL: feed, currentVersion: version) {
             case .notConfigured:
-                updateStatus = "No hay feed de actualizaciones configurado."
+                updateStatus = L("No update feed is configured.")
             case .upToDate:
-                updateStatus = "Estás en la última versión (\(version))."
+                updateStatus = L("You are on the latest version (%@).", version)
             case .available(let release):
                 availableUpdate = release
-                updateStatus = "Hay una versión nueva: \(release.version)"
+                updateStatus = L("There is a new version: %@", release.version)
             case .unavailable(let reason):
-                updateStatus = "No pudimos consultar las actualizaciones: \(reason)"
+                updateStatus = L("We could not check for updates: %@", reason)
             }
             store.setSetting("last_update_check", ISO8601DateFormatter().string(from: .now))
         }
@@ -1199,11 +1179,11 @@ final class SettingsModel {
                 email: license.email, key: license.key, deviceID: license.deviceID
             )
             guard ok else {
-                licenseStatus = "No pudimos desactivar ahora. Intenta de nuevo en un momento."
+                licenseStatus = L("We could not deactivate right now. Try again in a moment.")
                 return
             }
             LicenseVault.clear()
-            licenseStatus = "Equipo liberado."
+            licenseStatus = L("Mac released.")
             NSApp.terminate(nil)
         }
     }

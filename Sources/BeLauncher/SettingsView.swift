@@ -154,18 +154,15 @@ private struct GeneralTab: View {
                 }
             }
 
-            Section("Sonido") {
-                Toggle("Avisar con un sonido al copiar", isOn: $model.soundsEnabled)
-                Text("Suena cada vez que copias algo, en cualquier app: es la confirmación de que "
-                     + "quedó guardado. **Si no suena, es que no lo guardó** — una contraseña o "
-                     + "algo con forma de clave. El silencio también dice algo.")
+            Section(L("Sound")) {
+                Toggle(L("Make a sound when you copy"), isOn: $model.soundsEnabled)
+                Text(L("It sounds every time you copy anything, in any app: that is the confirmation it was kept. **If it stays quiet, it was not kept** — a password, or something shaped like a key. The silence says something too."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Toggle("También al abrir y cerrar la ventana", isOn: $model.soundsChrome)
+                Toggle(L("Also when the window opens and closes"), isOn: $model.soundsChrome)
                     .disabled(!model.soundsEnabled)
-                Text("Viene apagado a propósito: copiar son decenas de veces al día y abrir la "
-                     + "ventana son cientos. Pruébalo y decide.")
+                Text(L("Off on purpose: copying happens dozens of times a day and opening the window happens hundreds. Try it and decide."))
                     .font(.caption).foregroundStyle(.secondary)
 
                 HStack(spacing: 6) {
@@ -174,35 +171,32 @@ private struct GeneralTab: View {
                             .controlSize(.small)
                     }
                 }
-                Text("Los sonidos se generan dentro de la app, no son archivos: por eso no se "
-                     + "parecen a los de ninguna otra.")
+                Text(L("The sounds are generated inside the app rather than played from files, which is why they sound like no other Mac you have used."))
                     .font(.caption).foregroundStyle(.tertiary)
             }
 
-            Section("Actualizaciones") {
-                Toggle("Buscar actualizaciones", isOn: $model.updateCheckEnabled)
+            Section(L("Updates")) {
+                Toggle(L("Check for updates"), isOn: $model.updateCheckEnabled)
                 UpdateRow(model: model)
-                Text("BeLauncher no tiene cuenta, ni analítica, ni servidor. Solo mira si hay "
-                     + "versión nueva cuando se lo pides, y la instala él mismo: nada de arrastrar "
-                     + "la app encima de la vieja.")
+                Text(L("BeLauncher has no account, no analytics and no server. It only looks for a new version when you ask it to, and installs it itself: no dragging the app over the old one."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Licencia") {
                 if let license = model.license {
-                    LabeledContent("Correo", value: license.email)
-                    LabeledContent("Clave") {
+                    LabeledContent(L("Email"), value: license.email)
+                    LabeledContent(L("Key")) {
                         Text(model.maskedKey).font(.system(.caption, design: .monospaced))
                     }
-                    LabeledContent("Este equipo", value: DeviceIdentity.name)
-                    Button("Desactivar en este equipo") { model.deactivateThisMac() }
+                    LabeledContent(L("This Mac"), value: DeviceIdentity.name)
+                    Button(L("Deactivate this Mac")) { model.deactivateThisMac() }
                 } else {
-                    Text("Sin licencia activa.").font(.caption).foregroundStyle(.secondary)
+                    Text(L("No active licence.")).font(.caption).foregroundStyle(.secondary)
                 }
                 if let status = model.licenseStatus {
                     Text(status).font(.caption).foregroundStyle(.secondary)
                 }
-                LabeledContent("Versión", value: model.appVersion)
+                LabeledContent(L("Version"), value: model.appVersion)
             }
         }
         .formStyle(.grouped)
@@ -222,7 +216,7 @@ private struct UpdateRow: View {
         switch model.updater.phase {
         case .idle:
             HStack {
-                Button("Buscar ahora") { model.checkForUpdates() }
+                Button(L("Check now")) { model.checkForUpdates() }
                     .disabled(!model.updateCheckEnabled)
                 if let release = model.availableUpdate {
                     Button("Actualizar a \(release.version)") { model.installUpdate() }
@@ -237,21 +231,21 @@ private struct UpdateRow: View {
         case .downloading(let fraction):
             HStack {
                 ProgressView(value: fraction).frame(width: 150)
-                Text("Descargando…").font(.caption).foregroundStyle(.secondary)
-                Button("Cancelar") { model.updater.cancel() }.controlSize(.small)
+                Text(L("Downloading…")).font(.caption).foregroundStyle(.secondary)
+                Button(L("Cancel")) { model.updater.cancel() }.controlSize(.small)
             }
 
         case .verifying:
-            Label("Comprobando la firma de Apple…", systemImage: "checkmark.shield")
+            Label(L("Checking Apple's signature…"), systemImage: "checkmark.shield")
                 .font(.caption).foregroundStyle(.secondary)
 
         case .installing:
-            Label("Instalando…", systemImage: "arrow.down.app")
+            Label(L("Installing…"), systemImage: "arrow.down.app")
                 .font(.caption).foregroundStyle(.secondary)
 
         case .readyToRelaunch(let version):
             HStack {
-                Label("Listo: la \(version) se instaló.", systemImage: "checkmark.circle.fill")
+                Label(L("Done: %@ is installed.", version), systemImage: "checkmark.circle.fill")
                     .font(.caption).foregroundStyle(.green)
                 Spacer()
                 Button("Reiniciar ahora") { model.updater.relaunch() }
@@ -262,7 +256,7 @@ private struct UpdateRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(reason).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
                 HStack {
-                    Button("Reintentar") { model.installUpdate() }.controlSize(.small)
+                    Button(L("Try again")) { model.installUpdate() }.controlSize(.small)
                     if let release = model.availableUpdate, let url = URL(string: release.url) {
                         Button("Descargar a mano") { NSWorkspace.shared.open(url) }
                             .controlSize(.small)
@@ -282,16 +276,14 @@ private struct IntelligenceTab: View {
 
     var body: some View {
         Form {
-            Section("Qué modelo responde") {
+            Section(L("Which model answers")) {
                 Picker("Preferido", selection: $model.aiProvider) {
                     ForEach(IntelligenceProvider.all) { provider in
                         Text(provider.name).tag(provider.id)
                     }
                 }
-                Toggle("Lo confidencial nunca sale del Mac", isOn: $model.confidentialStaysLocal)
-                Text("Con esto activado, sacar tareas de una reunión o cualquier cosa marcada como "
-                     + "material de empresa solo va a un modelo local. Si no hay ninguno, se niega "
-                     + "en vez de enviarlo igualmente.")
+                Toggle(L("Confidential things never leave the Mac"), isOn: $model.confidentialStaysLocal)
+                Text(L("With this on, pulling tasks out of a meeting or anything marked as company material only goes to a local model. If there is none, it refuses rather than sending it anyway."))
                     .font(.caption).foregroundStyle(.secondary)
 
                 HStack {
@@ -303,15 +295,15 @@ private struct IntelligenceTab: View {
                 }
             }
 
-            Section("Tus claves") {
+            Section(L("Your keys")) {
                 ForEach(IntelligenceProvider.all.filter { !$0.isPrivate }) { provider in
                     HStack {
                         Text(provider.name).frame(width: 100, alignment: .leading)
-                        SecureField("clave", text: Binding(
+                        SecureField(L("key"), text: Binding(
                             get: { draftKeys[provider.id] ?? model.providerKeys[provider.id] ?? "" },
                             set: { draftKeys[provider.id] = $0 }
                         ))
-                        Button("Guardar") {
+                        Button(L("Save")) {
                             model.saveKey(draftKeys[provider.id] ?? "", for: provider)
                             draftKeys[provider.id] = nil
                         }
@@ -322,13 +314,11 @@ private struct IntelligenceTab: View {
                         }
                     }
                 }
-                Text("Las claves van a tu Llavero y las peticiones salen de tu Mac directas al "
-                     + "proveedor: nada pasa por Believe y le pagas a quien tú elijas. Nunca se "
-                     + "incluyen en una exportación.")
+                Text(L("The keys go into your Keychain and the requests leave your Mac straight for the provider: nothing passes through Believe and you pay whoever you choose. They are never included in an export."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Modelos en tu Mac") {
+            Section(L("Models on your Mac")) {
                 if !model.localScanned {
                     HStack {
                         ProgressView().controlSize(.small)
@@ -338,7 +328,7 @@ private struct IntelligenceTab: View {
                     Text(LocalModels.howToGetOne)
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Abrir ollama.com") {
+                    Button(L("Open ollama.com")) {
                         if let url = URL(string: "https://ollama.com") {
                             NSWorkspace.shared.open(url)
                         }
@@ -346,7 +336,7 @@ private struct IntelligenceTab: View {
                 } else {
                     ForEach(model.localInstallations) { installation in
                         VStack(alignment: .leading, spacing: 4) {
-                            Label("\(installation.name) está corriendo",
+                            Label(L("%@ is running", installation.name),
                                   systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green).font(.system(size: 12))
                             Picker("Modelo", selection: Binding(
@@ -358,25 +348,25 @@ private struct IntelligenceTab: View {
                             }
                         }
                     }
-                    Text("Sin clave, sin coste por token y sin que nada salga de este Mac.")
+                    Text(L("No key, no cost per token, and nothing leaves this Mac."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
-                Button("Volver a buscar") { model.scanLocalModels() }
+                Button(L("Look again")) { model.scanLocalModels() }
                     .controlSize(.small)
             }
 
-            Section("Qué puedes pedirle") {
+            Section(L("What you can ask it for")) {
                 ForEach(AIVerb.all) { verb in
                     HStack {
                         Image(systemName: verb.symbol).foregroundStyle(Theme.accent).frame(width: 16)
                         Text(verb.title).font(.system(size: 12))
                         Spacer()
                         if verb.sensitivity == .confidential {
-                            Text("solo local").font(.system(size: 10)).foregroundStyle(.secondary)
+                            Text(L("local only")).font(.system(size: 10)).foregroundStyle(.secondary)
                         }
                     }
                 }
-                Text("Aparecen con ⌘K sobre cualquier texto del portapapeles.")
+                Text(L("They appear with ⌘K over any text in the clipboard."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -394,13 +384,13 @@ private struct ClipboardTab: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Guardar lo que copias", isOn: $model.clipboardEnabled)
-                Stepper("Borrar después de \(model.retentionDays) días",
+                Toggle(L("Keep what you copy"), isOn: $model.clipboardEnabled)
+                Stepper(L("Delete after %@ days", String(model.retentionDays)),
                         value: $model.retentionDays, in: 1...365)
-                Stepper("Guardar como mucho \(model.maxItems)",
+                Stepper(L("Keep at most %@", String(model.maxItems)),
                         value: $model.maxItems, in: 20...5000, step: 20)
-                Toggle("Pegar en la app anterior al elegir", isOn: $model.pasteAfterCopy)
-                Button("Borrar el historial") {
+                Toggle(L("Paste into the previous app when you pick"), isOn: $model.pasteAfterCopy)
+                Button(L("Clear the history")) {
                     model.store.clearClips()
                     model.status = "Historial borrado."
                 }
@@ -408,7 +398,7 @@ private struct ClipboardTab: View {
 
             Section("Apps excluidas") {
                 if model.excludedApps.isEmpty {
-                    Text("Ninguna. Lo que copies desde cualquier app se guarda.")
+                    Text(L("None. Whatever you copy from any app gets kept."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(model.excludedApps, id: \.self) { app in
@@ -422,7 +412,7 @@ private struct ClipboardTab: View {
                     }
                 }
                 HStack {
-                    TextField("Nombre de la app", text: $newExclusion)
+                    TextField(L("App name"), text: $newExclusion)
                     Button("Excluir") {
                         model.addExcludedApp(newExclusion)
                         newExclusion = ""
@@ -430,12 +420,10 @@ private struct ClipboardTab: View {
                     .controlSize(.small)
                 }
                 if !model.seenApps.isEmpty {
-                    Text("Vistas últimamente: " + model.seenApps.prefix(6).joined(separator: ", "))
+                    Text(L("Seen lately: ") + model.seenApps.prefix(6).joined(separator: ", "))
                         .font(.caption).foregroundStyle(.tertiary)
                 }
-                Text("Nunca se guardan las copias que los gestores de contraseñas marcan como "
-                     + "confidenciales, ni nada con forma de credencial. Esto es para lo demás que "
-                     + "prefieras dejar fuera.")
+                Text(L("Copies that password managers mark as confidential are never kept, nor is anything shaped like a credential. This is for whatever else you would rather leave out."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -458,46 +446,46 @@ private struct CommandsTab: View {
                 .padding(10)
 
             List {
-                Section("Escribe una intención") {
+                Section(L("Type an intent")) {
                     ForEach(MissionPlanner.outcomes.filter { matches($0.title) }) { outcome in
                         row(outcome.title, hint: outcome.triggers.first ?? "",
                             symbol: "wand.and.stars")
                     }
                 }
 
-                Section("Encárgale algo (escribe «/»)") {
+                Section(L("Give it something to do (type “/”)")) {
                     ForEach(OutcomePack.builtIn.filter { matches($0.name) }) { pack in
                         row(pack.name, hint: "/\(pack.verb)", symbol: pack.symbol)
                     }
                 }
 
-                Section("Memoria de trabajo") {
-                    row("Qué prometimos a alguien", hint: "qué prometimos a Andrés",
+                Section(L("Working memory")) {
+                    row(L("What we promised somebody"), hint: L("what did we promise Andrés"),
                         symbol: "hand.raised")
-                    row("Abrir lo último de un proyecto", hint: "abre lo último de Atlas",
+                    row(L("Open the latest from a project"), hint: L("open the latest from Atlas"),
                         symbol: "clock.arrow.circlepath")
-                    row("Retomar lo de antes de la llamada",
-                        hint: "retoma lo que estaba haciendo", symbol: "arrow.uturn.backward")
-                    row("Quién es alguien", hint: "quién es Acme", symbol: "person.text.rectangle")
+                    row(L("Pick up where you were before the call"),
+                        hint: L("pick up what I was doing"), symbol: "arrow.uturn.backward")
+                    row(L("Who somebody is"), hint: L("who is Acme"), symbol: "person.text.rectangle")
                 }
 
-                Section("Pregúntale al cerebro") {
-                    row("Qué decidimos sobre algo", hint: "qué decidimos sobre pricing",
+                Section(L("Ask your brain")) {
+                    row(L("What we decided about something"), hint: L("what did we decide about pricing"),
                         symbol: "brain")
-                    row("Prepárame para una reunión", hint: "prepárame para Acme",
+                    row(L("Get me ready for a meeting"), hint: L("get me ready for Acme"),
                         symbol: "person.2")
-                    row("Recordar algo", hint: "recordar que…", symbol: "text.badge.plus")
-                    row("Qué se me escapa", hint: "pulse", symbol: "waveform.path.ecg")
+                    row("Recordar algo", hint: L("remember that…"), symbol: "text.badge.plus")
+                    row(L("What is slipping"), hint: "pulse", symbol: "waveform.path.ecg")
                 }
 
-                Section("Sistema") {
+                Section(L("System")) {
                     ForEach(SystemCommand.all.filter { matches($0.title) }) { command in
                         row(command.title, hint: command.keywords.first ?? "",
                             symbol: command.symbol)
                     }
                 }
 
-                Section("Ventanas") {
+                Section(L("Windows")) {
                     ForEach(WindowCommand.all.filter { matches($0.title) }) { command in
                         row(command.title, hint: command.keywords.first ?? "",
                             symbol: command.symbol)
@@ -505,24 +493,24 @@ private struct CommandsTab: View {
                 }
 
                 Section("Utilidades") {
-                    row("Ver qué consume el Mac", hint: "cpu · memoria", symbol: "gauge.with.needle")
-                    row("Cerrar una app que se colgó", hint: "cpu chrome", symbol: "xmark.octagon")
-                    row("Que no se duerma el Mac", hint: "cafeina · cafeina 2 horas",
+                    row(L("See what is eating the Mac"), hint: "cpu · memoria", symbol: "gauge.with.needle")
+                    row(L("Close an app that hung"), hint: "cpu chrome", symbol: "xmark.octagon")
+                    row(L("Keep the Mac awake"), hint: "cafeina · cafeina 2 horas",
                         symbol: "cup.and.saucer")
-                    row("Apuntar algo rápido", hint: "nota llamar a Andrés", symbol: "square.and.pencil")
-                    row("Guardar dónde está cada ventana", hint: "guardar espacio trabajo",
+                    row(L("Jot something down fast"), hint: L("note call Andrés"), symbol: "square.and.pencil")
+                    row(L("Save where every window is"), hint: L("save workspace"),
                         symbol: "rectangle.3.group")
                     row("Volver a ese reparto", hint: "espacio trabajo · espacios",
                         symbol: "arrow.uturn.backward.square")
                     row("Calcular", hint: "2+2 · 15% of 300", symbol: "equal.square")
                     row("Convertir", hint: "10 km to mi", symbol: "arrow.left.arrow.right")
-                    row("Buscar archivos", hint: "f informe", symbol: "doc")
-                    row("Ir a una ruta", hint: "/Users/… · ~/Desktop · Tab completa",
+                    row(L("Find files"), hint: "f informe", symbol: "doc")
+                    row(L("Go to a path"), hint: "/Users/… · ~/Desktop · Tab completa",
                         symbol: "arrow.right.doc.on.clipboard")
-                    row("Buscar en Google, Claude, ChatGPT…", hint: "g · c · gpt", symbol: "link")
+                    row(L("Search Google, Claude, ChatGPT…"), hint: "g · c · gpt", symbol: "link")
                     row("Traducir, resumir, corregir…", hint: "traducir · resume · corrige",
                         symbol: "sparkles")
-                    row("Leer lo que hay en pantalla", hint: "⌥⇧Espacio",
+                    row(L("Read what is on screen"), hint: "⌥⇧Espacio",
                         symbol: "rectangle.dashed.badge.record")
                 }
             }
@@ -563,7 +551,7 @@ private struct ContentTab: View {
         Form {
             Section("Snippets") {
                 if model.snippets.isEmpty {
-                    Text("Ninguno todavía.").font(.caption).foregroundStyle(.secondary)
+                    Text(L("None yet.")).font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(model.snippets) { snippet in
                     HStack {
@@ -581,17 +569,17 @@ private struct ContentTab: View {
                     }
                 }
                 Divider()
-                TextField("Palabra clave", text: $snippetKeyword)
-                TextField("Nombre", text: $snippetTitle)
+                TextField(L("Keyword"), text: $snippetKeyword)
+                TextField(L("Name"), text: $snippetTitle)
                 TextField("Texto", text: $snippetBody, axis: .vertical).lineLimit(2...5)
                 if let error = model.snippetError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
                 HStack {
-                    Text("Fichas: {clipboard} {date} {time} {uuid} {cursor} {secret:NOMBRE}")
+                    Text(L("Tokens: {clipboard} {date} {time} {uuid} {cursor} {secret:NAME}"))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Añadir") {
+                    Button(L("Add")) {
                         if model.addSnippet(keyword: snippetKeyword, title: snippetTitle,
                                             body: snippetBody) {
                             snippetKeyword = ""; snippetTitle = ""; snippetBody = ""
@@ -621,18 +609,18 @@ private struct ContentTab: View {
                     }
                 }
                 Divider()
-                TextField("Palabra clave", text: $workflowKeyword)
-                TextField("Nombre", text: $workflowTitle)
-                TextField("Plantilla de URL", text: $workflowTemplate,
+                TextField(L("Keyword"), text: $workflowKeyword)
+                TextField(L("Name"), text: $workflowTitle)
+                TextField(L("URL template"), text: $workflowTemplate,
                           prompt: Text("https://example.com/search?q={query}"))
                 if let error = model.workflowError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
                 HStack {
-                    Text("Solo http, https y mailto. BeLauncher nunca ejecuta scripts.")
+                    Text(L("Only http, https and mailto. BeLauncher never runs scripts."))
                         .font(.caption).foregroundStyle(.secondary)
                     Spacer()
-                    Button("Añadir") {
+                    Button(L("Add")) {
                         if model.addWorkflow(keyword: workflowKeyword, title: workflowTitle,
                                              template: workflowTemplate) {
                             workflowKeyword = ""; workflowTitle = ""; workflowTemplate = ""
@@ -643,7 +631,7 @@ private struct ContentTab: View {
 
             Section("Alias") {
                 if model.aliases.isEmpty {
-                    Text("Ninguno. Puedes crear uno con ⌘K sobre cualquier app.")
+                    Text(L("None. You can make one with ⌘K over any app."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(model.aliases, id: \.alias) { entry in
@@ -675,9 +663,9 @@ private struct ContentTab: View {
                     }
                 }
                 HStack {
-                    TextField("Nombre", text: $secretName)
+                    TextField(L("Name"), text: $secretName)
                     SecureField("Valor", text: $secretValue)
-                    Button("Guardar") {
+                    Button(L("Save")) {
                         if model.addSecret(name: secretName, value: secretValue) {
                             secretName = ""; secretValue = ""
                         }
@@ -686,7 +674,7 @@ private struct ContentTab: View {
                 if let error = model.secretError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
-                Text("Úsalos en snippets o workflows como {secret:NOMBRE}. Nunca se exportan.")
+                Text(L("Use them in snippets or workflows as {secret:NAME}. They are never exported."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -706,11 +694,11 @@ private struct BrainTab: View {
     /// Written here rather than in the README alone: the folder explains the structure, this
     /// explains how anything ever gets into it.
     static let howItFills: [(type: String, does: String)] = [
-        ("recordar que …", "Propone guardar algo. Tú confirmas."),
-        ("capturar reunion", "Con tus notas copiadas, saca decisiones y compromisos."),
-        ("qué decidimos sobre …", "Lo que está vigente hoy, no todo lo que se dijo."),
-        ("prepárame para …", "Reúne lo que sabes de alguien antes de verle."),
-        ("pulse", "Qué se está pudriendo: contradicciones, vencidos, sin revisar."),
+        (L("remember that …"), L("It offers to keep something. You confirm.")),
+        ("capturar reunion", L("With your notes on the clipboard, it pulls out decisions and commitments.")),
+        (L("what did we decide about …"), L("What still stands today, not everything that was said.")),
+        (L("get me ready for …"), L("Gathers what you know about somebody before you see them.")),
+        ("pulse", L("What is going stale: contradictions, overdue things, nothing reviewed.")),
     ]
 
     /// Its own installer rather than the setup window's: someone can open Ajustes with that
@@ -719,11 +707,11 @@ private struct BrainTab: View {
 
     var body: some View {
         Form {
-            Section("Estado del cerebro") {
+            Section(L("Brain status")) {
                 BrainStatusView(model: model, installer: installer)
             }
 
-            Section("Cómo se llena tu cerebro") {
+            Section(L("How your brain fills up")) {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(BrainTab.howItFills, id: \.type) { item in
                         HStack(alignment: .top, spacing: 8) {
@@ -736,27 +724,25 @@ private struct BrainTab: View {
                         }
                     }
                 }
-                Text("Nada entra sin que tú lo confirmes. Un cerebro que se escribe solo es un "
-                     + "cerebro en el que no puedes confiar.")
+                Text(L("Nothing goes in without you confirming it. A brain that writes itself is a brain you cannot trust."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Dónde vive") {
-                LabeledContent("Carpeta") {
+            Section(L("Where it lives")) {
+                LabeledContent(L("Folder")) {
                     Text(model.vaultRoot).font(.caption).textSelection(.enabled).lineLimit(2)
                 }
-                Text("Siete carpetas ya creadas, cada una con una nota que dice qué va dentro, y un "
-                     + "LÉEME que lo explica entero. Ábrelo si alguna vez dudas de dónde poner algo.")
+                Text(L("Seven folders already made, each with a note saying what goes inside, and a read-me that explains the whole thing. Open it whenever you are unsure where to put something."))
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
-                    Button("Abrir la carpeta") {
+                    Button(L("Open the folder")) {
                         NSWorkspace.shared.open(URL(fileURLWithPath: model.vaultRoot))
                     }
-                    Button("Leer el LÉEME") {
+                    Button(L("Read the read-me")) {
                         NSWorkspace.shared.open(URL(fileURLWithPath:
-                            (model.vaultRoot as NSString).appendingPathComponent("LÉEME.md")))
+                            (model.vaultRoot as NSString).appendingPathComponent(VaultGuide.readmeName)))
                     }
-                    Button("Rehacer la estructura") { model.rebuildVaultStructure() }
+                    Button(L("Rebuild the structure")) { model.rebuildVaultStructure() }
                 }
             }
 
@@ -768,21 +754,19 @@ private struct BrainTab: View {
             // en Markdown, y quien quiera abrirlos con otra cosa puede: eso es portabilidad. Otra
             // cosa es ponerlo en el escaparate.
 
-            Section("Idioma") {
-                Picker("Idioma de la app", selection: $model.interfaceLanguage) {
+            Section(L("Language")) {
+                Picker(L("App language"), selection: $model.interfaceLanguage) {
                     ForEach(Language.allCases, id: \.self) { language in
                         Text(language.endonym).tag(language)
                     }
                 }
                 .pickerStyle(.segmented)
-                Text("El idioma de la ventana. Tu cerebro no cambia: sigue guardando y "
-                     + "encontrando lo que escribiste en el idioma en que lo escribiste.")
+                Text(L("The language of the window. Your brain does not change: it keeps saving and finding what you wrote in the language you wrote it in."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Desde Claude, ChatGPT o Gemini") {
-                Text("BeLauncher habla MCP: el asistente que ya pagas puede consultar tu cerebro "
-                     + "sin abrir el launcher.")
+            Section(L("From Claude, ChatGPT or Gemini")) {
+                Text(L("BeLauncher speaks MCP: the assistant you already pay for can consult your brain without opening the launcher."))
                     .font(.caption).foregroundStyle(.secondary)
 
                 MCPVerdictHeader(model: model)
@@ -800,8 +784,7 @@ private struct BrainTab: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text("Se escribe en la configuración de esa app **conservando lo que ya tuviera**. "
-                     + "Después hay que reiniciarla para que lo vea.")
+                Text(L("It gets written into that app's configuration **keeping whatever was already there**. You have to restart it afterwards for it to notice."))
                     .font(.caption).foregroundStyle(.secondary)
                 DisclosureGroup("Hacerlo a mano") {
                     Text(model.mcpConfig)
@@ -809,24 +792,20 @@ private struct BrainTab: View {
                         .textSelection(.enabled)
                         .padding(8)
                         .background(.black.opacity(0.15), in: RoundedRectangle(cornerRadius: 6))
-                    Button("Copiar la configuración") { model.copyMCPConfig() }
+                    Button(L("Copy the configuration")) { model.copyMCPConfig() }
                         .controlSize(.small)
                 }
                 .font(.caption)
-                Text("Siete herramientas: recordar, contexto de una tarea, qué estabas haciendo, "
-                     + "qué decidimos, preparar, buscar y proponer. Solo lectura y propuesta: un "
-                     + "asistente puede sugerir qué cree la empresa, nunca decidirlo.")
+                Text(L("Seven tools: remember, context for a task, what you were doing, what we decided, get ready, search and propose. Read and propose only: an assistant can suggest what it thinks the company believes, never decide it."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Equipo") {
+            Section(L("Team")) {
                 HStack {
-                    Button("Compartir…") { model.exportTeamBundle() }
-                    Button("Importar…") { model.importTeamBundle() }
+                    Button(L("Share…")) { model.exportTeamBundle() }
+                    Button(L("Import…")) { model.importTeamBundle() }
                 }
-                Text("Reglas de la casa, una por línea, con el formato «Nombre: valor». Viajan "
-                     + "dentro de cada comando compartido, que es lo que hace que el /propuesta de "
-                     + "tu equipo produzca vuestra propuesta y no la que se le ocurre al modelo.")
+                Text(L("House rules, one per line, in the form “Name: value”. They travel inside every shared command, which is what makes your team's /proposal produce your proposal rather than whatever the model comes up with."))
                     .font(.caption).foregroundStyle(.secondary)
                 TextEditor(text: Binding(
                     get: { model.teamStandardsText },
@@ -834,17 +813,12 @@ private struct BrainTab: View {
                 ))
                 .font(.system(size: 11, design: .monospaced))
                 .frame(height: 72)
-                Text("Solo salen las memorias etiquetadas como “shared”, cifradas con una frase que "
-                     + "solo tiene tu equipo. Believe nunca ve la clave ni el contenido. Lo que "
-                     + "llega llega como propuesta: nada se aplica solo.")
+                Text(L("Only the memories tagged “shared” go out, encrypted with a phrase only your team has. Believe never sees the key or the contents. What arrives, arrives as a proposal: nothing applies itself."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            Section("Permisos") {
-                Text("El calendario se pide la primera vez que preparas una reunión. Accesibilidad, "
-                     + "la primera vez que colocas una ventana o pegas en la app anterior. "
-                     + "Notificaciones, la primera vez que un flujo pone un temporizador. Nada al "
-                     + "arrancar.")
+            Section(L("Permissions")) {
+                Text(L("The calendar is asked for the first time you get ready for a meeting. Accessibility, the first time you place a window or paste into the previous app. Notifications, the first time a flow sets a timer. Nothing at launch."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -878,7 +852,7 @@ private struct MCPVerdictHeader: View {
                     .disabled(model.mcpChecking)
             }
             Text(model.mcpChecking
-                 ? "Arrancando BeLauncher y preguntándole, igual que haría tu asistente…"
+                 ? L("Starting BeLauncher and asking it, exactly as your assistant would…")
                  : verdict.headline)
                 .font(.system(size: 12))
                 .fixedSize(horizontal: false, vertical: true)
@@ -917,7 +891,7 @@ private struct MCPClientRow: View {
                     Button(expanded ? "Ocultar pasos" : "Ver pasos") { expanded.toggle() }
                         .buttonStyle(.link).font(.system(size: 11))
                 }
-                Button(model.mcpConnections[client.id] == true ? "Reconectar" : "Conectar") {
+                Button(model.mcpConnections[client.id] == true ? "Reconectar" : L("Connect")) {
                     model.connect(client)
                 }
                 .controlSize(.small)
@@ -1039,31 +1013,30 @@ private struct DataTab: View {
 
     var body: some View {
         Form {
-            Section("Tus datos") {
-                LabeledContent("Base de datos") {
+            Section(L("Your data")) {
+                LabeledContent(L("Database")) {
                     Text(model.store.path).font(.caption).textSelection(.enabled).lineLimit(2)
                 }
                 HStack {
-                    Button("Exportar…") { model.export(includeClipboard: false) }
-                    Button("Con portapapeles…") { model.export(includeClipboard: true) }
-                    Button("Importar…") { model.importArchive() }
+                    Button(L("Export…")) { model.export(includeClipboard: false) }
+                    Button(L("With clipboard…")) { model.export(includeClipboard: true) }
+                    Button(L("Import…")) { model.importArchive() }
                 }
                 HStack {
-                    Button("Diagnóstico…") { model.exportDiagnostics() }
-                    Button("Ver en Finder") { model.revealDataFolder() }
+                    Button(L("Diagnostics…")) { model.exportDiagnostics() }
+                    Button(L("Show in Finder")) { model.revealDataFolder() }
                 }
                 if let status = model.status {
                     Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
             }
 
-            Section("Venir de otro launcher") {
+            Section(L("Coming from another launcher")) {
                 HStack {
-                    Button("Importar de Alfred") { model.importFromAlfred() }
-                    Button("Importar de Raycast…") { model.importFromRaycast() }
+                    Button(L("Import from Alfred")) { model.importFromAlfred() }
+                    Button(L("Import from Raycast…")) { model.importFromRaycast() }
                 }
-                Text("Trae tus snippets y enlaces. Nunca sobrescribe: si ya tienes esa palabra "
-                     + "clave, la tuya gana y te decimos cuántas se omitieron.")
+                Text(L("Brings your snippets and links across. It never overwrites: if you already have that keyword, yours wins and we tell you how many were skipped."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -1090,10 +1063,8 @@ private struct AgentsTab: View {
 
     var body: some View {
         Form {
-            Section("Comandos con «/»") {
-                Text("Escribe «/» en el lanzador y sale la lista. Un comando no es un atajo: mira "
-                     + "el contexto, pide los permisos que necesite, te enseña qué va a hacer y "
-                     + "deja recibo de lo que hizo.")
+            Section(L("Commands with “/”")) {
+                Text(L("Type “/” in the launcher and the list appears. A command is not a shortcut: it looks at the context, asks for the permissions it needs, shows you what it is about to do, and leaves a receipt of what it did."))
                     .font(.caption).foregroundStyle(.secondary)
                 ForEach(model.packs) { pack in
                     VStack(alignment: .leading, spacing: 3) {
@@ -1123,15 +1094,12 @@ private struct AgentsTab: View {
                 }
             }
 
-            Section("Compartir con el equipo") {
+            Section(L("Share with the team")) {
                 HStack {
-                    Button("Exportar mis comandos") { model.exportPacks() }
-                    Button("Importar comandos…") { model.importPacks() }
+                    Button(L("Export my commands")) { model.exportPacks() }
+                    Button(L("Import commands…")) { model.importPacks() }
                 }
-                Text("Los comandos viajan con las reglas de la casa dentro: el tono, los formatos y "
-                     + "quién aprueba. Sin eso, compartir un comando es compartir solo un nombre. "
-                     + "Si ya tienes uno con ese nombre, el tuyo gana y se te dice cuántos se "
-                     + "omitieron.")
+                Text(L("Commands travel with the house rules inside them: the tone, the formats and who approves. Without that, sharing a command is sharing nothing but a name. If you already have one by that name, yours wins and you are told how many were skipped."))
                     .font(.caption).foregroundStyle(.secondary)
                 if let status = model.status {
                     Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
@@ -1149,9 +1117,7 @@ private struct AgentsTab: View {
                             .font(.system(size: 10)).foregroundStyle(.tertiary)
                     }
                 }
-                Text("Cuando un encargo no es una respuesta sino varias piezas, se abre un lienzo: "
-                     + "cada bloque se rellena solo, lo editas y ejecutas lo que quieras. Se cierra "
-                     + "y desaparece: no es un documento más que mantener.")
+                Text(L("When a job is not one answer but several pieces, a canvas opens: every block fills itself in, you edit it, and you run whichever ones you want. It closes and it is gone: not one more document to keep."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -1169,16 +1135,13 @@ private struct MemoryTab: View {
 
     var body: some View {
         Form {
-            Section("Memoria de trabajo") {
-                Toggle("Recordar en qué he estado trabajando", isOn: $model.graphEnabled)
-                Text("Guarda quién, qué proyecto, qué archivo y qué reunión, y cómo se conectan. "
-                     + "Es lo que hace que funcione «¿qué prometimos a Andrés?» o «retoma lo que "
-                     + "estaba haciendo antes de la llamada». Guarda **nombres y fechas, nunca el "
-                     + "contenido** de un archivo, un mensaje o una página.")
+            Section(L("Working memory")) {
+                Toggle(L("Remember what I have been working on"), isOn: $model.graphEnabled)
+                Text(L("It keeps who, which project, which file and which meeting, and how they connect. It is what makes “what did we promise Andrés?” or “pick up what I was doing before the call” work at all. It keeps **names and dates, never the contents** of a file, a message or a page."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if model.graphSummary.isEmpty {
-                    Text("Todavía vacía.").font(.caption).foregroundStyle(.tertiary)
+                    Text(L("Still empty.")).font(.caption).foregroundStyle(.tertiary)
                 } else {
                     ForEach(model.graphSummary, id: \.kind) { entry in
                         HStack {
@@ -1191,19 +1154,16 @@ private struct MemoryTab: View {
                         }
                     }
                 }
-                Button("Borrar la memoria de trabajo") { model.clearGraph() }
+                Button(L("Delete the working memory")) { model.clearGraph() }
             }
 
             Section("Detectar rutinas") {
-                Toggle("Proponerme comandos cuando repito algo", isOn: $model.habitsEnabledSetting)
-                Text("Anota **qué tipo de cosa** haces y cuándo — abrir tal app, ejecutar tal "
-                     + "comando — nunca su contenido. Cuando la misma secuencia se repite cuatro "
-                     + "veces, te ofrece convertirla en un comando. Si dices que no, no se vuelve a "
-                     + "preguntar por esa. Se borra sola a los \(Store.habitRetentionDays) días.")
+                Toggle(L("Offer me commands when I repeat something"), isOn: $model.habitsEnabledSetting)
+                Text(L("It notes **what kind of thing** you do and when — opening this app, running that command — never its contents. When the same sequence repeats four times, it offers to turn it into a command. If you say no, it never asks about that one again. It deletes itself after %@ days.", String(Store.habitRetentionDays)))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if model.recentActions.isEmpty {
-                    Text("Nada anotado.").font(.caption).foregroundStyle(.tertiary)
+                    Text(L("Nothing noted.")).font(.caption).foregroundStyle(.tertiary)
                 } else {
                     ForEach(model.recentActions.prefix(12)) { action in
                         HStack {
@@ -1213,22 +1173,19 @@ private struct MemoryTab: View {
                                 .font(.system(size: 10)).foregroundStyle(.tertiary)
                         }
                     }
-                    Text("Se muestran las 12 últimas de \(model.recentActions.count).")
+                    Text(L("Showing the last 12 of %@.", String(model.recentActions.count)))
                         .font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
-                Button("Borrar el historial") { model.clearHistory() }
+                Button(L("Clear the history")) { model.clearHistory() }
             }
 
-            Section("Cómo trabajas") {
+            Section(L("How you work")) {
                 Toggle("Aprender mi estilo", isOn: $model.learningEnabledSetting)
-                Text("Aprende de lo que aceptas y de lo que reescribes: si acortas, si saludas, "
-                     + "cómo nombras los archivos. Nada cambia lo que produce hasta que cuatro "
-                     + "observaciones coinciden. **Se guarda la conclusión, nunca el texto** del que "
-                     + "salió.")
+                Text(L("It learns from what you accept and from what you rewrite: whether you cut things short, whether you open with a greeting, how you name your files. Nothing changes what it produces until four observations agree. **The conclusion is kept, never the text** it came from."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if model.learnedTraits.isEmpty {
-                    Text("Todavía no ha aprendido nada.").font(.caption).foregroundStyle(.tertiary)
+                    Text(L("It has not learned anything yet.")).font(.caption).foregroundStyle(.tertiary)
                 } else {
                     ForEach(model.learnedTraits) { trait in
                         HStack(alignment: .top) {
@@ -1238,8 +1195,8 @@ private struct MemoryTab: View {
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(trait.explanation).font(.system(size: 12))
                                 Text(trait.isUsable
-                                     ? "\(trait.observations) veces · ya se aplica"
-                                     : "\(trait.observations) veces · todavía mirando")
+                                     ? L("%@ times · already in use", String(trait.observations))
+                                     : L("%@ times · still watching", String(trait.observations)))
                                     .font(.system(size: 10)).foregroundStyle(.tertiary)
                             }
                             Spacer()
@@ -1249,17 +1206,13 @@ private struct MemoryTab: View {
                             .buttonStyle(.borderless)
                         }
                     }
-                    Button("Olvidarlo todo") { model.forgetEverythingLearned() }
+                    Button(L("Forget all of it")) { model.forgetEverythingLearned() }
                 }
             }
 
-            Section("Leer la pantalla") {
+            Section(L("Read the screen")) {
                 LabeledContent("Atajo", value: "⌥⇧Espacio")
-                Text("Con cualquier cosa delante: un error, una factura, un correo, una tabla. "
-                     + "Primero intenta leer lo que tengas **seleccionado**, que no necesita "
-                     + "permiso de pantalla. Solo si no hay selección hace una foto, la lee en tu "
-                     + "Mac con el reconocimiento de Apple y la descarta. **Ninguna imagen se "
-                     + "guarda ni se sube.**")
+                Text(L("With anything in front of you: an error, an invoice, an email, a table. It first tries to read whatever you have **selected**, which needs no screen permission. Only if there is no selection does it take a picture, read it on your Mac with Apple's recogniser, and throw it away. **No image is ever kept or uploaded.**"))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

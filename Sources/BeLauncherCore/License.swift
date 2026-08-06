@@ -48,16 +48,16 @@ public enum ActivationOutcome: Sendable, Equatable {
         case .activated:
             "Activated."
         case .invalid:
-            "Correo o clave incorrectos."
+            L("Wrong email or key.")
         case .deviceLimit(_, let max):
-            "Esta licencia ya está en \(max) Macs. Libera uno para activar este."
+            L("This licence is already on %@ Macs. Release one to activate this one.", String(max))
         case .serverError:
-            "Intenta de nuevo en un momento."
+            L("Try again in a moment.")
         case .unreachable:
-            "No pudimos conectar. Revisa tu conexión e intenta otra vez."
+            L("We could not connect. Check your connection and try again.")
         case .rejected(let status):
-            "El servidor de licencias rechazó la petición (HTTP \(status)). "
-            + "No es tu clave: escríbenos si sigue pasando."
+            L("The licence server refused the request (HTTP %@). It is not your key: write to us if it keeps happening.",
+              String(status))
         }
     }
 }

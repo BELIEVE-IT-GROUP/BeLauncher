@@ -140,7 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let attributes = try? FileManager.default.attributesOfItem(atPath: path) else { return [] }
                 var items: [ResultDetail.Item] = []
                 if let size = attributes[.size] as? Int {
-                    items.append(.init(label: "Tamaño", value: ByteCountFormatter.string(
+                    items.append(.init(label: L("Size"), value: ByteCountFormatter.string(
                         fromByteCount: Int64(size), countStyle: .file)))
                 }
                 if let modified = attributes[.modificationDate] as? Date {
@@ -269,7 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false
         )
-        window.title = "Memoria de trabajo"
+        window.title = L("Working memory")
         window.contentViewController = NSHostingController(rootView: CaptureConsentView(
             excluded: store?.excludedFromCapture().count ?? 0,
             onDecide: { [weak self] enabled in
@@ -451,16 +451,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// The menu is never shown, since the app is an accessory. It exists purely so the keys work.
     private func installEditMenu() {
-        let edit = NSMenu(title: "Edición")
+        let edit = NSMenu(title: L("Edit"))
         let items: [(String, Selector, String, NSEvent.ModifierFlags)] = [
             ("Deshacer", Selector(("undo:")), "z", .command),
             ("Rehacer", Selector(("redo:")), "z", [.command, .shift]),
             ("Cortar", #selector(NSText.cut(_:)), "x", .command),
-            ("Copiar", #selector(NSText.copy(_:)), "c", .command),
+            (L("Copy"), #selector(NSText.copy(_:)), "c", .command),
             ("Pegar", #selector(NSText.paste(_:)), "v", .command),
             // Pasting a styled quote into a search field should paste the words, not the styling.
-            ("Pegar sin formato", Selector(("pasteAsPlainText:")), "v", [.command, .shift, .option]),
-            ("Seleccionar todo", #selector(NSText.selectAll(_:)), "a", .command),
+            (L("Paste without formatting"), Selector(("pasteAsPlainText:")), "v", [.command, .shift, .option]),
+            (L("Select all"), #selector(NSText.selectAll(_:)), "a", .command),
         ]
         for (title, action, key, modifiers) in items {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
@@ -482,7 +482,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.image?.isTemplate = true
 
         let menu = NSMenu()
-        let open = NSMenuItem(title: "Abrir BeLauncher", action: #selector(togglePanelFromMenu), keyEquivalent: "")
+        let open = NSMenuItem(title: L("Open BeLauncher"), action: #selector(togglePanelFromMenu), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
 
@@ -505,21 +505,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // The brain has to be reachable from the menu, not only from a command somebody has to
         // know exists. It was reachable from nowhere at all until this line.
-        let brain = NSMenuItem(title: "Tu cerebro…", action: #selector(openGraph), keyEquivalent: "")
+        let brain = NSMenuItem(title: L("Your brain…"), action: #selector(openGraph), keyEquivalent: "")
         brain.target = self
         menu.addItem(brain)
 
-        let guide = NSMenuItem(title: "Guía rápida", action: #selector(openWelcome), keyEquivalent: "")
+        let guide = NSMenuItem(title: L("Quick guide"), action: #selector(openWelcome), keyEquivalent: "")
         guide.target = self
         menu.addItem(guide)
-        let settings = NSMenuItem(title: "Ajustes…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
-        let reindex = NSMenuItem(title: "Volver a buscar aplicaciones", action: #selector(rescan), keyEquivalent: "")
+        let reindex = NSMenuItem(title: L("Look for apps again"), action: #selector(rescan), keyEquivalent: "")
         reindex.target = self
         menu.addItem(reindex)
         menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Salir de BeLauncher", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L("Quit BeLauncher"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
         item.menu = menu
         statusItem = item
@@ -534,7 +534,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let awakeItem else { return }
         awakeItem.isHidden = !SystemUtilities.isAwake
         awakeItem.title = SystemUtilities.isAwake
-            ? StayAwake.remaining(until: SystemUtilities.awakeUntil) + " · desactivar"
+            ? StayAwake.remaining(until: SystemUtilities.awakeUntil) + L("· turn off")
             : ""
     }
 
@@ -558,7 +558,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // half-wired thing as not announcing it at all.
             pendingRelease = release
             settingsModel?.availableUpdate = release
-            settingsModel?.updateStatus = "Hay una versión nueva: \(release.version)"
+            settingsModel?.updateStatus = L("There is a new version: %@", release.version)
         }
     }
 
@@ -692,7 +692,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Carried over from the launch check, so the button is there the moment Settings opens.
         settingsModel.availableUpdate = pendingRelease
         if let pending = pendingRelease {
-            settingsModel.updateStatus = "Hay una versión nueva: \(pending.version)"
+            settingsModel.updateStatus = L("There is a new version: %@", pending.version)
         }
         settingsModel.calendar = calendar
         settingsModel.onRequestNotifications = { [weak self] in self?.requestNotifications() }
@@ -707,7 +707,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered, defer: false
         )
-        window.title = "Ajustes de BeLauncher"
+        window.title = L("BeLauncher settings")
         window.contentViewController = NSHostingController(rootView: SettingsView(model: settingsModel))
         window.isReleasedWhenClosed = false
         place(window)
@@ -739,7 +739,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
-        window.title = "Tu cerebro"
+        window.title = L("Your brain")
         let model = GraphModel(store: store, corpus: folder)
         model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }
         window.contentViewController = NSHostingController(rootView: GraphView(model: model))
@@ -765,7 +765,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
-        window.title = "Tu corpus"
+        window.title = L("Your corpus")
         window.contentViewController = NSHostingController(
             rootView: CorpusReaderView(model: CorpusReaderModel(folder: folder, selecting: id)))
         window.isReleasedWhenClosed = false
@@ -886,12 +886,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ).first else { return }
 
         let alert = NSAlert()
-        alert.messageText = "¿Lo convierto en un comando?"
-        alert.informativeText = recipe.offer + "\n\nSe guardará como un flujo llamado "
-                              + "«\(recipe.suggestedKeyword)», que puedes editar o borrar cuando "
-                              + "quieras."
-        alert.addButton(withTitle: "Sí, créalo")
-        alert.addButton(withTitle: "No, gracias")
+        alert.messageText = L("Shall I turn it into a command?")
+        alert.informativeText = recipe.offer
+            + L("\n\nIt gets kept as a flow called “%@”, which you can edit or delete whenever you want.",
+                recipe.suggestedKeyword)
+        alert.addButton(withTitle: L("Yes, make it"))
+        alert.addButton(withTitle: L("No thanks"))
         let accepted = alert.runModal() == .alertFirstButtonReturn
         store.markRecipeOffered(recipe.id, accepted: accepted)
         guard accepted else { return }
@@ -899,9 +899,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let flow = Autopilot.flow(from: recipe)
         do {
             try store.addFlow(keyword: flow.keyword, title: flow.title, steps: flow.steps)
-            report("Listo", "Escribe «\(flow.keyword)» para ejecutarlo.")
+            report(L("Done"), L("Type “%@” to run it.", flow.keyword))
         } catch {
-            report("No se pudo crear el comando", error.localizedDescription)
+            report(L("The command could not be made"), error.localizedDescription)
         }
     }
 
@@ -917,10 +917,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             let context = await ScreenCapture.read()
             guard ScreenReader.isWorthOffering(context) else {
-                report("Selecciona primero lo que quieres",
-                       "Marca el texto, la tabla o el error del que quieres que me ocupe y vuelve "
-                     + "a pulsar ⌥⇧Espacio. Antes leía la pantalla entera y ofrecía cosas al azar, "
-                     + "que era peor que no ofrecer nada.")
+                report(L("Select what you want first"),
+                       L("Mark the text, the table or the error you want me to deal with and press ⌥⇧Space again. It used to read the whole screen and offer things about whatever happened to be in front of you, which was noise more often than help."))
                 return
             }
             let subject = ScreenReader.subject(of: context)
@@ -931,11 +929,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func presentOffers(_ offers: [ScreenReader.Offer], subject: ScreenReader.Subject,
                                context: ScreenContext) {
         let alert = NSAlert()
-        alert.messageText = "\(subject.label), de \(context.origin.label)"
+        alert.messageText = L("%1$@, from %2$@", subject.label, context.origin.label)
         alert.informativeText = String(context.text.prefix(240))
             + (context.text.count > 240 ? "…" : "")
         for offer in offers { alert.addButton(withTitle: offer.title) }
-        alert.addButton(withTitle: "Nada")
+        alert.addButton(withTitle: L("Nothing"))
 
         let response = alert.runModal()
         let index = response.rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
@@ -950,7 +948,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 NSWorkspace.shared.open(url)
             }
         case "remember":
-            rememberIntoVault(text: context.text, source: "Visto en \(context.application)")
+            rememberIntoVault(text: context.text, source: L("Seen in %@", context.application))
         case "search-web":
             let query = context.text.prefix(180)
                 .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
@@ -1000,7 +998,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
             styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false
         )
-        window.title = "Misiones"
+        window.title = L("Missions")
         window.contentViewController = NSHostingController(rootView: MissionTrayView(runner: runner))
         window.isReleasedWhenClosed = false
         place(window)
@@ -1091,9 +1089,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The distillation prompt forbids inventing anything and requires a citation on every line;
         // stacking it after "respondes solo con el resultado pedido" leaves two sets of rules and
         // the model picks whichever it likes, which is how uncited lines start appearing.
+        // Deliberately not translated. This is addressed to the model, not to the person, and the
+        // language of the answer follows the language of what the person selected — not the menu
+        // bar. Tying the instruction to the interface language would make an English window answer
+        // in English about a Spanish document.
         let system = override ??
-                     ("Eres una herramienta dentro de un launcher. Respondes solo con el resultado "
-                      + "pedido, sin saludos y sin explicar lo que vas a hacer."
+                     ("You are a tool inside a launcher. Reply with the requested result only: no "
+                      + "greeting, and no explaining what you are about to do."
                       + (style.isEmpty ? "" : "\n\n" + style))
 
         return try await IntelligenceClient().stream(
@@ -1209,13 +1211,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .launchApplication(let path):
             note(signature: Autopilot.signature(forApplication: path),
-                 label: "Abrir \((path as NSString).lastPathComponent.replacingOccurrences(of: ".app", with: ""))")
+                 label: L("Open %@", (path as NSString).lastPathComponent
+                            .replacingOccurrences(of: ".app", with: "")))
             remember(Capture.application(named: (path as NSString).lastPathComponent
                 .replacingOccurrences(of: ".app", with: ""), path: path))
             let url = URL(fileURLWithPath: path)
             NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration()) { _, error in
                 guard let error else { return }
-                Task { @MainActor in self.report("Could not open \(url.lastPathComponent)", error.localizedDescription) }
+                Task { @MainActor in self.report(L("Could not open %@", url.lastPathComponent), error.localizedDescription) }
             }
 
         case .openURL(let url):
@@ -1225,7 +1228,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             remember(Capture.file(at: path))
             store?.observe(OperatingModel.observeFilename((path as NSString).lastPathComponent))
             note(signature: Autopilot.signature(forApplication: path),
-                 label: "Abrir \((path as NSString).lastPathComponent)")
+                 label: L("Open %@", (path as NSString).lastPathComponent))
             NSWorkspace.shared.open(URL(fileURLWithPath: path))
 
         case .revealInFinder(let path):
@@ -1242,7 +1245,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
             } catch {
-                report("No se pudo mover a la papelera", error.localizedDescription)
+                report(L("It could not be moved to the trash"), error.localizedDescription)
             }
 
         case .openSettings:
@@ -1260,14 +1263,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .quitProcess(let pid):
             panel?.orderOut(nil)
             if let failure = SystemUtilities.quit(pid: pid, force: false) {
-                report("No se pudo cerrar", failure)
+                report(L("It could not be closed"), failure)
                 return failure
             }
 
         case .forceQuit(let pid):
             panel?.orderOut(nil)
             if let failure = SystemUtilities.quit(pid: pid, force: true) {
-                report("No se pudo forzar la salida", failure)
+                report(L("It could not be forced to quit"), failure)
                 return failure
             }
 
@@ -1281,9 +1284,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch SystemUtilities.write(note: text, inVaultAt: Vault.defaultRoot()) {
             case .saved(let path):
                 store?.observe(OperatingModel.observeWriting(text))
-                report("Nota guardada", (path as NSString).lastPathComponent)
+                report(L("Note saved"), (path as NSString).lastPathComponent)
             case .failed(let why):
-                report("No se pudo guardar", why)
+                report(L("It could not be saved"), why)
                 return why
             }
 
@@ -1293,21 +1296,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .taken(let workspace):
                 do {
                     try store?.saveWorkspace(workspace)
-                    report("Guardado «\(name)»",
-                           "\(workspace.placements.count) ventanas en "
-                           + "\(workspace.displays) pantalla(s). Escribe «\(name)» para colocarlas.")
+                    report(L("Saved “%@”", name),
+                           L("%1$@ windows across %2$@ display(s). Type “%3$@” to place them.",
+                             String(workspace.placements.count), String(workspace.displays), name))
                 } catch {
-                    report("No se pudo guardar", error.localizedDescription)
+                    report(L("Open With failed"), error.localizedDescription)
                 }
             case .failed(let why):
-                report("No se pudo guardar", why)
+                report(L("It could not be saved"), why)
                 return why
             }
 
         case .restoreWorkspace(let name):
             panel?.orderOut(nil)
             guard let workspace = store?.workspace(named: name) else {
-                report("No lo encuentro", "No hay ningún reparto guardado con ese nombre.")
+                report(L("I cannot find it"), L("There is no saved layout by that name."))
                 return nil
             }
             let running = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
@@ -1316,7 +1319,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                   runningBundles: running).warning {
                 report("Ojo", warning)
             }
-            report("Colocando «\(name)»", WindowArranger.restore(workspace))
+            report(L("Placing “%@”", name), WindowArranger.restore(workspace))
 
         case .cancelAI:
             aiTask?.cancel()
@@ -1327,7 +1330,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .runAgent(let id, let argument):
             guard let command = agentRunner?.commands.first(where: { $0.id == id }) else {
-                return "Ese comando ya no está instalado."
+                return L("That command is not installed any more.")
             }
             panel?.orderOut(nil)
             agentRunner?.start(command, argument: argument)
@@ -1346,10 +1349,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if let object {
                     rememberMemory(object)
                     refreshBrain(force: true)
-                    report("Guardado en el cerebro", object.statement)
+                    report(L("Kept in the brain"), object.statement)
                 }
             } catch {
-                report("No se pudo confirmar", "\(error)")
+                report(L("It could not be confirmed"), "\(error)")
             }
 
         case .discardCommit(let id):
@@ -1363,7 +1366,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let target = appBeforePanel
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 if let failure = WindowArranger.arrange(layout, on: target) {
-                    self.report("No se pudo colocar la ventana", failure)
+                    self.report(L("The window could not be placed"), failure)
                 }
             }
 
@@ -1374,14 +1377,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if kind == SystemCommand.Kind.openBrain.rawValue { openGraph(); return nil }
             let failure = SystemCommandRunner.run(kind) { title in
                 let alert = NSAlert()
-                alert.messageText = "¿\(title)?"
-                alert.informativeText = "Esta acción no se puede deshacer."
+                alert.messageText = L("%@?", title)
+                alert.informativeText = L("This cannot be undone.")
                 alert.alertStyle = .warning
-                alert.addButton(withTitle: "Continuar")
-                alert.addButton(withTitle: "Cancelar")
+                alert.addButton(withTitle: L("Continue"))
+                alert.addButton(withTitle: L("Cancel"))
                 return alert.runModal() == .alertFirstButtonReturn
             }
-            if let failure { report("No se pudo ejecutar el comando", failure) }
+            if let failure { report(L("The command could not be run"), failure) }
             return failure
 
         case .runShortcut(let name):
@@ -1454,7 +1457,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let receipt = MissionReceipt.of(executed, requestedBy: NSFullUserName())
             lastReceipt = receipt
             if !receipt.changed.isEmpty {
-                report("Misión terminada", receipt.render())
+                report(L("Mission finished"), receipt.render())
             }
         }
     }
@@ -1516,11 +1519,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel?.orderOut(nil)
 
         let alert = NSAlert()
-        alert.messageText = "Recordar esto"
-        alert.informativeText = "Escribe la frase con la que lo recordarás. "
-            + "Se guardará como propuesta hasta que la confirmes."
+        alert.messageText = L("Remember this")
+        alert.informativeText = L("Write the phrase you will remember it by. It is kept as a proposal until you confirm it.")
         alert.addButton(withTitle: "Proponer")
-        alert.addButton(withTitle: "Cancelar")
+        alert.addButton(withTitle: L("Cancel"))
 
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
         field.stringValue = String(text.prefix(120)).replacingOccurrences(of: "\n", with: " ")
@@ -1532,14 +1534,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let commit = try vault.propose(
                 MemoryObject(level: .extracted, kind: .note, statement: field.stringValue,
                              body: text, source: source, owner: NSFullUserName()),
-                reason: "Capturado desde BeLauncher"
+                reason: L("Captured from BeLauncher")
             )
-            report("Propuesta guardada",
+            report(L("Proposal saved"),
                    commit.conflicts.isEmpty
-                     ? "Búscala y confírmala cuando quieras."
-                     : "Ojo: chocaría con \(commit.conflicts.count) memoria(s) vigente(s).")
+                     ? L("Look for it and confirm it whenever you want.")
+                     : L("Careful: it would clash with %@ memory/memories still standing.", String(commit.conflicts.count)))
         } catch {
-            report("No se pudo guardar", "\(error)")
+            report(L("It could not be saved"), "\(error)")
         }
     }
 
@@ -1548,11 +1550,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func promptForAlias(target: String, suggestion: String) {
         panel?.orderOut(nil)
         let alert = NSAlert()
-        alert.messageText = "Alias para \((suggestion as NSString).deletingPathExtension)"
-        alert.informativeText = "Escribe el texto corto con el que quieres encontrarlo. "
-            + "Una sola palabra, sin espacios."
-        alert.addButton(withTitle: "Guardar")
-        alert.addButton(withTitle: "Cancelar")
+        alert.messageText = L("Alias for %@", (suggestion as NSString).deletingPathExtension)
+        alert.informativeText = L("Write the short text you want to find it by. One word, no spaces.")
+        alert.addButton(withTitle: L("Save"))
+        alert.addButton(withTitle: L("Cancel"))
 
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
         field.placeholderString = "nav"
@@ -1562,9 +1563,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         do {
             let alias = try store?.setAlias(field.stringValue, target: target)
-            if let alias { report("Alias guardado", "Escribe “\(alias)” para encontrarlo.") }
+            if let alias { report("Alias guardado", L("Type “%@” to find it.", alias)) }
         } catch {
-            report("No se pudo guardar el alias", "\(error)")
+            report(L("The alias could not be saved"), "\(error)")
         }
     }
 
@@ -1576,7 +1577,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.open(url)
             return
         }
-        let menu = NSMenu(title: "Abrir con")
+        let menu = NSMenu(title: L("Open with"))
         for app in apps.prefix(12) {
             let item = NSMenuItem(
                 title: FileManager.default.displayName(atPath: app.path),
@@ -1679,13 +1680,13 @@ private struct CaptureConsentView: View {
     private var sources: [Source] {
         [
             Source(symbol: "doc.text", title: "Archivos y apps",
-                   detail: "Qué abriste y cuánto rato estuviste. El nombre, nunca el contenido."),
-            Source(symbol: "safari", title: "Historial del navegador",
-                   detail: "Títulos de las páginas que leíste, de Safari y Chrome."),
-            Source(symbol: "bubble.left.and.bubble.right", title: "Conversaciones con la IA",
-                   detail: "Lo que preguntaste en tus sesiones, que ya están en tu carpeta."),
-            Source(symbol: "calendar", title: "Reuniones y portapapeles",
-                   detail: "Con quién te viste y lo que copiaste mientras trabajabas."),
+                   detail: L("What you opened and how long you stayed. The name, never the contents.")),
+            Source(symbol: "safari", title: L("Browser history"),
+                   detail: L("The titles of the pages you read, from Safari and Chrome.")),
+            Source(symbol: "bubble.left.and.bubble.right", title: L("Conversations with the AI"),
+                   detail: L("What you asked in your own sessions, which are already in your folder.")),
+            Source(symbol: "calendar", title: L("Meetings and clipboard"),
+                   detail: L("Who you met and what you copied while you worked.")),
         ]
     }
 
@@ -1704,9 +1705,9 @@ private struct CaptureConsentView: View {
             Divider()
             HStack(spacing: 10) {
                 Spacer()
-                Button("Ahora no") { onDecide(false) }
+                Button(L("Not now")) { onDecide(false) }
                     .keyboardShortcut(.cancelAction)
-                Button("Activar la memoria") { onDecide(true) }
+                Button(L("Turn the memory on")) { onDecide(true) }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
@@ -1719,12 +1720,11 @@ private struct CaptureConsentView: View {
         HStack(alignment: .center, spacing: 18) {
             Mascot(height: 96)
             VStack(alignment: .leading, spacing: 6) {
-                Text("¿Dejas que recuerde en qué trabajas?")
+                Text(L("Shall it remember what you work on?"))
                     .font(.system(size: 22, weight: .semibold))
                     .tracking(-0.4)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Sin esto, BeLauncher solo encuentra lo que guardas a mano. Con esto, puedes "
-                     + "preguntarle **cómo resolviste algo hace dos meses** y te contesta.")
+                Text(L("Without this, BeLauncher only finds what you file by hand. With it, you can ask **how you solved something two months ago** and get an answer."))
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1734,7 +1734,7 @@ private struct CaptureConsentView: View {
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("QUÉ MIRA")
+            Text(L("WHAT IT WATCHES"))
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(0.8)
                 .foregroundStyle(.secondary)
@@ -1760,21 +1760,21 @@ private struct CaptureConsentView: View {
     /// The controls, on the same screen as the question rather than a tab away.
     private var promise: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Y QUÉ NO")
+            Text(L("AND WHAT IT DOES NOT"))
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(0.8)
                 .foregroundStyle(.secondary)
 
-            guarantee("lock.shield", "Todo se queda en este Mac.",
-                      "Nada sale a internet salvo que tú configures un modelo de fuera.")
-            guarantee("eye.slash", "Hay \(excluded) apps excluidas desde el primer día.",
-                      "Gestores de contraseñas, el llavero y los bancos. Puedes añadir más.")
-            guarantee("pause.circle", "Pausa cuando quieras.",
-                      "Mientras compartes pantalla se pausa solo, sin que tengas que acordarte.")
-            guarantee("trash", "Y puedes hacer que olvide.",
-                      "Borra la última hora, la tarde o el día entero, y te dice qué se lleva antes de hacerlo.")
+            guarantee("lock.shield", L("It all stays on this Mac."),
+                      L("Nothing goes out to the internet unless you set up a model of your own outside it."))
+            guarantee("eye.slash", L("%@ apps are excluded from day one.", String(excluded)),
+                      L("Password managers, the keychain and banks. You can add more."))
+            guarantee("pause.circle", L("Pause whenever you want."),
+                      L("One click stops the capture, and nothing is recorded until you start it again."))
+            guarantee("trash", L("And you can make it forget."),
+                      L("Delete the last hour, the afternoon or the whole day, and it tells you what goes before it does it."))
 
-            Text("Puedes cambiar todo esto en Ajustes cuando quieras.")
+            Text(L("You can change any of this in Settings whenever you like."))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .padding(.top, 2)

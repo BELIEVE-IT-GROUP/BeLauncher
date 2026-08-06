@@ -167,7 +167,7 @@ final class CorpusRunner {
                 name: entity.canonical,
                 detail: entity.aliases.isEmpty
                     ? entity.kind.label
-                    : entity.kind.label + " · también " + entity.aliases.sorted().prefix(3).joined(separator: ", ")
+                    : entity.kind.label + L(" · also ") + entity.aliases.sorted().prefix(3).joined(separator: ", ")
             ))
         }
 
@@ -389,7 +389,7 @@ final class CorpusRunner {
             // The citation travels into the text itself. A statement whose sources are only in a
             // column is a statement that reads as fact the moment it is retrieved, and the whole
             // point of refusing uncited lines is lost if the citation does not survive storage.
-            let cited = statement.text + "\n\nSale de: " + statement.sources.joined(separator: ", ")
+            let cited = statement.text + L("\n\nComes from: ") + statement.sources.joined(separator: ", ")
             _ = store.replacePassages(for: IndexedSource(kind: .note, id: statement.id),
                                       title: statement.text, occurredAt: statement.day, text: cited)
         }

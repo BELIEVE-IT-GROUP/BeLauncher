@@ -78,7 +78,13 @@ struct LocalizationTests {
         for (english, spanish) in SpanishStrings.table {
             #expect(!spanish.trimmingCharacters(in: .whitespaces).isEmpty,
                     "Traducción vacía para «\(english)»")
-            #expect(!spanish.contains("  "), "Doble espacio en «\(spanish)»")
+            // Solo en cadenas de una línea. La regla existe para cazar descuidos al escribir una
+            // etiqueta; un documento Markdown —el LÉEME del cerebro, por ejemplo— lleva sangrías y
+            // continuaciones de lista con dos espacios porque así se escribe Markdown, y aplicarle
+            // esta regla obligaría a estropear el documento para contentar al test.
+            if !spanish.contains("\n") {
+                #expect(!spanish.contains("  "), "Doble espacio en «\(spanish)»")
+            }
         }
     }
 
@@ -234,4 +240,146 @@ struct LocalizationTests {
         #expect(!found.contains("no cuenta"))
         #expect(found.count == 2)
     }
+    // MARK: - Que no se cuele español escrito a pelo
+
+    /// La prueba que faltaba, y la que habría evitado el desastre.
+    ///
+    /// `nadaSinTraducir` cubre una dirección: una cadena que pasa por `L(` y no tiene español. La
+    /// otra dirección es la que se vio en pantalla: cientos de literales en español escritos
+    /// directamente en un `Text(…)`, que en un Mac en inglés salían en español dentro de una
+    /// ventana inglesa. Ninguna prueba lo miraba porque el catálogo estaba perfecto: el problema
+    /// era todo lo que nunca llegó a él.
+    ///
+    /// El escáner es deliberadamente tosco —busca caracteres y palabras que solo existen en
+    /// español— y por eso lleva una lista de excepciones explicada. Una excepción es una decisión
+    /// escrita, no un descuido: si algo entra aquí es porque no es texto de interfaz.
+    @Test("ningún texto de interfaz se quedó escrito en español a pelo")
+    func nadaEnEspañolSinCatalogo() throws {
+        let sources = try #require(sourceFiles())
+        var leaked: [String] = []
+
+        for file in sources where !exempt.contains(file.lastPathComponent) {
+            guard let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
+            for (line, literal) in bareLiterals(in: text) where looksSpanish(literal) {
+                guard !allowed.contains(literal) else { continue }
+                leaked.append("\(file.lastPathComponent):\(line) — \(literal)")
+            }
+        }
+
+        #expect(leaked.isEmpty,
+                Comment(rawValue: "Español escrito a pelo, fuera del catálogo:\n"
+                                  + leaked.sorted().joined(separator: "\n")))
+    }
+
+    /// Archivos que no son interfaz. Cada uno con su motivo, porque una lista de excepciones sin
+    /// motivos se convierte en el sitio donde se esconde el trabajo sin hacer.
+    private var exempt: Set<String> {
+        [
+            // El catálogo: su lado español es español a propósito.
+            "SpanishStrings.swift", "SpanishStrings+Tables.swift", "SpanishStrings+Interface.swift",
+            // Frases que la persona teclea. Son datos que el buscador reconoce, no texto que la app
+            // dice; traducirlas rompería lo que el usuario ya sabe escribir.
+            "Phrases.swift", "AIVerbs.swift", "Mission.swift", "Calculator.swift",
+            // Salida de diagnóstico por terminal (`--diagnose-…`), que no es la interfaz.
+            "main.swift",
+            // El propio nombre de este idioma, que se escribe en ese idioma.
+            "Localization.swift",
+        ]
+    }
+
+    /// Literales sueltos que no son interfaz: nombres de archivo en el disco del usuario y
+    /// formatos de fecha.
+    private var allowed: Set<String> {
+        [
+            // Nombres de archivo en el disco de la persona y un formato de fecha.
+            "LÉEME.md", "QUÉ VA AQUÍ.md", "LÉEME — corpus.md", "d 'de' MMMM 'de' yyyy",
+            // Etiquetas internas del índice, no texto que se lea en pantalla.
+            "conversación", "Conversación",
+            // Palabras que el detector de credenciales busca dentro del texto copiado: son el
+            // patrón, no un mensaje. Traducirlas dejaría de detectar la clave que buscan.
+            "CLAVE",
+            // Lo que la persona teclea para disparar algo. Son datos que el buscador reconoce; si
+            // se traducen, deja de funcionar lo que ya sabía escribir.
+            "salir", "cerrar sesión", "que no se duerma", "nº de factura", "cerebro", "memoria",
+            "pantalla", "papelera", "carpeta escritorio", "portapapeles", "nota ",
+            "cpu · memoria", "espacio trabajo · espacios",
+            "que consume", "que esta lento", "un abrazo", "con-guiones", "con_guiones_bajos",
+            "con espacios",
+            // Los signos que el troceador de MCP corta, y una plantilla de línea de portapapeles.
+            "*_`~'\"“”‘’«»()[]{}<>,;:.…·—–- ",
+            // Frase de prueba del reconocedor de voz: se compara contra lo que devuelve el modelo.
+            "el modelo de voz funciona sin conexion a internet",
+        ]
+    }
+
+    /// Marcas que en la práctica solo aparecen en español. No pretende detectar el idioma: sólo
+    /// tiene que ser suficiente para que un párrafo escrito en español no pase desapercibido.
+    private func looksSpanish(_ text: String) -> Bool {
+        // Lo que no es prosa: una interpolación sola, una URL, un código de idioma, una ruta.
+        let bare = text.trimmingCharacters(in: .whitespaces)
+        if bare.hasPrefix("("), bare.hasSuffix(")") { return false }
+        if bare.contains("://") || bare.contains("{query}") { return false }
+        if bare.range(of: "^[a-z]{2}[-_][A-Z]{2}$", options: .regularExpression) != nil { return false }
+        if text.contains(where: { "áéíóúñ¿¡«»Ñ".contains($0) }) { return true }
+        let pieces = text.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
+        // Palabras de función: solo cuentan si hay más de una palabra, porque sueltas aparecen en
+        // identificadores y en inglés ("la" de un nombre propio, por ejemplo).
+        let grammar: Set<String> = ["el", "la", "los", "las", "del", "para", "con", "una", "que",
+                                    "por", "sin", "desde", "hasta", "esto", "esta", "todo", "nada",
+                                    "pero", "como", "cuando", "porque", "tus", "sus", "de", "en",
+                                    "se", "su", "lo", "al", "un", "ya", "muy", "cada", "otra"]
+        if pieces.count > 1, pieces.contains(where: grammar.contains) { return true }
+        // Y las etiquetas de una sola palabra, que son justo las que más se ven y las que ninguna
+        // heurística gramatical caza: un botón que pone "Guardar" no tiene ninguna palabra de
+        // función que delate el idioma.
+        let labels: Set<String> = ["abrir", "guardar", "cancelar", "cerrar", "borrar", "buscar",
+                                   "ajustes", "acciones", "copiar", "mostrar", "añadir", "ninguno",
+                                   "ninguna", "listo", "reintentar", "aceptar", "enviar", "editar",
+                                   "nombre", "correo", "clave", "versión", "idioma", "equipo",
+                                   "tamaño", "recientes", "cargando", "vacío", "sonido",
+                                   "actualizaciones", "descargando", "instalando", "salir",
+                                   "continuar", "siguiente", "atrás", "hecho", "activar",
+                                   "desactivar", "conectar", "compartir", "importar", "exportar",
+                                   "memoria", "trabajo", "portapapeles", "nota", "fuentes",
+                                   "reunión", "decisión", "conversación", "misión", "misiones",
+                                   "propuesta", "pantalla", "ventana", "ventanas", "archivo",
+                                   "carpeta", "permiso", "permisos", "papelera", "cerebro"]
+        return pieces.contains(where: labels.contains)
+    }
+
+    /// Literales que NO están dentro de una llamada a `L(`. Ignora comentarios, que es donde se
+    /// explica el porqué de las cosas y donde el español es bienvenido.
+    func bareLiterals(in source: String) -> [(Int, String)] {
+        var result: [(Int, String)] = []
+        for (index, raw) in source.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+            let line = raw.trimmingCharacters(in: .whitespaces)
+            if line.hasPrefix("//") { continue }
+            let inside = Set(localisedLiterals(in: String(raw)))
+            for literal in allLiterals(in: String(raw)) where !inside.contains(literal) {
+                result.append((index + 1, literal))
+            }
+        }
+        return result
+    }
+
+    /// Todos los literales de una línea, pasen o no por `L(`.
+    private func allLiterals(in source: String) -> [String] {
+        var result: [String] = []
+        var literal = ""
+        var open = false
+        var escaped = false
+        for character in source {
+            if escaped { if open { literal.append(character) }; escaped = false; continue }
+            if character == "\\" { escaped = true; continue }
+            if character == "\"" {
+                if open, !literal.isEmpty { result.append(literal) }
+                literal = ""
+                open.toggle()
+                continue
+            }
+            if open { literal.append(character) }
+        }
+        return result
+    }
+
 }

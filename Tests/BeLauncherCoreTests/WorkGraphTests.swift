@@ -164,7 +164,7 @@ struct ResumeTests {
     @Test("no meetings means saying so, not guessing")
     func noMeetings() {
         let answer = WorkQuery.resume(nodes: [], meetings: [])
-        #expect(answer.headline.contains("No hay ninguna reunión"))
+        #expect(answer.headline.contains("no recent meeting"))
     }
 }
 

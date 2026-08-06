@@ -18,7 +18,7 @@ import Foundation
 enum SpanishStrings {
     static let table: [String: String] = {
         var merged: [String: String] = [:]
-        for chunk in [brain, setup, onboarding, privacy, settings, results, system, verbs, errors] {
+        for chunk in [brain, setup, onboarding, privacy, settings, results, system, verbs, errors, interface] {
             merged.merge(chunk) { _, new in new }
         }
         return merged

@@ -24,8 +24,8 @@ struct PrivacyTests {
     @Test("Una pausa se ve como pausa, no como funcionamiento normal")
     func pauseIsVisible() {
         let text = Privacy.State(reason: .byHand).summary(at: noon)
-        #expect(text.contains("No se está guardando"))
-        #expect(Privacy.State().summary(at: noon).contains("Capturando"))
+        #expect(text.contains("Nothing is being kept"))
+        #expect(Privacy.State().summary(at: noon).contains("Capturing"))
     }
 
     @Test("Dice cuánto queda de una pausa temporal")
@@ -90,7 +90,7 @@ struct ForgettingTests {
         let period = Privacy.Period(from: when.addingTimeInterval(-60), to: when.addingTimeInterval(60))
         let preview = store.whatWouldBeForgotten(period)
         #expect(preview.passages == 1)
-        #expect(preview.warning.contains("para siempre"))
+        #expect(preview.warning.contains("for good"))
         // Y contar no borra.
         #expect(store.indexedPassageCount().total == 1)
     }

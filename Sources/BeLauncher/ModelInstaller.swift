@@ -115,10 +115,10 @@ final class ModelInstaller {
             case .exited(0):
                 self.set(await Self.inspect(), ticket: ticket)
             case .exited(let code):
-                self.set(.failed("Homebrew no pudo instalar Ollama (código \(code)). Prueba "
-                                 + "desde ollama.com."), ticket: ticket)
+                self.set(.failed(L("Homebrew could not install Ollama (code %@). Try from ollama.com.",
+                                   String(code))), ticket: ticket)
             case .couldNotStart(let reason):
-                self.set(.failed("No se pudo ejecutar Homebrew: \(reason)"), ticket: ticket)
+                self.set(.failed(L("Homebrew could not be run: %@", reason)), ticket: ticket)
             }
         }
     }
@@ -199,7 +199,7 @@ final class ModelInstaller {
         // business overwriting "no cabe en el disco" a second later.
         guard let freeBytes = Self.freeDiskSpace() else {
             _ = newTicket()
-            phase = .failed("No pude comprobar el espacio libre en disco.")
+            phase = .failed(L("I could not check the free space on disk."))
             return
         }
         guard ModelInstall.hasEnoughDiskSpace(freeBytes: freeBytes) else {

@@ -96,38 +96,38 @@ extension LauncherModel.Action {
     /// What a receipt says this step did.
     public var receiptLine: String {
         switch self {
-        case .launchApplication(let path): "Abrir \((path as NSString).lastPathComponent)"
-        case .openURL(let url): "Abrir \(url.host() ?? url.absoluteString)"
-        case .openFile(let path): "Abrir \((path as NSString).lastPathComponent)"
+        case .launchApplication(let path): L("Open %@", (path as NSString).lastPathComponent)
+        case .openURL(let url): L("Open %@", url.host() ?? url.absoluteString)
+        case .openFile(let path): L("Open %@", (path as NSString).lastPathComponent)
         case .revealInFinder(let path): "Mostrar \((path as NSString).lastPathComponent)"
         case .copyToClipboard(let text, _): "Copiar \(text.count) caracteres"
-        case .moveToTrash(let path): "Mover a la papelera \((path as NSString).lastPathComponent)"
-        case .systemCommand(let kind): "Comando del sistema: \(kind)"
-        case .runShortcut(let name): "Ejecutar el atajo “\(name)”"
-        case .startTimer(let minutes, _): "Temporizador de \(minutes) min"
-        case .arrangeWindow(let layout): "Colocar la ventana: \(layout)"
+        case .moveToTrash(let path): L("Move %@ to the trash", (path as NSString).lastPathComponent)
+        case .systemCommand(let kind): L("System command: %@", String(describing: kind))
+        case .runShortcut(let name): L("Run the shortcut “%@”", name)
+        case .startTimer(let minutes, _): L("A %@ min timer", String(minutes))
+        case .arrangeWindow(let layout): L("Place the window: %@", String(describing: layout))
         case .remember(let text, _): "Proponer memoria: \(text.prefix(40))"
         case .confirmCommit: L("Confirm a memory")
         case .discardCommit: L("Discard a proposal")
-        case .runFlow(let steps): "Ejecutar un flujo de \(steps.count) pasos"
-        case .runVerb(let id, _): "Pedir a la IA: \(id)"
+        case .runFlow(let steps): L("Run a flow of %@ steps", String(steps.count))
+        case .runVerb(let id, _): L("Ask the AI: %@", id)
         case .quickLook: L("Quick Look")
         case .openWith: L("Open with another app")
-        case .openSettings: "Abrir ajustes"
+        case .openSettings: L("Open settings")
         case .wait(let seconds): "Esperar \(Int(seconds))s"
-        case .assignAlias(_, let suggestion): "Asignar un alias a \(suggestion)"
-        case .runMission(let mission): "Ejecutar la misión “\(mission.intent)”"
+        case .assignAlias(_, let suggestion): L("Give %@ an alias", suggestion)
+        case .runMission(let mission): L("Run the mission “%@”", mission.intent)
         case .missionCancelled: L("Mission cancelled")
         case .cancelAI: L("Request cancelled")
-        case .quitProcess(let pid): "Cerrar el proceso \(pid)"
-        case .forceQuit(let pid): "Forzar la salida del proceso \(pid)"
+        case .quitProcess(let pid): L("Close process %@", String(pid))
+        case .forceQuit(let pid): L("Force process %@ to quit", String(pid))
         case .stayAwake(let minutes):
             minutes.map { "Mantener despierto \($0) min" } ?? "Mantener despierto"
-        case .writeNote(let text): "Guardar una nota: \(text.prefix(40))"
-        case .saveWorkspace(let name): "Guardar el reparto de ventanas «\(name)»"
-        case .restoreWorkspace(let name): "Colocar el reparto «\(name)»"
-        case .openCanvas(_, let brief): "Abrir un lienzo: \(brief.prefix(40))"
-        case .runAgent(let id, _): "Encargar «\(id)»"
+        case .writeNote(let text): L("Keep a note: %@", String(text.prefix(40)))
+        case .saveWorkspace(let name): L("Save the window layout “%@”", name)
+        case .restoreWorkspace(let name): L("Place the layout “%@”", name)
+        case .openCanvas(_, let brief): L("Open a canvas: %@", String(brief.prefix(40)))
+        case .runAgent(let id, _): L("Commission “%@”", id)
         case .dismiss: L("Close the window")
         }
     }
@@ -175,7 +175,7 @@ public struct MissionReceipt: Sendable, Equatable {
             changed: done.filter { $0.action.changesSomething }.map { $0.action.receiptLine },
             undoable: done.compactMap { step in
                 if case .moveToTrash(let path) = step.action {
-                    return "Recuperar \((path as NSString).lastPathComponent) de la papelera"
+                    return L("Get %@ back out of the trash", (path as NSString).lastPathComponent)
                 }
                 if case .confirmCommit = step.action { return L("Undo the confirmed memory") }
                 return nil

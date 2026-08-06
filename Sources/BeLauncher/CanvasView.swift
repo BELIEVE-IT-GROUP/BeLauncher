@@ -49,7 +49,7 @@ final class CanvasModel {
                 filling = block.id
                 await fill(block)
             }
-            status = "Listo. Edita lo que quieras y ejecútalo cuando esté."
+            status = L("Ready. Edit whatever you want and run it when it is.")
         }
     }
 
@@ -75,7 +75,7 @@ final class CanvasModel {
             let answer = try await run(prompt)
             canvas.fill(block.id, body: answer)
         } catch {
-            status = "«\(block.title)» falló: \(error.localizedDescription)"
+            status = L("“%1$@” failed: %2$@", block.title, error.localizedDescription)
         }
     }
 
@@ -101,7 +101,7 @@ final class CanvasModel {
         guard let block = canvas.blocks.first(where: { $0.id == blockID }) else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(block.body, forType: .string)
-        status = "«\(block.title)» copiado."
+        status = L("“%@” copied.", block.title)
     }
 
     /// Runs the action blocks. Only these touch anything outside the canvas, and only after the
@@ -109,7 +109,7 @@ final class CanvasModel {
     func runActions() {
         let actions = canvas.actions
         guard !actions.isEmpty else {
-            status = "Este lienzo no tiene nada que ejecutar: es todo texto para que lo uses tú."
+            status = L("This canvas has nothing to run: it is all text for you to use.")
             return
         }
         for action in actions { perform(action) }
@@ -148,7 +148,7 @@ struct CanvasView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(model.canvas.title).font(.system(size: 15, weight: .semibold))
-                Text(model.canvas.brief.isEmpty ? "Sin encargo" : model.canvas.brief)
+                Text(model.canvas.brief.isEmpty ? L("No brief") : model.canvas.brief)
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
@@ -156,7 +156,7 @@ struct CanvasView: View {
             if model.isFilling {
                 Button("Parar") { model.cancel() }.controlSize(.small)
             } else {
-                Button("Rellenar todo") { model.fillAll() }
+                Button(L("Fill it all in")) { model.fillAll() }
                     .buttonStyle(.borderedProminent).controlSize(.small)
             }
         }
@@ -170,8 +170,8 @@ struct CanvasView: View {
                     .textSelection(.enabled)
             }
             Spacer()
-            Button("Copiar todo") { model.copyAll() }
-            Button("Ejecutar los pasos") { model.runActions() }
+            Button(L("Copy it all")) { model.copyAll() }
+            Button(L("Run the steps")) { model.runActions() }
                 .buttonStyle(.borderedProminent)
         }
         .padding(12)
@@ -198,7 +198,7 @@ private struct BlockCard: View {
                         .foregroundStyle(Theme.accent).frame(width: 15)
                     Text(block.title).font(.system(size: 12.5, weight: .semibold))
                     if block.editedByHand {
-                        Text("editado por ti")
+                        Text(L("edited by you"))
                             .font(.system(size: 9))
                             .padding(.horizontal, 5).padding(.vertical, 1)
                             .background(Theme.cyan.opacity(0.18), in: Capsule())
@@ -208,7 +208,7 @@ private struct BlockCard: View {
                         ProgressView().controlSize(.small)
                     } else if block.isReady {
                         Button { copy() } label: { Image(systemName: "doc.on.doc") }
-                            .buttonStyle(.borderless).help("Copiar este bloque")
+                            .buttonStyle(.borderless).help(L("Copy this block"))
                         Button { regenerate() } label: { Image(systemName: "arrow.clockwise") }
                             .buttonStyle(.borderless).help("Volver a generarlo")
                     }
@@ -219,12 +219,12 @@ private struct BlockCard: View {
                         .font(.system(size: 12))
                         .frame(minHeight: 90)
                     HStack {
-                        Button("Guardar") { edit(draft); editing = false }
+                        Button(L("Save")) { edit(draft); editing = false }
                             .buttonStyle(.borderedProminent).controlSize(.small)
                         Button("Descartar") { editing = false }.controlSize(.small)
                     }
                 } else if block.body.isEmpty {
-                    Text(isFilling ? "Escribiendo…" : "Vacío. Rellénalo o escríbelo tú.")
+                    Text(isFilling ? "Escribiendo…" : L("Empty. Fill it in or write it yourself."))
                         .font(.system(size: 11.5)).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .onTapGesture { draft = ""; editing = true }

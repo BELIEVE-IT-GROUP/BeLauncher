@@ -67,7 +67,7 @@ final class CorpusReaderModel {
         guard let target = documents.first(where: { Identity.fold($0.title) == wanted })
                 ?? documents.first(where: { $0.links.contains(name) && $0.id != selectedID })
         else {
-            status = "«\(name)» todavía no tiene ficha propia."
+            status = L("“%@” has no entry of its own yet.", name)
             return
         }
         select(target.id)
@@ -92,9 +92,9 @@ final class CorpusReaderModel {
             isEditing = false
             reload()
             selectedID = edited.id
-            status = "Guardado. A partir de ahora este archivo es tuyo: la máquina no lo reescribe."
+            status = L("Saved. From now on this file is yours: the machine will not rewrite it.")
         } catch {
-            status = "No se pudo guardar: \(error.localizedDescription)"
+            status = L("Could not save: %@", error.localizedDescription)
         }
     }
 
@@ -125,7 +125,7 @@ struct CorpusReaderView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("Buscar en tu memoria", text: $model.query)
+                TextField(L("Search your memory"), text: $model.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13))
             }
@@ -133,7 +133,7 @@ struct CorpusReaderView: View {
             .padding(.vertical, 11)
 
             Picker("", selection: $model.kind) {
-                Text("Todo").tag(CorpusDocument.Kind?.none)
+                Text(L("Everything")).tag(CorpusDocument.Kind?.none)
                 ForEach(CorpusDocument.Kind.allCases, id: \.self) { kind in
                     Text(kind.label).tag(CorpusDocument.Kind?.some(kind))
                 }
@@ -164,8 +164,8 @@ struct CorpusReaderView: View {
             Spacer()
             Mascot(height: 74)
             Text(model.documents.isEmpty
-                 ? "Todavía no hay corpus. En cuanto el cerebro capture un rato de trabajo, aparece aquí."
-                 : "Nada coincide con «\(model.query)».")
+                 ? L("Nothing here yet. As soon as the brain captures a stretch of work, it shows up.")
+                 : L("Nothing matches “%@”.", model.query))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -237,7 +237,7 @@ struct CorpusReaderView: View {
         } else {
             VStack(spacing: 8) {
                 Spacer()
-                Text("Elige algo de la lista").font(.system(size: 13)).foregroundStyle(.secondary)
+                Text(L("Pick something from the list")).font(.system(size: 13)).foregroundStyle(.secondary)
                 Spacer()
             }
             .frame(maxWidth: .infinity)
@@ -253,11 +253,11 @@ struct CorpusReaderView: View {
                 Spacer(minLength: 8)
                 if model.isEditing {
                     Button("Descartar") { model.cancelEditing() }.controlSize(.small)
-                    Button("Guardar") { model.save() }
+                    Button(L("Save")) { model.save() }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                         .keyboardShortcut("s", modifiers: .command)
                 } else {
-                    Button("Editar") { model.beginEditing() }
+                    Button(L("Edit")) { model.beginEditing() }
                         .controlSize(.small)
                         .keyboardShortcut("e", modifiers: .command)
                     Button {
@@ -266,7 +266,7 @@ struct CorpusReaderView: View {
                         Image(systemName: "folder")
                     }
                     .buttonStyle(.borderless)
-                    .help("Enseñar el archivo en el Finder. Es tuyo y es un .md normal.")
+                    .help(L("Show the file in the Finder. It is yours and it is an ordinary .md."))
                 }
             }
 
@@ -275,10 +275,10 @@ struct CorpusReaderView: View {
                 Tag(text: stamp(document.occurredAt), tone: .neutral)
                 if document.corrections.editedByHand {
                     // La marca que importa: mientras esté, la máquina no toca este archivo.
-                    Tag(text: "escrito por ti", tone: .mine)
+                    Tag(text: L("written by you"), tone: .mine)
                 }
                 if document.corrections.pinned { Tag(text: "importante", tone: .mine) }
-                if document.corrections.hidden { Tag(text: "fuera del grafo", tone: .muted) }
+                if document.corrections.hidden { Tag(text: L("outside the graph"), tone: .muted) }
             }
         }
         .padding(.horizontal, 20)
@@ -291,7 +291,7 @@ struct CorpusReaderView: View {
                 .font(.system(size: 13, design: .monospaced))
                 .padding(12)
             Divider()
-            Text("Lo que escribas aquí manda sobre lo que dedujo la máquina y no se sobrescribe.")
+            Text(L("What you write here outranks whatever the machine worked out, and never gets overwritten."))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 18).padding(.vertical, 9)

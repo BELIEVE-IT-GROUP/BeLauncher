@@ -106,10 +106,10 @@ struct WelcomeView: View {
     private var firstSteps: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Cinco cosas y ya sabes usarlo")
+                Text(L("Five things and you know how to use it"))
                     .font(.system(size: 18, weight: .semibold))
 
-                GroupBox("Las teclas") {
+                GroupBox(L("The keys")) {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(Onboarding.firstThings, id: \.keys) { item in
                             HStack(alignment: .top, spacing: 10) {

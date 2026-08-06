@@ -137,7 +137,7 @@ public enum Pulse {
             .map { commitment in
                 Signal(kind: .overdue,
                        headline: L("Overdue commitment"),
-                       detail: "«\(commitment.statement)»"
+                       detail: L("“%@”", commitment.statement)
                              + (commitment.owner.isEmpty ? "" : " · \(commitment.owner)"),
                        weight: 90, objects: [commitment])
             }

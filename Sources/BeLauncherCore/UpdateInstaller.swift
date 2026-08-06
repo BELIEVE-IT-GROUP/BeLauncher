@@ -44,21 +44,20 @@ public struct UpdateInstaller: Sendable {
         public var description: String {
             switch self {
             case .notWritable(let path):
-                "No se puede escribir en \(path). Mueve BeLauncher a Aplicaciones y vuelve a intentarlo."
+                L("%@ cannot be written to. Move BeLauncher to Applications and try again.", path)
             case .translocated:
-                "macOS está ejecutando la app desde una copia de solo lectura. Muévela a Aplicaciones "
-                + "y ábrela desde ahí."
+                L("macOS is running the app from a read-only copy. Move it to Applications and open it from there.")
             case .badArchive:
-                "La descarga no contiene una app de BeLauncher. No se instaló nada."
+                L("The download does not contain a BeLauncher app. Nothing was installed.")
             case .couldNotMount:
-                "No se pudo abrir la descarga. Puede que se cortara a medias; reintenta."
+                L("The download could not be opened. It may have been cut off halfway; try again.")
             case .notSignedByUs(let found):
-                "La descarga no está firmada por Believe (encontrado: \(found.isEmpty ? "sin firma" : found)). "
-                + "No se instaló nada."
+                L("The download is not signed by Believe (found: %@). ", found.isEmpty ? L("no signature") : found)
+                + L("Nothing was installed.")
             case .notNotarized:
-                "Apple no reconoce la descarga como notarizada. No se instaló nada."
+                L("Apple does not recognise the download as notarised. Nothing was installed.")
             case .replaceFailed(let reason):
-                "No se pudo reemplazar la aplicación: \(reason)"
+                L("The application could not be replaced: %@", reason)
             }
         }
     }

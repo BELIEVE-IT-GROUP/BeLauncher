@@ -63,8 +63,10 @@ final class AgentRunner {
         }
 
         guard tray.canStartAnother else {
-            current = AgentDriver.fail(run, "Ya hay \(MissionTray.concurrencyLimit) misiones en "
-                                          + "marcha. Espera a que acaben o cancela una.")
+            current = AgentDriver.fail(
+                run,
+                L("There are already %@ missions under way. Wait for them to finish or cancel one.",
+                  String(MissionTray.concurrencyLimit)))
             return
         }
 
@@ -98,7 +100,7 @@ final class AgentRunner {
             }
             mission.permissionsUsed = permissionsUsed
         }
-        tray.note(run.id, did: "Reunió contexto de \(findings.count) fuente(s)")
+        tray.note(run.id, did: L("It gathered context from %@ source(s)", String(findings.count)))
 
         guard !Task.isCancelled else { return }
 
@@ -117,10 +119,10 @@ final class AgentRunner {
                 mission.result = answer
                 mission.undoable = [
                     UndoableStep(kind: .restoreClipboard, target: "",
-                                 label: "Recuperar lo que había en el portapapeles"),
+                                 label: L("Put back what was on the clipboard")),
                 ]
             }
-            tray.note(run.id, did: "Copió el resultado al portapapeles")
+            tray.note(run.id, did: L("It copied the result to the clipboard"))
             perform(.copyToClipboard(text: answer, cursorOffset: nil))
 
             // 3. Learn: only that this outcome was useful, never what it said.
@@ -176,7 +178,7 @@ struct MissionTrayView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Misiones").font(.system(size: 14, weight: .semibold))
+                Text(L("Missions")).font(.system(size: 14, weight: .semibold))
                 Spacer()
                 if !runner.tray.finished.isEmpty {
                     Button("Limpiar terminadas") { runner.clearFinished() }
@@ -189,8 +191,8 @@ struct MissionTrayView: View {
             if runner.tray.missions.isEmpty {
                 VStack(spacing: 6) {
                     Image(systemName: "tray").font(.system(size: 26)).foregroundStyle(.tertiary)
-                    Text("Nada en marcha.").font(.system(size: 12)).foregroundStyle(.secondary)
-                    Text("Escribe «/» en el lanzador para ver lo que se puede encargar.")
+                    Text(L("Nothing under way.")).font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text(L("Type “/” in the launcher to see what can be commissioned."))
                         .font(.system(size: 11)).foregroundStyle(.tertiary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -233,7 +235,7 @@ private struct MissionCard: View {
                     }
                     Spacer()
                     if !mission.state.isFinished {
-                        Button("Cancelar") { cancel() }.controlSize(.small)
+                        Button(L("Cancel")) { cancel() }.controlSize(.small)
                     }
                 }
 
@@ -250,7 +252,7 @@ private struct MissionCard: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button(showsReceipt ? "Ocultar el detalle" : "Ver qué hizo") {
+                    Button(showsReceipt ? L("Hide the detail") : L("See what it did")) {
                         showsReceipt.toggle()
                     }
                     .controlSize(.small)
@@ -258,7 +260,7 @@ private struct MissionCard: View {
                         Button(step.label) { undo(step) }.controlSize(.small)
                     }
                     Spacer()
-                    Text(mission.tokensUsed == 0 ? "sin coste" : "≈\(mission.tokensUsed) tokens")
+                    Text(mission.tokensUsed == 0 ? L("no cost") : "≈\(mission.tokensUsed) tokens")
                         .font(.system(size: 9.5)).foregroundStyle(.tertiary)
                 }
 

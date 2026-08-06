@@ -25,22 +25,22 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         switch self {
         case .application: "App"
         case .snippet: "Snippet"
-        case .clipboard: "Portapapeles"
+        case .clipboard: L("Clipboard")
         case .workflow: L("Search")
-        case .calculation: "Resultado"
-        case .file: "Archivo"
-        case .flow: "Flujo"
-        case .system: "Sistema"
-        case .bookmark: "Enlace"
-        case .window: "Ventana"
-        case .shortcut: "Atajo"
-        case .memory: "Memoria"
-        case .recall: "Recuerdo"
+        case .calculation: L("Result")
+        case .file: L("File")
+        case .flow: L("Flow")
+        case .system: L("System")
+        case .bookmark: L("Link")
+        case .window: L("Window")
+        case .shortcut: L("Shortcut")
+        case .memory: L("Memory")
+        case .recall: L("Recollection")
         case .pendingCommit: L("To confirm")
-        case .answer: "Respuesta"
+        case .answer: L("Answer")
         case .mission: L("Mission")
-        case .agent: "Comando"
-        case .process: "Proceso"
+        case .agent: L("Command")
+        case .process: L("Process")
         }
     }
 
@@ -214,7 +214,7 @@ public enum SearchEngine {
             case .save(let name):
                 pinned.append(SearchResult(
                     id: "workspace-save", kind: .window,
-                    title: "Guardar este reparto de ventanas como «\(name)»",
+                    title: L("Save this window layout as “%@”", name),
                     subtitle: L("Where every window is, on which display and how big"),
                     score: 99_870, matched: [], payload: "save:\(name)"
                 ))
@@ -223,7 +223,7 @@ public enum SearchEngine {
                 where workspace.id.hasPrefix(name.lowercased()) {
                     pinned.append(SearchResult(
                         id: "workspace-\(workspace.id)", kind: .window,
-                        title: "Colocar «\(workspace.name)»", subtitle: workspace.summary,
+                        title: L("Place “%@”", workspace.name), subtitle: workspace.summary,
                         score: 99_870, matched: [], payload: "restore:\(workspace.name)"
                     ))
                 }
@@ -251,7 +251,7 @@ public enum SearchEngine {
             for offer in offers {
                 pinned.append(SearchResult(
                     id: "awake-\(offer.minutes.map(String.init) ?? "forever")", kind: .system,
-                    title: "No dejar dormir el Mac · \(offer.label)",
+                    title: L("Keep the Mac awake · %@", offer.label),
                     subtitle: offer.minutes == nil
                         ? L("Until you turn it off from the menu bar")
                         : L("It switches itself off when it finishes"),
@@ -460,7 +460,7 @@ public enum SearchEngine {
             results.append(SearchResult(
                 id: "commit-\(commit.id)", kind: .pendingCommit, title: commit.object.statement,
                 subtitle: commit.conflicts.isEmpty
-                    ? "Propuesta · confirma o descarta"
+                    ? L("Proposal · confirm or discard")
                     : L("Proposal · would replace %@ memory/memories", String(commit.conflicts.count)),
                 // A large, deliberate bonus: something waiting on your decision should not lose
                 // to a settled memory just because the wording matched better.
@@ -595,11 +595,11 @@ public enum SearchEngine {
         if clip.isPinned { parts.append("📌 Fijado") }
         switch clip.kind {
         case .image: parts.append("Imagen")
-        case .file: parts.append("Archivo")
+        case .file: parts.append(L("File"))
         case .link: parts.append("Enlace")
         case .text: break
         }
-        parts.append(clip.sourceApp.isEmpty ? "Portapapeles" : "Copiado de \(clip.sourceApp)")
+        parts.append(clip.sourceApp.isEmpty ? L("Clipboard") : L("Copied from %@", clip.sourceApp))
         return parts.joined(separator: " · ")
     }
 

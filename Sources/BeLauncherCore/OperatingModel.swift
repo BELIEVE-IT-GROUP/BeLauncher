@@ -50,13 +50,13 @@ public struct Trait: Sendable, Equatable, Identifiable, Codable {
         case "writing.length": "Escribes \(value)."
         case "writing.formality": "Tu tono es \(value)."
         case "writing.greeting": value == "none"
-            ? "No usas saludos de relleno."
-            : "Sueles empezar con un saludo."
-        case "writing.language": "Escribes en \(value)."
-        case "files.naming": "Nombras los archivos así: \(value)."
-        case "priority.urgent": "Consideras urgente lo que menciona: \(value)."
+            ? "You do not use filler greetings."
+            : "You usually open with a greeting."
+        case "writing.language": "You write in \(value)."
+        case "files.naming": "You name files like this: \(value)."
+        case "priority.urgent": "You treat as urgent whatever mentions: \(value)."
         case "meetings.accepts": "Aceptas reuniones \(value)."
-        case "structure.proposal": "Tus propuestas van así: \(value)."
+        case "structure.proposal": "Your proposals go like this: \(value)."
         default: "\(name): \(value)"
         }
     }
@@ -172,27 +172,27 @@ public enum OperatingModel {
         let usable = traits.filter(\.isUsable)
         guard !usable.isEmpty else { return "" }
 
-        var lines = ["Escribe como esta persona escribe:"]
+        var lines = ["Write the way this person writes:"]
         for trait in usable.sorted(by: { $0.name < $1.name }) {
             switch trait.name {
             case "writing.length":
                 lines.append(trait.value == "corto"
-                    ? "- Muy breve. Va al grano y no rellena."
+                    ? "- Very short. Straight to the point, no padding."
                     : trait.value == "largo"
-                    ? "- Desarrolla las ideas, no telegrafía."
-                    : "- Extensión media.")
+                    ? "- Develops the ideas rather than telegraphing them."
+                    : "- Medium length.")
             case "writing.formality":
                 lines.append(trait.value == "formal"
-                    ? "- Tono formal, de usted."
-                    : "- Tono cercano y directo, de tú.")
+                    ? "- Formal tone."
+                    : "- Close, direct tone.")
             case "writing.greeting":
                 lines.append(trait.value == "none"
-                    ? "- Sin saludos ni fórmulas de cortesía. Empieza por lo importante."
-                    : "- Empieza con un saludo breve.")
+                    ? "- No greetings or pleasantries. Start with what matters."
+                    : "- Open with a short greeting.")
             case "writing.language":
-                lines.append("- Escribe en \(trait.value).")
+                lines.append("- Write in \(trait.value).")
             case "structure.proposal":
-                lines.append("- Estructura de propuesta preferida: \(trait.value).")
+                lines.append("- Preferred proposal structure: \(trait.value).")
             default:
                 continue
             }

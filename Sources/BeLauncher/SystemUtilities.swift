@@ -32,11 +32,11 @@ enum SystemUtilities {
 
     /// Asks it to quit, the way ⌘Q does, so it gets to save.
     static func quit(pid: String, force: Bool) -> String? {
-        guard let identifier = Int32(pid) else { return "Ese proceso ya no existe." }
+        guard let identifier = Int32(pid) else { return L("That process no longer exists.") }
 
         let all = processes()
         guard let target = all.first(where: { $0.id == identifier }) else {
-            return "Ese proceso ya no está corriendo."
+            return L("That process is no longer running.")
         }
         // The one judgement that matters in this feature.
         if let refusal = ProcessList.refusal(for: target) { return refusal }
@@ -47,27 +47,27 @@ enum SystemUtilities {
             if force {
                 guard confirmForce(named: target.name) else { return nil }
                 return application.forceTerminate()
-                    ? nil : "macOS no dejó cerrar «\(target.name)»."
+                    ? nil : L("macOS would not let me close “%@”.", target.name)
             }
-            return application.terminate() ? nil : "«\(target.name)» no quiso cerrarse. "
-                + "Prueba con ⌘K → Forzar la salida."
+            return application.terminate() ? nil
+                : L("“%@” would not close. Try ⌘K → Force quit.", target.name)
         }
 
         // A daemon with no application object: signals are all there is.
         if force { guard confirmForce(named: target.name) else { return nil } }
         let result = kill(identifier, force ? SIGKILL : SIGTERM)
-        return result == 0 ? nil : "No se pudo cerrar «\(target.name)» (¿es de otro usuario?)."
+        return result == 0 ? nil : L("“%@” could not be closed (does it belong to another user?).", target.name)
     }
 
     /// Forcing loses unsaved work, so it asks, every time. This is the one place in the app where
     /// a confirmation is worth the friction.
     private static func confirmForce(named name: String) -> Bool {
         let alert = NSAlert()
-        alert.messageText = "¿Forzar la salida de «\(name)»?"
-        alert.informativeText = "No podrá guardar nada. Lo que tenga sin guardar se pierde."
+        alert.messageText = L("Force “%@” to quit?", name)
+        alert.informativeText = L("It will not be able to save anything. Whatever is unsaved is lost.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Forzar la salida")
-        alert.addButton(withTitle: "Cancelar")
+        alert.addButton(withTitle: L("Force quit"))
+        alert.addButton(withTitle: L("Cancel"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 
@@ -87,27 +87,27 @@ enum SystemUtilities {
         stopStayingAwake()
 
         var identifier: IOPMAssertionID = 0
-        let reason = "BeLauncher: no dejar dormir el Mac" as CFString
+        let reason = L("BeLauncher: keep the Mac awake") as CFString
         let created = IOPMAssertionCreateWithName(
             kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn), reason, &identifier
         )
         guard created == kIOReturnSuccess else {
-            return "macOS no dejó activar el modo despierto."
+            return L("macOS would not let me turn the awake mode on.")
         }
         assertion = identifier
         isAwake = true
 
         guard let minutes else {
             awakeUntil = nil
-            return "El Mac no se dormirá hasta que lo apagues desde la barra de menús."
+            return L("The Mac will not sleep until you turn this off from the menu bar.")
         }
         let end = Date().addingTimeInterval(Double(minutes) * 60)
         awakeUntil = end
         timer = Timer.scheduledTimer(withTimeInterval: Double(minutes) * 60, repeats: false) { _ in
             Task { @MainActor in stopStayingAwake() }
         }
-        return "El Mac no se dormirá durante \(StayAwake.label(forMinutes: minutes))."
+        return L("The Mac will not sleep for %@.", StayAwake.label(forMinutes: minutes))
     }
 
     static func stopStayingAwake() {
@@ -136,14 +136,14 @@ enum SystemUtilities {
             try FileManager.default.createDirectory(atPath: folder,
                                                     withIntermediateDirectories: true)
         } catch {
-            return .failed("No se pudo abrir la carpeta de notas: \(error.localizedDescription)")
+            return .failed(L("The notes folder could not be opened: %@", error.localizedDescription))
         }
         let path = (folder as NSString).appendingPathComponent(QuickNote.filename(for: text))
         do {
             try QuickNote.render(text).write(toFile: path, atomically: true, encoding: .utf8)
             return .saved(path: path)
         } catch {
-            return .failed("No se pudo guardar la nota: \(error.localizedDescription)")
+            return .failed(L("The note could not be saved: %@", error.localizedDescription))
         }
     }
 }

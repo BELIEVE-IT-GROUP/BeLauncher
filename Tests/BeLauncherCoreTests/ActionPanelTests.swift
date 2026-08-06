@@ -65,7 +65,7 @@ struct ActionPanelTests {
                                 score: 1, matched: [], payload: "/tmp/notas.md")
         let actions = ActionRegistry.actions(for: file)
         #expect(ActionRegistry.filter(actions, query: "").count == actions.count)
-        #expect(ActionRegistry.filter(actions, query: "papel").first?.id == "trash")
+        #expect(ActionRegistry.filter(actions, query: "trash").first?.id == "trash")
         #expect(ActionRegistry.filter(actions, query: "zzzz").isEmpty)
     }
 

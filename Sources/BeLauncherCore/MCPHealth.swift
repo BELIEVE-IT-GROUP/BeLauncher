@@ -251,7 +251,7 @@ public enum MCPHealth {
     }
 
     static func errorMessage(_ error: [String: Any]) -> String {
-        (error["message"] as? String) ?? "sin detalle"
+        (error["message"] as? String) ?? L("no detail")
     }
 
     /// Everything the assistant would read, as one string.

@@ -97,7 +97,7 @@ struct MissionTests {
 
         #expect(receipt.changed.count == 2, "only what actually changed something is listed")
         #expect(!receipt.changed.contains { $0.contains("Copiar") })
-        #expect(receipt.undoable.contains { $0.contains("papelera") })
+        #expect(receipt.undoable.contains { $0.contains("trash") })
 
         let text = receipt.render()
         #expect(text.contains("Pedido por Jorge"))

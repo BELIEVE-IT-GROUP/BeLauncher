@@ -130,9 +130,9 @@ public enum CorpusFiles {
     /// is read back as corpus — so the explanation goes in the README at the root and `parse`
     /// refuses anything without our front matter instead of guessing.
     public static let folders: [(name: String, purpose: String)] = [
-        ("episodes", "Lo que hiciste, por tramos: un archivo por episodio de trabajo."),
-        ("entities", "Quién y qué: personas, proyectos, empresas y asuntos, con todos sus nombres."),
-        ("statements", "Lo que el cerebro concluyó de tus días, cada frase con su cita."),
+        ("episodes", L("What you did, in stretches: one file per episode of work.")),
+        ("entities", L("Who and what: people, projects, companies and subjects, with every name they answer to.")),
+        ("statements", L("What the brain concluded from your days, every sentence with its citation.")),
     ]
 
     /// Folders whose every `.md` is read back as memory. Nothing else goes in them.
@@ -181,13 +181,14 @@ public enum CorpusFiles {
 
         var body = "# \(title)\n\n"
         body += "\(minutes) min · \(dayFormatter().string(from: episode.start))"
-        body += " · de \(clock.string(from: episode.start)) a \(clock.string(from: episode.end))\n"
-        body += "\n## Qué tocaste\n\n"
+        body += " · " + L("from %1$@ to %2$@", clock.string(from: episode.start),
+                          clock.string(from: episode.end)) + "\n"
+        body += L("\n## What you touched\n\n")
         for signal in episode.signals.sorted(by: { $0.at < $1.at }) {
             body += "- \(clock.string(from: signal.at)) · \(label(signal.kind)) · \(signal.title)\n"
         }
         if !links.isEmpty {
-            body += "\n## Con qué tiene que ver\n\n"
+            body += L("\n## What it has to do with\n\n")
             body += links.map(wikilink).joined(separator: " · ") + "\n"
         }
 
@@ -206,13 +207,13 @@ public enum CorpusFiles {
     public static func document(for entity: Entity, seenAt: Date = .now,
                                 links: [String] = []) -> CorpusDocument {
         var body = "# \(entity.canonical)\n\n"
-        body += "\(entity.kind.label) · visto \(entity.weight) vez(es)\n"
+        body += entity.kind.label + " · " + L("seen %@ time(s)", String(entity.weight)) + "\n"
         if !entity.aliases.isEmpty {
-            body += "\n## También se llama\n\n"
+            body += L("\n## Also called\n\n")
             body += entity.aliases.sorted().map { "- \($0)" }.joined(separator: "\n") + "\n"
         }
         if !links.isEmpty {
-            body += "\n## Aparece con\n\n"
+            body += L("\n## Turns up with\n\n")
             body += links.map(wikilink).joined(separator: " · ") + "\n"
         }
 
@@ -241,7 +242,7 @@ public enum CorpusFiles {
                                 titles: [String: String] = [:]) -> CorpusDocument {
         var body = "# \(statement.text)\n\n"
         body += "\(dayFormatter().string(from: statement.day))\n"
-        body += "\n## De dónde sale\n\n"
+        body += L("\n## Where it comes from\n\n")
         for source in statement.sources {
             body += "- \(wikilink(titles[source] ?? source))\n"
         }
@@ -577,12 +578,12 @@ public enum CorpusFiles {
 
     static func label(_ kind: Episode.Signal.Kind) -> String {
         switch kind {
-        case .file: "Archivo"
+        case .file: L("File")
         case .application: "App"
-        case .meeting: "Reunión"
-        case .conversation: "Conversación"
-        case .clip: "Portapapeles"
-        case .note: "Nota"
+        case .meeting: L("Meeting")
+        case .conversation: L("Conversation")
+        case .clip: L("Clipboard")
+        case .note: L("Note")
         }
     }
 
@@ -623,6 +624,7 @@ public final class CorpusFolder {
                                         withIntermediateDirectories: true,
                                         attributes: [.posixPermissions: 0o700])
         }
+        // A filename on disk, not interface copy: it keeps the name it was created with.
         let readme = (root as NSString).appendingPathComponent("LÉEME — corpus.md")
         if !manager.fileExists(atPath: readme) {
             try? CorpusFiles.readme.write(toFile: readme, atomically: true, encoding: .utf8)

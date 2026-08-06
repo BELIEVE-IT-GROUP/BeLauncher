@@ -127,13 +127,13 @@ public enum EmbeddingError: Error, Equatable, CustomStringConvertible {
         case .noEngine:
             EmbeddingEngine.howToGetOne
         case .missingKey(let provider):
-            "Falta la clave de \(provider) para calcular los vectores."
+            L("The %@ key is missing, so the vectors cannot be worked out.", provider)
         case .transport(let reason):
-            "No pude calcular los vectores: \(reason)"
+            L("I could not work out the vectors: %@", reason)
         case .emptyResponse:
-            "El modelo de embeddings no devolvió nada."
+            L("The embedding model returned nothing.")
         case .countMismatch(let sent, let received):
-            "El modelo devolvió \(received) vectores para \(sent) pasajes."
+            L("The model returned %1$@ vectors for %2$@ passages.", String(received), String(sent))
         }
     }
 }

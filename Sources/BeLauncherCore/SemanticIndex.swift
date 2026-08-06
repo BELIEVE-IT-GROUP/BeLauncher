@@ -22,11 +22,11 @@ public struct IndexedSource: Sendable, Equatable, Hashable, Codable {
 
         public var label: String {
             switch self {
-            case .memory: "Memoria"
-            case .node: "Trabajo"
-            case .clip: "Portapapeles"
-            case .note: "Nota"
-            case .conversation: "Conversación"
+            case .memory: L("Memory")
+            case .node: L("Work")
+            case .clip: L("Clipboard")
+            case .note: L("Note")
+            case .conversation: L("Conversation")
             }
         }
     }
