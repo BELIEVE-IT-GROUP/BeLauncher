@@ -6,6 +6,9 @@ Lo colectivo llegará cuando esto haya aprendido, y hoy ya vive en otro sitio.
 **La promesa:** *todo lo que pasa en tu Mac se vuelve preguntable.* Hoy esa frase es falsa, y este
 documento es el plan para que deje de serlo.
 
+**La tesis:** el grafo de Obsidian es lo que escribiste; el de BeBrain es lo que hiciste. Ahí está
+la diferencia, y por eso el visor es nuestro.
+
 ---
 
 ## Dónde estamos de verdad (medido, 2026-08-05)
@@ -180,36 +183,61 @@ Nada visual. El corpus se construye antes de dibujarlo.
 **Duele hoy:** el cerebro es una caja negra. El usuario no puede mirar lo que sabe de él, ni
 corregirlo, ni llevárselo. Y un cerebro que no se puede auditar no se puede confiar.
 
-### 3.1 El corpus es Markdown, y eso no se negocia
+### 3.0 La tesis, que ordena todo lo demás
 
-Ya lo es para las memorias y tiene que serlo para todo: episodios, entidades y afirmaciones
-destiladas, en archivos `.md` con enlaces `[[así]]` en una carpeta que el usuario elige.
+**El grafo de Obsidian es lo que escribiste. El de BeBrain es lo que hiciste.**
 
-La consecuencia buena es inmediata: **esa carpeta abierta con Obsidian ya es un grafo visual, sin
-que nosotros escribamos una línea de vista.** Y significa que irse de BeLauncher no cuesta nada,
-que es la única forma honesta de pedirle a alguien que ponga aquí su memoria.
+Obsidian es una herramienta magnífica para una persona disciplinada que redacta sus notas y las
+enlaza a mano. Su grafo es precioso y es el mapa de tu esfuerzo de documentar. BeBrain no pide ese
+esfuerzo: el grafo sale de lo que pasó en el Mac. Nadie escribe el nodo, nadie dibuja la arista.
 
-### 3.2 Grafo nativo, para quien no usa Obsidian
+Ese es el producto, y por eso **la vista es nuestra**. Un cerebro que hay que abrir en otra app
+para verlo es un índice de fondo, no un producto: el usuario aprende a vivir en la otra app y
+BeLauncher se vuelve un servicio invisible que un día se desinstala sin echarlo de menos.
 
-Una vista propia dentro del launcher, no un sustituto de Obsidian: entidades y episodios como
-nodos, las relaciones como aristas, filtrable por tiempo y por tipo.
+### 3.1 El corpus es Markdown, y eso tampoco se negocia
 
-Sirve para tres cosas concretas, y si no sirve para las tres no vale la pena:
-- **Ver qué sabe de ti**, que es lo que convierte una caja negra en una herramienta.
-- **Corregirlo**: unir dos entidades que son la misma, separar dos que no lo son, borrar lo que
-  sobra. Las correcciones vuelven al motor.
-- **Navegar**: pinchar un nodo y llegar a lo que hay debajo.
+Episodios, entidades y afirmaciones destiladas, en archivos `.md` con enlaces `[[así]]`, en una
+carpeta que el usuario elige.
 
-### 3.3 Los `.md` desde el launcher
+Que el formato sea abierto **no es lo mismo que ceder el visor**. Es lo que hace que la memoria sea
+auditable, versionable con git y verdaderamente suya, y es la única forma honesta de pedirle a
+alguien que ponga aquí lo que hace todo el día. Si un día quiere abrir esa carpeta con otra cosa,
+puede; simplemente no le hará falta, y esa es la diferencia entre no tener candado y no tener
+producto.
 
-Buscar un episodio, verlo entero, abrirlo en Obsidian o en el editor de siempre, editarlo a mano.
-Lo que se edite a mano **manda sobre lo que dedujo la máquina** y no se sobrescribe nunca.
+### 3.2 El grafo, nativo y de primera clase
+
+Dentro del launcher. No una vista mínima, no un plan B: **la cara del producto**.
+
+Entidades y episodios como nodos, las relaciones como aristas, filtrable por tiempo, por tipo y por
+relevancia. Tres cosas tiene que hacer, y si falla en una no vale la pena:
+
+- **Ver qué sabe de ti.** Es lo que convierte una caja negra en una herramienta en la que se puede
+  confiar. Nadie le confía su vida a un sistema cuyo contenido no puede mirar.
+- **Corregirlo.** Unir dos entidades que son la misma, separar dos que no, borrar lo que sobra,
+  marcar algo como importante. **Las correcciones vuelven al motor** y esa es la diferencia entre
+  un grafo que se mira y uno que mejora. Obsidian no puede ofrecer esto: no hay nada que corregir
+  cuando todo lo escribiste tú.
+- **Navegar.** Pinchar un nodo y caer en el episodio, el archivo o la conversación que hay debajo,
+  y desde ahí seguir tirando del hilo.
+
+Se dibuja de forma nativa y con el tiempo como eje disponible, porque es un grafo de **cosas que
+pasaron**, no de conceptos: poder ver marzo es tan importante como poder ver un proyecto.
+
+### 3.3 Leer y editar el corpus desde el launcher
+
+Buscar un episodio, leerlo entero sin salir del launcher, editarlo. Lo que se edite a mano **manda
+sobre lo que dedujo la máquina** y no se sobrescribe nunca.
+
+El editor de siempre queda disponible para quien lo quiera — son archivos suyos — pero el camino
+por defecto, el que se enseña y el que está a un atajo de distancia, es el de BeLauncher.
 
 ### Decisión abierta de esta ola
 
-Si el grafo nativo se construye entero o si Obsidian cubre el 80 % y solo hacemos una vista mínima
-de corrección. Se decide **al final de la ola 2**, cuando se sepa cuántos nodos y aristas produce
-un mes de uso real. Decidirlo antes es diseñar para un tamaño imaginado.
+Qué motor de dibujo aguanta el tamaño real. Se decide **al final de la ola 2**, cuando se sepa
+cuántos nodos y aristas produce un mes de uso: unos cientos y unos miles se resuelven de formas
+muy distintas, y elegir antes es diseñar para un tamaño imaginado.
 
 ---
 
@@ -225,4 +253,7 @@ un mes de uso real. Decidirlo antes es diseñar para un tamaño imaginado.
 4. **Nada entra en la memoria en silencio.** Se propone, una persona confirma. Y lo que huele a
    credencial no entra ni al índice.
 5. **Todo local por defecto.** Sin cuentas, sin telemetría, sin plano de control.
-6. **El usuario se puede ir.** Markdown en su carpeta, siempre.
+6. **Formato abierto, visor propio.** El corpus vive en Markdown en la carpeta del usuario, para
+   que sea auditable y suyo. Pero verlo, navegarlo y corregirlo se hace en BeLauncher: un cerebro
+   que hay que abrir en otra app para mirarlo deja de ser un producto y pasa a ser un índice de
+   fondo.
