@@ -147,7 +147,37 @@ if CommandLine.arguments.contains("--diagnose-windows") {
                 out("   descodificado: \(po && so ? "ok" : "NO")  → \(Int(origin.x)),\(Int(origin.y)) \(Int(size.width))×\(Int(size.height))")
             }
 
-            out("\n5. ¿Se puede mover?")
+            out("\n5. Todas sus ventanas")
+            var listValue: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString,
+                                             &listValue) == .success,
+               let windows = listValue as? [AXUIElement] {
+                out("   \(windows.count) ventana(s)")
+                for (index, candidate) in windows.enumerated() {
+                    var titleValue: CFTypeRef?
+                    AXUIElementCopyAttributeValue(candidate, kAXTitleAttribute as CFString,
+                                                  &titleValue)
+                    var positionValue: CFTypeRef?
+                    var sizeValue: CFTypeRef?
+                    let readable =
+                        AXUIElementCopyAttributeValue(candidate, kAXPositionAttribute as CFString,
+                                                      &positionValue) == .success
+                        && AXUIElementCopyAttributeValue(candidate, kAXSizeAttribute as CFString,
+                                                         &sizeValue) == .success
+                    var size = CGSize.zero
+                    if let sizeValue {
+                        AXValueGetValue(unsafeBitCast(sizeValue, to: AXValue.self), .cgSize, &size)
+                    }
+                    let title = (titleValue as? String) ?? "sin título"
+                    out("   [\(index)] \(title.prefix(40)) — "
+                        + (readable ? "\(Int(size.width))×\(Int(size.height))"
+                                    : "no dice dónde está"))
+                }
+            } else {
+                out("   no expone la lista de ventanas")
+            }
+
+            out("\n6. ¿Se puede mover la del foco?")
             var settable: DarwinBoolean = false
             AXUIElementIsAttributeSettable(window, kAXPositionAttribute as CFString, &settable)
             out("   posición modificable: \(settable.boolValue ? "sí" : "NO — esa ventana no se deja mover")")
