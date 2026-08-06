@@ -7,6 +7,7 @@
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/EpisodeTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/FlowTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GoToPathTests.swift
+/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IdentityTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/ImportersTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IntelligenceTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift
@@ -18,6 +19,7 @@
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/MissionTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/ModelInstallTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PulseTests.swift
+/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RelevanceTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RetrievalTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RichClipboardTests.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/SearchPerformanceTests.swift
