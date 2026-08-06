@@ -63,6 +63,15 @@ final class CommandPanel: NSPanel {
         reanchor()
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
+        Sounds.play(.opened)
+    }
+
+    override func orderOut(_ sender: Any?) {
+        let wasVisible = isVisible
+        super.orderOut(sender)
+        // Only when it was actually on screen: dismissing something already hidden happens on
+        // several paths and should not make a noise each time.
+        if wasVisible { Sounds.play(.closed) }
     }
 
     @objc private func reanchor() {

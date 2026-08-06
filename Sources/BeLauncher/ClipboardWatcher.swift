@@ -69,6 +69,7 @@ final class ClipboardWatcher {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL], !urls.isEmpty {
             for url in urls.prefix(5) where url.isFileURL {
                 store.recordClip(text: url.path, sourceApp: source, kind: .file)
+                Sounds.play(.taken)
                 // How this person names files, learned from the names they use.
                 store.observe(OperatingModel.observeFilename(url.lastPathComponent))
             }
@@ -77,6 +78,10 @@ final class ClipboardWatcher {
 
         if let text = pasteboard.string(forType: .string) {
             store.recordClip(text: text, sourceApp: source)
+            // The confirmation you asked for, wherever you copied from. And when it does *not*
+            // sound, that is information too: a password or an API key was refused before it
+            // touched the disk. Silence means "not stored".
+            Sounds.play(.taken)
             // Text this person wrote or approved says how they write. Only the conclusion is
             // kept — "escribe corto" — never the paragraph it came from.
             store.observe(OperatingModel.observeWriting(text))
@@ -88,6 +93,7 @@ final class ClipboardWatcher {
             store.recordClip(text: saveImage(image, source: source) ?? "Imagen copiada",
                              sourceApp: source, kind: .image,
                              assetPath: saveImage(image, source: source) ?? "")
+            Sounds.play(.taken)
         }
     }
 }

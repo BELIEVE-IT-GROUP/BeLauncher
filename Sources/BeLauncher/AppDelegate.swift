@@ -178,6 +178,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installKeyMonitor()
         registerHotKey(named: store.setting("hotkey") ?? HotKey.Combo.all[0].label)
 
+        Sounds.enabled = store.setting("sounds_enabled", default: true)
+        Sounds.chromeEnabled = store.setting("sounds_chrome", default: false)
+
         let watcher = ClipboardWatcher(store: store)
         clipboard = watcher
         if store.setting("clipboard_enabled", default: true) { watcher.start() }
@@ -1080,6 +1083,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .remember(let text, let source):
             rememberIntoVault(text: text, source: source)
+            Sounds.play(.proposed)
 
         case .confirmCommit(let id):
             do {
@@ -1135,6 +1139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .copyToClipboard(let text, _):
             clipboard?.ignoreNextChange()
+            Sounds.play(.taken)
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)

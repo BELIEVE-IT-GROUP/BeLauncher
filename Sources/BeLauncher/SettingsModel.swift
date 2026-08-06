@@ -200,6 +200,8 @@ final class SettingsModel {
         retentionDays = store.setting("clipboard_retention_days", default: 30)
         maxItems = store.setting("clipboard_max_items", default: 500)
         updateCheckEnabled = store.setting("update_check_enabled", default: false)
+        soundsEnabled = store.setting("sounds_enabled", default: true)
+        soundsChrome = store.setting("sounds_chrome", default: false)
         graphEnabled = store.setting("graph_enabled", default: false)
         habitsEnabledSetting = store.setting("habits_enabled", default: false)
         learningEnabledSetting = store.setting("learning_enabled", default: false)
@@ -759,6 +761,24 @@ final class SettingsModel {
             status = MCPSetupError.notWritable(client.name).description
         }
     }
+
+    // MARK: - Sonido
+
+    var soundsEnabled: Bool {
+        didSet {
+            store.setSetting("sounds_enabled", soundsEnabled)
+            Sounds.enabled = soundsEnabled
+        }
+    }
+    var soundsChrome: Bool {
+        didSet {
+            store.setSetting("sounds_chrome", soundsChrome)
+            Sounds.chromeEnabled = soundsChrome
+        }
+    }
+
+    /// Lets someone hear a cue before deciding whether they want it fifty times a day.
+    func preview(_ cue: Sound.Cue) { Sounds.preview(cue) }
 
     func checkForUpdates() {
         updateStatus = "Buscando…"
