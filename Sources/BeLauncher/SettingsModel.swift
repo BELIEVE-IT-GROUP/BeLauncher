@@ -740,6 +740,13 @@ final class SettingsModel {
         Bundle.main.executablePath ?? "/Applications/BeLauncher.app/Contents/MacOS/BeLauncher"
     }
 
+    /// The last thing that happened in the MCP section, shown inside that section.
+    ///
+    /// It used to be written to `status`, which is painted under "Llevártelo a otro sitio" — the
+    /// Obsidian and git block, several sections above. So pressing "Conectar" changed a line of
+    /// text nowhere near the button, and the section that had just been used said nothing at all.
+    var mcpStatus: String?
+
     func connect(_ client: MCPClient) {
         let path = client.absoluteConfigPath()
         let existing = FileManager.default.contents(atPath: path)
@@ -752,13 +759,118 @@ final class SettingsModel {
             )
             try merged.data.write(to: URL(fileURLWithPath: path), options: .atomic)
             refreshMCPConnections()
-            status = merged.wasAlready
-                ? MCPSetup.Outcome.alreadyConnected(client.name).message
-                : MCPSetup.Outcome.connected(client.name).message
+            // Says what happened — a file was written — and sends the person to the probe. The
+            // old wording claimed "X ya puede consultar tu cerebro", which is the unverified
+            // claim this whole panel exists to replace.
+            mcpStatus = merged.wasAlready
+                ? BrainSetupCopy.connectAlreadyThere(client: client.name)
+                : BrainSetupCopy.connectWrote(client: client.name)
         } catch let error as MCPSetupError {
-            status = error.description
+            mcpStatus = error.description
         } catch {
-            status = MCPSetupError.notWritable(client.name).description
+            mcpStatus = MCPSetupError.notWritable(client.name).description
+        }
+        // Writing the file proves intent, not connection. The old panel stopped here and turned
+        // the dot green; the report from the last probe is now stale for *this* client, so its
+        // verdict goes back to "sin comprobar". The other clients were not touched and keep
+        // theirs — wiping every report left the panel with no verdict at all right after using it.
+        mcpReports.removeAll { $0.clientName == client.name }
+    }
+
+    /// What the last real probe found, one report per client. Empty means nobody has checked,
+    /// which the UI shows as its own state instead of assuming the good one.
+    var mcpReports: [MCPHealth.Report] = []
+    var mcpChecking = false
+
+    func report(for client: MCPClient) -> MCPHealth.Report? {
+        mcpReports.first { $0.clientName == client.name }
+    }
+
+    /// Launches BeLauncher the way an assistant would and asks it a question whose answer is
+    /// planted beforehand. Takes seconds, so it is never done on opening Ajustes: an automatic
+    /// check that spawns a subprocess every time someone looks at a settings tab is a check
+    /// people learn to resent.
+    func runMCPDiagnosis() {
+        guard !mcpChecking else { return }
+        mcpChecking = true
+        let path = mcpExecutablePath
+        Task { @MainActor in
+            let reports = await MCPProbe.diagnose(executablePath: path)
+            self.mcpReports = reports
+            self.refreshMCPConnections()
+            self.mcpChecking = false
+        }
+    }
+
+    // MARK: - What the brain actually holds
+
+    /// Set by the app delegate when it has one, so Ajustes reports on the same brain the launcher
+    /// searches. Left nil in contexts that never built one, where reading the store directly is
+    /// still correct — the index lives in the database, not in this object.
+    var brain: BrainSearch?
+
+    var brainReadout: BrainSetupCopy.IndexReadout?
+    var brainRebuilding = false
+    var brainStatus: String?
+
+    private func brainForReading() -> BrainSearch {
+        if let brain { return brain }
+        let made = BrainSearch(store: store)
+        brain = made
+        return made
+    }
+
+    func refreshBrainState() {
+        Task { @MainActor in
+            let brain = self.brainForReading()
+            // Only when nobody detected one yet: re-detecting on every visit would shell out to
+            // Ollama for an answer the launcher already has.
+            if brain.engine == nil { await brain.detectEngine() }
+            let progress = brain.progress()
+            self.brainReadout = BrainSetupCopy.readout(
+                passages: progress.passages, vectorised: progress.vectorised,
+                engine: brain.engine?.model, isLocal: brain.engine?.isLocal ?? false
+            )
+        }
+    }
+
+    /// Throws the index away and builds it again from the vault, the work graph and the
+    /// clipboard. Nothing here touches a note: the passages are derived, so the worst outcome of
+    /// pressing this is time.
+    func rebuildIndex() {
+        guard !brainRebuilding else { return }
+        brainRebuilding = true
+        brainStatus = BrainSetupCopy.rebuildRunning
+        Task { @MainActor in
+            defer { self.brainRebuilding = false }
+            let brain = self.brainForReading()
+            if brain.engine == nil { await brain.detectEngine() }
+
+            self.store.clearSemanticIndex()
+            let vault = try? Vault(root: Vault.defaultRoot())
+            brain.index(memories: vault?.objects() ?? [],
+                        nodes: self.store.nodes(limit: 2_000),
+                        clips: self.store.clips(limit: 500))
+            self.refreshBrainState()
+
+            guard brain.engine != nil else {
+                self.brainStatus = "Índice rehecho. Sin modelo, se busca por palabras exactas."
+                return
+            }
+            // One batch at a time rather than `embedEverything`, so the counter climbs while it
+            // runs. A number that only appears at the end is a spinner with extra steps.
+            do {
+                while try await brain.embedPending() > 0 {
+                    self.refreshBrainState()
+                }
+                let progress = brain.progress()
+                self.brainStatus = BrainSetupCopy.rebuildFinished(
+                    passages: progress.passages, vectorised: progress.vectorised)
+            } catch {
+                self.brainStatus = "El modelo dejó de responder a mitad. Lo indexado se queda "
+                    + "guardado: vuelve a pulsar y sigue desde donde iba."
+            }
+            self.refreshBrainState()
         }
     }
 

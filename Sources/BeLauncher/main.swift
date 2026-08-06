@@ -5,23 +5,68 @@ import BeLauncherCore
 // MCP client launches. No window, no dock icon, no hotkey: just the brain on a pipe.
 if CommandLine.arguments.contains("--mcp") {
     MainActor.assumeIsolated {
-        guard let vault = try? Vault(root: Vault.defaultRoot()) else {
-            FileHandle.standardError.write(Data("no se pudo abrir el vault\n".utf8))
-            exit(1)
-        }
-        while let line = readLine(strippingNewline: true) {
-            guard !line.isEmpty,
-                  let data = line.data(using: .utf8),
-                  let request = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            else { continue }
+        Task { @MainActor in
+            guard let vault = try? Vault(root: Vault.defaultRoot()) else {
+                FileHandle.standardError.write(Data("no se pudo abrir el vault\n".utf8))
+                exit(1)
+            }
+            // The store and the brain, not just the vault. This is the whole point of the work
+            // and it is the line where it would have been lost: the tools were rewritten to read
+            // the index, but the process an assistant actually launches was still handing them a
+            // vault and nothing else. Every tool would have answered "el índice no está
+            // disponible" in production while every test passed, because the tests build their
+            // own context with a brain in it.
+            let store = try? Store(path: Store.defaultPath())
+            var brain: BrainSearch?
+            if let store {
+                try? store.migrateSemanticIndex()
+                let search = BrainSearch(store: store)
+                // Without this the server starts with no engine and every answer carries the
+                // "solo por palabras" warning. Correct, but needlessly worse.
+                await search.detectEngine()
+                brain = search
+            }
+            guard let store else {
+                FileHandle.standardError.write(Data("no se pudo abrir la base\n".utf8))
+                exit(1)
+            }
+            let context = MCPContext(vault: vault, store: store, brain: brain)
 
-            guard let response = MCPServer.handle(request, vault: vault) else { continue }
-            guard let out = try? JSONSerialization.data(withJSONObject: response) else { continue }
-            FileHandle.standardOutput.write(out)
-            FileHandle.standardOutput.write(Data("\n".utf8))
+            while let line = readLine(strippingNewline: true) {
+                guard !line.isEmpty,
+                      let data = line.data(using: .utf8),
+                      let request = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                else { continue }
+
+                guard let response = await MCPServer.handle(request, context: context) else { continue }
+                guard let out = try? JSONSerialization.data(withJSONObject: response) else { continue }
+                FileHandle.standardOutput.write(out)
+                FileHandle.standardOutput.write(Data("\n".utf8))
+            }
+            exit(0)
         }
     }
-    exit(0)
+    // The loop is inside a Task now because answering a tool call means embedding the question,
+    // which is async. A synchronous `exit(0)` here would end the process before the first reply.
+    RunLoop.main.run()
+}
+
+
+// `BeLauncher --diagnose-mcp` runs the same handshake an assistant runs, out loud.
+//
+// "Conectado" used to mean a line had been written into a config file. Four separate things can
+// fail after that and three of them fail silently, so this walks all of them and prints what came
+// back rather than a verdict nobody can check.
+if CommandLine.arguments.contains("--diagnose-mcp") {
+    MainActor.assumeIsolated {
+        Task { @MainActor in
+            let path = Bundle.main.executablePath ?? CommandLine.arguments[0]
+            let reports = await MCPProbe.diagnose(executablePath: path)
+            FileHandle.standardOutput.write(Data((MCPHealth.render(reports) + "\n").utf8))
+            exit(reports.contains { $0.isConnected } ? 0 : 1)
+        }
+    }
+    RunLoop.main.run()
 }
 
 

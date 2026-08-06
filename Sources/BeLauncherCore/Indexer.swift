@@ -71,7 +71,11 @@ public enum Indexer {
             // Anything the guard would refuse to store never gets a vector either. A password
             // that is unsearchable but sitting in the index is still a password sitting in the
             // index, and it would surface as a citation.
-            guard !SecretGuard.looksLikeSecret(text) else { return nil }
+            // carriesSecret, not looksLikeSecret: the weaker rule reads the first word, so
+            // "aquí está la clave sk-ant-…" was indexed happily. The exit filter was hardened
+            // first and this door was left open, which only means the credential sits on disk
+            // instead of leaving over the wire.
+            guard !SecretGuard.carriesSecret(text) else { return nil }
             let title = String(text.prefix(60)).replacingOccurrences(of: "\n", with: " ")
             return Item(source: IndexedSource(kind: .clip, id: String(clip.id)),
                         title: title, text: text, occurredAt: clip.createdAt)

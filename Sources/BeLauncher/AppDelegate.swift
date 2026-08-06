@@ -192,6 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startBrain()
         openWithLaunchQueryIfAny()
         showWelcomeOnFirstRun()
+        offerBrainSetupIfNeeded()
     }
 
     /// Builds the searchable brain in the background, after the window is already usable.
@@ -967,6 +968,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.store?.setSetting("welcomed", true)
             self?.welcomeWindow?.close()
             self?.welcomeWindow = nil
+            // The offer for the meaning model waits until the welcome window is out of the way:
+            // two windows arriving at once is how people close both without reading either.
+            self?.offerBrainSetupIfNeeded()
         })
         window.isReleasedWhenClosed = false
         place(window)
@@ -980,6 +984,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showWelcomeOnFirstRun() {
         guard store?.setting("welcomed", default: false) == false else { return }
         openWelcome()
+    }
+
+    // MARK: - The meaning model
+
+    /// Offers to install the embeddings model, once, on a Mac that does not have it.
+    ///
+    /// The screen existed and nothing opened it: `BrainSetupWindow.present()` was called from
+    /// nowhere in the whole source tree, so on a clean Mac the headline feature — search that
+    /// understands meaning — was silently missing and the only way to fix it was a trip into
+    /// Ajustes, which is exactly the trip the screen exists to avoid.
+    ///
+    /// Three rules it has to respect. It never blocks the launch: the check asks the local Ollama
+    /// server, which on a machine without Ollama means waiting for a connection to be refused, so
+    /// it happens after the launcher is already usable. It never fights the welcome window, which
+    /// owns the screen on a first run and calls back here when it closes. And it is offered once:
+    /// `setupLater` already tells the person where to find it again, and an app that asks every
+    /// morning gets its question dismissed unread.
+    private func offerBrainSetupIfNeeded() {
+        guard let store else { return }
+        guard store.setting("brain_setup_offered", default: false) == false else { return }
+        guard store.setting("welcomed", default: false) == true else { return }
+
+        Task { @MainActor [weak self] in
+            // Long enough for the hot key, the clipboard watcher and the first index pass to be
+            // in place. Nothing here is urgent; a window landing on top of what the person is
+            // doing two seconds after login is.
+            try? await Task.sleep(for: .seconds(4))
+            guard let self, self.welcomeWindow == nil else { return }
+            guard await BrainSetupWindow.isNeeded() else { return }
+            // Written before showing, not after: whichever way the window is dismissed — skipped,
+            // closed from the title bar, or the app quit mid-download — it does not come back on
+            // its own.
+            self.store?.setSetting("brain_setup_offered", true)
+            BrainSetupWindow.present(place: { [weak self] window in self?.place(window) })
+        }
     }
 
     /// Asked here rather than in the model so EventKit and UserNotifications stay in the app layer.

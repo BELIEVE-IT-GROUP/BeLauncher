@@ -685,8 +685,16 @@ private struct BrainTab: View {
         ("pulse", "Qué se está pudriendo: contradicciones, vencidos, sin revisar."),
     ]
 
+    /// Its own installer rather than the setup window's: someone can open Ajustes with that
+    /// window closed and still start the download from here.
+    @State private var installer = ModelInstaller()
+
     var body: some View {
         Form {
+            Section("Estado del cerebro") {
+                BrainStateBlock(model: model, installer: installer)
+            }
+
             Section("Cómo se llena tu cerebro") {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(BrainTab.howItFills, id: \.type) { item in
@@ -743,21 +751,22 @@ private struct BrainTab: View {
                 Text("BeLauncher habla MCP: el asistente que ya pagas puede consultar tu cerebro "
                      + "sin abrir el launcher.")
                     .font(.caption).foregroundStyle(.secondary)
+
+                MCPVerdictHeader(model: model)
+
                 ForEach(MCPClient.all) { client in
-                    HStack {
-                        Image(systemName: model.mcpConnections[client.id] == true
-                              ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(model.mcpConnections[client.id] == true
-                                             ? .green : .secondary)
-                            .font(.system(size: 12)).frame(width: 16)
-                        Text(client.name).font(.system(size: 12))
-                        Spacer()
-                        Button(model.mcpConnections[client.id] == true ? "Reconectar" : "Conectar") {
-                            model.connect(client)
-                        }
-                        .controlSize(.small)
-                    }
+                    MCPClientRow(model: model, client: client)
                 }
+
+                // Right under the buttons that produce it. This line used to be written to the
+                // shared `status`, which is painted in "Llevártelo a otro sitio", four sections up.
+                if let mcpStatus = model.mcpStatus {
+                    Text(mcpStatus)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 Text("Se escribe en la configuración de esa app **conservando lo que ya tuviera**. "
                      + "Después hay que reiniciarla para que lo vea.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -771,8 +780,9 @@ private struct BrainTab: View {
                         .controlSize(.small)
                 }
                 .font(.caption)
-                Text("Cuatro herramientas: qué decidimos, preparar, buscar y proponer. Solo lectura "
-                     + "y propuesta: un asistente puede sugerir qué cree la empresa, nunca decidirlo.")
+                Text("Siete herramientas: recordar, contexto de una tarea, qué estabas haciendo, "
+                     + "qué decidimos, preparar, buscar y proponer. Solo lectura y propuesta: un "
+                     + "asistente puede sugerir qué cree la empresa, nunca decidirlo.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -806,6 +816,263 @@ private struct BrainTab: View {
             }
         }
         .formStyle(.grouped)
+        .task {
+            model.refreshBrainState()
+            await installer.check()
+        }
+    }
+}
+
+// MARK: - What the brain holds, in numbers
+
+/// The counts, the model, and the way to fix the index — because a brain nobody can inspect is a
+/// brain nobody trusts.
+///
+/// The number is the point. "Tu cerebro está listo" is a claim; "1.240 fragmentos, 1.240 con
+/// significado" is something the person can compare against what they know they have written,
+/// and it is what turns this from a feature into a tool.
+@MainActor
+private struct BrainStateBlock: View {
+    @Bindable var model: SettingsModel
+    let installer: ModelInstaller
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let readout = model.brainReadout {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(readout.headline)
+                        .font(.system(size: 13, weight: .semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(readout.detail)
+                        .font(.system(size: 11.5)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if readout.passages > 0, !readout.needsModel {
+                    ProgressView(value: readout.percent)
+                        .progressViewStyle(.linear)
+                        .opacity(readout.isComplete ? 0.35 : 1)
+                }
+
+                Label(readout.engineLine, systemImage: readout.needsModel
+                      ? "questionmark.circle" : "cpu")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(readout.needsModel ? Color.primary : .secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Only when there is something to solve. A settings panel that shows an installer
+                // to someone who already installed it is noise.
+                if readout.needsModel {
+                    ModelInstallControls(installer: installer)
+                        .padding(.top, 2)
+                }
+            } else {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Contando lo que hay indexado…")
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+            }
+
+            Divider()
+
+            HStack(spacing: 10) {
+                Button(model.brainRebuilding
+                       ? BrainSetupCopy.rebuildRunning : BrainSetupCopy.rebuildTitle) {
+                    model.rebuildIndex()
+                }
+                .disabled(model.brainRebuilding)
+                if model.brainRebuilding { ProgressView().controlSize(.small) }
+                Spacer()
+                Button("Actualizar") { model.refreshBrainState() }
+                    .buttonStyle(.link).font(.system(size: 11))
+            }
+            Text(BrainSetupCopy.rebuildExplanation)
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let status = model.brainStatus {
+                Text(status)
+                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: model.brainRebuilding)
+    }
+}
+
+// MARK: - Whether an assistant really receives anything
+
+/// The line above the client list: the answer before the detail.
+@MainActor
+private struct MCPVerdictHeader: View {
+    @Bindable var model: SettingsModel
+
+    var body: some View {
+        let verdict = BrainSetupCopy.summary(of: model.mcpReports)
+        VStack(alignment: .leading, spacing: 8) {
+            // Pill and button on their own line so the verdict below can use the full width. In a
+            // 620-point window all four on one row squeezed the sentence to two words per line.
+            HStack(spacing: 8) {
+                VerdictPill(level: model.mcpChecking ? .unknown : verdict.level,
+                            text: model.mcpChecking ? BrainSetupCopy.checkRunning : verdict.label)
+                if model.mcpChecking { ProgressView().controlSize(.small) }
+                Spacer(minLength: 8)
+                Button(BrainSetupCopy.checkButton) { model.runMCPDiagnosis() }
+                    .controlSize(.small)
+                    .disabled(model.mcpChecking)
+            }
+            Text(model.mcpChecking
+                 ? "Arrancando BeLauncher y preguntándole, igual que haría tu asistente…"
+                 : verdict.headline)
+                .font(.system(size: 12))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(BrainSetupCopy.checkExplanation)
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// One client, with the five checks underneath when there is bad news.
+///
+/// The design decision that matters: a failure is never collapsed. When everything passes the
+/// steps hide behind a disclosure, because nobody needs to read five green lines. When something
+/// fails, the steps are already open, the failing one is named, and the fix sits right under it —
+/// a person should not have to click to find out that their assistant is getting nothing.
+@MainActor
+private struct MCPClientRow: View {
+    @Bindable var model: SettingsModel
+    let client: MCPClient
+
+    @State private var expanded = false
+
+    var body: some View {
+        let report = model.report(for: client)
+        let verdict = BrainSetupCopy.verdict(for: report)
+
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(client.name).font(.system(size: 12, weight: .medium))
+                VerdictPill(level: verdict.level, text: verdict.label)
+                Spacer(minLength: 8)
+                // Only offered when there is nothing wrong. On a failing client the steps are
+                // already open, so a toggle there would only offer to hide the bad news.
+                if verdict.level == .working {
+                    Button(expanded ? "Ocultar pasos" : "Ver pasos") { expanded.toggle() }
+                        .buttonStyle(.link).font(.system(size: 11))
+                }
+                Button(model.mcpConnections[client.id] == true ? "Reconectar" : "Conectar") {
+                    model.connect(client)
+                }
+                .controlSize(.small)
+            }
+
+            if verdict.level == .broken {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verdict.headline)
+                        .font(.system(size: 11.5))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(verdict.whatToDo)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(9)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.destructive.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(Theme.destructive).frame(width: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: 1))
+                }
+            }
+
+            if let report, expanded || verdict.level == .broken {
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(report.steps, id: \.step) { status in
+                        StepLine(status: status)
+                    }
+                }
+                .padding(.leading, 2)
+            }
+        }
+        .padding(.vertical, 2)
+        .animation(.easeInOut(duration: 0.18), value: expanded)
+    }
+}
+
+/// One of the five checks. The mark and the colour agree with the words, so the row still reads
+/// correctly for anyone who does not see the colour.
+@MainActor
+private struct StepLine: View {
+    let status: MCPHealth.StepStatus
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 7) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 13)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(status.step.title)
+                    .font(.system(size: 11))
+                    .foregroundStyle(isSkipped ? .tertiary : .secondary)
+                if let reason = status.outcome.reason {
+                    Text(reason)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(Theme.destructive)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var isSkipped: Bool { status.outcome == .skipped }
+
+    private var symbol: String {
+        switch status.outcome {
+        case .passed: "checkmark"
+        case .skipped: "minus"
+        case .failed: "xmark"
+        }
+    }
+
+    private var tint: Color {
+        switch status.outcome {
+        case .passed: .green
+        case .skipped: .secondary
+        case .failed: Theme.destructive
+        }
+    }
+}
+
+/// A pill with words in it, never a bare dot.
+///
+/// The panel this replaces had a green circle that appeared as soon as a config file mentioned
+/// BeLauncher, so the worst state the app could be in — answering every message and returning
+/// nothing — looked exactly like the best one. A pill has room to say `responde vacío`, and that
+/// is the difference between a status indicator and a decoration.
+@MainActor
+private struct VerdictPill: View {
+    let level: BrainSetupCopy.Level
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background(tint.opacity(0.18), in: Capsule())
+            .foregroundStyle(tint)
+            .overlay(Capsule().strokeBorder(tint.opacity(0.35)))
+            .fixedSize()
+    }
+
+    private var tint: Color {
+        switch level {
+        case .working: .green
+        case .broken: Theme.destructive
+        case .unknown: .secondary
+        }
     }
 }
 

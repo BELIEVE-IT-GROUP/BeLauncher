@@ -76,3 +76,66 @@ struct SecretGuardTests {
         #expect(store.clips().map(\.text) == ["texto normal"])
     }
 }
+
+@Suite("Un token, envuelto como venga")
+struct CarriesSecretTests {
+
+    /// Las siete formas exactas que se escaparon en la re-auditoría, cada una una manera real en
+    /// que un token acaba dentro de una frase. Las dos primeras rondas de arreglo tokenizaban con
+    /// una lista de signos escrita a mano y a las dos les faltaba algún signo.
+    @Test("Un token dentro de una URL de git no se escapa")
+    func insideGitURL() {
+        #expect(SecretGuard.carriesSecret(
+            "El repo se clona desde https://ghp_16CharactersAndThenSomeMore1234567@github.com/acme/infra.git"))
+    }
+
+    @Test("Un token después de un igual no se escapa, aunque el nombre no esté en ninguna lista")
+    func afterEquals() {
+        #expect(SecretGuard.carriesSecret("GITHUB_KEY=ghp_16CharactersAndThenSomeMore1234567"))
+        #expect(SecretGuard.carriesSecret("AUTH=sk-ant-api03-DEADBEEFDEADBEEFDEADBEEF"))
+        #expect(SecretGuard.carriesSecret("key=sk_live_51ABCDEFGHIJKLMNOPQRSTUVWX"))
+    }
+
+    @Test("Un token dentro de una ruta no se escapa")
+    func insidePath() {
+        #expect(SecretGuard.carriesSecret("/Users/mac/.config/ghp_16CharactersAndThenSomeMore1234567"))
+    }
+
+    @Test("Un token pegado a una arroba o a una barra no se escapa")
+    func gluedToPunctuation() {
+        #expect(SecretGuard.carriesSecret("mándalo a @sk-ant-api03-DEADBEEFDEADBEEFDEADBEEF"))
+        #expect(SecretGuard.carriesSecret("auth/sk_live_51ABCDEFGHIJKLMNOPQRSTUVWX"))
+    }
+
+    @Test("Un token con markdown o comillas alrededor no se escapa")
+    func decorated() {
+        #expect(SecretGuard.carriesSecret("la clave es **sk-ant-api03-DEADBEEFDEADBEEFDEADBEEF**"))
+        #expect(SecretGuard.carriesSecret("«ghp_16CharactersAndThenSomeMore1234567»"))
+        #expect(SecretGuard.carriesSecret("{\"apiKey\":\"sk-ant-api03-DEADBEEFDEADBEEFDEADBEEF\"}"))
+    }
+
+    @Test("Un token en cualquier línea de un texto largo no se escapa")
+    func anyLine() {
+        #expect(SecretGuard.carriesSecret("""
+        Notas de la reunión con Acme.
+        Quedamos el jueves a las 10.
+        - 12:00 · Archivo · AKIAIOSFODNN7EXAMPLEKEY
+        """))
+    }
+
+    /// El otro lado, que importa igual: tirar texto normal en silencio deja al usuario sin
+    /// memoria y sin saber por qué.
+    @Test("El filtro no es una escoba: el texto normal pasa")
+    func ordinaryTextSurvives() {
+        for line in [
+            "La reunión con Acme quedó movida al jueves a las 10:00",
+            "Hay que rotar el token de GitHub antes de fin de mes",
+            "El precio base del plan Pro es 1000 euros al mes",
+            "https://github.com/acme/infra/pull/1234",
+            "clave: 4",
+            "El monkey patch de la librería está en utils.swift",
+        ] {
+            #expect(!SecretGuard.carriesSecret(line), "descartó texto normal: \(line)")
+        }
+    }
+}
