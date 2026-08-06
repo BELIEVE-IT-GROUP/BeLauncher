@@ -126,6 +126,31 @@ private struct GeneralTab: View {
                 }
             }
 
+            Section("Sonido") {
+                Toggle("Avisar con un sonido al copiar", isOn: $model.soundsEnabled)
+                Text("Suena cada vez que copias algo, en cualquier app: es la confirmación de que "
+                     + "quedó guardado. **Si no suena, es que no lo guardó** — una contraseña o "
+                     + "algo con forma de clave. El silencio también dice algo.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Toggle("También al abrir y cerrar la ventana", isOn: $model.soundsChrome)
+                    .disabled(!model.soundsEnabled)
+                Text("Viene apagado a propósito: copiar son decenas de veces al día y abrir la "
+                     + "ventana son cientos. Pruébalo y decide.")
+                    .font(.caption).foregroundStyle(.secondary)
+
+                HStack(spacing: 6) {
+                    ForEach(Sound.Cue.allCases, id: \.self) { cue in
+                        Button(cue.label) { model.preview(cue) }
+                            .controlSize(.small)
+                    }
+                }
+                Text("Los sonidos se generan dentro de la app, no son archivos: por eso no se "
+                     + "parecen a los de ninguna otra.")
+                    .font(.caption).foregroundStyle(.tertiary)
+            }
+
             Section("Actualizaciones") {
                 Toggle("Buscar actualizaciones", isOn: $model.updateCheckEnabled)
                 UpdateRow(model: model)
