@@ -102,7 +102,7 @@ enum WindowArranger {
 
     /// Accessibility uses top-left origin coordinates while NSScreen uses bottom-left, so screen
     /// rectangles are flipped once here and every layout works in a single space.
-    private static func flipped(_ rect: NSRect) -> WindowLayoutMath.Frame {
+    static func flipped(_ rect: NSRect) -> WindowLayoutMath.Frame {
         let totalHeight = NSScreen.screens.first?.frame.maxY ?? rect.maxY
         return WindowLayoutMath.Frame(
             x: rect.origin.x,
@@ -154,7 +154,7 @@ enum WindowArranger {
         case failed(String)
     }
 
-    private static func read(_ window: AXUIElement) -> Reading {
+    static func read(_ window: AXUIElement) -> Reading {
         var positionValue: CFTypeRef?
         var sizeValue: CFTypeRef?
         let positionStatus = AXUIElementCopyAttributeValue(
@@ -197,7 +197,7 @@ enum WindowArranger {
         }
     }
 
-    private static func set(frame: WindowLayoutMath.Frame, on window: AXUIElement) {
+    static func set(frame: WindowLayoutMath.Frame, on window: AXUIElement) {
         var origin = CGPoint(x: frame.x, y: frame.y)
         var size = CGSize(width: frame.width, height: frame.height)
         // Position first, then size: some apps clamp a size that would fall off the old screen.
@@ -218,8 +218,135 @@ enum WindowArranger {
             ?? NSScreen.main
     }
 
-    private static func flippedContains(_ frame: WindowLayoutMath.Frame, _ point: CGPoint) -> Bool {
+    static func flippedContains(_ frame: WindowLayoutMath.Frame, _ point: CGPoint) -> Bool {
         point.x >= frame.x && point.x <= frame.x + frame.width
             && point.y >= frame.y && point.y <= frame.y + frame.height
+    }
+}
+
+// MARK: - Whole arrangements
+
+/// Saving and putting back where everything was.
+///
+/// The one-window commands are a keystroke each; this is the thing people buy a separate app for,
+/// because arranging a *set* of windows across two displays is two minutes of dragging that you
+/// repeat every time you dock, undock or take a call.
+@MainActor
+extension WindowArranger {
+
+    /// A snapshot of every real window on the Mac right now.
+    enum Snapshot {
+        case taken(Workspace)
+        /// A sentence for the person; nothing rethrows it.
+        case failed(String)
+    }
+
+    static func snapshot(named name: String) -> Snapshot {
+        guard Permissions.accessibilityGranted else {
+            return .failed("Necesito permiso de Accesibilidad para ver dónde están las ventanas.")
+        }
+        var placements: [Workspace.Placement] = []
+
+        for app in NSWorkspace.shared.runningApplications
+        where app.activationPolicy == .regular && app.bundleIdentifier != nil {
+            guard app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { continue }
+
+            let element = AXUIElementCreateApplication(app.processIdentifier)
+            var listValue: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString,
+                                                &listValue) == .success,
+                  let windows = listValue as? [AXUIElement] else { continue }
+
+            for window in windows {
+                guard case .ok(let frame) = read(window) else { continue }
+                // Panels, palettes and toolbars are not the arrangement anyone means.
+                guard WorkspaceLayouts.isWorthSaving(width: frame.width,
+                                                     height: frame.height) else { continue }
+                // Nor is the desktop, which the Finder reports as one window across every screen.
+                let widest = NSScreen.screens.map { Double($0.frame.width) }.max() ?? frame.width
+                guard !WorkspaceLayouts.spansEverything(width: frame.width,
+                                                        widestScreen: widest) else { continue }
+
+                var titleValue: CFTypeRef?
+                AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleValue)
+
+                placements.append(Workspace.Placement(
+                    bundleIdentifier: app.bundleIdentifier ?? "",
+                    applicationName: app.localizedName ?? "",
+                    windowTitle: (titleValue as? String) ?? "",
+                    x: frame.x, y: frame.y, width: frame.width, height: frame.height,
+                    display: displayIndex(containing: frame)
+                ))
+            }
+        }
+
+        guard !placements.isEmpty else {
+            return .failed("No encontré ninguna ventana que guardar. ¿Están todas minimizadas?")
+        }
+        return .taken(Workspace(name: name, placements: placements,
+                                displays: NSScreen.screens.count))
+    }
+
+    /// Puts everything back, and says what it could not.
+    static func restore(_ workspace: Workspace) -> String {
+        guard Permissions.accessibilityGranted else {
+            return "Necesito permiso de Accesibilidad para mover ventanas."
+        }
+        let running = NSWorkspace.shared.runningApplications
+        var placed = 0
+        var missing: Set<String> = []
+
+        for placement in workspace.placements {
+            guard let app = running.first(where: {
+                $0.bundleIdentifier == placement.bundleIdentifier
+            }) else {
+                missing.insert(placement.applicationName)
+                continue
+            }
+
+            let element = AXUIElementCreateApplication(app.processIdentifier)
+            var listValue: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString,
+                                                &listValue) == .success,
+                  let windows = listValue as? [AXUIElement] else { continue }
+
+            // The window with the same title, or the only one there is. Matching on title is what
+            // makes two editor windows go back to two different places instead of both to one.
+            let target = windows.first { window in
+                var titleValue: CFTypeRef?
+                AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleValue)
+                return (titleValue as? String) == placement.windowTitle
+            } ?? windows.first { window in
+                if case .ok(let frame) = read(window) {
+                    return WorkspaceLayouts.isWorthSaving(width: frame.width, height: frame.height)
+                }
+                return false
+            }
+            guard let target else { continue }
+
+            // A display that is no longer there means bringing the window home rather than
+            // putting it somewhere nobody can see.
+            let wanted = placement.display < NSScreen.screens.count
+                ? placement
+                : WorkspaceLayouts.clamp(placement, into: flipped(
+                    (NSScreen.main ?? NSScreen.screens[0]).visibleFrame))
+
+            set(frame: WindowLayoutMath.Frame(x: wanted.x, y: wanted.y,
+                                              width: wanted.width, height: wanted.height),
+                on: target)
+            placed += 1
+        }
+
+        var text = "Colocadas \(placed) ventana(s)."
+        if !missing.isEmpty {
+            text += " No están abiertas: \(missing.sorted().joined(separator: ", "))."
+        }
+        return text
+    }
+
+    /// Which screen a frame sits on, by arrangement order.
+    private static func displayIndex(containing frame: WindowLayoutMath.Frame) -> Int {
+        let centre = CGPoint(x: frame.x + frame.width / 2, y: frame.y + frame.height / 2)
+        return NSScreen.screens.firstIndex { flippedContains(flipped($0.visibleFrame), centre) } ?? 0
     }
 }

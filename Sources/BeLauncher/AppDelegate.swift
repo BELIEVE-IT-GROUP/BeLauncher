@@ -114,7 +114,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // Read only when the query asks for it: listing 400 processes on every
                     // keystroke would make typing anything else noticeably slower.
                     processes: ProcessList.order(for: self.model?.query ?? "") == nil
-                        ? [] : SystemUtilities.processes()
+                        ? [] : SystemUtilities.processes(),
+                    workspaces: store.workspaces()
                 )
             },
             fileInfo: { path in
@@ -1027,6 +1028,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report("No se pudo guardar", why)
                 return why
             }
+
+        case .saveWorkspace(let name):
+            panel?.orderOut(nil)
+            switch WindowArranger.snapshot(named: name) {
+            case .taken(let workspace):
+                do {
+                    try store?.saveWorkspace(workspace)
+                    report("Guardado «\(name)»",
+                           "\(workspace.placements.count) ventanas en "
+                           + "\(workspace.displays) pantalla(s). Escribe «\(name)» para colocarlas.")
+                } catch {
+                    report("No se pudo guardar", error.localizedDescription)
+                }
+            case .failed(let why):
+                report("No se pudo guardar", why)
+                return why
+            }
+
+        case .restoreWorkspace(let name):
+            panel?.orderOut(nil)
+            guard let workspace = store?.workspace(named: name) else {
+                report("No lo encuentro", "No hay ningún reparto guardado con ese nombre.")
+                return nil
+            }
+            let running = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+            // Said before moving anything, not discovered afterwards.
+            if let warning = WorkspaceLayouts.fit(workspace, displays: NSScreen.screens.count,
+                                                  runningBundles: running).warning {
+                report("Ojo", warning)
+            }
+            report("Colocando «\(name)»", WindowArranger.restore(workspace))
 
         case .cancelAI:
             aiTask?.cancel()

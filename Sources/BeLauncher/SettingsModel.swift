@@ -647,6 +647,7 @@ final class SettingsModel {
         recentActions = store.actionLog(limit: 60).reversed()
         learnedTraits = store.traits()
         packs = store.availablePacks()
+        refreshMCPConnections()
         let nodes = store.nodes(limit: 2_000)
         graphSummary = WorkNode.Kind.allCases.compactMap { kind in
             let count = nodes.count { $0.kind == kind }
@@ -718,6 +719,44 @@ final class SettingsModel {
                   + "un comando con ese nombre."
         } catch {
             status = "\(error)"
+        }
+    }
+
+    // MARK: - Connecting the assistant you already use
+
+    var mcpConnections: [String: Bool] = [:]
+
+    func refreshMCPConnections() {
+        mcpConnections = Dictionary(uniqueKeysWithValues: MCPClient.all.map { client in
+            let data = FileManager.default.contents(atPath: client.absoluteConfigPath())
+            return (client.id, MCPSetup.isConnected(data, client: client))
+        })
+    }
+
+    /// The path an assistant should launch. Inside the app bundle, so an update moves with it.
+    var mcpExecutablePath: String {
+        Bundle.main.executablePath ?? "/Applications/BeLauncher.app/Contents/MacOS/BeLauncher"
+    }
+
+    func connect(_ client: MCPClient) {
+        let path = client.absoluteConfigPath()
+        let existing = FileManager.default.contents(atPath: path)
+        do {
+            let merged = try MCPSetup.merge(into: existing, client: client,
+                                            executablePath: mcpExecutablePath)
+            try FileManager.default.createDirectory(
+                atPath: (path as NSString).deletingLastPathComponent,
+                withIntermediateDirectories: true
+            )
+            try merged.data.write(to: URL(fileURLWithPath: path), options: .atomic)
+            refreshMCPConnections()
+            status = merged.wasAlready
+                ? MCPSetup.Outcome.alreadyConnected(client.name).message
+                : MCPSetup.Outcome.connected(client.name).message
+        } catch let error as MCPSetupError {
+            status = error.description
+        } catch {
+            status = MCPSetupError.notWritable(client.name).description
         }
     }
 

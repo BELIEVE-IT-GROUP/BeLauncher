@@ -67,6 +67,10 @@ public final class LauncherModel {
         case forceQuit(pid: String)
         /// Keeps the Mac awake for a while, or until told otherwise.
         case stayAwake(minutes: Int?)
+        /// Remembers where every window is right now, under a name.
+        case saveWorkspace(name: String)
+        /// Puts them all back.
+        case restoreWorkspace(name: String)
         /// Writes a scratch note straight to the vault's inbox.
         ///
         /// No confirmation, unlike a memory: a note is yours, not something the company now
@@ -483,6 +487,14 @@ public final class LauncherModel {
         case .pendingCommit:
             perform(.confirmCommit(result.payload))
             refresh()
+
+        case .window where result.payload.hasPrefix("save:"):
+            perform(.saveWorkspace(name: String(result.payload.dropFirst(5))))
+            return true
+
+        case .window where result.payload.hasPrefix("restore:"):
+            perform(.restoreWorkspace(name: String(result.payload.dropFirst(8))))
+            return true
 
         case .window:
             // Dismiss first: the front window must be the user's, not ours.
