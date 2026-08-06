@@ -61,6 +61,17 @@ public final class LauncherModel {
         case openCanvas(template: String, brief: String)
         /// Hands an outcome to the agent runner, which puts it in the tray.
         case runAgent(id: String, argument: String)
+        /// Asks a process to quit, the way ⌘Q does.
+        case quitProcess(pid: String)
+        /// Ends it whether it likes it or not. Loses unsaved work, so it is never on a key.
+        case forceQuit(pid: String)
+        /// Keeps the Mac awake for a while, or until told otherwise.
+        case stayAwake(minutes: Int?)
+        /// Writes a scratch note straight to the vault's inbox.
+        ///
+        /// No confirmation, unlike a memory: a note is yours, not something the company now
+        /// believes. That distinction is what lets this be one keystroke.
+        case writeNote(text: String)
     }
 
     public private(set) var state: State = .loading
@@ -187,6 +198,12 @@ public final class LauncherModel {
             return true
         case .completeKeyword(let keyword):
             query = keyword
+            return true
+        case .forceQuit(let pid):
+            perform(.forceQuit(pid: pid))
+            return true
+        case .openActivityMonitor:
+            perform(.launchApplication(path: "/System/Applications/Utilities/Activity Monitor.app"))
             return true
         case .openSettings:
             perform(.openSettings)
@@ -404,6 +421,12 @@ public final class LauncherModel {
             perform(.dismiss)
 
         case .system:
+            // The stay-awake rows are system rows carrying a duration rather than a command.
+            if result.payload.hasPrefix("awake:") {
+                let rest = String(result.payload.dropFirst("awake:".count))
+                perform(.stayAwake(minutes: rest.isEmpty ? nil : Int(rest)))
+                return true
+            }
             perform(.systemCommand(result.payload))
             perform(.dismiss)
 
@@ -414,6 +437,11 @@ public final class LauncherModel {
         case .memory:
             perform(.copyToClipboard(text: result.title, cursorOffset: nil))
             perform(.dismiss)
+
+        case .process:
+            // Enter quits politely: it lets the app save. Forcing lives behind ⌘K on purpose.
+            perform(.quitProcess(pid: result.payload))
+            return true
 
         case .agent:
             // "<pack id>\u{1F}<argument>". A trailing separator with nothing after it means the
@@ -433,6 +461,10 @@ public final class LauncherModel {
             return true
 
         case .answer:
+            if result.id == "note" {
+                perform(.writeNote(text: result.payload))
+                return true
+            }
             // A typed verb carries "<verb id>\u{1F}<text>": the separator is a unit separator so it
             // can never collide with anything a person copied.
             if result.id.hasPrefix("verb-"),

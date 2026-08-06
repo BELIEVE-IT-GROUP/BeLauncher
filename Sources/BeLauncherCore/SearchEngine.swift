@@ -17,6 +17,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case answer
     case mission
     case agent
+    case process
 
     public var label: String {
         switch self {
@@ -36,6 +37,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .answer: "Respuesta"
         case .mission: "Misión"
         case .agent: "Comando"
+        case .process: "Proceso"
         }
     }
 
@@ -57,6 +59,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .answer: "text.bubble"
         case .mission: "wand.and.stars"
         case .agent: "terminal"
+        case .process: "gauge.with.needle"
         }
     }
 }
@@ -116,6 +119,8 @@ public struct SearchInput: Sendable {
     /// Operational memory: what was worked on, and how it is connected.
     public var workNodes: [WorkNode]
     public var workEdges: [WorkEdge]
+    /// What is running right now, read only when the person asks for it.
+    public var processes: [RunningProcess]
     /// What the app has learned about how this person works.
     public var traits: [Trait]
 
@@ -125,7 +130,8 @@ public struct SearchInput: Sendable {
                 shortcuts: [Shortcut] = [], systemShortcuts: [String] = [],
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
-                workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = []) {
+                workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
+                processes: [RunningProcess] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -142,6 +148,7 @@ public struct SearchInput: Sendable {
         self.workNodes = workNodes
         self.workEdges = workEdges
         self.traits = traits
+        self.processes = processes
     }
 }
 
@@ -178,6 +185,50 @@ public enum SearchEngine {
                     subtitle: command.summary, score: 100_000, matched: [],
                     payload: command.id + "\u{1F}", completion: "/\(command.verb) "
                 )
+            }
+        }
+
+        // A note is written the moment you press Enter: no confirmation, because it is yours.
+        if let note = QuickNote.text(from: query) {
+            pinned.append(SearchResult(
+                id: "note", kind: .answer, title: "Guardar la nota",
+                subtitle: note, score: 99_900, matched: [], payload: note
+            ))
+        }
+
+        // Keeping the Mac awake, which is a whole app on most Macs.
+        if let offers = StayAwake.offers(for: query) {
+            for offer in offers {
+                pinned.append(SearchResult(
+                    id: "awake-\(offer.minutes.map(String.init) ?? "forever")", kind: .system,
+                    title: "No dejar dormir el Mac · \(offer.label)",
+                    subtitle: offer.minutes == nil
+                        ? "Hasta que lo apagues desde la barra de menús"
+                        : "Se apaga solo al terminar",
+                    score: 99_850, matched: [],
+                    payload: "awake:\(offer.minutes.map(String.init) ?? "")"
+                ))
+            }
+        }
+
+        // What is eating the Mac. Pinned above everything because someone typing this has a
+        // fan spinning and is not looking for an app called "cpu".
+        if let (order, filter) = ProcessList.order(for: query) {
+            let top = ProcessList.top(input.processes, order: order, filter: filter)
+            if top.isEmpty, !input.processes.isEmpty {
+                pinned.append(SearchResult(
+                    id: "process-none", kind: .answer,
+                    title: filter.isEmpty ? "Nada está trabajando de más" : "Nada llamado «\(filter)»",
+                    subtitle: order.label, score: 99_800, matched: [], payload: ""
+                ))
+            }
+            for process in top {
+                pinned.append(SearchResult(
+                    id: "process-\(process.id)", kind: .process, title: process.name,
+                    subtitle: ProcessList.subtitle(for: process, order: order),
+                    score: 99_800, matched: [], payload: String(process.id),
+                    recordID: Int64(process.id)
+                ))
             }
         }
 

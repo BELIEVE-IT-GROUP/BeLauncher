@@ -100,6 +100,13 @@ public enum DetailBuilder {
                     .replacingOccurrences(of: " · ↩ lo copia", with: ""))]
             )
 
+        case .process:
+            return ResultDetail(
+                body: result.title,
+                metadata: [.init(label: "Consumo", value: result.subtitle),
+                           .init(label: "PID", value: result.payload)]
+            )
+
         case .agent:
             return ResultDetail(
                 body: result.subtitle,

@@ -57,6 +57,9 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case moveToTrash(path: String)
         case systemCommand(String)
         case assignAlias(target: String, suggestion: String)
+        /// Ends a process the hard way. Separate from `run` so it can never be the Enter key.
+        case forceQuit(pid: String)
+        case openActivityMonitor
     }
 
     public struct Shortcut: Sendable, Equatable {
@@ -244,6 +247,19 @@ public enum ActionRegistry {
             return [
                 ResultAction(id: "run-agent", title: "Encargarlo", symbol: "paperplane",
                              shortcut: .enter, intent: .run),
+            ]
+
+        case .process:
+            // Quitting politely is Enter, because it lets the app save and is right almost
+            // always. Forcing is deliberately not on any single key: it loses unsaved work.
+            return [
+                ResultAction(id: "quit", title: "Cerrar la app", symbol: "xmark.circle",
+                             shortcut: .enter, intent: .run),
+                ResultAction(id: "force-quit", title: "Forzar la salida (pierde lo no guardado)",
+                             symbol: "exclamationmark.octagon", section: .danger,
+                             intent: .forceQuit(pid: result.payload)),
+                ResultAction(id: "activity", title: "Verlo en Monitor de Actividad",
+                             symbol: "chart.bar", intent: .openActivityMonitor),
             ]
 
         case .answer:
