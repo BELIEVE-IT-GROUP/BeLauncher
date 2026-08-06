@@ -99,6 +99,67 @@ if CommandLine.arguments.contains("--diagnose-ai") {
 }
 
 
+// `BeLauncher --diagnose-windows` says exactly where window arranging breaks, for the app in
+// front three seconds after launch, and exits.
+//
+// Same reason as `--diagnose-ai`: "no se puede saber el tamaño de la ventana" is one line with
+// four possible causes behind it, and from outside the app there is no way to tell which.
+if CommandLine.arguments.contains("--diagnose-windows") {
+    let out = { (line: String) in FileHandle.standardOutput.write(Data((line + "\n").utf8)) }
+    MainActor.assumeIsolated {
+        out("Pon delante la ventana que quieras probar. Mirando en 3 segundos…")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            out("\n1. ¿Tiene permiso de Accesibilidad?")
+            out("   \(AXIsProcessTrusted() ? "sí" : "NO — Ajustes › Privacidad › Accesibilidad")")
+
+            guard let app = NSWorkspace.shared.frontmostApplication else {
+                out("2. No hay ninguna app delante."); exit(1)
+            }
+            out("\n2. App delante: \(app.localizedName ?? "?") (pid \(app.processIdentifier))")
+
+            let element = AXUIElementCreateApplication(app.processIdentifier)
+            var windowValue: CFTypeRef?
+            let windowStatus = AXUIElementCopyAttributeValue(
+                element, kAXFocusedWindowAttribute as CFString, &windowValue)
+            out("\n3. Ventana con el foco: \(windowStatus == .success ? "encontrada" : "AXError \(windowStatus.rawValue)")")
+            guard windowStatus == .success, let windowValue else {
+                out("   Esa app no expone su ventana a macOS."); exit(1)
+            }
+            let window = unsafeBitCast(windowValue, to: AXUIElement.self)
+
+            var names: CFArray?
+            AXUIElementCopyAttributeNames(window, &names)
+            let attributes = (names as? [String]) ?? []
+            out("   atributos: \(attributes.prefix(12).joined(separator: ", "))")
+
+            out("\n4. Leer posición y tamaño")
+            var positionValue: CFTypeRef?
+            var sizeValue: CFTypeRef?
+            let ps = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue)
+            let ss = AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue)
+            out("   posición: \(ps == .success ? "ok" : "AXError \(ps.rawValue)")")
+            out("   tamaño:   \(ss == .success ? "ok" : "AXError \(ss.rawValue)")")
+            if ps == .success, ss == .success, let positionValue, let sizeValue {
+                var origin = CGPoint.zero
+                var size = CGSize.zero
+                let po = AXValueGetValue(unsafeBitCast(positionValue, to: AXValue.self), .cgPoint, &origin)
+                let so = AXValueGetValue(unsafeBitCast(sizeValue, to: AXValue.self), .cgSize, &size)
+                out("   descodificado: \(po && so ? "ok" : "NO")  → \(Int(origin.x)),\(Int(origin.y)) \(Int(size.width))×\(Int(size.height))")
+            }
+
+            out("\n5. ¿Se puede mover?")
+            var settable: DarwinBoolean = false
+            AXUIElementIsAttributeSettable(window, kAXPositionAttribute as CFString, &settable)
+            out("   posición modificable: \(settable.boolValue ? "sí" : "NO — esa ventana no se deja mover")")
+            AXUIElementIsAttributeSettable(window, kAXSizeAttribute as CFString, &settable)
+            out("   tamaño modificable:   \(settable.boolValue ? "sí" : "NO")")
+            exit(0)
+        }
+    }
+    RunLoop.main.run()
+}
+
+
 // Menu-bar only: no Dock icon, no main window (LSUIElement is also set in Info.plist).
 let application = NSApplication.shared
 let delegate = AppDelegate()
