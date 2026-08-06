@@ -1,4 +1,4 @@
-# BeBrain — PRD de tres olas
+# BeBrain — PRD de cuatro olas
 
 **Producto:** BeLauncher para un usuario y su Mac. Nada de empresa, nada de equipos, nada de nube.
 Lo colectivo llegará cuando esto haya aprendido, y hoy ya vive en otro sitio.
@@ -241,7 +241,83 @@ muy distintas, y elegir antes es diseñar para un tamaño imaginado.
 
 ---
 
-## Principios que valen para las tres olas
+## OLA 4 — Inglés, y la pregunta de cuál es el idioma nativo del producto
+
+**Duele hoy:** este producto tiene más salida en Estados Unidos que en Latinoamérica, y hoy no
+existe en inglés. Ni una línea.
+
+### 4.0 Esto no es una traducción, es decidir la lengua materna
+
+La tentación es tratarlo como una capa: sacar los textos a un archivo y traducirlos. Sería un
+error, y conviene decirlo antes de empezar.
+
+Si el mercado principal es Estados Unidos, **el inglés es el idioma por defecto y el español es
+el segundo**, no al revés. Eso cambia qué se revisa con lupa: el texto que ve el 80 % de los
+usuarios es el que tiene que estar exquisito, y hoy ese texto no existe. Un producto Believe con
+un inglés correcto pero sin voz vende peor que uno con voz.
+
+Y hay una consecuencia incómoda: la calidad del castellano actual salió de escribirlo con
+intención, frase por frase. Una traducción literal la pierde entera. Esto necesita **alguien que
+escriba**, no alguien que traduzca.
+
+### 4.1 El tamaño real, medido
+
+| Qué | Cuánto |
+|---|---|
+| Cadenas visibles con acentos o eñe | **621** |
+| Archivos que las contienen | **59** |
+| Infraestructura de localización existente | **ninguna** |
+| Puntos donde el idioma está metido en la lógica, no en el texto | **17** |
+
+Las tres primeras filas son trabajo mecánico y aburrido. La cuarta es la que muerde.
+
+### 4.2 Lo que muerde: el idioma dentro de la lógica
+
+No todo el español está en textos. Está también en cómo se entiende lo que el usuario escribe:
+
+- **Detección de intención por prefijo.** `WorkQuery`, `BrainQuery` y `Workspaces` reconocen lo
+  que quieres por frases literales: «guardar espacio », «qué decidimos sobre ». Algunas ya llevan
+  su equivalente inglés al lado, otras no. Un usuario que escriba *save workspace* tiene que
+  llegar al mismo sitio.
+- **El troceado en frases** declara el idioma explícitamente al tokenizador, y hoy cae a español
+  cuando no lo detecta. Con corpus en inglés eso corta peor.
+- **Los prompts al modelo** están en castellano, incluida la instrucción de no inventar. Un
+  modelo al que se le pide en castellano que cite pasajes en inglés responde peor y a veces
+  responde en el idioma equivocado.
+- **Las palabras vacías** de la búsqueda por palabras son españolas.
+
+El motor de vectores **no** es problema: `bge-m3` es multilingüe y en las mediciones cruzó
+idiomas correctamente. Esa es la única pieza que ya está lista.
+
+### 4.3 Cómo se hace
+
+1. **Extraer** las 621 cadenas a catálogos, con el inglés como base y el español como traducción.
+   Mecánico, y hay que hacerlo entero: una app medio traducida es peor que una sin traducir,
+   porque el usuario descubre el hueco cuando ya confiaba.
+2. **Escribir el inglés**, no traducirlo. Cada texto tiene que sonar como si se hubiera pensado en
+   inglés. Los textos de error, los estados vacíos y el onboarding son los que más pesan.
+3. **Sacar el idioma de la lógica**: que la detección de intención, las palabras vacías y los
+   prompts vengan del idioma activo en vez de estar clavados.
+4. **El cerebro puede ser bilingüe aunque la interfaz no lo sea.** Alguien en Miami trabaja en
+   inglés y habla con su familia en español, y su memoria contiene los dos. El idioma de la
+   interfaz y el del corpus son cosas distintas y no deben atarse.
+5. **Revisar con alguien que hable inglés nativo** antes de publicar. Un texto que suena a
+   traducción hunde la percepción de calidad más rápido que un bug.
+
+### 4.4 Cuándo
+
+**Después de la ola 2, y puede ir en paralelo con la ola 3.** Hacerlo antes significa traducir
+dos veces todo lo que la ola 2 escriba de nuevo, y la ola 2 toca precisamente los textos que más
+importan: los del cerebro.
+
+### Lo que la ola 4 NO trae
+
+Ningún idioma más. Dos bien hechos superan a cinco a medias, y añadir el tercero es barato una
+vez que el idioma sale de la lógica.
+
+---
+
+## Principios que valen para las cuatro olas
 
 1. **Medir antes de construir.** Los embeddings nativos de Apple parecían la opción obvia y
    acertaban 1 de 4. Se descubrió midiendo, en veinte minutos, antes de construir encima.
