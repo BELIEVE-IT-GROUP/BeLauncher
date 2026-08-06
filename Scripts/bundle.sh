@@ -20,6 +20,8 @@ bash "$ROOT/Scripts/make-icon.sh" "$APP/Contents/Resources/AppIcon.icns"
 # The raw artwork travels too: the app draws it itself in the activation window and the
 # command bar, because the system-provided icon comes pre-framed on macOS 26.
 [ -f "$ROOT/Resources/AppIcon-1024.png" ] && cp "$ROOT/Resources/AppIcon-1024.png" "$APP/Contents/Resources/AppIconArt.png"
+# The mascot: shown where the app is seen rarely and large — welcome, empty states, waiting.
+[ -f "$ROOT/Resources/Mascot.png" ] && cp "$ROOT/Resources/Mascot.png" "$APP/Contents/Resources/Mascot.png"
 
 codesign --force --deep --sign - --identifier com.believe.belauncher "$APP" >/dev/null 2>&1 \
     || echo "warning: ad-hoc signing failed; Accessibility and launch-at-login may not stick"

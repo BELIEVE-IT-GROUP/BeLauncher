@@ -230,7 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "BeLauncher"
         window.contentViewController = NSHostingController(rootView: ActivationView(model: model))
         window.isReleasedWhenClosed = false
-        window.center()
+        place(window)
         activationWindow = window
 
         NSApp.setActivationPolicy(.regular)   // the activation window needs to be reachable
@@ -555,7 +555,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Ajustes de BeLauncher"
         window.contentViewController = NSHostingController(rootView: SettingsView(model: settingsModel))
         window.isReleasedWhenClosed = false
-        window.center()
+        place(window)
         settingsWindow = window
 
         panel?.orderOut(nil)
@@ -789,7 +789,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Misiones"
         window.contentViewController = NSHostingController(rootView: MissionTrayView(runner: runner))
         window.isReleasedWhenClosed = false
-        window.center()
+        place(window)
         trayWindow = window
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
@@ -835,7 +835,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = definition.title
         window.contentViewController = NSHostingController(rootView: CanvasView(model: model))
         window.isReleasedWhenClosed = false
-        window.center()
+        place(window)
         canvasWindow = window
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
@@ -916,7 +916,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.welcomeWindow = nil
         })
         window.isReleasedWhenClosed = false
-        window.center()
+        place(window)
         welcomeWindow = window
 
         panel?.orderOut(nil)
@@ -1333,11 +1333,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                 configuration: NSWorkspace.OpenConfiguration())
     }
 
+    /// Puts a window where the person is looking: centred, and high rather than dead centre.
+    ///
+    /// `center()` centres on the *main* screen, which on a Mac with three displays is wherever
+    /// macOS decided — usually not the one being used, so windows kept opening off to the side.
+    /// The screen under the pointer is the honest answer to "where am I".
+    ///
+    /// Vertically it sits above the middle. A window centred exactly looks low, because the eye
+    /// reads the space under it as heavier; every system dialog on macOS does the same.
+    private func place(_ window: NSWindow) {
+        let pointer = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { NSMouseInRect(pointer, $0.frame, false) }
+            ?? NSScreen.main
+            ?? NSScreen.screens[0]
+
+        let visible = screen.visibleFrame
+        let size = window.frame.size
+        let x = visible.midX - size.width / 2
+        let y = visible.midY - size.height / 2 + visible.height * 0.10
+        // Never push the title bar off the top of the screen on a short display.
+        let clamped = min(y, visible.maxY - size.height)
+        window.setFrameOrigin(NSPoint(x: x.rounded(), y: clamped.rounded()))
+    }
+
     private func report(_ title: String, _ detail: String) {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = detail
-        alert.alertStyle = .warning
+        // .warning paints a yellow triangle on the icon, which makes every message look like
+        // something went wrong — including "Guardado en el cerebro". Informational, with the
+        // mascot, so the tone matches what is being said.
+        alert.alertStyle = .informational
+        if let mascot = Mascot.image { alert.icon = mascot }
         alert.runModal()
     }
 

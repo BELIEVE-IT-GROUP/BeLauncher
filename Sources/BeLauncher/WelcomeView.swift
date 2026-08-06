@@ -55,12 +55,13 @@ struct WelcomeView: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 12) {
-                    BeLauncherMark(side: 44)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("BeLauncher").font(.system(size: 22, weight: .semibold))
+                HStack(alignment: .center, spacing: 18) {
+                    Mascot(height: 104)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("BeLauncher").font(.system(size: 26, weight: .semibold))
+                            .tracking(-0.4)
                         Text("Una tecla para todo lo que haces en el Mac.")
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 14)).foregroundStyle(.secondary)
                     }
                 }
 
