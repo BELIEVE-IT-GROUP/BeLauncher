@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.build/primary.swiftdeps"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.derived/runner.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.build/runner.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.build/runner.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.build/runner.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherPackageTests.build/runner.dia"
+  }
+}

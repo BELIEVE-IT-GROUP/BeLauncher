@@ -51,9 +51,9 @@ public enum DetailBuilder {
             return ResultDetail(
                 body: expanded.text,
                 metadata: [
-                    .init(label: "Palabra clave", value: snippet.keyword),
-                    .init(label: "Usos", value: "\(snippet.uses)"),
-                    .init(label: "Sin expandir", value: preview(snippet.body)),
+                    .init(label: L("Keyword"), value: snippet.keyword),
+                    .init(label: L("Used"), value: "\(snippet.uses)"),
+                    .init(label: L("Unexpanded"), value: preview(snippet.body)),
                 ]
             )
 
@@ -65,11 +65,12 @@ public enum DetailBuilder {
                 ? clip!.assetPath
                 : (clip?.kind == .file ? result.payload : "")
             var metadata: [ResultDetail.Item] = [
-                .init(label: "Origen", value: clip?.sourceApp.isEmpty == false ? clip!.sourceApp : "Desconocido"),
-                .init(label: "Copiado", value: clip.map { relative($0.createdAt) } ?? "—"),
+                .init(label: L("From"), value: clip?.sourceApp.isEmpty == false ? clip!.sourceApp : L("Unknown")),
+                .init(label: L("Copied"), value: clip.map { relative($0.createdAt) } ?? "—"),
             ]
             if preview.isEmpty {
-                metadata.append(ResultDetail.Item(label: "Longitud", value: "\(result.payload.count) caracteres"))
+                metadata.append(ResultDetail.Item(label: L("Length"),
+                                                  value: L("%@ characters", String(result.payload.count))))
             }
             return ResultDetail(
                 body: preview.isEmpty ? result.payload : (preview as NSString).lastPathComponent,
@@ -86,9 +87,9 @@ public enum DetailBuilder {
             return ResultDetail(
                 body: steps,
                 metadata: [
-                    .init(label: "Palabra clave", value: flow.keyword),
-                    .init(label: "Pasos", value: "\(flow.steps.count)"),
-                    .init(label: "Usos", value: "\(flow.uses)"),
+                    .init(label: L("Keyword"), value: flow.keyword),
+                    .init(label: L("Steps"), value: "\(flow.steps.count)"),
+                    .init(label: L("Used"), value: "\(flow.uses)"),
                 ]
             )
 
@@ -96,33 +97,33 @@ public enum DetailBuilder {
             return ResultDetail(
                 body: result.title,
                 isMonospaced: true,
-                metadata: [.init(label: "Operación", value: result.subtitle
-                    .replacingOccurrences(of: " · ↩ lo copia", with: ""))]
+                metadata: [.init(label: L("Sum"), value: result.subtitle
+                    .replacingOccurrences(of: " · " + L("↩ copies it"), with: ""))]
             )
 
         case .process:
             return ResultDetail(
                 body: result.title,
-                metadata: [.init(label: "Consumo", value: result.subtitle),
+                metadata: [.init(label: L("Using"), value: result.subtitle),
                            .init(label: "PID", value: result.payload)]
             )
 
         case .agent:
             return ResultDetail(
                 body: result.subtitle,
-                metadata: [.init(label: "Se ejecuta", value: "en segundo plano, con recibo")]
+                metadata: [.init(label: L("Runs"), value: L("in the background, with a receipt"))]
             )
 
         case .application, .file:
             return ResultDetail(
                 body: (result.payload as NSString).lastPathComponent,
-                metadata: [.init(label: "Ruta", value: result.payload)] + fileInfo(result.payload),
+                metadata: [.init(label: L("Path"), value: result.payload)] + fileInfo(result.payload),
                 previewPath: result.payload
             )
 
         case .bookmark:
             return ResultDetail(body: result.payload, isMonospaced: true,
-                                metadata: [.init(label: "Tipo", value: "Marcador del navegador")])
+                                metadata: [.init(label: L("Kind"), value: L("Browser bookmark"))])
 
         case .mission:
             let mission = MissionPlanner.plan(result.payload)
@@ -132,8 +133,8 @@ public enum DetailBuilder {
             return ResultDetail(
                 body: steps,
                 metadata: [
-                    .init(label: "Antes de nada", value: "Verás el plan y podrás cancelar"),
-                    .init(label: "Después", value: "Un recibo de lo que cambió"),
+                    .init(label: L("First"), value: L("You see the plan and can cancel")),
+                    .init(label: L("Afterwards"), value: L("A receipt of what changed")),
                 ]
             )
 
@@ -145,21 +146,28 @@ public enum DetailBuilder {
                 let source = String(result.payload[result.payload.index(after: split)...])
                 return ResultDetail(
                     body: source,
-                    metadata: [.init(label: "Se hará sobre", value: "\(source.count) caracteres")]
+                    metadata: [.init(label: L("Will work on"), value: L("%@ characters", String(source.count)))]
                 )
             }
             return ResultDetail(body: result.payload,
-                                metadata: [.init(label: "Basado en", value: result.subtitle)])
+                                metadata: [.init(label: L("Based on"), value: result.subtitle)])
+
+        case .recall:
+            // The whole passage, so the row's one-line excerpt can be read in full before it is
+            // trusted — a citation nobody can expand is a citation nobody should believe.
+            return ResultDetail(body: result.payload,
+                                metadata: [.init(label: L("Where from"), value: result.subtitle)])
 
         case .memory:
             let memory = memories.first { $0.id == result.payload }
             return ResultDetail(
                 body: memory?.body.isEmpty == false ? memory!.body : result.title,
                 metadata: [
-                    .init(label: "Tipo", value: memory?.kind.rawValue.capitalized ?? "Memoria"),
-                    .init(label: "Vigente", value: memory?.isCurrent() == true ? "Sí" : "No"),
-                    .init(label: "Dueño", value: memory?.owner ?? "—"),
-                    .init(label: "Fuente", value: memory?.source ?? "—"),
+                    .init(label: L("Kind"), value: memory?.kind.rawValue.capitalized ?? L("Memory")),
+                    .init(label: L("In force"),
+                          value: memory?.isCurrent() == true ? L("Yes") : L("No")),
+                    .init(label: L("Owner"), value: memory?.owner ?? "—"),
+                    .init(label: L("Source"), value: memory?.source ?? "—"),
                 ]
             )
 
@@ -168,9 +176,11 @@ public enum DetailBuilder {
             return ResultDetail(
                 body: commit?.object.statement ?? result.title,
                 metadata: [
-                    .init(label: "Motivo", value: commit?.reason ?? "—"),
-                    .init(label: "Sustituiría", value: commit.map { "\($0.conflicts.count)" } ?? "0"),
-                    .init(label: "Nota", value: "Nada entra al cerebro sin que lo confirmes."),
+                    .init(label: L("Why"), value: commit?.reason ?? "—"),
+                    .init(label: L("Would replace"),
+                          value: commit.map { "\($0.conflicts.count)" } ?? "0"),
+                    .init(label: L("Note"),
+                          value: L("Nothing enters the brain without you confirming it.")),
                 ]
             )
 
@@ -178,29 +188,33 @@ public enum DetailBuilder {
             return ResultDetail(
                 body: result.title,
                 metadata: [
-                    .init(label: "Origen", value: "App Atajos"),
-                    .init(label: "Nota", value: "Lo creaste tú; BeLauncher solo lo invoca por nombre."),
+                    .init(label: L("From"), value: L("Shortcuts app")),
+                    .init(label: L("Note"),
+                          value: L("You made it; BeLauncher only calls it by name.")),
                 ]
             )
 
         case .window:
             return ResultDetail(body: result.title,
-                                metadata: [.init(label: "Requiere", value: "Permiso de Accesibilidad")])
+                                metadata: [.init(label: L("Needs"), value: L("Accessibility permission"))])
 
         case .system:
             let command = SystemCommand.all.first { $0.kind.rawValue == result.payload }
             return ResultDetail(
                 body: result.title,
                 metadata: [
-                    .init(label: "Tipo", value: "Comando del sistema"),
-                    .init(label: "Confirmación",
-                          value: command?.needsConfirmation == true ? "Sí, antes de ejecutar" : "No hace falta"),
+                    .init(label: L("Kind"), value: L("System command")),
+                    .init(label: L("Confirmation"),
+                          value: command?.needsConfirmation == true
+                              ? L("Yes, before it runs") : L("Not needed")),
                 ]
             )
 
         case .workflow:
             return ResultDetail(
-                body: result.payload.isEmpty ? "Escribe un término después de la palabra clave." : result.payload,
+                body: result.payload.isEmpty
+                    ? L("Type a term after the keyword.")
+                    : result.payload,
                 isMonospaced: !result.payload.isEmpty,
                 metadata: [.init(label: "Workflow", value: result.title)]
             )

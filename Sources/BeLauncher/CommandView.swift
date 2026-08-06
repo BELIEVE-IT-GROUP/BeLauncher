@@ -114,7 +114,7 @@ struct CommandView: View {
         HStack(spacing: 13) {
             AppIconView(side: 26)
 
-            TextField("Busca, calcula, convierte o escribe lo que quieres hacer", text: $model.query)
+            TextField(L("Search, calculate, convert, or type what you want to do"), text: $model.query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 21, weight: .regular))
                 .focused($focus, equals: .search)
@@ -155,12 +155,12 @@ struct CommandView: View {
             message {
                 Mascot(height: 46)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Nada para “\(model.query)”").fontWeight(.medium)
+                    Text(L("Nothing for “%@”", model.query)).fontWeight(.medium)
                     // The empty state is the one place everybody lands, so it is the one place
                     // worth spending on teaching what can be typed.
-                    Text("Prueba: **2+2** calcula · **10 km to mi** convierte · **f informe** busca "
-                         + "archivos · **enfoque** arranca un bloque de trabajo · "
-                         + "**qué decidimos sobre …** pregunta a tu cerebro.")
+                    // The examples are translated with the copy, because they have to be typeable: every
+                    // one of these strings is a phrase the intent tables in `Phrases` recognise.
+                    Text(L("Try: **2+2** calculates · **10 km to mi** converts · **f report** finds files · **focus** starts a block of work · **what did we decide about …** asks your brain."))
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -171,7 +171,7 @@ struct CommandView: View {
             HStack(alignment: .top, spacing: 11) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("BeLauncher no pudo leer su base de datos").fontWeight(.medium)
+                    Text(L("BeLauncher could not read its own database")).fontWeight(.medium)
                     Text(reason).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(2)
                 }
                 Spacer()
@@ -251,7 +251,7 @@ struct CommandView: View {
         case .empty:
             model.results.isEmpty
                 ? "Prueba 2+2 · 10 km to mi · f informe"
-                : (model.mode == .clipboard ? "Historial del portapapeles" : "Recientes")
+                : (model.mode == .clipboard ? L("Clipboard history") : "Recientes")
         case .loading: "Cargando"
         case .noMatch: "Sin resultados"
         case .failed: "Error"
@@ -316,7 +316,7 @@ private struct MissionPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Esto es lo que haría", systemImage: "wand.and.stars")
+            Label(L("Here is what it would do"), systemImage: "wand.and.stars")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Theme.accent)
 
@@ -341,7 +341,7 @@ private struct MissionPane: View {
                 }
             }
 
-            Text("Nada se ejecuta hasta que lo apruebes, y después verás un recibo de lo que cambió.")
+            Text(L("Nothing runs until you approve it, and afterwards you get a receipt of what changed."))
                 .font(.system(size: 10.5))
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -386,8 +386,7 @@ private struct AIPane: View {
                         Button("Cancelar") { dismiss() }
                             .controlSize(.small)
                     }
-                    Text("La primera vez del día tarda unos segundos mientras el modelo se carga "
-                         + "en memoria. Después empieza a escribir casi al instante.")
+                    Text(L("The first time each day takes a few seconds while the model loads into memory. After that it starts writing almost instantly."))
                         .font(.system(size: 10.5)).foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -451,7 +450,7 @@ private struct ActionPanelView: View {
                         }
                     }
                     if model.visibleActions.isEmpty {
-                        Text("Ninguna acción coincide")
+                        Text(L("No action matches"))
                             .font(.system(size: 11))
                             .foregroundStyle(.tertiary)
                             .padding(10)
@@ -622,10 +621,10 @@ private struct FilePreview: View {
             // Dragging out is the whole point of a visual preview: grab the screenshot you copied
             // and drop it into the message you are writing.
             .onDrag { NSItemProvider(contentsOf: url) ?? NSItemProvider() }
-            .help("Arrástralo a cualquier app")
+            .help(L("Drag it into any app"))
 
             HStack(spacing: 6) {
-                QuickAction(symbol: "hand.draw", title: "Arrastra desde la imagen")
+                QuickAction(symbol: "hand.draw", title: L("Drag from the image"))
                 Spacer()
                 Button {
                     NSWorkspace.shared.activateFileViewerSelecting([url])

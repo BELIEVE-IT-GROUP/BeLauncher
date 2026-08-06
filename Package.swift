@@ -17,5 +17,11 @@ let package = Package(
             name: "BeLauncherCoreTests",
             dependencies: ["BeLauncherCore"]
         ),
+        // La capa de app no tenía pruebas: borrar el filtro de exclusiones entero de
+        // BrowserHistory dejaba las 839 pruebas en verde, porque ninguna las ejecutaba.
+        .testTarget(
+            name: "BeLauncherAppTests",
+            dependencies: ["BeLauncher", "BeLauncherCore"]
+        ),
     ]
 )

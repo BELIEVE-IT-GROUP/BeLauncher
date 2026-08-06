@@ -222,24 +222,17 @@ public enum WorkQuery {
         case about(String)
 
         public static func detect(_ query: String) -> Intent? {
-            let folded = query
-                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-                .trimmingCharacters(in: .whitespaces)
+            let folded = Phrases.fold(query)
 
-            for prefix in ["que prometimos a ", "que le prometimos a ", "que debemos a ",
-                           "what did we promise "] where folded.hasPrefix(prefix) {
-                return .promisedTo(String(folded.dropFirst(prefix.count)))
+            if let name = Phrases.after(anyOf: Phrases.promisedTo, in: folded) {
+                return .promisedTo(name)
             }
-            for prefix in ["abre lo ultimo de ", "abre lo ultimo relacionado con ",
-                           "lo ultimo de ", "ultimo de "] where folded.hasPrefix(prefix) {
-                return .lastAbout(String(folded.dropFirst(prefix.count)))
+            if let subject = Phrases.after(anyOf: Phrases.lastAbout, in: folded) {
+                return .lastAbout(subject)
             }
-            for phrase in ["retoma lo que estaba haciendo", "retomar donde lo deje",
-                           "en que estaba", "resume where i left"] where folded.hasPrefix(phrase) {
-                return .resumeBefore
-            }
-            for prefix in ["quien es ", "que sabemos de ", "todo sobre "] where folded.hasPrefix(prefix) {
-                return .about(String(folded.dropFirst(prefix.count)))
+            if Phrases.matches(anyOf: Phrases.resumeBefore, in: folded) { return .resumeBefore }
+            if let subject = Phrases.after(anyOf: Phrases.about, in: folded) {
+                return .about(subject)
             }
             return nil
         }
@@ -268,19 +261,19 @@ public enum WorkQuery {
         let indirect = nodes.filter { indirectIDs.contains($0.id) && $0.kind == .commitment }
 
         var lines: [String] = direct.map { object in
-            let due = object.validUntil.map { " · para \(shortDate($0))" } ?? ""
-            let late = (object.validUntil.map { $0 < date } ?? false) ? " ⚠︎ vencido" : ""
+            let due = object.validUntil.map { " · " + L("due %@", shortDate($0)) } ?? ""
+            let late = (object.validUntil.map { $0 < date } ?? false) ? " ⚠︎ " + L("overdue") : ""
             return "- \(object.statement)\(due)\(late)"
         }
         lines += indirect.map { "- \($0.name) · \($0.detail)" }
 
         return Answer(
             headline: lines.isEmpty
-                ? "No hay nada pendiente con \(name)"
-                : "\(lines.count) compromiso(s) con \(name)",
+                ? L("Nothing outstanding with %@", name)
+                : L("%1$@ commitment(s) with %2$@", String(lines.count), name),
             nodes: indirect,
             body: lines.isEmpty
-                ? "Ni compromisos abiertos ni nada salido de una reunión suya."
+                ? L("No open commitments, and nothing that came out of a meeting of theirs.")
                 : lines.joined(separator: "\n")
         )
     }
@@ -307,8 +300,8 @@ public enum WorkQuery {
 
         return Answer(
             headline: related.isEmpty
-                ? "Nada reciente sobre \(subject)"
-                : "Lo último de \(subject)",
+                ? L("Nothing recent about %@", subject)
+                : L("The latest on %@", subject),
             nodes: Array(related),
             body: related.map { "- \($0.name) · \($0.detail)" }.joined(separator: "\n")
         )
@@ -375,7 +368,11 @@ public enum WorkQuery {
 
     static func shortDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .short
+        // The interface language decides, not the machine's region: this string sits inside an
+        // English sentence, and a US-format date next to Spanish text (or the reverse) is the kind
+        // of seam that makes a product feel translated.
+        formatter.locale = Loc.language.locale
+        formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
     }

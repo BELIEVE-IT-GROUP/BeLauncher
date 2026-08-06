@@ -41,9 +41,13 @@ struct SystemCommandTests {
 
     @Test("a system command reaches the results and carries its kind as payload")
     func appearsInSearch() {
+        // Se busca en español con la interfaz en inglés a propósito: las palabras clave son
+        // bilingües siempre, porque quien piensa en español las escribe aunque su Mac esté en
+        // inglés. El título que sale sí sigue al idioma de la interfaz.
         let results = SearchEngine.search("bloquear", in: SearchInput())
         let lock = results.first { $0.kind == .system }
-        #expect(lock?.title == "Bloquear pantalla")
+        #expect(lock?.title == "Lock the screen")
+        #expect(Loc.render(lock?.title ?? "", in: .spanish) == "Bloquear pantalla")
         #expect(lock?.payload == SystemCommand.Kind.lockScreen.rawValue)
     }
 

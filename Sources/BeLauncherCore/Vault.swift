@@ -187,8 +187,8 @@ public final class Vault {
     func overlaps(_ existing: MemoryObject, _ incoming: MemoryObject) -> Bool {
         guard existing.kind == incoming.kind else { return false }
 
-        let existingWords = Set(significantWords(existing.statement))
-        let incomingWords = Set(significantWords(incoming.statement))
+        let existingWords = Set(Phrases.significantWords(existing.statement))
+        let incomingWords = Set(Phrases.significantWords(incoming.statement))
         guard !existingWords.isEmpty, !incomingWords.isEmpty else { return false }
         let shared = existingWords.intersection(incomingWords).count
         let similarity = Double(shared) / Double(min(existingWords.count, incomingWords.count))
@@ -202,15 +202,6 @@ public final class Vault {
         return similarity >= (sharedEntity ? 0.4 : 0.7)
     }
 
-    private func significantWords(_ text: String) -> [String] {
-        let stop: Set<String> = ["el", "la", "los", "las", "de", "del", "que", "y", "a", "en",
-                                 "para", "con", "un", "una", "no", "se", "es", "the", "of", "to"]
-        return text
-            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .map(String.init)
-            .filter { $0.count > 2 && !stop.contains($0) }
-    }
 }
 
 extension ISO8601DateFormatter {

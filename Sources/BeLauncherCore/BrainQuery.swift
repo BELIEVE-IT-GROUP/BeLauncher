@@ -33,32 +33,45 @@ public enum BrainQuery {
         case pulse
         case none
 
+        /// Both languages are listened for at once, from `Phrases`. Someone whose interface is in
+        /// English still types "que decidimos sobre precios" when the decision was taken in
+        /// Spanish, and the topic they are asking about is a Spanish phrase either way.
+        ///
+        /// The topic is cut from the *original* text, not the folded one, so "Acme Ltd." keeps its
+        /// capitals and its accents on the way to the search.
         public static func detect(_ query: String) -> Intent {
             let trimmed = query.trimmingCharacters(in: .whitespaces)
-            let folded = trimmed.folding(options: [.diacriticInsensitive, .caseInsensitive],
-                                         locale: .current)
+            let folded = Phrases.fold(trimmed)
             guard trimmed.count >= 3 else { return .none }
 
-            for prefix in ["que decidimos sobre ", "que decidimos de ", "que decidimos ",
-                           "what did we decide about ", "what did we decide "] where folded.hasPrefix(prefix) {
-                return .whatDidWeDecide(topic: String(trimmed.dropFirst(prefix.count)))
+            if let topic = original(after: Phrases.whatDidWeDecide, folded: folded, raw: trimmed) {
+                return .whatDidWeDecide(topic: topic)
             }
             // "preparar reunión con Acme" lives here too. It used to fall through to a mission
             // that only summarised the words you typed, while this path reads the brain and the
             // calendar: two doors to the same question, one of them worse.
-            for prefix in ["preparame para ", "preparame ", "preparar reunion con ",
-                           "preparar reunion ", "prepara ", "prepare me for ", "prepare for ",
-                           "prepare "] where folded.hasPrefix(prefix) {
-                return .prepare(subject: String(trimmed.dropFirst(prefix.count)))
+            if let subject = original(after: Phrases.prepare, folded: folded, raw: trimmed) {
+                return .prepare(subject: subject)
             }
-            for prefix in ["recordar ", "recuerda ", "remember "] where folded.hasPrefix(prefix) {
-                return .remember(text: String(trimmed.dropFirst(prefix.count)))
+            if let text = original(after: Phrases.remember, folded: folded, raw: trimmed) {
+                return .remember(text: text)
             }
-            for word in ["pulse", "pulso", "que se me escapa", "que esta en riesgo",
-                         "riesgos"] where folded == word || folded.hasPrefix(word) {
-                return .pulse
-            }
+            if Phrases.matches(anyOf: Phrases.pulse, in: folded) { return .pulse }
             return .none
+        }
+
+        /// Folding is diacritic- and case-insensitive but length-preserving, so an offset found in
+        /// the folded text is valid in the original. Cutting the original is what keeps the
+        /// accents in "reunión con José" from reaching the search stripped.
+        private static func original(after prefixes: [String], folded: String,
+                                     raw: String) -> String? {
+            var longest = 0
+            for prefix in prefixes where folded.hasPrefix(prefix) {
+                longest = max(longest, prefix.count)
+            }
+            guard longest > 0, raw.count > longest else { return nil }
+            let rest = String(raw.dropFirst(longest)).trimmingCharacters(in: .whitespaces)
+            return rest.isEmpty ? nil : rest
         }
     }
 
@@ -74,20 +87,19 @@ public enum BrainQuery {
             let past = matching.filter { $0.status == .superseded }
             if let previous = past.first {
                 return Answer(
-                    headline: "Ya no hay una decisión vigente sobre “\(topic)”",
-                    body: "La última fue «\(previous.statement)» y quedó sustituida el "
-                        + "\(shortDate(previous.validUntil ?? previous.createdAt)). "
-                        + "Nadie registró la que la reemplazó.",
+                    headline: L("There is no decision in force about “%@” any more", topic),
+                    body: L("The last one was “%1$@” and it was superseded on %2$@. Nobody recorded what replaced it.",
+                            previous.statement,
+                            shortDate(previous.validUntil ?? previous.createdAt)),
                     citations: [previous],
-                    gap: "Falta registrar la decisión vigente."
+                    gap: L("The decision in force is missing.")
                 )
             }
             return Answer(
-                headline: "No hay ninguna decisión registrada sobre “\(topic)”",
-                body: "Cuando la toméis, guardadla con «recordar» y quedará aquí con su fecha, "
-                    + "su dueño y lo que sustituye.",
+                headline: L("Nothing has been decided about “%@”", topic),
+                body: L("When you decide, save it with “remember” and it will sit here with its date, its owner and what it replaced."),
                 citations: [],
-                gap: "El cerebro no sabe nada de este tema todavía."
+                gap: L("The brain knows nothing about this subject yet.")
             )
         }
 
@@ -95,16 +107,16 @@ public enum BrainQuery {
         var citations = [latest]
 
         var details: [String] = []
-        if !latest.owner.isEmpty { details.append("Decidido por \(latest.owner)") }
-        details.append("vigente desde el \(shortDate(latest.validFrom))")
-        if !latest.source.isEmpty { details.append("fuente: \(latest.source)") }
+        if !latest.owner.isEmpty { details.append(L("Decided by %@", latest.owner)) }
+        details.append(L("in force since %@", shortDate(latest.validFrom)))
+        if !latest.source.isEmpty { details.append(L("source: %@", latest.source)) }
         lines.append(details.joined(separator: " · "))
 
         // What it replaced, which is the part nobody else keeps.
         let replaced = latest.supersedes.compactMap { id in memories.first { $0.id == id } }
         if !replaced.isEmpty {
             lines.append("")
-            lines.append("Sustituyó a:")
+            lines.append(L("Replaced:"))
             for previous in replaced {
                 lines.append("- \(previous.statement)")
                 citations.append(previous)
@@ -114,14 +126,14 @@ public enum BrainQuery {
         let others = current.filter { $0.id != latest.id }
         if !others.isEmpty {
             lines.append("")
-            lines.append("También vigente sobre esto:")
+            lines.append(L("Also in force on this:"))
             for other in others.prefix(4) {
                 lines.append("- \(other.statement)")
                 citations.append(other)
             }
         }
 
-        return Answer(headline: "Decisión vigente", body: lines.joined(separator: "\n"),
+        return Answer(headline: L("Decision in force"), body: lines.joined(separator: "\n"),
                       citations: citations)
     }
 
@@ -136,11 +148,10 @@ public enum BrainQuery {
 
         guard !matching.isEmpty || meeting != nil else {
             return Answer(
-                headline: "Todavía no sé nada de “\(subject)”",
-                body: "Cuando haya decisiones, compromisos o notas sobre esto, aparecerán aquí "
-                    + "reunidas antes de la reunión.",
+                headline: L("I know nothing about “%@” yet", subject),
+                body: L("When there are decisions, commitments or notes about this, they will be gathered here before the meeting."),
                 citations: [],
-                gap: "Sin material sobre este asunto."
+                gap: L("No material on this subject.")
             )
         }
 
@@ -150,7 +161,7 @@ public enum BrainQuery {
         if let meeting {
             lines.append("**\(meeting.title)** · \(shortDateTime(meeting.start))")
             if !meeting.attendees.isEmpty {
-                lines.append("Con: \(meeting.attendees.joined(separator: ", "))")
+                lines.append(L("With: %@", meeting.attendees.joined(separator: ", ")))
             }
             lines.append("")
         }
@@ -165,18 +176,19 @@ public enum BrainQuery {
             lines.append("")
         }
 
-        section("Decisiones vigentes:", matching.filter { $0.kind == .decision })
-        section("Compromisos abiertos:", matching.filter { $0.kind == .commitment })
-        section("Aprendizajes:", matching.filter { $0.kind == .learning })
-        section("Notas:", matching.filter { $0.kind == .note })
+        section(L("Decisions in force:"), matching.filter { $0.kind == .decision })
+        section(L("Open commitments:"), matching.filter { $0.kind == .commitment })
+        section(L("Learnings:"), matching.filter { $0.kind == .learning })
+        section(L("Notes:"), matching.filter { $0.kind == .note })
 
         let openCommitments = matching.filter { $0.kind == .commitment }
         let gap = openCommitments.isEmpty
             ? nil
-            : "Hay \(openCommitments.count) compromiso(s) sin cerrar sobre esto."
+            : L("%@ commitment(s) on this are still open.", String(openCommitments.count))
 
         return Answer(
-            headline: meeting.map { "Preparación: \($0.title)" } ?? "Lo que sabemos de \(subject)",
+            headline: meeting.map { L("Preparation: %@", $0.title) }
+                ?? L("What we know about %@", subject),
             body: lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines),
             citations: citations,
             gap: gap
@@ -204,12 +216,16 @@ public enum BrainQuery {
             .map(\.0)
     }
 
+    /// Dates follow the interface language, not the machine's region. Someone running the app in
+    /// English on a Mac set to Spain wants "5 Aug", and someone in Miami reading the Spanish
+    /// interface wants "5 ago" — the setting they made is the one that should decide.
     static func shortDate(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated).year())
+        date.formatted(.dateTime.day().month(.abbreviated).year().locale(Loc.language.locale))
     }
 
     static func shortDateTime(_ date: Date) -> String {
-        date.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).hour().minute())
+        date.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).hour().minute()
+            .locale(Loc.language.locale))
     }
 }
 

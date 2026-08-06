@@ -59,7 +59,7 @@ public struct Workspace: Sendable, Equatable, Identifiable, Codable {
     public var summary: String {
         let apps = Set(placements.map(\.applicationName)).sorted()
         return apps.prefix(4).joined(separator: ", ")
-            + (apps.count > 4 ? " y \(apps.count - 4) más" : "")
+            + (apps.count > 4 ? " " + L("and %@ more", String(apps.count - 4)) : "")
     }
 }
 
@@ -78,10 +78,11 @@ public enum WorkspaceLayouts {
             case .exact:
                 nil
             case .fewerDisplays(let saved, let now):
-                "Se guardó con \(saved) pantallas y ahora hay \(now). Lo que quedaba fuera se "
-                + "traerá a la que tienes."
+                L("It was saved with %1$@ displays and there are %2$@ now. Anything that fell outside is pulled back onto the one you have.",
+                  String(saved), String(now))
             case .missingApps(let names):
-                "No están abiertas: \(names.joined(separator: ", ")). El resto sí se coloca."
+                L("Not open: %@. Everything else still gets placed.",
+                  names.joined(separator: ", "))
             }
         }
     }
@@ -144,23 +145,19 @@ public enum WorkspaceLayouts {
         case restore(String)
         case list
 
+        /// Save first, restore second: "save workspace writing" also starts with nothing in the
+        /// restore list, but "guardar espacio X" would match "espacio " if the order were reversed
+        /// and quietly restore instead of saving.
         public static func detect(_ query: String) -> Intent? {
-            let folded = query
-                .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
-                .trimmingCharacters(in: .whitespaces)
+            let folded = Phrases.fold(query)
             guard folded.count >= 4 else { return nil }
 
-            for prefix in ["guardar espacio ", "guardar layout ", "guardar ventanas ",
-                           "save workspace "] where folded.hasPrefix(prefix) {
-                let name = String(folded.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
-                return name.isEmpty ? nil : .save(name)
+            if Phrases.listWorkspaces.contains(folded) { return .list }
+            if let name = Phrases.after(anyOf: Phrases.saveWorkspace, in: folded) {
+                return .save(name)
             }
-            for prefix in ["espacio ", "layout ", "restaurar ", "workspace "] where folded.hasPrefix(prefix) {
-                let name = String(folded.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
-                return name.isEmpty ? nil : .restore(name)
-            }
-            for word in ["espacios", "layouts", "workspaces"] where folded == word {
-                return .list
+            if let name = Phrases.after(anyOf: Phrases.restoreWorkspace, in: folded) {
+                return .restore(name)
             }
             return nil
         }

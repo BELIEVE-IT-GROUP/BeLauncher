@@ -267,6 +267,23 @@ public final class LauncherModel {
         didSet { if isIndexing != oldValue { refresh() } }
     }
 
+    /// The brain, when one has been built. Set after construction because finding an embedding
+    /// model is a network call and the window has to be able to open before it finishes.
+    public var brain: BrainSearch?
+
+    /// Rows the brain returned, and the query they answer.
+    ///
+    /// Held separately from `results` because they arrive after the list has already been drawn.
+    /// Merging them into the same array on arrival — rather than redrawing from scratch — is what
+    /// keeps the selection where the person left it while they were reading.
+    private var recallRows: [SearchResult] = []
+    private var recallQuery = ""
+    private var recallTask: Task<Void, Never>?
+
+    /// Long enough that typing a word does not fire a request per keystroke, short enough that it
+    /// lands while the person is still looking at the list.
+    public static let recallDelay: Duration = .milliseconds(220)
+
     private let dataSource: @MainActor () throws -> SearchInput
     private let fileSearch: FileSearch
     private let fileInfo: @Sendable (String) -> [ResultDetail.Item]
@@ -343,6 +360,8 @@ public final class LauncherModel {
                     files: files
                 )
                 state = results.isEmpty ? .noMatch : .results
+                mergeRecall(for: trimmed)
+                scheduleRecall(for: trimmed)
             }
         } catch {
             results = []
@@ -350,6 +369,34 @@ public final class LauncherModel {
         }
         selection = min(selection, max(results.count - 1, 0))
         if isActionPanelOpen, results.isEmpty { closeActionPanel() }
+    }
+
+    // MARK: - Recall
+
+    /// Adds whatever the brain has already answered for this exact query.
+    ///
+    /// Only for this query: showing the previous question's memories under a new one is how a
+    /// search box starts feeling haunted.
+    private func mergeRecall(for query: String) {
+        guard recallQuery == query, !recallRows.isEmpty else { return }
+        let known = Set(results.map(\.id))
+        results += recallRows.filter { !known.contains($0.id) }
+        if state == .noMatch, !results.isEmpty { state = .results }
+    }
+
+    private func scheduleRecall(for query: String) {
+        guard let brain, query.count >= 4, recallQuery != query else { return }
+        recallTask?.cancel()
+        recallTask = Task { [weak self] in
+            try? await Task.sleep(for: LauncherModel.recallDelay)
+            guard !Task.isCancelled else { return }
+            let result = await brain.search(query, limit: 5)
+            guard !Task.isCancelled else { return }
+            guard let self, self.query.trimmingCharacters(in: .whitespaces) == query else { return }
+            self.recallQuery = query
+            self.recallRows = RecallResults.rows(from: result)
+            self.mergeRecall(for: query)
+        }
     }
 
     // MARK: - Keyboard
@@ -419,6 +466,10 @@ public final class LauncherModel {
     public func runSelected() -> Bool {
         guard let result = selected else { return false }
         switch result.kind {
+        case .recall:
+            perform(.copyToClipboard(text: result.payload, cursorOffset: nil))
+            perform(.dismiss)
+
         case .application:
             onLaunch(result.payload)
             perform(.launchApplication(path: result.payload))

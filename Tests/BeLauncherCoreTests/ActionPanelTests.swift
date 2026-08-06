@@ -167,8 +167,8 @@ struct ActionPanelTests {
         model.query = "sig"
         let detail = try! #require(model.detail)
         #expect(detail.body == "Hola Jorge")
-        #expect(detail.metadata.contains { $0.label == "Palabra clave" && $0.value == "sig" })
-        #expect(detail.metadata.contains { $0.label == "Usos" && $0.value == "3" })
+        #expect(detail.metadata.contains { $0.label == "Keyword" && $0.value == "sig" })
+        #expect(detail.metadata.contains { $0.label == "Used" && $0.value == "3" })
     }
 
     @Test("a flow previews its steps in order")
@@ -187,7 +187,7 @@ struct ActionPanelTests {
         model.activate()
         model.query = "texto copiado"
         let detail = try! #require(model.detail)
-        #expect(detail.metadata.contains { $0.label == "Origen" && $0.value == "Xcode" })
+        #expect(detail.metadata.contains { $0.label == "From" && $0.value == "Xcode" })
         #expect(!detail.isMonospaced)
 
         #expect(DetailBuilder.looksLikeData("{\"a\":1}"))

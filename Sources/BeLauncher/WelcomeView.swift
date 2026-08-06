@@ -28,9 +28,9 @@ struct WelcomeView: View {
                 }
                 Spacer()
                 if step > 0 {
-                    Button("Atrás") { step -= 1 }
+                    Button(L("Back")) { step -= 1 }
                 }
-                Button(step == 2 ? "Empezar" : "Siguiente") {
+                Button(step == 2 ? L("Get started") : L("Next")) {
                     if step == 2 { onFinish() } else { step += 1 }
                 }
                 .buttonStyle(.borderedProminent)
@@ -60,18 +60,16 @@ struct WelcomeView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("BeLauncher").font(.system(size: 26, weight: .semibold))
                             .tracking(-0.4)
-                        Text("Una tecla para todo lo que haces en el Mac.")
+                        Text(L("One key for everything you do on your Mac."))
                             .font(.system(size: 14)).foregroundStyle(.secondary)
                     }
                 }
 
-                Text("Pulsa **⇧⌘Espacio** en cualquier momento y escribe. Abre apps y archivos, "
-                     + "calcula, convierte, guarda lo que copias, dispara flujos de varios pasos y "
-                     + "responde preguntas sobre lo que tu empresa ya decidió.")
+                Text(L("Press **⇧⌘Space** whenever you like and start typing. It opens apps and files, works out sums, converts things, keeps what you copy, fires off multi-step flows and answers questions about what your company already decided."))
 
                 GroupBox {
                     VStack(alignment: .leading, spacing: 10) {
-                        Label("Tus datos se quedan aquí", systemImage: "lock.shield")
+                        Label(L("Your data stays here"), systemImage: "lock.shield")
                             .font(.system(size: 13, weight: .semibold))
                         Text(Onboarding.privacy)
                             .font(.system(size: 11.5))
@@ -90,11 +88,9 @@ struct WelcomeView: View {
     private var permissions: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("Qué quieres que pueda hacer")
+                Text(L("What do you want it to be able to do"))
                     .font(.system(size: 18, weight: .semibold))
-                Text("Enciende lo que te sirva. Puedes cambiarlo cuando quieras en Ajustes, y "
-                     + "debajo de cada uno pone exactamente a qué accede y qué pasa si lo dejas "
-                     + "apagado.")
+                Text(L("Switch on whatever is useful to you. You can change it any time in Settings, and under each one it says exactly what it reaches and what happens if you leave it off."))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
 
                 ForEach(Onboarding.capabilities) { capability in
@@ -130,7 +126,7 @@ struct WelcomeView: View {
                     .padding(6)
                 }
 
-                GroupBox("Escribe esto y mira qué pasa") {
+                GroupBox(L("Type this and see what happens")) {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(Onboarding.tryThis, id: \.type) { item in
                             HStack(alignment: .top, spacing: 10) {
@@ -146,8 +142,7 @@ struct WelcomeView: View {
                     .padding(6)
                 }
 
-                Text("Y cuando no sepas qué se puede escribir, abre Ajustes → **Qué puedo escribir**: "
-                     + "está todo listado.")
+                Text(L("And when you cannot remember what you can type, open Settings → **What I can type**: it is all listed there."))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             }
             .padding(24)
@@ -171,7 +166,7 @@ private struct CapabilityCard: View {
                         HStack(spacing: 6) {
                             Text(capability.title).font(.system(size: 13, weight: .semibold))
                             if capability.recommended {
-                                Text("recomendado")
+                                Text(L("recommended"))
                                     .font(.system(size: 9, weight: .semibold))
                                     .padding(.horizontal, 5).padding(.vertical, 1)
                                     .background(Theme.accent.opacity(0.18),
@@ -188,7 +183,7 @@ private struct CapabilityCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Label(capability.accesses, systemImage: "eye")
                         .font(.system(size: 10.5)).foregroundStyle(.secondary)
-                    Label("Si lo dejas apagado: " + capability.ifYouSayNo, systemImage: "minus.circle")
+                    Label(L("If you leave it off: %@", capability.ifYouSayNo), systemImage: "minus.circle")
                         .font(.system(size: 10.5)).foregroundStyle(.tertiary)
                 }
                 .fixedSize(horizontal: false, vertical: true)

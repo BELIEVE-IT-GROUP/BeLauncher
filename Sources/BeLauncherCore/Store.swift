@@ -377,8 +377,13 @@ public final class Store {
         let trimmed = String(text.prefix(20_000))
         guard !trimmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         // Credentials never enter the history — see SecretGuard for why this is not optional.
-        guard !SecretGuard.looksLikeSecret(trimmed) else { return false }
-        guard !excludedApps().contains(sourceApp.lowercased()) else { return false }
+        // The strong rule: a token pasted mid-sentence, inside a URL or after an `=` used to
+        // be stored happily, and the sweep below could not find it afterwards either.
+        guard !SecretGuard.carriesSecret(trimmed) else { return false }
+        // excludedFromCapture, not excludedApps: the raw list is empty on a clean install, so on a
+        // fresh Mac a copy out of a password manager was stored. The factory list is the whole
+        // point of shipping one.
+        guard !excludedFromCapture().contains(sourceApp.lowercased()) else { return false }
 
         let resolved = kind ?? Clip.detectKind(trimmed)
         let digest = Digest.sha256(trimmed)
@@ -403,7 +408,7 @@ public final class Store {
     /// launch: a key already in the history is exactly the problem worth fixing.
     @discardableResult
     public func purgeSecrets() -> Int {
-        let offenders = clips(limit: 100_000).filter { SecretGuard.looksLikeSecret($0.text) }
+        let offenders = clips(limit: 100_000).filter { SecretGuard.carriesSecret($0.text) }
         for clip in offenders { deleteClip(id: clip.id) }
         return offenders.count
     }

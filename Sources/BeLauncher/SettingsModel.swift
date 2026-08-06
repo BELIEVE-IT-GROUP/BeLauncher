@@ -7,10 +7,39 @@ import BeLauncherCore
 final class SettingsModel {
     let store: Store
     var onHotKeyChange: (String) -> Void = { _ in }
-    var onClipboardToggle: (Bool) -> Void = { _ in }
+    var onClipboardToggle: (Bool) -> Void = { _ in } {
+        // Whoever sets this is the only thing that can really start or stop the watcher, and it is
+        // set after `init`, so the pause read from disk at startup was announced to nobody. Every
+        // assignment re-applies it: a pause restored from a previous session is enforced, not just
+        // painted.
+        didSet {
+            captureRunning = nil
+            applyCaptureState()
+        }
+    }
+
+    /// The language the interface is drawn in.
+    ///
+    /// Stored as an explicit choice rather than following the system, because the two are genuinely
+    /// different questions: a Mac set to Spanish belonging to somebody who works in English is not
+    /// an edge case, it is most of the market this app is aimed at. Changing it also does not touch
+    /// the corpus — the brain stays bilingual whatever this says.
+    var language: Language {
+        didSet {
+            guard language != oldValue else { return }
+            store.setSetting("ui_language", language.rawValue)
+            Loc.language = language
+            onLanguageChange()
+        }
+    }
+    /// Called after the language changes so the app can rebuild what SwiftUI will not: the menu
+    /// bar, the panel and anything already on screen were built with the old strings baked in.
+    var onLanguageChange: () -> Void = {}
 
     var hotkey: String { didSet { store.setSetting("hotkey", hotkey); onHotKeyChange(hotkey) } }
-    var clipboardEnabled: Bool { didSet { store.setSetting("clipboard_enabled", clipboardEnabled); onClipboardToggle(clipboardEnabled) } }
+    // Goes through `applyCaptureState` rather than the hook directly: turning the clipboard on
+    // while capture is paused used to start the watcher anyway.
+    var clipboardEnabled: Bool { didSet { store.setSetting("clipboard_enabled", clipboardEnabled); applyCaptureState() } }
     var retentionDays: Int { didSet { store.setSetting("clipboard_retention_days", retentionDays) } }
     var maxItems: Int { didSet { store.setSetting("clipboard_max_items", maxItems) } }
     var updateCheckEnabled: Bool { didSet { store.setSetting("update_check_enabled", updateCheckEnabled) } }
@@ -195,6 +224,8 @@ final class SettingsModel {
         self.store = store
         self.appVersion = appVersion
         self.updateFeedURL = updateFeedURL
+        language = Language.resolve(stored: store.setting("ui_language"),
+                                    systemPreferred: Locale.preferredLanguages)
         hotkey = store.setting("hotkey") ?? HotKey.Combo.all[0].label
         clipboardEnabled = store.setting("clipboard_enabled", default: true)
         retentionDays = store.setting("clipboard_retention_days", default: 30)
@@ -210,6 +241,10 @@ final class SettingsModel {
         pasteAfterCopy = store.setting("paste_after_copy", default: false) && Permissions.accessibilityGranted
         launchAtLogin = LaunchAtLogin.isEnabled
         reload()
+        // Reads the stored pause and puts the menu bar item up if there is one. Done here so a
+        // pause survives a restart *visibly*: coming back from lunch to an app that is silently
+        // still paused is the failure this whole panel is guarding against.
+        refreshPrivacy()
     }
 
     func reload() {
@@ -290,6 +325,180 @@ final class SettingsModel {
             secretError = "The Keychain refused to store this secret (\(error))."
             return false
         }
+    }
+
+    // MARK: - Privacidad: parar, no mirar, olvidar
+
+    /// Which panel Ajustes should land on. Set from outside the window — today by the menu bar
+    /// item that appears while capture is paused, which has to be able to take somebody straight
+    /// to the control that undoes it rather than to whatever tab was open last.
+    var requestedSection: String?
+
+    var privacy = Privacy.State()
+    var excludedForCapture: [String] = []
+    var excludedCaptureDomains: [String] = []
+    /// Said out loud when the stored list cannot express what the person just asked for.
+    var exclusionNote: String?
+
+    func refreshPrivacy() {
+        privacy = store.privacyState
+        excludedForCapture = store.excludedFromCapture().sorted()
+        excludedCaptureDomains = store.excludedDomains().sorted()
+        // Every refresh, not only the ones that changed something: this is what takes the menu bar
+        // item down by itself, and turns capture back on, when a timed pause runs out.
+        applyCaptureState()
+        PauseIndicator.shared.show(privacy, model: self)
+    }
+
+    /// Last value handed to the clipboard hook, so a refresh every twenty seconds does not restart
+    /// the watcher every twenty seconds.
+    private var captureRunning: Bool?
+
+    /// Stops the capture that exists today instead of only writing down that it should stop.
+    ///
+    /// Nothing else in the app reads `privacyState` yet: the wave two sources are still being
+    /// written, and the only live capture is the clipboard watcher. A pause that records "en
+    /// pausa" and keeps recording is precisely the failure this panel exists to prevent, so it is
+    /// switched off through the same hook the clipboard toggle uses. When the other sources land
+    /// they should read `store.privacyState` themselves and this can go.
+    private func applyCaptureState() {
+        let shouldRun = privacy.isCapturing() && clipboardEnabled
+        guard captureRunning != shouldRun else { return }
+        captureRunning = shouldRun
+        onClipboardToggle(shouldRun)
+    }
+
+    func pause(_ choice: PrivacyCopy.PauseChoice) {
+        store.pauseCapture(choice.reason, until: choice.until())
+        refreshPrivacy()
+    }
+
+    func resumeCapture() {
+        store.pauseCapture(.notPaused)
+        refreshPrivacy()
+    }
+
+    /// Writes the *effective* list back, not the stored one.
+    ///
+    /// `excludedFromCapture()` falls back to the factory list while the stored set is empty, so
+    /// saving only the newly typed name would silently drop the password managers the moment
+    /// somebody excluded their first app. Reading the effective set and adding to it keeps the
+    /// list on screen equal to the list that is enforced.
+    func addExcludedFromCapture(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !trimmed.isEmpty, PrivacyCopy.problem(withApp: trimmed) == nil else { return }
+        var apps = store.excludedFromCapture()
+        apps.insert(trimmed)
+        store.setExcludedApps(apps)
+        exclusionNote = nil
+        refreshPrivacy()
+        excludedApps = store.excludedApps().sorted()
+    }
+
+    func removeExcludedFromCapture(_ name: String) {
+        var apps = store.excludedFromCapture()
+        apps.remove(name.lowercased())
+        // An empty stored list reads as "never configured", which brings the factory ones back on
+        // the next read. Rather than let the row reappear with no explanation, it is said.
+        if apps.isEmpty {
+            exclusionNote = "Era la última de la lista, así que vuelven las de fábrica. Para no "
+                          + "excluir ninguna app, deja solo una que no uses."
+        } else {
+            exclusionNote = nil
+        }
+        store.setExcludedApps(apps)
+        refreshPrivacy()
+        excludedApps = store.excludedApps().sorted()
+    }
+
+    func addExcludedDomain(_ input: String) {
+        guard let domain = PrivacyCopy.normalisedDomain(input) else { return }
+        var domains = store.excludedDomains()
+        domains.insert(domain)
+        store.setExcludedDomains(domains)
+        exclusionNote = nil
+        refreshPrivacy()
+    }
+
+    func removeExcludedDomain(_ domain: String) {
+        var domains = store.excludedDomains()
+        domains.remove(domain)
+        store.setExcludedDomains(domains)
+        refreshPrivacy()
+    }
+
+    // MARK: - Olvidar, que no tiene vuelta
+
+    enum ForgetState: Equatable {
+        case idle
+        case counting
+        case ready(Privacy.Forgetting)
+        case failed(String)
+    }
+
+    var forgetChoice: PrivacyCopy.ForgetChoice = .lastHour {
+        // Changing the period invalidates the count on screen. Leaving a stale number next to a
+        // delete button is how somebody agrees to erase three things and erases nine hundred.
+        didSet { if forgetChoice != oldValue { cancelForgetPreview() } }
+    }
+    var forgetFrom = Date.now.addingTimeInterval(-3600)
+    var forgetTo = Date.now
+    var forgetState: ForgetState = .idle
+    var forgetResult: String?
+
+    private var forgetPeriod: Privacy.Period? {
+        forgetChoice == .range
+            ? Privacy.Period(from: forgetFrom, to: forgetTo)
+            : forgetChoice.period()
+    }
+
+    func cancelForgetPreview() {
+        forgetState = .idle
+        forgetResult = nil
+    }
+
+    /// Counts first, always. Nothing here deletes: this is the number the confirmation quotes.
+    func countWhatWouldBeForgotten() {
+        guard let period = forgetPeriod else { return }
+        forgetState = .counting
+        forgetResult = nil
+        Task { @MainActor in
+            let counted = self.store.whatWouldBeForgotten(period)
+            self.forgetState = .ready(counted)
+        }
+    }
+
+    /// The second gate: a modal whose default key is Cancelar, and a destructive button that names
+    /// the number. Both Return and Escape leave everything where it is.
+    func confirmAndForget() {
+        guard case .ready(let counted) = forgetState, let period = forgetPeriod else { return }
+        let confirmation = PrivacyCopy.confirmation(period: forgetChoice.label,
+                                                    forgetting: counted)
+        guard confirmation.canProceed else { return }
+
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = confirmation.title
+        alert.informativeText = confirmation.message
+        // Cancel is added first so it is the one Return presses. The order matters more than it
+        // looks: the default button of a critical alert is the one a person hits without reading.
+        alert.addButton(withTitle: confirmation.cancelTitle)
+        let destructive = alert.addButton(withTitle: confirmation.confirmTitle)
+        destructive.hasDestructiveAction = true
+        // No key equivalent on the destructive button, so no keystroke can reach it.
+        destructive.keyEquivalent = ""
+        guard alert.runModal() == .alertSecondButtonReturn else { return }
+
+        let removed = store.forget(period)
+        // Counted again afterwards rather than trusting the return value: `forget` swallows SQLite
+        // errors, so the only way to know the rows are gone is to look for them.
+        let left = store.whatWouldBeForgotten(period)
+        forgetState = .idle
+        forgetResult = left.isEmpty
+            ? PrivacyCopy.forgotten(removed, period: forgetChoice.label)
+            : PrivacyCopy.forgetFailed(left: left.total)
+        refreshBrainState()
+        reloadIntelligenceExtras()
     }
 
     // MARK: - Data
@@ -740,6 +949,13 @@ final class SettingsModel {
         Bundle.main.executablePath ?? "/Applications/BeLauncher.app/Contents/MacOS/BeLauncher"
     }
 
+    /// The last thing that happened in the MCP section, shown inside that section.
+    ///
+    /// It used to be written to `status`, which is painted under "Llevártelo a otro sitio" — the
+    /// Obsidian and git block, several sections above. So pressing "Conectar" changed a line of
+    /// text nowhere near the button, and the section that had just been used said nothing at all.
+    var mcpStatus: String?
+
     func connect(_ client: MCPClient) {
         let path = client.absoluteConfigPath()
         let existing = FileManager.default.contents(atPath: path)
@@ -752,13 +968,167 @@ final class SettingsModel {
             )
             try merged.data.write(to: URL(fileURLWithPath: path), options: .atomic)
             refreshMCPConnections()
-            status = merged.wasAlready
-                ? MCPSetup.Outcome.alreadyConnected(client.name).message
-                : MCPSetup.Outcome.connected(client.name).message
+            // Says what happened — a file was written — and sends the person to the probe. The
+            // old wording claimed "X ya puede consultar tu cerebro", which is the unverified
+            // claim this whole panel exists to replace.
+            mcpStatus = merged.wasAlready
+                ? BrainSetupCopy.connectAlreadyThere(client: client.name)
+                : BrainSetupCopy.connectWrote(client: client.name)
         } catch let error as MCPSetupError {
-            status = error.description
+            mcpStatus = error.description
         } catch {
-            status = MCPSetupError.notWritable(client.name).description
+            mcpStatus = MCPSetupError.notWritable(client.name).description
+        }
+        // Writing the file proves intent, not connection. The old panel stopped here and turned
+        // the dot green; the report from the last probe is now stale for *this* client, so its
+        // verdict goes back to "sin comprobar". The other clients were not touched and keep
+        // theirs — wiping every report left the panel with no verdict at all right after using it.
+        mcpReports.removeAll { $0.clientName == client.name }
+    }
+
+    /// What the last real probe found, one report per client. Empty means nobody has checked,
+    /// which the UI shows as its own state instead of assuming the good one.
+    var mcpReports: [MCPHealth.Report] = []
+    var mcpChecking = false
+
+    func report(for client: MCPClient) -> MCPHealth.Report? {
+        mcpReports.first { $0.clientName == client.name }
+    }
+
+    /// Launches BeLauncher the way an assistant would and asks it a question whose answer is
+    /// planted beforehand. Takes seconds, so it is never done on opening Ajustes: an automatic
+    /// check that spawns a subprocess every time someone looks at a settings tab is a check
+    /// people learn to resent.
+    func runMCPDiagnosis() {
+        guard !mcpChecking else { return }
+        mcpChecking = true
+        let path = mcpExecutablePath
+        Task { @MainActor in
+            let reports = await MCPProbe.diagnose(executablePath: path)
+            self.mcpReports = reports
+            self.refreshMCPConnections()
+            self.mcpChecking = false
+        }
+    }
+
+    // MARK: - What the brain actually holds
+
+    /// Set by the app delegate when it has one, so Ajustes reports on the same brain the launcher
+    /// searches. Left nil in contexts that never built one, where reading the store directly is
+    /// still correct — the index lives in the database, not in this object.
+    var brain: BrainSearch?
+
+    var brainReadout: BrainSetupCopy.IndexReadout?
+    var brainRebuilding = false
+    var brainStatus: String?
+    /// Set when the numbers could not be read at all. Distinct from "there is nothing indexed":
+    /// one of them is an empty brain and the other is a broken panel, and showing zeros for the
+    /// second is how somebody concludes their notes disappeared.
+    var brainError: String?
+    var brainCards: [PrivacyCopy.Brain.Card] = []
+    var brainIsLocal = true
+
+    private func brainForReading() -> BrainSearch {
+        if let brain { return brain }
+        let made = BrainSearch(store: store)
+        brain = made
+        return made
+    }
+
+    func refreshBrainState() {
+        brainError = nil
+        brainReadout = nil
+        Task { @MainActor in
+            let brain = self.brainForReading()
+            // Only when nobody detected one yet: re-detecting on every visit would shell out to
+            // Ollama for an answer the launcher already has.
+            if brain.engine == nil { await brain.detectEngine() }
+            let progress = brain.progress()
+            self.brainIsLocal = brain.engine?.isLocal ?? true
+            self.brainReadout = BrainSetupCopy.readout(
+                passages: progress.passages, vectorised: progress.vectorised,
+                engine: brain.engine?.model, isLocal: brain.engine?.isLocal ?? false
+            )
+            self.brainCards = self.countWhatItKnows(passages: progress.passages,
+                                                    vectorised: progress.vectorised)
+        }
+    }
+
+    /// The two counts the index does not keep: how many stretches of work it can tell apart, and
+    /// how many names it recognises.
+    ///
+    /// Both are derived here with the same pure code the rest of the app uses rather than with a
+    /// second rule invented for a settings panel. A number on this screen that is computed
+    /// differently from the number the launcher answers with is a number that will disagree with
+    /// it one day, and the disagreement is what destroys the trust this panel exists to build.
+    private func countWhatItKnows(passages: Int,
+                                  vectorised: Int) -> [PrivacyCopy.Brain.Card] {
+        let nodes = store.nodes(limit: 2_000)
+        let clips = store.clips(limit: 1_000)
+
+        var signals = nodes.compactMap { node -> Episode.Signal? in
+            let kind: Episode.Signal.Kind?
+            switch node.kind {
+            case .file: kind = .file
+            case .meeting: kind = .meeting
+            case .conversation: kind = .conversation
+            case .application: kind = .application
+            default: kind = nil
+            }
+            guard let kind else { return nil }
+            return Episode.Signal(at: node.lastSeen, kind: kind, subject: node.id, title: node.name)
+        }
+        signals += clips.map {
+            Episode.Signal(at: $0.createdAt, kind: .clip, subject: "clip:\($0.id)",
+                           title: String($0.text.prefix(60)))
+        }
+
+        let entities = nodes.count { $0.kind == .person || $0.kind == .company
+                                     || $0.kind == .project }
+        return PrivacyCopy.Brain.cards(
+            passages: passages, vectorised: vectorised,
+            episodes: EpisodeBuilder.episodes(from: signals).count,
+            entities: entities, clips: clips.count
+        )
+    }
+
+    /// Throws the index away and builds it again from the vault, the work graph and the
+    /// clipboard. Nothing here touches a note: the passages are derived, so the worst outcome of
+    /// pressing this is time.
+    func rebuildIndex() {
+        guard !brainRebuilding else { return }
+        brainRebuilding = true
+        brainStatus = BrainSetupCopy.rebuildRunning
+        Task { @MainActor in
+            defer { self.brainRebuilding = false }
+            let brain = self.brainForReading()
+            if brain.engine == nil { await brain.detectEngine() }
+
+            self.store.clearSemanticIndex()
+            let vault = try? Vault(root: Vault.defaultRoot())
+            brain.index(memories: vault?.objects() ?? [],
+                        nodes: self.store.nodes(limit: 2_000),
+                        clips: self.store.clips(limit: 500))
+            self.refreshBrainState()
+
+            guard brain.engine != nil else {
+                self.brainStatus = "Índice rehecho. Sin modelo, se busca por palabras exactas."
+                return
+            }
+            // One batch at a time rather than `embedEverything`, so the counter climbs while it
+            // runs. A number that only appears at the end is a spinner with extra steps.
+            do {
+                while try await brain.embedPending() > 0 {
+                    self.refreshBrainState()
+                }
+                let progress = brain.progress()
+                self.brainStatus = BrainSetupCopy.rebuildFinished(
+                    passages: progress.passages, vectorised: progress.vectorised)
+            } catch {
+                self.brainStatus = "El modelo dejó de responder a mitad. Lo indexado se queda "
+                    + "guardado: vuelve a pulsar y sigue desde donde iba."
+            }
+            self.refreshBrainState()
         }
     }
 

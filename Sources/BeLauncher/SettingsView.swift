@@ -19,34 +19,37 @@ struct SettingsView: View {
     /// as "there are four more sections in here". A sidebar shows all seven at once and has room
     /// for a subtitle, which is where most of the "what is this even for" went.
     enum Section: String, CaseIterable, Identifiable {
-        case general, intelligence, clipboard, commands, agents, memory, content, brain, data
+        case general, intelligence, clipboard, commands, agents, memory, privacy, content, brain,
+             data
         var id: String { rawValue }
 
         var title: String {
             switch self {
-            case .general: "General"
-            case .intelligence: "Inteligencia"
-            case .clipboard: "Portapapeles"
-            case .commands: "Qué puedo escribir"
-            case .agents: "Encargos"
-            case .memory: "Lo que observa"
-            case .content: "Mis atajos"
-            case .brain: "Mi cerebro"
-            case .data: "Datos y privacidad"
+            case .general: L("General")
+            case .intelligence: L("Intelligence")
+            case .clipboard: L("Clipboard")
+            case .commands: L("What I can type")
+            case .agents: L("Errands")
+            case .memory: L("What it watches")
+            case .privacy: L("Privacy")
+            case .content: L("My shortcuts")
+            case .brain: L("My brain")
+            case .data: L("Data")
             }
         }
 
         var subtitle: String {
             switch self {
-            case .general: "Atajo, arranque, licencia"
-            case .intelligence: "Qué modelo responde y con qué clave"
-            case .clipboard: "Qué se guarda y qué no"
-            case .commands: "Todo lo que entiende la ventana"
-            case .agents: "Comandos con «/» y misiones en marcha"
-            case .memory: "Historial, memoria de trabajo y lo aprendido"
-            case .content: "Snippets, flujos, alias, secretos"
-            case .brain: "Dónde viven tus notas y quién puede leerlas"
-            case .data: "Exportar, importar, desinstalar"
+            case .general: L("Shortcut, startup, licence")
+            case .intelligence: L("Which model answers, and with whose key")
+            case .clipboard: L("What gets saved and what does not")
+            case .commands: L("Everything the window understands")
+            case .agents: L("“/” commands and missions in flight")
+            case .memory: L("History, working memory and what it learned")
+            case .privacy: L("Pause, exclude, forget")
+            case .content: L("Snippets, flows, aliases, secrets")
+            case .brain: L("Where your notes live and who can read them")
+            case .data: L("Export, import, uninstall")
             }
         }
 
@@ -58,6 +61,7 @@ struct SettingsView: View {
             case .commands: "command"
             case .agents: "terminal"
             case .memory: "eye"
+            case .privacy: "hand.raised"
             case .content: "text.quote"
             case .brain: "brain"
             case .data: "lock.shield"
@@ -95,6 +99,7 @@ struct SettingsView: View {
                 case .commands: CommandsTab()
                 case .agents: AgentsTab(model: model)
                 case .memory: MemoryTab(model: model)
+                case .privacy: PrivacyView(model: model)
                 case .content: ContentTab(model: model)
                 case .brain: BrainTab(model: model)
                 case .data: DataTab(model: model)
@@ -102,8 +107,23 @@ struct SettingsView: View {
             }
             .navigationTitle(selection.title)
         }
-        .frame(width: 860, height: 620)
-        .onAppear { model.reload(); model.scanLocalModels(); model.reloadIntelligenceExtras() }
+        // Ideal rather than fixed, so the layout follows the window the day it can be resized.
+        // Everything inside reflows: the counts are an adaptive grid and the button rows wrap.
+        .frame(minWidth: 760, idealWidth: 860, minHeight: 540, idealHeight: 620)
+        .onAppear {
+            model.reload(); model.scanLocalModels(); model.reloadIntelligenceExtras()
+            openRequestedSection()
+        }
+        // The window is reused rather than rebuilt, so `onAppear` fires once in its whole life.
+        // Without this, asking for a panel from outside only worked the first time.
+        .onChange(of: model.requestedSection) { _, _ in openRequestedSection() }
+    }
+
+    private func openRequestedSection() {
+        guard let requested = model.requestedSection,
+              let section = Section(rawValue: requested) else { return }
+        selection = section
+        model.requestedSection = nil
     }
 }
 
@@ -116,11 +136,19 @@ private struct GeneralTab: View {
     var body: some View {
         Form {
             Section {
-                Picker("Atajo global", selection: $model.hotkey) {
+                // Each language written in itself. "Spanish" in an English list is a small tell
+                // that the product was translated rather than made for the person reading it.
+                Picker(L("Language"), selection: $model.language) {
+                    ForEach(Language.allCases, id: \.self) { Text($0.endonym).tag($0) }
+                }
+                Text(L("Only what the app says to you. What you have saved keeps whatever language it was written in, and search still works across both."))
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Picker(L("Global shortcut"), selection: $model.hotkey) {
                     ForEach(HotKey.Combo.all, id: \.label) { Text($0.label).tag($0.label) }
                 }
-                LabeledContent("Portapapeles", value: "⌥C")
-                Toggle("Abrir BeLauncher al iniciar sesión", isOn: $model.launchAtLogin)
+                LabeledContent(L("Clipboard"), value: "⌥C")
+                Toggle(L("Open BeLauncher at login"), isOn: $model.launchAtLogin)
                 if let error = model.launchAtLoginError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
@@ -685,8 +713,16 @@ private struct BrainTab: View {
         ("pulse", "Qué se está pudriendo: contradicciones, vencidos, sin revisar."),
     ]
 
+    /// Its own installer rather than the setup window's: someone can open Ajustes with that
+    /// window closed and still start the download from here.
+    @State private var installer = ModelInstaller()
+
     var body: some View {
         Form {
+            Section("Estado del cerebro") {
+                BrainStatusView(model: model, installer: installer)
+            }
+
             Section("Cómo se llena tu cerebro") {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(BrainTab.howItFills, id: \.type) { item in
@@ -743,21 +779,22 @@ private struct BrainTab: View {
                 Text("BeLauncher habla MCP: el asistente que ya pagas puede consultar tu cerebro "
                      + "sin abrir el launcher.")
                     .font(.caption).foregroundStyle(.secondary)
+
+                MCPVerdictHeader(model: model)
+
                 ForEach(MCPClient.all) { client in
-                    HStack {
-                        Image(systemName: model.mcpConnections[client.id] == true
-                              ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(model.mcpConnections[client.id] == true
-                                             ? .green : .secondary)
-                            .font(.system(size: 12)).frame(width: 16)
-                        Text(client.name).font(.system(size: 12))
-                        Spacer()
-                        Button(model.mcpConnections[client.id] == true ? "Reconectar" : "Conectar") {
-                            model.connect(client)
-                        }
-                        .controlSize(.small)
-                    }
+                    MCPClientRow(model: model, client: client)
                 }
+
+                // Right under the buttons that produce it. This line used to be written to the
+                // shared `status`, which is painted in "Llevártelo a otro sitio", four sections up.
+                if let mcpStatus = model.mcpStatus {
+                    Text(mcpStatus)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 Text("Se escribe en la configuración de esa app **conservando lo que ya tuviera**. "
                      + "Después hay que reiniciarla para que lo vea.")
                     .font(.caption).foregroundStyle(.secondary)
@@ -771,8 +808,9 @@ private struct BrainTab: View {
                         .controlSize(.small)
                 }
                 .font(.caption)
-                Text("Cuatro herramientas: qué decidimos, preparar, buscar y proponer. Solo lectura "
-                     + "y propuesta: un asistente puede sugerir qué cree la empresa, nunca decidirlo.")
+                Text("Siete herramientas: recordar, contexto de una tarea, qué estabas haciendo, "
+                     + "qué decidimos, preparar, buscar y proponer. Solo lectura y propuesta: un "
+                     + "asistente puede sugerir qué cree la empresa, nunca decidirlo.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -806,6 +844,185 @@ private struct BrainTab: View {
             }
         }
         .formStyle(.grouped)
+        .task {
+            model.refreshBrainState()
+            await installer.check()
+        }
+    }
+}
+
+// MARK: - Whether an assistant really receives anything
+
+/// The line above the client list: the answer before the detail.
+@MainActor
+private struct MCPVerdictHeader: View {
+    @Bindable var model: SettingsModel
+
+    var body: some View {
+        let verdict = BrainSetupCopy.summary(of: model.mcpReports)
+        VStack(alignment: .leading, spacing: 8) {
+            // Pill and button on their own line so the verdict below can use the full width. In a
+            // 620-point window all four on one row squeezed the sentence to two words per line.
+            HStack(spacing: 8) {
+                VerdictPill(level: model.mcpChecking ? .unknown : verdict.level,
+                            text: model.mcpChecking ? BrainSetupCopy.checkRunning : verdict.label)
+                if model.mcpChecking { ProgressView().controlSize(.small) }
+                Spacer(minLength: 8)
+                Button(BrainSetupCopy.checkButton) { model.runMCPDiagnosis() }
+                    .controlSize(.small)
+                    .disabled(model.mcpChecking)
+            }
+            Text(model.mcpChecking
+                 ? "Arrancando BeLauncher y preguntándole, igual que haría tu asistente…"
+                 : verdict.headline)
+                .font(.system(size: 12))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(BrainSetupCopy.checkExplanation)
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// One client, with the five checks underneath when there is bad news.
+///
+/// The design decision that matters: a failure is never collapsed. When everything passes the
+/// steps hide behind a disclosure, because nobody needs to read five green lines. When something
+/// fails, the steps are already open, the failing one is named, and the fix sits right under it —
+/// a person should not have to click to find out that their assistant is getting nothing.
+@MainActor
+private struct MCPClientRow: View {
+    @Bindable var model: SettingsModel
+    let client: MCPClient
+
+    @State private var expanded = false
+
+    var body: some View {
+        let report = model.report(for: client)
+        let verdict = BrainSetupCopy.verdict(for: report)
+
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(client.name).font(.system(size: 12, weight: .medium))
+                VerdictPill(level: verdict.level, text: verdict.label)
+                Spacer(minLength: 8)
+                // Only offered when there is nothing wrong. On a failing client the steps are
+                // already open, so a toggle there would only offer to hide the bad news.
+                if verdict.level == .working {
+                    Button(expanded ? "Ocultar pasos" : "Ver pasos") { expanded.toggle() }
+                        .buttonStyle(.link).font(.system(size: 11))
+                }
+                Button(model.mcpConnections[client.id] == true ? "Reconectar" : "Conectar") {
+                    model.connect(client)
+                }
+                .controlSize(.small)
+            }
+
+            if verdict.level == .broken {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verdict.headline)
+                        .font(.system(size: 11.5))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(verdict.whatToDo)
+                        .font(.system(size: 11.5, weight: .medium))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(9)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Theme.destructive.opacity(0.12),
+                            in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(Theme.destructive).frame(width: 2)
+                        .clipShape(RoundedRectangle(cornerRadius: 1))
+                }
+            }
+
+            if let report, expanded || verdict.level == .broken {
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(report.steps, id: \.step) { status in
+                        StepLine(status: status)
+                    }
+                }
+                .padding(.leading, 2)
+            }
+        }
+        .padding(.vertical, 2)
+        .animation(.easeInOut(duration: 0.18), value: expanded)
+    }
+}
+
+/// One of the five checks. The mark and the colour agree with the words, so the row still reads
+/// correctly for anyone who does not see the colour.
+@MainActor
+private struct StepLine: View {
+    let status: MCPHealth.StepStatus
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 7) {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 13)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(status.step.title)
+                    .font(.system(size: 11))
+                    .foregroundStyle(isSkipped ? .tertiary : .secondary)
+                if let reason = status.outcome.reason {
+                    Text(reason)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(Theme.destructive)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var isSkipped: Bool { status.outcome == .skipped }
+
+    private var symbol: String {
+        switch status.outcome {
+        case .passed: "checkmark"
+        case .skipped: "minus"
+        case .failed: "xmark"
+        }
+    }
+
+    private var tint: Color {
+        switch status.outcome {
+        case .passed: .green
+        case .skipped: .secondary
+        case .failed: Theme.destructive
+        }
+    }
+}
+
+/// A pill with words in it, never a bare dot.
+///
+/// The panel this replaces had a green circle that appeared as soon as a config file mentioned
+/// BeLauncher, so the worst state the app could be in — answering every message and returning
+/// nothing — looked exactly like the best one. A pill has room to say `responde vacío`, and that
+/// is the difference between a status indicator and a decoration.
+@MainActor
+private struct VerdictPill: View {
+    let level: BrainSetupCopy.Level
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background(tint.opacity(0.18), in: Capsule())
+            .foregroundStyle(tint)
+            .overlay(Capsule().strokeBorder(tint.opacity(0.35)))
+            .fixedSize()
+    }
+
+    private var tint: Color {
+        switch level {
+        case .working: .green
+        case .broken: Theme.destructive
+        case .unknown: .secondary
+        }
     }
 }
 

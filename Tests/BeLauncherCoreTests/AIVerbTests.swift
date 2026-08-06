@@ -108,7 +108,7 @@ struct AIVerbTests {
 
         let body = await capture.body
         #expect(body.contains("testo con herrores"))
-        #expect(body.contains("Corrige ortograf"))
+        #expect(body.contains("Fix spelling"))
     }
 }
 
@@ -151,7 +151,7 @@ struct AIInLauncherTests {
         let summarise = try! #require(model.actions.first { $0.id == "ai-summarise" })
         model.run(summarise)
 
-        #expect(model.aiState == .working("Resumir"))
+        #expect(model.aiState == .working("Summarise"))
         #expect(performed.contains {
             if case .runVerb(let id, _) = $0 { return id == "summarise" }
             return false
