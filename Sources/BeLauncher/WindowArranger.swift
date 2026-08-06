@@ -38,12 +38,11 @@ enum WindowArranger {
         }
 
         let element = AXUIElementCreateApplication(app.processIdentifier)
-        var windowValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXFocusedWindowAttribute as CFString, &windowValue) == .success,
-              let window = windowValue else {
-            return "\(app.localizedName ?? "Esa app") no expone su ventana a macOS."
+        guard let axWindow = movableWindow(of: element) else {
+            return "\(app.localizedName ?? "Esa app") no le cuenta a macOS dónde están sus "
+                 + "ventanas. Ejecuta «BeLauncher --diagnose-windows» con ella delante y mándanos "
+                 + "lo que salga."
         }
-        let axWindow = unsafeBitCast(window, to: AXUIElement.self)
 
         // A window in full screen reports its size and refuses to move, so arranging it looks
         // like nothing happened. Say so instead.
@@ -111,6 +110,37 @@ enum WindowArranger {
             width: rect.width,
             height: rect.height
         )
+    }
+
+    /// The window worth arranging, which is not always the one with the focus.
+    ///
+    /// Asking only for the focused window was enough for most apps and wrong for the rest: some
+    /// return a sheet, a popover or a container that reports no position at all, and the whole
+    /// feature then failed on an app whose real window was sitting right there. So: the focused
+    /// one, then the main one, then the first of its windows that actually says where it is.
+    private static func movableWindow(of application: AXUIElement) -> AXUIElement? {
+        for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
+            var value: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(application, attribute as CFString,
+                                                &value) == .success,
+                  let value else { continue }
+            let window = unsafeBitCast(value, to: AXUIElement.self)
+            if case .ok = read(window) { return window }
+        }
+
+        var listValue: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(application, kAXWindowsAttribute as CFString,
+                                            &listValue) == .success,
+              let windows = listValue as? [AXUIElement] else { return nil }
+
+        // The biggest one that answers: an app with a palette and a document window means the
+        // document, not the palette.
+        return windows
+            .compactMap { window -> (AXUIElement, CGFloat)? in
+                guard case .ok(let frame) = read(window) else { return nil }
+                return (window, frame.width * frame.height)
+            }
+            .max { $0.1 < $1.1 }?.0
     }
 
     /// Reads position and size, saying which one failed and with what error.
