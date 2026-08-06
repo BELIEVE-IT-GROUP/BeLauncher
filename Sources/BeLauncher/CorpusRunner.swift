@@ -171,6 +171,63 @@ final class CorpusRunner {
             ))
         }
 
+        // The edges. Without these the graph is not a graph: it opened with "23 nodos · 0
+        // relaciones", a scatter of dots, because the corpus worked out every relationship and
+        // then dropped it on the floor. Entities became rows, episodes were re-derived from the
+        // wrong source, and nothing ever wrote what connects to what.
+        //
+        // Two kinds, and only two, because these are the ones the corpus actually knows:
+        // an episode came out of the things it touched, and two things worked on inside the same
+        // episode were worked on together.
+        // Subjects have to be translated into entity ids before anything is linked. They are raw
+        // signal identifiers — a path, a host, a node id — and the graph only keeps an edge when
+        // both ends are nodes it knows. The first version linked the raw subject and the graph
+        // dropped all 157 edges in silence, opening with "23 nodos · 0 relaciones": a scatter of
+        // dots that looked exactly like a graph with nothing to say.
+        var byForm: [String: String] = [:]
+        for entity in corpus.entities {
+            for form in entity.forms { byForm[form] = entity.id }
+        }
+        func nodeID(for subject: String) -> String? {
+            if workNodeExists(subject) { return subject }
+            // A path is about its project, a host is about itself, and both are folded the same
+            // way the entity was when it was named.
+            if let project = Identity.project(fromPath: subject),
+               let id = byForm[Identity.fold(project)] { return id }
+            return byForm[Identity.fold((subject as NSString).lastPathComponent)]
+                ?? byForm[Identity.fold(subject)]
+        }
+
+        for episode in corpus.episodes where !learned.hidden.contains(episode.id) {
+            let subjects = episode.subjects.prefix(8).compactMap(nodeID)
+                .filter { !learned.hidden.contains($0) }
+                .reduce(into: [String]()) { seen, id in if !seen.contains(id) { seen.append(id) } }
+            store.upsertNode(WorkNode(id: episode.id, kind: .conversation, name: episode.title,
+                                      detail: "Episodio · " + Self.when(episode.start),
+                                      lastSeen: episode.start))
+            for subject in subjects {
+                store.link(WorkEdge(source: episode.id, target: subject, kind: .cameFrom,
+                                    at: episode.start))
+            }
+            // Things touched inside the same stretch belong together. This is the edge that
+            // answers "qué más estaba tocando cuando trabajé en esto".
+            for (index, left) in subjects.enumerated() {
+                for right in subjects.dropFirst(index + 1) {
+                    store.link(WorkEdge(source: left, target: right, kind: .workedWith,
+                                        at: episode.start))
+                }
+            }
+        }
+
+        // An alias is a name the same thing answers to, so the entity it belongs to owns it.
+        for entity in corpus.entities where entity.weight > 1 && !learned.hidden.contains(entity.id) {
+            for alias in entity.aliases.prefix(4) {
+                let aliasID = WorkNode.identifier(kind: graphKind(for: entity.kind), name: alias)
+                guard aliasID != entity.id else { continue }
+                store.link(WorkEdge(source: aliasID, target: entity.id, kind: .partOf))
+            }
+        }
+
         // Questions are stored rather than asked here. A modal in the middle of somebody's
         // afternoon to ask whether two folder names are the same project is the fastest way to
         // teach them to dismiss anything this app ever asks.
@@ -180,6 +237,19 @@ final class CorpusRunner {
         Task { @MainActor [weak self] in
             _ = try? await self?.brain?.embedEverything()
         }
+    }
+
+    /// Whether the subject is already a node the graph knows, which is the case for anything that
+    /// came from the capture layer rather than from a file path or a URL.
+    private func workNodeExists(_ id: String) -> Bool {
+        store.node(id: id) != nil
+    }
+
+    static func when(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        formatter.dateFormat = "d MMM, HH:mm"
+        return formatter.string(from: date)
     }
 
     private func graphKind(for kind: Entity.Kind) -> WorkNode.Kind {

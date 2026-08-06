@@ -735,8 +735,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered, defer: false
         )
         window.title = "Tu cerebro"
-        window.contentViewController = NSHostingController(
-            rootView: GraphView(model: GraphModel(store: store, corpus: folder)))
+        let model = GraphModel(store: store, corpus: folder)
+        model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }
+        window.contentViewController = NSHostingController(rootView: GraphView(model: model))
         window.isReleasedWhenClosed = false
         place(window)
         graphWindow = window

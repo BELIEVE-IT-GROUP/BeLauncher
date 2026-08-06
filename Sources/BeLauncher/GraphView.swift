@@ -80,6 +80,12 @@ final class GraphModel {
     var proposal: MergeProposal?
     var status: String?
 
+    /// Opening a node's Markdown. Injected because the reader is a window and the model is not
+    /// allowed to know about windows — and because without it the graph told people to "open it in
+    /// the reader" with no way to get there, which is the connection between the drawing and the
+    /// files it draws.
+    var onRead: ((String) -> Void)?
+
     init(store: Store, corpus: CorpusFolder?, now: Date = .now) {
         self.store = store
         self.corpus = corpus
@@ -506,7 +512,10 @@ final class GraphModel {
             status = nil
             return
         }
-        status = "Esto no tiene nada que abrir fuera. Ábrelo en el lector para leerlo entero."
+        // Nothing outside to open means this lives only in the corpus, which is exactly what the
+        // reader is for.
+        onRead?(id)
+        status = nil
     }
 
     // MARK: - Kinds
@@ -644,10 +653,23 @@ struct GraphView: View {
     private var canvas: some View {
         GeometryReader { geometry in
             ZStack(alignment: .topLeading) {
-                Canvas { context, size in
-                    if model.arrangement == .timeline { drawAxis(&context, size: size) }
-                    drawLines(&context)
-                    drawNodes(&context)
+                TimelineView(.animation(minimumInterval: 1.0 / 30, paused: model.hovered == nil)) { timeline in
+                    Canvas { context, size in
+                        if model.arrangement == .timeline { drawAxis(&context, size: size) }
+                        let neighbours = GraphPainter.adjacency(model.drawing.lines)
+                        // Only the second of the current minute matters: the phase has to advance
+                        // smoothly and mean nothing, and anchoring it to the wall clock keeps it
+                        // identical across a redraw for any other reason.
+                        let phase = timeline.date.timeIntervalSinceReferenceDate
+                            .truncatingRemainder(dividingBy: 2) / 2
+                        GraphPainter.drawLines(&context, drawing: model.drawing,
+                                               focus: model.hovered ?? model.selected,
+                                               neighbours: neighbours, phase: phase)
+                        GraphPainter.drawNodes(&context, drawing: model.drawing,
+                                               selected: model.selected, compared: model.compared,
+                                               hovered: model.hovered, neighbours: neighbours,
+                                               labelled: labelledNodes)
+                    }
                 }
                 // One Canvas rather than a view per node: a few hundred SwiftUI views laying
                 // themselves out on every hover is a slideshow, and this is meant to be flown
@@ -702,6 +724,13 @@ struct GraphView: View {
     }
 
     // MARK: Drawing
+
+    /// Labels only where they can be read: what is selected or pointed at, plus the heaviest
+    /// handful. A label on every node is a grey rectangle, not information.
+    private var labelledNodes: Set<String> {
+        Set(model.drawing.nodes.suffix(24).map(\.id))
+            .union([model.selected, model.hovered, model.compared].compactMap { $0 })
+    }
 
     private func drawLines(_ context: inout GraphicsContext) {
         for line in model.drawing.lines {
