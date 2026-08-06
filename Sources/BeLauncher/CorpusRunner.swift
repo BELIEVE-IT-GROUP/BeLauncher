@@ -106,7 +106,7 @@ final class CorpusRunner {
         // somebody who hits pause during one means it, including for the work already done.
         guard isCapturing, !corpus.isPaused else { return }
 
-        write(corpus)
+        await write(corpus)
         if !gathered.0.problems.isEmpty {
             store.setSetting("corpus_last_problem", gathered.0.problems.joined(separator: "\n"))
         }
@@ -143,11 +143,20 @@ final class CorpusRunner {
     }
 
     /// Writes what the corpus decided into the index and the graph.
-    func write(_ corpus: Corpus) {
+    ///
+    /// Yields every few documents, and that is not a nicety. Each document is a DELETE plus one
+    /// INSERT per passage, every insert firing the FTS5 triggers, and the store is on the main
+    /// actor. A brain with eleven thousand passages therefore held the main thread for the whole
+    /// pass with no gap in it at all: sampling the app during a launch found the main thread 64 %
+    /// inside SQLite and 0 % waiting for events, which is the technical spelling of "BeLauncher
+    /// no responde". The work is the same; the difference is that a keystroke now gets serviced
+    /// between documents instead of after all of them.
+    func write(_ corpus: Corpus) async {
         var written = 0
-        for item in corpus.items {
+        for (index, item) in corpus.items.enumerated() {
             written += store.replacePassages(for: item.source, title: item.title,
                                              occurredAt: item.occurredAt, text: item.text).count
+            if index % 8 == 7 { await Task.yield() }
         }
         // Kept so Ajustes can say how much of the brain came from watching rather than from typing.
         // A capture that is on and producing nothing looks identical to one that is off.
@@ -203,7 +212,7 @@ final class CorpusRunner {
                 .filter { !learned.hidden.contains($0) }
                 .reduce(into: [String]()) { seen, id in if !seen.contains(id) { seen.append(id) } }
             store.upsertNode(WorkNode(id: episode.id, kind: .conversation, name: episode.title,
-                                      detail: "Episodio · " + Self.when(episode.start),
+                                      detail: L("Episode · ") + Self.when(episode.start),
                                       lastSeen: episode.start))
             for subject in subjects {
                 store.link(WorkEdge(source: episode.id, target: subject, kind: .cameFrom,

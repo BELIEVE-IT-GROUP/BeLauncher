@@ -20,6 +20,8 @@ struct BrainWebView: NSViewRepresentable {
     var onSelect: (String) -> Void = { _ in }
     var onCompare: (String) -> Void = { _ in }
     var onOpen: (String) -> Void = { _ in }
+    /// What the page could not do, in words the window can show.
+    var onTrouble: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -93,6 +95,11 @@ struct BrainWebView: NSViewRepresentable {
             case "ready":
                 isReady = true
                 if let pending { push(pending); self.pending = nil }
+            case "trouble":
+                // Not swallowed. The graph shipped blank twice; both times the page knew why and
+                // had no way to say so.
+                NSLog("[brain] %@", id)
+                parent.onTrouble(id)
             case "select": parent.onSelect(id)
             case "compare": parent.onCompare(id)
             case "open": parent.onOpen(id)

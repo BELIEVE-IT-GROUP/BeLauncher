@@ -101,7 +101,7 @@ public enum Capture {
         formatter.timeStyle = .short
         var text = formatter.string(from: meeting.start)
         if !meeting.attendees.isEmpty {
-            text += " · \(meeting.attendees.count) persona(s)"
+            text += L(" · %@ person(s)", String(meeting.attendees.count))
         }
         return text
     }

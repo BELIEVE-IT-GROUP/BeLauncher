@@ -656,7 +656,11 @@ struct GraphView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(L("What the brain knows about you"))
                         .font(.system(size: 13, weight: .semibold))
-                    Text("\(model.counted) nodos · \(model.drawing.lines.count) relaciones")
+                    // Counts what was handed to the canvas, not what a parallel layout worked out.
+                    // Reading one number off `drawing` and drawing from `web` is how a header ends
+                    // up confidently describing a graph that is not the one on screen.
+                    Text(L("%1$@ nodes · %2$@ relations",
+                           String(model.web.nodes.count), String(model.web.links.count)))
                         .font(.system(size: 10.5)).foregroundStyle(.secondary)
                 }
             }
@@ -704,7 +708,10 @@ struct GraphView: View {
                 graph: model.web,
                 onSelect: { id in model.selected = id.isEmpty ? nil : id },
                 onCompare: { id in model.compared = id },
-                onOpen: { id in model.selected = id; model.open() }
+                onOpen: { id in model.selected = id; model.open() },
+                // Shown where the person is already looking. A drawing that failed halfway should
+                // say so on the window, not only in a log nobody opens.
+                onTrouble: { model.status = $0 }
             )
             .ignoresSafeArea()
 

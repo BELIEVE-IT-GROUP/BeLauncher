@@ -339,7 +339,7 @@ private struct IntelligenceTab: View {
                             Label(L("%@ is running", installation.name),
                                   systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green).font(.system(size: 12))
-                            Picker("Modelo", selection: Binding(
+                            Picker(L("Model"), selection: Binding(
                                 get: { model.selectedLocalModels[installation.providerID]
                                         ?? installation.models[0] },
                                 set: { model.chooseLocalModel($0, for: installation.providerID) }

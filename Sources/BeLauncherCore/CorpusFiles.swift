@@ -37,7 +37,7 @@ public struct CorpusDocument: Sendable, Equatable, Identifiable {
 
         public var label: String {
             switch self {
-            case .episode: "Episodio"
+            case .episode: L("Episode")
             case .entity: "Entidad"
             case .statement: "Frase"
             }

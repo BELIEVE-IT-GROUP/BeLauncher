@@ -344,4 +344,32 @@ struct SemanticIndexTests {
         #expect(nearest.first?.id == written[0].id)
         #expect(abs((nearest.first?.similarity ?? 0) - 1) < 1e-4)
     }
+    @Test("la pasada de vectores no recorre la tabla entera en cada lote")
+    func laPasadaNoEscanea() throws {
+        let store = try makeStore()
+        for n in 0..<40 {
+            store.replacePassages(for: IndexedSource(kind: .memory, id: "m\(n)"),
+                                  title: "T\(n)", occurredAt: .now.addingTimeInterval(-Double(n)),
+                                  text: "Una frase cualquiera número \(n) con suficiente texto.")
+        }
+
+        // La consulta que alimenta el embebido corría como SCAN + ordenación temporal de toda la
+        // tabla, una vez por lote, en el hilo principal: con once mil pasajes eran 6,8 segundos por
+        // lote y la ventana se quedaba clavada. Lo que lo arregla es el índice; si alguien lo quita
+        // en un refactor, el plan vuelve a decir SCAN y la app vuelve a congelarse en silencio.
+        let plan = try store.database.query("""
+            EXPLAIN QUERY PLAN
+            SELECT id, source_key, title, ordinal, text, occurred_at FROM passages
+            WHERE vector IS NULL OR vector_model <> ? ORDER BY occurred_at DESC LIMIT ?
+            """, [.text("bge-m3"), .int(64)])
+        let detail = plan.map { $0.string("detail") }.joined(separator: " | ")
+        #expect(detail.contains("passages_when"),
+                Comment(rawValue: "el plan ya no usa el índice: «\(detail)»"))
+        #expect(!detail.contains("TEMP B-TREE"),
+                Comment(rawValue: "vuelve a ordenar la tabla entera: «\(detail)»"))
+
+        // Y sigue devolviendo lo que debe: los cuarenta están sin vector.
+        #expect(store.passagesNeedingVectors(model: "bge-m3", limit: 100).count == 40)
+    }
+
 }

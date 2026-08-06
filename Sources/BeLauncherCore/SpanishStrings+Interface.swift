@@ -720,5 +720,15 @@ extension SpanishStrings {
         "Recollection": "Recuerdo",
         "Shortcut": "Atajo",
         "System": "Sistema",
+        "Company": "Empresa",
+        "Episode": "Episodio",
+        "Person": "Persona",
+        "Project": "Proyecto",
+        "Subject": "Asunto",
+        "Thing": "Cosa",
+        " · %@ person(s)": " · %@ persona(s)",
+        "%1$@ nodes · %2$@ relations": "%1$@ nodos · %2$@ relaciones",
+        "Episode · ": "Episodio · ",
+        "Model": "Modelo",
     ]
 }

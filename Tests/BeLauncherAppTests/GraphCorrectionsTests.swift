@@ -196,7 +196,7 @@ struct GraphCorrectionsTests {
         // La pasada siguiente vuelve a deducir la misma entidad y la escribe como nodo. Sin esto,
         // borrarla del grafo duraba media hora.
         let runner = await engine(store: store, corpusRoot: corpusRoot)
-        runner.write(Corpus(entities: [Entity(id: unwanted.id, kind: .person,
+        await runner.write(Corpus(entities: [Entity(id: unwanted.id, kind: .person,
                                               canonical: "Alguien", weight: 5)]))
         #expect(!store.nodes(limit: 100).contains { $0.id == unwanted.id })
     }

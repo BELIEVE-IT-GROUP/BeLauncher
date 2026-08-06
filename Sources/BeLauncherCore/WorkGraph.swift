@@ -25,9 +25,9 @@ public struct WorkNode: Sendable, Equatable, Identifiable, Codable {
 
         public var label: String {
             switch self {
-            case .person: "Persona"
-            case .company: "Empresa"
-            case .project: "Proyecto"
+            case .person: L("Person")
+            case .company: L("Company")
+            case .project: L("Project")
             case .file: L("File")
             case .meeting: L("Meeting")
             case .conversation: L("Conversation")

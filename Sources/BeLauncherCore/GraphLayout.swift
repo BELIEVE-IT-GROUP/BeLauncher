@@ -30,12 +30,12 @@ public enum GraphLayout {
 
             public var label: String {
                 switch self {
-                case .episode: "Episodio"
-                case .person: "Persona"
-                case .project: "Proyecto"
-                case .company: "Empresa"
-                case .topic: "Asunto"
-                case .thing: "Cosa"
+                case .episode: L("Episode")
+                case .person: L("Person")
+                case .project: L("Project")
+                case .company: L("Company")
+                case .topic: L("Subject")
+                case .thing: L("Thing")
                 }
             }
         }
