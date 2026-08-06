@@ -42,7 +42,7 @@ struct BrainSetupView: View {
                     .frame(maxWidth: 420)
 
                 if isDone {
-                    Button("Cerrar", action: onFinish)
+                    Button(L("Close"), action: onFinish)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                 } else {
@@ -97,11 +97,11 @@ struct ModelInstallControls: View {
                     Text(ModelInstall.message(for: .idle))
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Mirar qué hay en este Mac") { Task { await installer.check() } }
+                    Button(L("Look at what is on this Mac")) { Task { await installer.check() } }
                 }
 
             case .checking:
-                busyLine("Mirando qué hay en este Mac…")
+                busyLine(L("Looking at what is on this Mac…"))
 
             case .ready(let model):
                 Label("\(model) instalado y respondiendo.", systemImage: "checkmark.circle.fill")
@@ -137,7 +137,7 @@ struct ModelInstallControls: View {
 
             case .insufficientSpace(let free):
                 problem(ModelInstall.spaceMessage(freeBytes: free),
-                        fix: "Libera espacio y vuelve a intentarlo.",
+                        fix: L("Free up some space and try again."),
                         retry: { installer.downloadModel() })
 
             case .failed(let reason):
@@ -194,7 +194,7 @@ struct ModelInstallControls: View {
                             }
                         }
                     }
-                    Button("Ya lo instalé, vuelve a mirar") {
+                    Button(L("I installed it already, look again")) {
                         Task { await installer.check() }
                     }
                     .buttonStyle(.link)
@@ -231,7 +231,7 @@ struct ModelInstallControls: View {
                     .font(.system(size: 12))
                     .monospacedDigit()
                 Spacer()
-                Button("Cancelar") { installer.cancelDownload() }
+                Button(L("Cancel")) { installer.cancelDownload() }
                     .buttonStyle(.link)
                     .font(.system(size: 11))
             }
@@ -263,7 +263,7 @@ struct ModelInstallControls: View {
                 Text(fix).font(.system(size: 11.5)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Button("Reintentar", action: retry)
+            Button(L("Try again"), action: retry)
         }
     }
 }
@@ -301,7 +301,7 @@ enum BrainSetupWindow {
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
-        created.title = "Poner a punto el cerebro"
+        created.title = L("Get the brain ready")
         created.contentViewController = NSHostingController(rootView: view)
         created.isReleasedWhenClosed = false
         if let place { place(created) } else { created.center() }

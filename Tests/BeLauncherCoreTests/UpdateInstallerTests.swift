@@ -97,9 +97,9 @@ struct UpdateInstallerTests {
             #expect(failure.description.count > 20, "\(failure) no le dice nada a nadie")
         }
         // The two that mean "someone tampered with the download" must be explicit about it.
-        #expect(UpdateInstaller.Failure.notNotarized.description.contains("No se instaló nada"))
+        #expect(UpdateInstaller.Failure.notNotarized.description.contains("Nothing was installed"))
         #expect(UpdateInstaller.Failure.notSignedByUs(found: "X").description
-            .contains("No se instaló nada"))
+            .contains("Nothing was installed"))
     }
 
     @Test("only the busy phases block a second attempt")

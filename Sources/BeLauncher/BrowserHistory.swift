@@ -203,9 +203,9 @@ enum BrowserHistory {
         let code = (error as NSError).code
         let denied = code == NSFileReadNoPermissionError || code == NSFileWriteNoPermissionError
         if denied || browser == "Safari" && (error as NSError).domain == NSCocoaErrorDomain {
-            return "No puedo leer el historial de \(browser). macOS lo protege: concede Acceso "
-                 + "total al disco a BeLauncher en Ajustes del Sistema, Privacidad y seguridad."
+            return L("I cannot read %@'s history. macOS protects it: give BeLauncher Full Disk Access in System Settings, Privacy & Security.",
+                     browser)
         }
-        return "No pude leer el historial de \(browser): \(error.localizedDescription)"
+        return L("I could not read %1$@'s history: %2$@", browser, error.localizedDescription)
     }
 }

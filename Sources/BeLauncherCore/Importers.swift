@@ -88,7 +88,7 @@ public enum Importers {
                 continue
             }
 
-            result.skipped.append(name.isEmpty ? "entrada sin nombre" : name)
+            result.skipped.append(name.isEmpty ? L("entry with no name") : name)
         }
         return result
     }

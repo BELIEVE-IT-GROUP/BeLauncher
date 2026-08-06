@@ -48,7 +48,7 @@ struct LicenseClientTests {
         let outcome = await client(json: #"{"valid":false}"#)
             .activate(email: "a@b.com", key: "BELN-0000-0000-0000", deviceID: "D", deviceName: "Mac")
         #expect(outcome == .invalid)
-        #expect(outcome.message == "Correo o clave incorrectos.")
+        #expect(outcome.message == "Wrong email or key.")
     }
 
     @Test("successful activation reports the seat count")
@@ -75,7 +75,7 @@ struct LicenseClientTests {
         #expect(devices.map(\.name) == ["MacBook de Jorge", "iMac"])
         #expect(devices.map(\.deviceID) == ["UUID-1", "UUID-2"])
         #expect(devices.allSatisfy { $0.canBeReleased })
-        #expect(outcome.message == "Esta licencia ya está en 3 Macs. Libera uno para activar este.")
+        #expect(outcome.message == "This licence is already on 3 Macs. Release one to activate this one.")
     }
 
     @Test("an older server without ids degrades to a list you cannot release from")
@@ -99,7 +99,7 @@ struct LicenseClientTests {
         let outcome = await client(json: #"{"valid":true,"activated":false,"reason":"server_error","max_devices":3}"#)
             .activate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac")
         #expect(outcome == .serverError)
-        #expect(outcome.message == "Intenta de nuevo en un momento.")
+        #expect(outcome.message == "Try again in a moment.")
     }
 
     @Test("an unreachable server never reads as an invalid license")
@@ -116,7 +116,7 @@ struct LicenseClientTests {
             return
         }
         #expect(outcome != .invalid)
-        #expect(outcome.message.contains("conexión"))
+        #expect(outcome.message.contains("connection"))
     }
 
     @Test("a gateway rejection never reads as a wrong key")
@@ -126,7 +126,7 @@ struct LicenseClientTests {
             .activate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac")
         #expect(outcome == .rejected(status: 401))
         #expect(outcome != .invalid)
-        #expect(outcome.message.contains("No es tu clave"))
+        #expect(outcome.message.contains("not your key"))
 
         let notFound = await client(status: 404, json: #"{"error":"not found"}"#)
             .activate(email: "a@b.com", key: "BELN-A1B2-C3D4-E5F6", deviceID: "D", deviceName: "Mac")

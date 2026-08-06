@@ -113,7 +113,7 @@ struct MCPToolsTests {
                                             context: context)
         #expect(!response.isError)
         #expect(response.text.contains("[1]"))
-        #expect(response.text.contains("Memoria"), "una cita sin origen no es una cita")
+        #expect(response.text.contains("Memory"), "una cita sin origen no es una cita")
         #expect(response.text.contains("1000"))
         // La fecha del pasaje, para que quien lea sepa si esto es de este trimestre o de 2019.
         #expect(response.text.contains(MCPTools.stamp(memoria.validFrom)))
@@ -131,7 +131,7 @@ struct MCPToolsTests {
         let response = await MCPServer.call(name: "recall", arguments: ["query": "tarifas"],
                                             context: context)
         #expect(response.text.contains("1000"))
-        #expect(response.text.contains("significado"))
+        #expect(response.text.contains("by meaning"))
     }
 
     @Test("sin motor de embeddings lo dice, en vez de dejar creer que no hay nada")
@@ -177,12 +177,12 @@ struct MCPToolsTests {
         let response = await MCPServer.call(name: "context_for",
                                             arguments: ["task": "rehacer la propuesta de precios"],
                                             context: context)
-        #expect(response.text.hasPrefix("<contexto_para"))
-        #expect(response.text.contains("<fuente tipo=\"Memoria\""))
-        #expect(response.text.contains("<fuente tipo=\"Portapapeles\""))
-        #expect(response.text.contains("<cita n=\"1\">"))
-        #expect(response.text.contains("</cita>"))
-        #expect(response.text.contains("<como_usarlo>"))
+        #expect(response.text.hasPrefix("<context_for"))
+        #expect(response.text.contains("<source kind=\"Memory\""))
+        #expect(response.text.contains("<source kind=\"Clipboard\""))
+        #expect(response.text.contains("<quote n=\"1\">"))
+        #expect(response.text.contains("</quote>"))
+        #expect(response.text.contains("<how_to_use_this>"))
         // La fecha va en formato de máquina: quien lee esto es otro modelo, no una persona.
         #expect(response.text.contains("fecha=\"\(MCPTools.isoDay(memoria.validFrom))\""))
     }
@@ -200,7 +200,7 @@ struct MCPToolsTests {
                                             arguments: ["task": "revisar el precio del Pro"],
                                             context: context)
         let numeros = response.text
-            .components(separatedBy: "<cita n=\"")
+            .components(separatedBy: "<quote n=\"")
             .dropFirst()
             .compactMap { Int($0.prefix(while: { $0.isNumber })) }
         #expect(numeros.count >= 2, "el texto largo tiene que trocearse en varias citas")
@@ -282,7 +282,7 @@ struct MCPToolsTests {
                                             context: context)
         #expect(response.text.contains("2000"))
         #expect(response.text.contains("Fuentes:"))
-        #expect(response.text.contains("no son decisiones registradas"))
+        #expect(response.text.contains("not recorded decisions"))
         #expect(response.text.contains("adelantado"), "el índice tenía material y no salió")
     }
 
@@ -318,9 +318,9 @@ struct MCPToolsTests {
         let response = await MCPServer.call(name: "prepare", arguments: ["subject": "Acme"],
                                             context: context)
         #expect(response.text.contains("propuesta revisada el viernes"))
-        #expect(response.text.contains("De lo indexado"))
+        #expect(response.text.contains("From what is indexed"))
         #expect(response.text.contains("desglose de horas"))
-        #expect(response.text.contains("Portapapeles"))
+        #expect(response.text.contains("Clipboard"))
     }
 
     // MARK: - Lo que no puede pasar

@@ -54,14 +54,14 @@ struct RelevanceTests {
     @Test("Se explica por qué entró, en palabras que se pueden usar")
     func explains() {
         let text = Relevance.explain(Relevance.Signals(dwell: 600, daysSeen: 3, copiedFrom: true))
-        #expect(text.contains("3 días"))
-        #expect(text.contains("copiaste"))
+        #expect(text.contains("3 different days"))
+        #expect(text.contains("copied something"))
     }
 
     @Test("Y también por qué no entró")
     func explainsRejection() {
         let text = Relevance.explain(Relevance.Signals(dwell: 4))
-        #expect(text.contains("no entró"))
+        #expect(text.contains("did not make it"))
     }
 
     @Test("Las señales de un episodio salen de lo que pasó, sin leer su contenido")

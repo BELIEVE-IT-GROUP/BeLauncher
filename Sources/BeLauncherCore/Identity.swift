@@ -72,10 +72,10 @@ public struct MergeProposal: Sendable, Equatable, Identifiable {
 
         public var explanation: String {
             switch self {
-            case .sameName: "se escriben igual salvo mayúsculas, acentos o guiones"
-            case .pathMatch: "una es la carpeta o la dirección de la otra"
-            case .sameDomain: "son del mismo dominio"
-            case .seenTogether: "aparecen juntas una y otra vez"
+            case .sameName: L("they are spelled the same but for case, accents or hyphens")
+            case .pathMatch: L("one is the folder or the address of the other")
+            case .sameDomain: L("they are on the same domain")
+            case .seenTogether: L("they turn up together again and again")
             }
         }
 
@@ -99,7 +99,7 @@ public struct MergeProposal: Sendable, Equatable, Identifiable {
     }
 
     public var question: String {
-        "¿«\(left)» y «\(right)» son lo mismo? Lo pregunto porque \(reason.explanation)."
+        L("Are “%1$@” and “%2$@” the same thing? I ask because %3$@.", left, right, reason.explanation)
     }
 }
 
@@ -116,7 +116,7 @@ public enum Identity {
         "node modules", "assets", "images", "img", "public", "static", "config", "scripts",
         "desktop", "downloads", "documents", "library", "applications", "users", "home",
         "escritorio", "descargas", "documentos", "aplicaciones", "proyectos", "projects",
-        "untitled", "sin titulo", "nueva carpeta", "new folder",
+        "untitled", L("no title"), L("new folder"), "new folder",
     ]
 
     /// Sites that are places you pass through, never things you work on.

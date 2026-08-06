@@ -88,7 +88,7 @@ struct RichClipboardTests {
         #expect(subtitle.contains("Safari"))
 
         let plain = Clip(id: 2, text: "hola", sourceApp: "")
-        #expect(SearchEngine.clipSubtitle(plain) == "Portapapeles")
+        #expect(SearchEngine.clipSubtitle(plain) == "Clipboard")
     }
 
     @Test("pinned clips also rank higher when searching")

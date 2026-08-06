@@ -61,7 +61,7 @@ struct IdentityTests {
             Issue.record("debería preguntar, no decidir"); return
         }
         #expect(proposal.reason == .seenTogether)
-        #expect(proposal.question.contains("aparecen juntas"))
+        #expect(proposal.question.contains("turn up together"))
     }
 
     @Test("Aparecer juntas pocas veces no es nada")

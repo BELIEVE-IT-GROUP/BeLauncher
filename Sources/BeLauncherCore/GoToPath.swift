@@ -25,7 +25,7 @@ public enum GoToPath {
         }
 
         public var name: String {
-            path == "/" ? "Raíz del disco" : (path as NSString).lastPathComponent
+            path == "/" ? L("Root of the disk") : (path as NSString).lastPathComponent
         }
     }
 
@@ -107,7 +107,7 @@ public enum GoToPath {
     /// What to say when the path is not there — naming the part that is wrong, not just "no".
     public static func explain(_ target: Target) -> String {
         let parent = (target.path as NSString).deletingLastPathComponent
-        return "No existe «\(target.name)» dentro de \(parent)."
+        return L("There is no “%1$@” inside %2$@.", target.name, parent)
     }
 
     // MARK: - The disk

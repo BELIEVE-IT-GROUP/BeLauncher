@@ -49,7 +49,7 @@ final class ActivationModel {
                     try LicenseVault.save(identity)
                     onActivated(identity)
                 } catch {
-                    phase = .failed("No pudimos guardar la licencia en el Llavero: \(error)")
+                    phase = .failed(L("We could not save the licence to the Keychain: %@", String(describing: error)))
                 }
             case .deviceLimit(let devices, let max):
                 phase = .limit(devices: devices, maxDevices: max)
@@ -94,7 +94,7 @@ struct ActivationView: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                TextField("Correo de compra", text: $model.email)
+                TextField(L("Purchase email"), text: $model.email)
                     .textFieldStyle(.roundedBorder)
                     .textContentType(.emailAddress)
                 TextField("BELN-XXXX-XXXX-XXXX", text: $model.key)
@@ -118,7 +118,7 @@ struct ActivationView: View {
                 } label: {
                     HStack(spacing: 7) {
                         if model.phase == .working { ProgressView().controlSize(.small) }
-                        Text(model.phase == .working ? "Activando…" : "Activar")
+                        Text(model.phase == .working ? "Activando…" : L("Activate"))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -157,7 +157,7 @@ struct ActivationView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(device.name).font(.system(size: 12))
                         if !device.since.isEmpty {
-                            Text("desde \(device.since)")
+                            Text(L("since %@", device.since))
                                 .font(.system(size: 10))
                                 .foregroundStyle(.secondary)
                         }

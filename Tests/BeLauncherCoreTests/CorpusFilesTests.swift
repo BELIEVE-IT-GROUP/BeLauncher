@@ -25,7 +25,7 @@ struct CorpusFilesTests {
         let text = CorpusFiles.render(CorpusFiles.document(for: episode(), links: ["BeLauncher"]))
         #expect(text.hasPrefix("---\n"))
         #expect(text.contains("kind: episode"))
-        #expect(text.contains("## Qué tocaste"))
+        #expect(text.contains("## What you touched"))
         #expect(text.contains("auth.swift"))
         #expect(text.contains("[[BeLauncher]]"))
     }

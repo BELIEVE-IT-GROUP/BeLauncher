@@ -81,8 +81,8 @@ public enum ShortcutIndex {
     static func commonFolders(home: String) -> [Shortcut] {
         let candidates = [
             ("Escritorio", "Desktop"), ("Documentos", "Documents"), ("Descargas", "Downloads"),
-            ("Imágenes", "Pictures"), ("Películas", "Movies"), ("Música", "Music"),
-            ("Aplicaciones", "../../Applications"), ("Carpeta personal", ""),
+            (L("Images"), "Pictures"), (L("Films"), "Movies"), (L("Music"), "Music"),
+            ("Aplicaciones", "../../Applications"), (L("Home folder"), ""),
         ]
         // The home folder is checked; the ones inside it are not, on purpose. Downloads, Desktop
         // and Documents are TCC-protected on recent macOS, and merely asking whether they are

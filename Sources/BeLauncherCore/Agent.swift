@@ -24,14 +24,14 @@ public struct AgentCommand: Sendable, Equatable, Identifiable {
 
         public var label: String {
             switch self {
-            case .clipboard: "lo que copiaste"
-            case .selection: "lo que tienes seleccionado"
-            case .screen: "lo que hay en pantalla"
-            case .calendar: "tu calendario"
-            case .brain: "tu cerebro"
-            case .workGraph: "tu historial de trabajo"
-            case .files: "tus archivos"
-            case .none: "nada"
+            case .clipboard: L("what you copied")
+            case .selection: L("what you have selected")
+            case .screen: L("what is on screen")
+            case .calendar: L("your calendar")
+            case .brain: L("your brain")
+            case .workGraph: L("your work history")
+            case .files: L("your files")
+            case .none: L("nothing")
             }
         }
 
@@ -58,14 +58,14 @@ public struct AgentCommand: Sendable, Equatable, Identifiable {
 
         public var label: String {
             switch self {
-            case .inspecting: "Mirando el contexto"
-            case .awaitingPermission: "Falta un permiso"
-            case .planning: "Preparando el plan"
-            case .awaitingApproval: "Esperando tu visto bueno"
+            case .inspecting: L("Looking at the context")
+            case .awaitingPermission: L("A permission is missing")
+            case .planning: L("Working out the plan")
+            case .awaitingApproval: L("Waiting for your go-ahead")
             case .executing: "Ejecutando"
-            case .learning: "Guardando lo aprendido"
-            case .done: "Listo"
-            case .failed: "Falló"
+            case .learning: L("Keeping what it learned")
+            case .done: L("Done")
+            case .failed: L("Failed")
             case .cancelled: "Cancelado"
             }
         }
@@ -218,11 +218,11 @@ public struct AgentRun: Sendable, Equatable, Identifiable {
     public var status: String {
         switch stage {
         case .awaitingPermission:
-            "Necesita permiso: \(missingPermission?.rawValue ?? "desconocido")"
+            L("It needs a permission: %@", missingPermission?.rawValue ?? L("unknown"))
         case .failed:
-            failure ?? "Falló"
+            failure ?? L("Failed")
         case .done:
-            result.isEmpty ? "Listo" : String(result.prefix(70))
+            result.isEmpty ? L("Done") : String(result.prefix(70))
         default:
             stage.label
         }
@@ -256,7 +256,7 @@ public enum AgentDriver {
         var next = run
         guard !run.plan.isEmpty || run.canvas != nil else {
             next.stage = .failed
-            next.failure = "No se me ocurrió nada que hacer con eso. Mejor decirlo que inventarlo."
+            next.failure = L("I could not think of anything to do with that. Better to say so than to make something up.")
             next.finishedAt = .now
             return next
         }

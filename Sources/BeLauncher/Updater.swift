@@ -82,7 +82,7 @@ final class Updater {
 
         let (temporary, response) = try await URLSession.shared.download(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw UpdateInstaller.Failure.replaceFailed("HTTP \(http.statusCode) al descargar")
+            throw UpdateInstaller.Failure.replaceFailed(L("HTTP %@ while downloading", String(http.statusCode)))
         }
         // The downloaded file is deleted when this call returns, so move it somewhere of ours.
         let destination = URL(fileURLWithPath: NSTemporaryDirectory())

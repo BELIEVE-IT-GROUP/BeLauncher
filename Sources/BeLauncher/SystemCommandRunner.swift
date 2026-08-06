@@ -15,7 +15,7 @@ enum SystemCommandRunner {
     @discardableResult
     static func run(_ rawKind: String, confirm: (String) -> Bool) -> String? {
         guard let command = SystemCommand.all.first(where: { $0.kind.rawValue == rawKind }) else {
-            return "Ese comando ya no existe."
+            return L("That command no longer exists.")
         }
         if command.needsConfirmation, !confirm(command.title) { return nil }
         lastFailure = nil
@@ -114,7 +114,7 @@ enum SystemCommandRunner {
 
     private static func shell(_ path: String, _ arguments: [String]) {
         guard FileManager.default.isExecutableFile(atPath: path) else {
-            lastFailure = "macOS no tiene \((path as NSString).lastPathComponent) donde se esperaba."
+            lastFailure = L("macOS does not have %@ where it was expected.", (path as NSString).lastPathComponent)
             return
         }
         let process = Process()
@@ -125,7 +125,7 @@ enum SystemCommandRunner {
         do {
             try process.run()
         } catch {
-            lastFailure = "No se pudo ejecutar: \(error.localizedDescription)"
+            lastFailure = L("It could not be run: %@", error.localizedDescription)
         }
     }
 
@@ -138,8 +138,8 @@ enum SystemCommandRunner {
         // -1743 is macOS refusing Automation; anything else is a genuine failure.
         let code = error[NSAppleScript.errorNumber] as? Int ?? 0
         lastFailure = code == -1743
-            ? "macOS bloqueó esta acción. Autoriza BeLauncher en Ajustes › Privacidad › Automatización."
-            : (error[NSAppleScript.errorMessage] as? String ?? "El comando no se pudo completar.")
+            ? L("macOS blocked this. Allow BeLauncher in Settings › Privacy › Automation.")
+            : (error[NSAppleScript.errorMessage] as? String ?? L("The command could not be completed."))
     }
 
     private static func relaunch() {

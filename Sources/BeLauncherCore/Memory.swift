@@ -145,10 +145,10 @@ public enum MemoryError: Error, Equatable, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .emptyStatement: "Una memoria necesita una frase que la describa."
-        case .invalidValidity: "La fecha de fin no puede ser anterior a la de inicio."
-        case .notProposed: "Ese commit ya se decidió."
-        case .unknownCommit(let id): "No existe el commit \(id)."
+        case .emptyStatement: L("A memory needs a sentence describing it.")
+        case .invalidValidity: L("The end date cannot come before the start date.")
+        case .notProposed: L("That commit has already been decided.")
+        case .unknownCommit(let id): L("There is no commit %@.", id)
         }
     }
 }

@@ -25,23 +25,21 @@ enum WindowArranger {
         guard let layout = WindowCommand.Layout(rawValue: rawLayout) else { return nil }
 
         guard Permissions.requestAccessibility(
-            reason: "Colocar ventanas es lo único que macOS no deja hacer sin este permiso."
+            reason: L("Placing windows is the one thing macOS will not let anything do without this permission.")
         ) else {
-            return "Necesito permiso de Accesibilidad para mover ventanas de otras apps."
+            return L("I need Accessibility permission to move other apps' windows.")
         }
 
         let candidate = target ?? NSWorkspace.shared.frontmostApplication
         guard let app = candidate,
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            return "No hay ninguna ventana delante. Abre una app, súmmona BeLauncher encima y "
-                 + "vuelve a intentarlo."
+            return L("There is no window in front. Open an app, summon BeLauncher over it and try again.")
         }
 
         let element = AXUIElementCreateApplication(app.processIdentifier)
         guard let axWindow = movableWindow(of: element) else {
-            return "\(app.localizedName ?? "Esa app") no le cuenta a macOS dónde están sus "
-                 + "ventanas. Ejecuta «BeLauncher --diagnose-windows» con ella delante y mándanos "
-                 + "lo que salga."
+            return L("“%@” does not tell macOS where its windows are. Run “BeLauncher --diagnose-windows” with it in front and send us what comes out.",
+                     app.localizedName ?? L("That app"))
         }
 
         // A window in full screen reports its size and refuses to move, so arranging it looks
@@ -50,8 +48,8 @@ enum WindowArranger {
         if AXUIElementCopyAttributeValue(axWindow, "AXFullScreen" as CFString,
                                          &fullScreenValue) == .success,
            (fullScreenValue as? Bool) == true {
-            return "«\(app.localizedName ?? "Esa app")» está en pantalla completa y macOS no deja "
-                 + "mover esas ventanas. Sácala de pantalla completa y vuelve a intentarlo."
+            return L("“%@” is in full screen, and macOS will not let those windows move. Take it out of full screen and try again.",
+                     app.localizedName ?? L("That app"))
         }
 
         // Read once, and once more after a beat: the launcher has just closed and some apps take
@@ -64,23 +62,23 @@ enum WindowArranger {
         }
         guard case .ok(let current) = reading else {
             if case .failed(let why) = reading { return why }
-            return "No pude leer la ventana."
+            return L("I could not read the window.")
         }
 
         var settable: DarwinBoolean = false
         AXUIElementIsAttributeSettable(axWindow, kAXPositionAttribute as CFString, &settable)
         guard settable.boolValue else {
-            return "«\(app.localizedName ?? "Esa app")» no deja que se muevan sus ventanas. "
-                 + "Suele pasar con ventanas de sistema y diálogos."
+            return L("“%@” will not let its windows move. ", app.localizedName ?? L("That app"))
+                 + L("It usually happens with system windows and dialogs.")
         }
-        guard let screen = screen(containing: current) else { return "No encontré la pantalla." }
+        guard let screen = screen(containing: current) else { return L("I could not find the display.") }
 
         let target: WindowLayoutMath.Frame
         switch layout {
         case .nextDisplay, .previousDisplay:
             let screens = NSScreen.screens
             guard screens.count > 1, let index = screens.firstIndex(of: screen) else {
-                return "Solo hay una pantalla."
+                return L("There is only one display.")
             }
             let step = layout == .nextDisplay ? 1 : -1
             let destination = screens[(index + step + screens.count) % screens.count]
@@ -173,7 +171,7 @@ enum WindowArranger {
         guard AXValueGetValue(unsafeBitCast(positionValue, to: AXValue.self), .cgPoint, &origin),
               AXValueGetValue(unsafeBitCast(sizeValue, to: AXValue.self), .cgSize, &size),
               size.width > 0, size.height > 0 else {
-            return .failed("Esa ventana devolvió un tamaño que no tiene sentido.")
+            return .failed(L("That window returned a size that makes no sense."))
         }
         return .ok(WindowLayoutMath.Frame(x: origin.x, y: origin.y,
                                           width: size.width, height: size.height))
@@ -183,17 +181,16 @@ enum WindowArranger {
     static func explain(_ error: AXError) -> String {
         switch error {
         case .apiDisabled:
-            "Falta el permiso de Accesibilidad. Ajustes del sistema › Privacidad y seguridad › "
-            + "Accesibilidad, y activa BeLauncher."
+            L("Accessibility permission is missing. System Settings › Privacy & Security › Accessibility.")
         case .notImplemented, .attributeUnsupported:
-            "Esa app no le cuenta a macOS dónde está su ventana, así que no se puede colocar."
+            L("That app does not tell macOS where its window is, so it cannot be placed.")
         case .cannotComplete:
-            "La app no respondió a tiempo. Si acaba de abrirse o está ocupada, prueba otra vez."
+            L("The app did not answer in time. If it has just opened or is busy, try again.")
         case .invalidUIElement:
-            "La ventana cambió mientras la miraba. Vuelve a intentarlo."
+            L("The window changed while I was looking at it. Try again.")
         default:
-            "macOS no dejó leer la ventana (error \(error.rawValue)). Ejecuta "
-            + "«BeLauncher --diagnose-windows» y mándanos lo que salga."
+            L("macOS would not let the window be read (error %@). Run “BeLauncher --diagnose-windows” and send us what comes out.",
+              String(error.rawValue))
         }
     }
 
@@ -243,7 +240,7 @@ extension WindowArranger {
 
     static func snapshot(named name: String) -> Snapshot {
         guard Permissions.accessibilityGranted else {
-            return .failed("Necesito permiso de Accesibilidad para ver dónde están las ventanas.")
+            return .failed(L("I need Accessibility permission to see where the windows are."))
         }
         var placements: [Workspace.Placement] = []
 
@@ -281,7 +278,7 @@ extension WindowArranger {
         }
 
         guard !placements.isEmpty else {
-            return .failed("No encontré ninguna ventana que guardar. ¿Están todas minimizadas?")
+            return .failed(L("I found no window to save. Are they all minimised?"))
         }
         return .taken(Workspace(name: name, placements: placements,
                                 displays: NSScreen.screens.count))
@@ -290,7 +287,7 @@ extension WindowArranger {
     /// Puts everything back, and says what it could not.
     static func restore(_ workspace: Workspace) -> String {
         guard Permissions.accessibilityGranted else {
-            return "Necesito permiso de Accesibilidad para mover ventanas."
+            return L("I need Accessibility permission to move windows.")
         }
         let running = NSWorkspace.shared.runningApplications
         var placed = 0
@@ -337,9 +334,9 @@ extension WindowArranger {
             placed += 1
         }
 
-        var text = "Colocadas \(placed) ventana(s)."
+        var text = L("%@ window(s) placed.", String(placed))
         if !missing.isEmpty {
-            text += " No están abiertas: \(missing.sorted().joined(separator: ", "))."
+            text += L(" These are not open: %@.", missing.sorted().joined(separator: ", "))
         }
         return text
     }

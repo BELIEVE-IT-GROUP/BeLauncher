@@ -32,7 +32,7 @@ public enum Autopilot {
         public var summary: String { labels.joined(separator: " → ") }
 
         public var offer: String {
-            "Has hecho esto \(times) veces: \(summary). ¿Lo convierto en un comando?"
+            L("You have done this %1$@ times: %2$@. Shall I turn it into a command?", String(times), summary)
         }
     }
 

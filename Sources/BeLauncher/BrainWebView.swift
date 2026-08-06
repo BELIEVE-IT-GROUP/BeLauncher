@@ -41,7 +41,7 @@ struct BrainWebView: NSViewRepresentable {
             view.loadHTMLString(
                 "<body style='background:#0a0d14;color:#8a92a6;font:13px -apple-system;"
                 + "display:flex;align-items:center;justify-content:center;height:100vh'>"
-                + "Falta brain.html en el paquete.</body>", baseURL: nil)
+                + L("brain.html is missing from the bundle.") + "</body>", baseURL: nil)
             return view
         }
         view.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())

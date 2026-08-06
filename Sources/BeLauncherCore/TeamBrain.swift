@@ -94,13 +94,13 @@ public enum TeamBrain {
         public var description: String {
             switch self {
             case .notAllowed(let role):
-                "Tu rol (\(role.rawValue)) no permite hacer eso."
+                L("Your role (%@) does not allow that.", role.rawValue)
             case .wrongKey:
-                "La clave del equipo no abre este paquete."
+                L("The team key does not open this package.")
             case .corrupted:
-                "El paquete está dañado o no es de BeLauncher."
+                L("The package is damaged, or it is not from BeLauncher.")
             case .unsupportedVersion(let version):
-                "Este paquete lo escribió una versión más nueva (formato \(version))."
+                L("This package was written by a newer version (format %@).", String(version))
             }
         }
     }

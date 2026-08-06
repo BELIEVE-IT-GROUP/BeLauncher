@@ -59,7 +59,7 @@ struct ProcessListTests {
     func refusesToLoseYourSession() throws {
         let server = RunningProcess(id: 170, name: "WindowServer", cpu: 50, memory: 1)
         let refusal = try #require(ProcessList.refusal(for: server))
-        #expect(refusal.contains("saca de la sesión"),
+        #expect(refusal.contains("throws you out of the session"),
                 "hay que decir qué pasaría, no solo negarse")
 
         let kernel = RunningProcess(id: 0, name: "kernel_task", cpu: 300, memory: 1)
@@ -80,7 +80,7 @@ struct ProcessListTests {
     func desktopPiecesExplainThemselves() throws {
         let finder = RunningProcess(id: 300, name: "Finder", cpu: 1, memory: 1)
         let refusal = try #require(ProcessList.refusal(for: finder))
-        #expect(refusal.contains("Forzar salida"), "hay que decir dónde sí se puede")
+        #expect(refusal.contains("Force Quit"), "hay que decir dónde sí se puede")
     }
 
     @Test("se escribe como se dice, y «memoria» ordena distinto")
@@ -100,7 +100,7 @@ struct ProcessListTests {
     @Test("la fila dice lo que cuesta, y avisa cuando es del sistema")
     func subtitleIsHonest() {
         let server = RunningProcess(id: 170, name: "WindowServer", cpu: 50.3, memory: 90_000_000)
-        #expect(ProcessList.subtitle(for: server, order: .cpu).contains("del sistema"))
+        #expect(ProcessList.subtitle(for: server, order: .cpu).contains("system"))
         #expect(ProcessList.subtitle(for: server, order: .cpu).hasPrefix("CPU 50.3%"))
         // Por memoria, lo que se pregunta va primero.
         #expect(!ProcessList.subtitle(for: server, order: .memory).hasPrefix("CPU"))
@@ -146,7 +146,7 @@ struct StayAwakeTests {
     @Test("la barra de menús dice cuánto queda, no solo que está activo")
     func showsRemaining() {
         let now = Date()
-        #expect(StayAwake.remaining(until: nil).contains("indefinido"))
+        #expect(StayAwake.remaining(until: nil).contains("no end"))
         #expect(StayAwake.remaining(until: now.addingTimeInterval(1_800), now: now).contains("30 min"))
         #expect(StayAwake.remaining(until: now.addingTimeInterval(5_400), now: now).contains("1 h"))
     }

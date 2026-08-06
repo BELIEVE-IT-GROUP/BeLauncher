@@ -113,7 +113,7 @@ public enum MCPProbe {
         command: [String], canary: MCPHealth.Canary, executablePath: String
     ) async -> Connectivity {
         guard let executable = command.first else {
-            return Connectivity(launch: .failed("ese cliente no guarda ningún comando"),
+            return Connectivity(launch: .failed(L("that client keeps no command at all")),
                                 handshake: nil, toolsList: nil, toolCall: nil)
         }
         guard FileManager.default.isExecutableFile(atPath: executable) else {
@@ -121,10 +121,10 @@ public enum MCPProbe {
             // configuration still points at where it used to be.
             let moved = executable == executablePath
                 ? ""
-                : " BeLauncher está ahora en \(executablePath)."
+                : L(" BeLauncher is now at %@.", executablePath)
             return Connectivity(
-                launch: .failed("la ruta guardada en ese cliente, \(executable), ya no lleva a "
-                              + "nada ejecutable.\(moved)"),
+                launch: .failed(L("the path kept in that client, %1$@, no longer leads to anything runnable.%2$@",
+                                  executable, moved)),
                 handshake: nil, toolsList: nil, toolCall: nil)
         }
 

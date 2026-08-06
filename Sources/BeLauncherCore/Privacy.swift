@@ -28,8 +28,8 @@ public enum Privacy {
         public var label: String {
             switch self {
             case .notPaused: "Capturando"
-            case .byHand: "En pausa"
-            case .untilLater: "En pausa un rato"
+            case .byHand: L("Paused")
+            case .untilLater: L("Paused for a while")
             }
         }
     }
@@ -54,12 +54,12 @@ public enum Privacy {
 
         /// Said plainly, because a paused brain that looks like a working one is the worst of both.
         public func summary(at date: Date = .now) -> String {
-            if isCapturing(at: date) { return "Capturando lo que haces." }
+            if isCapturing(at: date) { return L("Capturing what you do.") }
             if reason == .untilLater, let until {
                 let minutes = max(1, Int(until.timeIntervalSince(date) / 60))
-                return "En pausa. Vuelve solo en \(minutes) min."
+                return L("Paused. It comes back on its own in %@ min.", String(minutes))
             }
-            return reason.label + ". No se está guardando nada."
+            return reason.label + L(". Nothing is being kept.")
         }
     }
 
@@ -143,12 +143,12 @@ public enum Privacy {
         public var isEmpty: Bool { total == 0 }
 
         public var warning: String {
-            guard !isEmpty else { return "En ese rato no hay nada guardado." }
+            guard !isEmpty else { return L("Nothing was kept during that stretch.") }
             var parts: [String] = []
-            if passages > 0 { parts.append("\(passages) pasaje(s)") }
-            if clips > 0 { parts.append("\(clips) del portapapeles") }
-            if nodes > 0 { parts.append("\(nodes) del grafo") }
-            return "Se borra para siempre: " + parts.joined(separator: ", ") + "."
+            if passages > 0 { parts.append(L("%@ passage(s)", String(passages))) }
+            if clips > 0 { parts.append(L("%@ from the clipboard", String(clips))) }
+            if nodes > 0 { parts.append(L("%@ from the graph", String(nodes))) }
+            return L("Deleted for good: ") + parts.joined(separator: ", ") + "."
         }
     }
 }
@@ -181,14 +181,14 @@ extension Store {
     public func excludedDomains() -> Set<String> {
         let stored = (setting("capture_excluded_domains") ?? "")
         guard !stored.isEmpty else { return Set(Privacy.excludedDomainsByDefault) }
-        return stored == "·vacía·" ? [] : Set(stored.split(whereSeparator: \.isNewline).map(String.init))
+        return stored == L("·empty·") ? [] : Set(stored.split(whereSeparator: \.isNewline).map(String.init))
     }
 
     public func setExcludedDomains(_ domains: Set<String>) {
         // An emptied list is stored as a marker rather than as "", so it is not mistaken for
         // "never configured" and silently refilled with the defaults.
         setSetting("capture_excluded_domains",
-                   domains.isEmpty ? "·vacía·" : domains.sorted().joined(separator: "\n"))
+                   domains.isEmpty ? L("·empty·") : domains.sorted().joined(separator: "\n"))
     }
 
     /// What a period holds, counted before anything is removed.

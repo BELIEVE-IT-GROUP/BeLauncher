@@ -209,7 +209,7 @@ struct CorpusTests {
 
         #expect(!corpus.episodes.isEmpty)
         #expect(corpus.indexed.isEmpty)
-        #expect(corpus.considered.allSatisfy { $0.why.contains("Todavía está pasando") })
+        #expect(corpus.considered.allSatisfy { $0.why.contains("still going on") })
     }
 
     @Test("Un rato de trabajo asentado y con recorrido sí entra")
@@ -235,7 +235,7 @@ struct CorpusTests {
         let best = { (corpus: Corpus) in corpus.considered.map(\.score).max() ?? 0 }
         #expect(best(acrossDays) > best(onlyOnce))
         // La explicación arranca con mayúscula, así que se compara sin distinguirla.
-        #expect(acrossDays.considered.contains { $0.why.lowercased().contains("volviste") })
+        #expect(acrossDays.considered.contains { $0.why.lowercased().contains("came back") })
     }
 
     @Test("Lo que guardaste a mano entra sin discusión")
@@ -249,7 +249,7 @@ struct CorpusTests {
         let considered = corpus.considered.first
         #expect(considered?.signals.markedByHand == true)
         #expect(considered?.score == 1)
-        #expect(considered?.why == "Lo guardaste tú.")
+        #expect(considered?.why == "You kept it yourself.")
     }
 
     @Test("Cada episodio explica por qué entró o por qué no, en palabras")

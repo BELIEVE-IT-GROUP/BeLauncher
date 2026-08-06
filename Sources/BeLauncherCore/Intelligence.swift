@@ -80,18 +80,15 @@ public enum IntelligenceError: Error, Equatable, CustomStringConvertible {
         case .noProviderConfigured:
             // The old text sent people to a screen where everything already looked configured.
             // The usual cause is Ollama simply not running, which nothing was saying out loud.
-            "No hay ningún modelo disponible ahora mismo. Si usas Ollama o LM Studio, ábrelo y "
-            + "vuelve a intentarlo; si prefieres uno en la nube, pon tu clave en "
-            + "Ajustes › Inteligencia."
+            L("There is no model available right now. If you use Ollama or LM Studio, open it and try again; if you would rather use one in the cloud, put your key in Settings › Intelligence.")
         case .missingKey(let provider):
-            "Falta la clave de \(provider). Guárdala en Ajustes; se queda en tu Llavero."
+            L("The %@ key is missing. Save it in Settings; it stays in your Keychain.", provider)
         case .blockedBySensitivity(let provider):
-            "Este contenido está marcado como confidencial y \(provider) no es local. "
-            + "Cámbialo en Ajustes o usa un modelo en tu Mac."
+            L("This content is marked confidential and %@ is not local. Change it in Settings or use a model on your Mac.", provider)
         case .transport(let reason):
-            "No se pudo hablar con el modelo: \(reason)"
+            L("The model could not be reached: %@", reason)
         case .emptyAnswer:
-            "El modelo no devolvió nada."
+            L("The model returned nothing.")
         }
     }
 }
@@ -211,7 +208,7 @@ public struct IntelligenceClient: Sendable {
             throw IntelligenceError.transport(error.localizedDescription)
         }
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw IntelligenceError.transport("El proveedor respondió HTTP \(http.statusCode).")
+            throw IntelligenceError.transport(L("The provider answered HTTP %@.", String(http.statusCode)))
         }
 
         var whole = ""
@@ -263,7 +260,7 @@ public struct IntelligenceClient: Sendable {
     func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String,
                streaming: Bool = false) throws -> URLRequest {
         guard let url = URL(string: provider.endpoint) else {
-            throw IntelligenceError.transport("endpoint inválido")
+            throw IntelligenceError.transport(L("invalid endpoint"))
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"

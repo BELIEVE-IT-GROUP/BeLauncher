@@ -206,7 +206,7 @@ public struct MCPServer: Sendable {
             return MCPTools.proposeMemory(arguments: arguments, context: context, date: date)
 
         default:
-            return Response(text: "La herramienta «\(name)» no existe. Disponibles: "
+            return Response(text: "There is no tool called “\(name)”. Available: "
                                 + tools.map(\.name).joined(separator: ", ") + ".",
                             isError: true)
         }

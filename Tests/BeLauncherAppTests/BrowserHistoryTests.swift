@@ -334,7 +334,7 @@ struct BrowserHistoryTests {
         let denied = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
         let said = BrowserHistory.describe(denied, browser: "Safari")
 
-        #expect(said.contains("Acceso total al disco"))
+        #expect(said.contains("Full Disk Access"))
         #expect(said.contains("Safari"))
     }
 }

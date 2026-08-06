@@ -89,17 +89,17 @@ public enum Relevance {
     /// Written for the graph view, where somebody looks at their own brain and asks why a thing
     /// they remember is not in it. "No llegó al umbral" is not an answer anybody can act on.
     public static func explain(_ signals: Signals) -> String {
-        if signals.markedByHand { return "Lo guardaste tú." }
+        if signals.markedByHand { return L("You kept it yourself.") }
         var reasons: [String] = []
-        if signals.daysSeen >= 2 { reasons.append("volviste \(signals.daysSeen) días distintos") }
+        if signals.daysSeen >= 2 { reasons.append(L("you came back on %@ different days", String(signals.daysSeen))) }
         if signals.dwell > meaningfulDwell {
-            reasons.append("estuviste \(Int(signals.dwell / 60)) minutos")
+            reasons.append(L("you stayed %@ minutes", String(Int(signals.dwell / 60))))
         }
-        if signals.copiedFrom { reasons.append("copiaste algo de ahí") }
-        if signals.neighbours > 0 { reasons.append("aparece junto a \(signals.neighbours) cosas más") }
+        if signals.copiedFrom { reasons.append(L("you copied something from there")) }
+        if signals.neighbours > 0 { reasons.append(L("it turns up next to %@ other things", String(signals.neighbours))) }
 
         guard !reasons.isEmpty else {
-            return "Pasaste por ahí una vez y unos segundos, así que no entró en el buscador."
+            return L("You went past it once for a few seconds, so it did not make it into the search.")
         }
         return reasons.joined(separator: ", ").prefix(1).uppercased() + reasons.joined(separator: ", ").dropFirst() + "."
     }

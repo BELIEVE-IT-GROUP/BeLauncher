@@ -28,10 +28,10 @@ public struct WorkNode: Sendable, Equatable, Identifiable, Codable {
             case .person: "Persona"
             case .company: "Empresa"
             case .project: "Proyecto"
-            case .file: "Archivo"
-            case .meeting: "Reunión"
-            case .conversation: "Conversación"
-            case .decision: "Decisión"
+            case .file: L("File")
+            case .meeting: L("Meeting")
+            case .conversation: L("Conversation")
+            case .decision: L("Decision")
             case .commitment: "Compromiso"
             case .application: "App"
             }
@@ -98,11 +98,11 @@ public struct WorkEdge: Sendable, Equatable, Codable {
 
         public var label: String {
             switch self {
-            case .partOf: "forma parte de"
-            case .cameFrom: "salió de"
+            case .partOf: L("is part of")
+            case .cameFrom: L("came out of")
             case .owes: "debe"
-            case .workedWith: "se trabajó junto a"
-            case .worksAt: "trabaja en"
+            case .workedWith: L("worked on together")
+            case .worksAt: L("works on")
             }
         }
     }
@@ -319,8 +319,8 @@ public enum WorkQuery {
             .max(by: { $0.start < $1.start })
 
         guard let meeting = recentMeeting else {
-            return Answer(headline: "No hay ninguna reunión reciente que retomar", nodes: [],
-                          body: "Sin nada en el calendario, no hay un «antes» del que hablar.")
+            return Answer(headline: L("There is no recent meeting to go back to"), nodes: [],
+                          body: L("With nothing in the calendar, there is no “before” to talk about."))
         }
         let from = meeting.start.addingTimeInterval(-window)
         let before = nodes
@@ -330,8 +330,8 @@ public enum WorkQuery {
 
         return Answer(
             headline: before.isEmpty
-                ? "No quedó nada a medias antes de «\(meeting.title)»"
-                : "Antes de «\(meeting.title)» estabas en esto",
+                ? L("Nothing was left half done before “%@”", meeting.title)
+                : L("Before “%@” you were on this", meeting.title),
             nodes: Array(before),
             body: before.map { "- \($0.name) · \($0.detail)" }.joined(separator: "\n")
         )
@@ -348,8 +348,8 @@ public enum WorkQuery {
             $0.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
                 .contains(folded)
         }) else {
-            return Answer(headline: "No conozco a «\(name)»", nodes: [],
-                          body: "Todavía no ha aparecido en nada de lo que has hecho aquí.")
+            return Answer(headline: L("I do not know “%@”", name), nodes: [],
+                          body: L("It has not turned up in anything you have done here yet."))
         }
         let connected = edges.filter { $0.source == anchor.id || $0.target == anchor.id }
         let others = connected.compactMap { edge -> (WorkNode, WorkEdge.Kind)? in
@@ -361,7 +361,7 @@ public enum WorkQuery {
             headline: "\(anchor.name) · \(anchor.kind.label)",
             nodes: others.map(\.0),
             body: others.isEmpty
-                ? "Sin conexiones todavía."
+                ? L("No connections yet.")
                 : others.map { "- \($0.0.name) (\($0.1.label))" }.joined(separator: "\n")
         )
     }

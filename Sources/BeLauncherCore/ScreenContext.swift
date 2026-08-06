@@ -24,10 +24,10 @@ public struct ScreenContext: Sendable, Equatable {
 
         public var label: String {
             switch self {
-            case .selection: "lo que tienes seleccionado"
-            case .recognised: "lo que hay en pantalla"
-            case .file: "el archivo abierto"
-            case .clipboard: "lo que copiaste"
+            case .selection: L("what you have selected")
+            case .recognised: L("what is on screen")
+            case .file: L("the open file")
+            case .clipboard: L("what you copied")
             }
         }
     }
@@ -68,13 +68,13 @@ public enum ScreenReader {
 
         public var label: String {
             switch self {
-            case .error: "Un error"
-            case .invoice: "Una factura"
-            case .email: "Un correo"
-            case .table: "Una tabla"
-            case .code: "Código"
-            case .design: "Un diseño"
-            case .link: "Un enlace"
+            case .error: L("An error")
+            case .invoice: L("An invoice")
+            case .email: L("An email")
+            case .table: L("A table")
+            case .code: L("Code")
+            case .design: L("A design")
+            case .link: L("A link")
             case .prose: "Texto"
             }
         }
@@ -120,7 +120,7 @@ public enum ScreenReader {
                               "total a pagar", "importe"]
         if invoiceMarkers.count(where: lower.contains) >= 2 { return .invoice }
 
-        let emailMarkers = ["de:", "para:", "asunto:", "from:", "to:", "subject:", "re:", "fwd:"]
+        let emailMarkers = [L("from:"), "para:", "asunto:", "from:", "to:", "subject:", "re:", "fwd:"]
         if emailMarkers.count(where: lower.contains) >= 2 { return .email }
 
         // A table is rows that repeat the same separator. Two lines is a coincidence; four is a
@@ -147,73 +147,73 @@ public enum ScreenReader {
         switch subject {
         case .error:
             [
-                .init(id: "explain-error", title: "Explícame este error",
+                .init(id: "explain-error", title: L("Explain this error"),
                       symbol: "questionmark.circle", verb: "explain"),
-                .init(id: "fix-error", title: "Dime cómo se arregla",
+                .init(id: "fix-error", title: L("Tell me how to fix it"),
                       symbol: "wrench.and.screwdriver", verb: "fix-error"),
-                .init(id: "search-error", title: "Búscalo en la web",
+                .init(id: "search-error", title: L("Look it up on the web"),
                       symbol: "magnifyingglass", verb: "search-web"),
             ]
         case .invoice:
             [
                 .init(id: "invoice-extract", title: "Saca importe, fecha y proveedor",
                       symbol: "doc.text.magnifyingglass", verb: "extract-invoice"),
-                .init(id: "invoice-file", title: "Archívala donde toca",
+                .init(id: "invoice-file", title: L("File it where it belongs"),
                       symbol: "folder", verb: "file-invoice"),
-                .init(id: "invoice-remember", title: "Guárdalo en el cerebro",
+                .init(id: "invoice-remember", title: L("Keep it in the brain"),
                       symbol: "brain", verb: "remember"),
             ]
         case .email:
             [
-                .init(id: "email-reply", title: "Redáctame la respuesta",
+                .init(id: "email-reply", title: L("Draft the reply"),
                       symbol: "arrowshape.turn.up.left", verb: "reply"),
-                .init(id: "email-tasks", title: "Saca lo que me piden",
+                .init(id: "email-tasks", title: L("Pull out what they are asking for"),
                       symbol: "checklist", verb: "extract-tasks"),
-                .init(id: "email-summarise", title: "Resúmelo",
+                .init(id: "email-summarise", title: L("Sum it up"),
                       symbol: "text.redaction", verb: "summarise"),
             ]
         case .table:
             [
-                .init(id: "table-anomalies", title: "Busca lo que se sale de la norma",
+                .init(id: "table-anomalies", title: L("Find what stands out"),
                       symbol: "chart.line.uptrend.xyaxis", verb: "analyse-table"),
-                .init(id: "table-summarise", title: "Explícame qué dice",
+                .init(id: "table-summarise", title: L("Explain what it says"),
                       symbol: "text.redaction", verb: "summarise"),
-                .init(id: "table-markdown", title: "Pásala a Markdown",
+                .init(id: "table-markdown", title: L("Turn it into Markdown"),
                       symbol: "tablecells", verb: "table"),
             ]
         case .code:
             [
-                .init(id: "code-explain", title: "Explícame qué hace",
+                .init(id: "code-explain", title: L("Explain what it does"),
                       symbol: "questionmark.circle", verb: "explain"),
-                .init(id: "code-review", title: "Dime qué está mal",
+                .init(id: "code-review", title: L("Tell me what is wrong"),
                       symbol: "exclamationmark.triangle", verb: "review-code"),
-                .init(id: "code-tasks", title: "Sácame las tareas",
+                .init(id: "code-tasks", title: L("Pull out the tasks"),
                       symbol: "checklist", verb: "extract-tasks"),
             ]
         case .design:
             [
-                .init(id: "design-tasks", title: "Saca las tareas de esto",
+                .init(id: "design-tasks", title: L("Pull the tasks out of this"),
                       symbol: "checklist", verb: "extract-tasks"),
-                .init(id: "design-describe", title: "Descríbeme lo que se ve",
+                .init(id: "design-describe", title: L("Describe what is there"),
                       symbol: "eye", verb: "describe-image"),
-                .init(id: "design-copy", title: "Extrae los textos",
+                .init(id: "design-copy", title: L("Extract the text"),
                       symbol: "text.quote", verb: "extract-text"),
             ]
         case .link:
             [
                 .init(id: "link-open", title: "Ábrelo", symbol: "arrow.up.forward", verb: "open"),
-                .init(id: "link-research", title: "Investígalo",
+                .init(id: "link-research", title: L("Look into it"),
                       symbol: "binoculars", verb: "research"),
-                .init(id: "link-remember", title: "Guárdalo en el cerebro",
+                .init(id: "link-remember", title: L("Keep it in the brain"),
                       symbol: "brain", verb: "remember"),
             ]
         case .prose:
             [
-                .init(id: "prose-summarise", title: "Resúmelo",
+                .init(id: "prose-summarise", title: L("Sum it up"),
                       symbol: "text.redaction", verb: "summarise"),
-                .init(id: "prose-translate", title: "Tradúcelo",
+                .init(id: "prose-translate", title: L("Translate it"),
                       symbol: "character.book.closed", verb: "translate-es"),
-                .init(id: "prose-tasks", title: "Saca las tareas",
+                .init(id: "prose-tasks", title: L("Pull out the tasks"),
                       symbol: "checklist", verb: "extract-tasks"),
             ]
         }
@@ -235,28 +235,28 @@ public enum ScreenReader {
     public static func instruction(for verb: String) -> String? {
         switch verb {
         case "fix-error":
-            "Explica en dos frases por qué ocurre este error y da el arreglo concreto. Si falta "
-            + "información para estar seguro, dilo en vez de inventarlo."
+            "Explain in two sentences why this error happens and give the concrete fix. If you are "
+            + "missing information to be sure, say so rather than invent it."
         case "extract-invoice":
-            "Extrae de esta factura: proveedor, número, fecha, base imponible, impuestos y total. "
-            + "Devuelve solo esos campos, uno por línea. Si alguno no aparece, escribe «no consta»."
+            "Pull out of this invoice: supplier, number, date, net, tax and total. "
+            + "Return only those fields, one per line. If one is missing, write “not stated”."
         case "analyse-table":
-            "Mira esta tabla y señala lo que se sale de la norma: valores atípicos, huecos, "
-            + "totales que no cuadran. Si todo es normal, dilo."
+            "Look at this table and point out what stands out: outliers, gaps, "
+            + "totals that do not add up. If it all looks normal, say so."
         case "review-code":
-            "Señala los problemas reales de este código: fallos, casos no cubiertos, riesgos. "
-            + "Nada de comentarios de estilo."
+            "Point out the real problems in this code: bugs, uncovered cases, risks. "
+            + "No style comments."
         case "file-invoice":
-            "Propón un nombre de archivo y una carpeta para guardar esta factura. Formato del "
-            + "nombre: AAAA-MM-proveedor-importe. Devuelve solo la línea «carpeta/nombre.pdf», "
-            + "sin explicaciones."
+            "Propose a filename and a folder to file this invoice under. Name format: "
+            + "YYYY-MM-supplier-amount. Return only the line “folder/name.pdf”, "
+            + "with no explanation."
         case "research":
-            "Investiga lo que sigue y devuelve: qué es, quién está detrás, para quién sirve y dos "
-            + "alternativas. Si no tienes información suficiente, dilo en vez de rellenar."
+            "Research what follows and return: what it is, who is behind it, who it is for, and two "
+            + "alternatives. If you do not have enough information, say so rather than pad it out."
         case "describe-image":
-            "Describe lo que se ve, para alguien que no lo está mirando."
+            "Describe what is there, for somebody who is not looking at it."
         case "extract-text":
-            "Devuelve solo los textos que aparecen, en orden, sin describir nada."
+            "Return only the text that appears, in order, describing nothing."
         default:
             nil
         }

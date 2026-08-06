@@ -15,71 +15,68 @@ public enum VaultGuide {
     /// The folders a working brain ends up needing, created on day one so nobody has to invent
     /// the structure. Empty folders with a purpose beat a clever empty folder.
     public static let folders: [(name: String, purpose: String)] = [
-        ("objects", "Lo que la empresa cree: decisiones, políticas, compromisos, notas. Un archivo por cosa."),
-        ("commits", "El historial de cómo llegó ahí cada cosa: quién la propuso y quién la confirmó."),
-        ("attachments", "Archivos que respaldan una memoria: un PDF, una captura, un contrato."),
-        ("people", "Quién es quién: clientes, socios, el equipo."),
-        ("projects", "En qué estáis trabajando."),
-        ("meetings", "Notas en crudo antes de destilarlas en decisiones."),
-        ("inbox", "Lo que llega sin sitio todavía. Vaciarlo es la tarea, no llenarlo."),
+        ("objects", L("What the company believes: decisions, policies, commitments, notes. One file per thing.")),
+        ("commits", L("The history of how each thing got there: who proposed it and who confirmed it.")),
+        ("attachments", L("Files that back a memory up: a PDF, a screenshot, a contract.")),
+        ("people", L("Who is who: clients, partners, the team.")),
+        ("projects", L("What you are working on.")),
+        ("meetings", L("Raw notes before they are distilled into decisions.")),
+        ("inbox", L("Whatever arrives with nowhere to go yet. Emptying it is the job, not filling it.")),
     ]
 
-    public static let readme = """
-        # Tu cerebro
+    /// The read-me the vault opens with, in the language of the window at the moment it was
+    /// created. It stays in that language afterwards: the file is on the user's disk, and rewriting
+    /// somebody's own notes because they changed a menu setting is not the app's business.
+    public static var readme: String {
+        L("""
+        # Your brain
 
-        Esto es una carpeta normal con archivos Markdown normales. No hay base de datos
-        propietaria, ni formato secreto, ni servidor. Si mañana dejas BeLauncher, te llevas esta
-        carpeta y no pierdes nada. Esa es la única forma honesta de pedirte que metas aquí la
-        memoria de tu empresa.
+        This is an ordinary folder of ordinary Markdown files. No proprietary database, no secret
+        format, no server. If you walk away from BeLauncher tomorrow you take this folder with you
+        and lose nothing. That is the only honest way to ask you to put your company's memory in
+        here.
 
-        ## Qué hay en cada carpeta
+        ## What is in each folder
 
-        | Carpeta | Para qué |
+        | Folder | What for |
         | --- | --- |
-        | `objects` | Lo que la empresa cree hoy: decisiones, políticas, compromisos, notas. |
-        | `commits` | Cómo llegó ahí cada cosa: quién la propuso, quién la confirmó, cuándo. |
-        | `attachments` | Lo que respalda una memoria: un PDF, una captura, un contrato. |
-        | `people` | Clientes, socios, el equipo. |
-        | `projects` | En qué estás trabajando. |
-        | `meetings` | Notas en crudo, antes de destilarlas. |
-        | `inbox` | Lo que llega sin sitio. Vaciarlo es la tarea. |
+        | `objects` | What the company believes today: decisions, policies, commitments, notes. |
+        | `commits` | How each thing got there: who proposed it, who confirmed it, when. |
+        | `attachments` | What backs a memory up: a PDF, a screenshot, a contract. |
+        | `people` | Clients, partners, the team. |
+        | `projects` | What you are working on. |
+        | `meetings` | Raw notes, before they are distilled. |
+        | `inbox` | Whatever arrives with nowhere to go. Emptying it is the job. |
 
-        ## Cómo se llena
+        ## How it fills up
 
-        No a mano. Desde el lanzador:
+        Not by hand. From the launcher:
 
-        - **`recordar que …`** propone una memoria. Fíjate en «propone»: nada entra aquí sin que
-          tú lo confirmes. Un cerebro que se escribe solo es un cerebro en el que no puedes
-          confiar.
-        - **`capturar reunion`** con tus notas copiadas saca las decisiones y los compromisos y
-          te los propone uno a uno.
-        - **`qué decidimos sobre …`** te devuelve lo que está vigente hoy, no todo lo que se dijo
-          alguna vez.
-        - **`pulse`** te dice qué se está pudriendo: contradicciones, compromisos vencidos,
-          decisiones que nadie ha revisado en medio año.
+        - **`remember that …`** proposes a memory. Note "proposes": nothing gets in here without
+          you confirming it. A brain that writes itself is a brain you cannot trust.
+        - **`capture meeting`** with your notes on the clipboard pulls out the decisions and the
+          commitments and offers them to you one at a time.
+        - **`what did we decide about …`** gives you back what still stands today, not everything
+          that was ever said.
+        - **`pulse`** tells you what is going stale: contradictions, overdue commitments, decisions
+          nobody has looked at in six months.
 
-        ## Cómo adjuntar algo
+        ## How to attach something
 
-        Copia el archivo dentro de `attachments/` y nómbralo con el id de la memoria a la que
-        pertenece, o arrástralo sobre la memoria desde el lanzador. En el Markdown queda como un
-        enlace relativo normal, así que Obsidian, GitHub y cualquier editor lo abren.
+        Copy the file into `attachments/` and name it with the id of the memory it belongs to, or
+        drag it onto the memory from the launcher. In the Markdown it ends up as an ordinary
+        relative link, so any editor opens it.
 
-        ## Obsidian
+        ## It is just a folder
 
-        Esta carpeta ya es un vault de Obsidian válido: Obsidian no pide nada especial, solo una
-        carpeta con archivos `.md`. Ábrelo con **Abrir en Obsidian** en Ajustes → Mi cerebro, o en
-        Obsidian con «Abrir carpeta como almacén» y eliges esta carpeta. Los enlaces `[[así]]`
-        entre memorias funcionan en los dos sitios.
+        Every file in here is plain `.md`. Any Markdown editor opens it, and if you want history and
+        backups you can make this folder a git repository yourself — nothing in the app depends on
+        it either way.
 
-        ## Git
-
-        Si quieres historial y copia de seguridad, esta carpeta puede ser un repositorio git. El
-        botón **Convertir en repositorio git** de Ajustes lo inicializa con un `.gitignore`
-        sensato. A partir de ahí es git normal: `git remote add origin …` y `git push`.
-
-        Ojo con lo obvio: si subes esto a un repositorio, lo que haya aquí dentro estará donde esté
-        ese repositorio. Para memoria de empresa, privado.
-        """
+        Mind the obvious one: if you push this to a repository, whatever is in here ends up wherever
+        that repository is. For company memory, make it private.
+        """)
+    }
 
     /// The folders the app reads back as data. Nothing may be written into them except real
     /// memories and real commits.
@@ -95,6 +92,13 @@ public enum VaultGuide {
         """
 
     // MARK: - Making it real
+
+    /// The name of the read-me the vault ships with. Deliberately not translated: the file lives on
+    /// disk and belongs to the person, so it keeps whatever name it was created with even after
+    /// they switch the interface to another language. Declared once because Settings has a button
+    /// that opens it — spelling the name out a second time there put the button one keystroke away
+    /// from opening a file that does not exist.
+    public static let readmeName = "LÉEME.md"
 
     /// Creates the folders and the README, without touching anything already there.
     @discardableResult
@@ -119,10 +123,10 @@ public enum VaultGuide {
                                                                     encoding: .utf8)
             }
         }
-        let readmePath = (root as NSString).appendingPathComponent("LÉEME.md")
+        let readmePath = (root as NSString).appendingPathComponent(readmeName)
         if !manager.fileExists(atPath: readmePath) {
             try readme.write(toFile: readmePath, atomically: true, encoding: .utf8)
-            created.append("LÉEME.md")
+            created.append(readmeName)
         }
         return created
     }
@@ -154,7 +158,7 @@ public enum VaultGuide {
             return .alreadyGit
         }
         guard run("/usr/bin/git", ["-C", root, "init", "-q"]) == 0 else {
-            return .failed("git init falló. ¿Tienes las herramientas de línea de comandos de Xcode?")
+            return .failed(L("git init failed. Do you have Xcode's command line tools?"))
         }
         try? gitignore.write(toFile: (root as NSString).appendingPathComponent(".gitignore"),
                              atomically: true, encoding: .utf8)

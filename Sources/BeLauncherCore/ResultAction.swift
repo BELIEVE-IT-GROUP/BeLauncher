@@ -7,10 +7,26 @@ import Foundation
 public struct ResultAction: Sendable, Equatable, Identifiable {
     public enum Section: String, Sendable, CaseIterable {
         case primary = ""
-        case copy = "Copiar"
-        case ai = "Con IA"
-        case manage = "Gestionar"
-        case danger = "Peligro"
+        case copy = "copy"
+        case ai = "ai"
+        case manage = "manage"
+        case danger = "danger"
+
+        /// The heading the person reads above the group.
+        ///
+        /// Separate from the raw value on purpose. The raw value used to be the Spanish heading
+        /// itself, which made the identifier and the label the same string: translating the label
+        /// would have silently renamed the identifier that Settings parses out of a stored
+        /// preference. An identifier is not copy.
+        public var label: String {
+            switch self {
+            case .primary: ""
+            case .copy: L("Copy")
+            case .ai: L("With AI")
+            case .manage: L("Manage")
+            case .danger: L("Danger")
+            }
+        }
     }
 
     public let id: String
@@ -139,30 +155,30 @@ public enum ActionRegistry {
         switch result.kind {
         case .application:
             return [
-                ResultAction(id: "open", title: "Abrir", symbol: "arrow.up.forward.app",
+                ResultAction(id: "open", title: L("Open"), symbol: "arrow.up.forward.app",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "reveal", title: "Mostrar en Finder", symbol: "folder",
+                ResultAction(id: "reveal", title: L("Show in Finder"), symbol: "folder",
                              shortcut: .commandEnter, intent: .reveal(path: result.payload)),
-                ResultAction(id: "copy-path", title: "Copiar ruta", symbol: "doc.on.doc",
+                ResultAction(id: "copy-path", title: L("Copy the path"), symbol: "doc.on.doc",
                              shortcut: .copyPath, section: .copy, intent: .copy(text: result.payload)),
-                ResultAction(id: "alias", title: "Asignar un alias", symbol: "textformat.abc",
+                ResultAction(id: "alias", title: L("Give it an alias"), symbol: "textformat.abc",
                              section: .manage,
                              intent: .assignAlias(target: result.payload, suggestion: result.title)),
             ]
 
         case .file:
             return [
-                ResultAction(id: "open", title: "Abrir", symbol: "arrow.up.forward.app",
+                ResultAction(id: "open", title: L("Open"), symbol: "arrow.up.forward.app",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "reveal", title: "Mostrar en Finder", symbol: "folder",
+                ResultAction(id: "reveal", title: L("Show in Finder"), symbol: "folder",
                              shortcut: .commandEnter, intent: .reveal(path: result.payload)),
-                ResultAction(id: "quicklook", title: "Vista rápida", symbol: "eye",
+                ResultAction(id: "quicklook", title: L("Quick look"), symbol: "eye",
                              shortcut: .quickLook, intent: .quickLook(path: result.payload)),
-                ResultAction(id: "open-with", title: "Abrir con…", symbol: "square.and.arrow.up",
+                ResultAction(id: "open-with", title: L("Open with…"), symbol: "square.and.arrow.up",
                              shortcut: .openWith, intent: .openWith(path: result.payload)),
-                ResultAction(id: "copy-path", title: "Copiar ruta", symbol: "doc.on.doc",
+                ResultAction(id: "copy-path", title: L("Copy the path"), symbol: "doc.on.doc",
                              shortcut: .copyPath, section: .copy, intent: .copy(text: result.payload)),
-                ResultAction(id: "trash", title: "Mover a la papelera", symbol: "trash",
+                ResultAction(id: "trash", title: L("Move to the trash"), symbol: "trash",
                              shortcut: .delete, section: .danger, isDestructive: true,
                              intent: .moveToTrash(path: result.payload)),
             ]
@@ -171,49 +187,49 @@ public enum ActionRegistry {
             return [
                 ResultAction(id: "paste", title: "Pegar", symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "copy", title: "Copiar", symbol: "doc.on.doc",
+                ResultAction(id: "copy", title: L("Copy"), symbol: "doc.on.doc",
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
-                ResultAction(id: "remember", title: "Recordar esto", symbol: "brain",
+                ResultAction(id: "remember", title: L("Remember this"), symbol: "brain",
                              shortcut: .remember,
                              section: .manage,
                              intent: .remember(text: result.payload, source: result.subtitle)),
                 ResultAction(id: "pin", title: "Fijar arriba", symbol: "pin",
                              section: .manage, intent: .setPinned(true, clip: result.recordID)),
-                ResultAction(id: "as-snippet", title: "Guardar como snippet", symbol: "text.quote",
+                ResultAction(id: "as-snippet", title: L("Save as a snippet"), symbol: "text.quote",
                              shortcut: .save, section: .manage,
                              intent: .saveClipAsSnippet(text: result.payload)),
-                ResultAction(id: "delete", title: "Borrar del historial", symbol: "trash",
+                ResultAction(id: "delete", title: L("Delete from the history"), symbol: "trash",
                              shortcut: .delete, section: .danger, isDestructive: true,
                              intent: .deleteClip(id: result.recordID)),
             ]
 
         case .snippet:
             return [
-                ResultAction(id: "copy-expanded", title: "Copiar expandido", symbol: "doc.on.clipboard",
+                ResultAction(id: "copy-expanded", title: L("Copy it expanded"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "settings", title: "Editar en Ajustes", symbol: "gearshape",
+                ResultAction(id: "settings", title: L("Edit in Settings"), symbol: "gearshape",
                              section: .manage, intent: .openSettings),
-                ResultAction(id: "delete", title: "Borrar snippet", symbol: "trash",
+                ResultAction(id: "delete", title: L("Delete the snippet"), symbol: "trash",
                              shortcut: .delete, section: .danger, isDestructive: true,
                              intent: .deleteSnippet(id: result.recordID)),
             ]
 
         case .workflow:
             var actions = [
-                ResultAction(id: "run", title: result.payload.isEmpty ? "Completar palabra clave" : "Abrir",
+                ResultAction(id: "run", title: result.payload.isEmpty ? L("Complete the keyword") : L("Open"),
                              symbol: "bolt.horizontal", shortcut: .enter, intent: .run),
             ]
             if let completion = result.completion {
-                actions.append(ResultAction(id: "complete", title: "Completar palabra clave",
+                actions.append(ResultAction(id: "complete", title: L("Complete the keyword"),
                                             symbol: "arrow.right.to.line", shortcut: .tab,
                                             intent: .completeKeyword(completion)))
             }
             if !result.payload.isEmpty {
-                actions.append(ResultAction(id: "copy-url", title: "Copiar enlace", symbol: "link",
+                actions.append(ResultAction(id: "copy-url", title: L("Copy the link"), symbol: "link",
                                             shortcut: .copy, section: .copy,
                                             intent: .copy(text: result.payload)))
             }
-            actions.append(ResultAction(id: "delete", title: "Borrar workflow", symbol: "trash",
+            actions.append(ResultAction(id: "delete", title: L("Delete the workflow"), symbol: "trash",
                                         shortcut: .delete, section: .danger, isDestructive: true,
                                         intent: .deleteWorkflow(id: result.recordID)))
             return actions
@@ -222,24 +238,24 @@ public enum ActionRegistry {
             return [
                 ResultAction(id: "run", title: "Ejecutar flujo", symbol: "play.fill",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "settings", title: "Editar pasos", symbol: "gearshape",
+                ResultAction(id: "settings", title: L("Edit the steps"), symbol: "gearshape",
                              section: .manage, intent: .openSettings),
-                ResultAction(id: "delete", title: "Borrar flujo", symbol: "trash",
+                ResultAction(id: "delete", title: L("Delete the flow"), symbol: "trash",
                              shortcut: .delete, section: .danger, isDestructive: true,
                              intent: .deleteFlow(id: result.recordID)),
             ]
 
         case .bookmark:
             return [
-                ResultAction(id: "open", title: "Abrir enlace", symbol: "safari",
+                ResultAction(id: "open", title: L("Open the link"), symbol: "safari",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "copy-url", title: "Copiar enlace", symbol: "link",
+                ResultAction(id: "copy-url", title: L("Copy the link"), symbol: "link",
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
             ]
 
         case .mission:
             return [
-                ResultAction(id: "plan", title: "Ver el plan", symbol: "list.bullet.rectangle",
+                ResultAction(id: "plan", title: L("See the plan"), symbol: "list.bullet.rectangle",
                              shortcut: .enter, intent: .run),
             ]
 
@@ -253,35 +269,35 @@ public enum ActionRegistry {
             // Quitting politely is Enter, because it lets the app save and is right almost
             // always. Forcing is deliberately not on any single key: it loses unsaved work.
             return [
-                ResultAction(id: "quit", title: "Cerrar la app", symbol: "xmark.circle",
+                ResultAction(id: "quit", title: L("Close the app"), symbol: "xmark.circle",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "force-quit", title: "Forzar la salida (pierde lo no guardado)",
+                ResultAction(id: "force-quit", title: L("Force quit (loses what is unsaved)"),
                              symbol: "exclamationmark.octagon", section: .danger,
                              intent: .forceQuit(pid: result.payload)),
-                ResultAction(id: "activity", title: "Verlo en Monitor de Actividad",
+                ResultAction(id: "activity", title: L("See it in Activity Monitor"),
                              symbol: "chart.bar", intent: .openActivityMonitor),
             ]
 
         case .answer:
             return [
-                ResultAction(id: "copy", title: "Copiar la respuesta", symbol: "doc.on.clipboard",
+                ResultAction(id: "copy", title: L("Copy the answer"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .copy(text: result.payload)),
-                ResultAction(id: "remember", title: "Guardar como memoria", symbol: "brain",
+                ResultAction(id: "remember", title: L("Keep as a memory"), symbol: "brain",
                              shortcut: .remember, section: .manage,
                              intent: .remember(text: result.payload, source: result.title)),
             ]
 
         case .memory:
             return [
-                ResultAction(id: "copy", title: "Copiar la frase", symbol: "doc.on.clipboard",
+                ResultAction(id: "copy", title: L("Copy the sentence"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .run),
             ]
 
         case .recall:
             return [
-                ResultAction(id: "copy", title: "Copiar el pasaje", symbol: "doc.on.clipboard",
+                ResultAction(id: "copy", title: L("Copy the passage"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "remember", title: "Guardarlo como memoria",
+                ResultAction(id: "remember", title: L("Keep it as a memory"),
                              symbol: "brain", shortcut: .remember, section: .manage,
                              intent: .remember(text: result.payload, source: result.subtitle)),
             ]
@@ -299,13 +315,13 @@ public enum ActionRegistry {
             return [
                 ResultAction(id: "run", title: "Ejecutar atajo", symbol: "play.fill",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "copy-name", title: "Copiar nombre", symbol: "doc.on.doc",
+                ResultAction(id: "copy-name", title: L("Copy the name"), symbol: "doc.on.doc",
                              shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
             ]
 
         case .window:
             return [
-                ResultAction(id: "arrange", title: "Colocar la ventana", symbol: "macwindow",
+                ResultAction(id: "arrange", title: L("Place the window"), symbol: "macwindow",
                              shortcut: .enter, intent: .run),
             ]
 
@@ -317,9 +333,9 @@ public enum ActionRegistry {
 
         case .calculation:
             return [
-                ResultAction(id: "copy", title: "Copiar resultado", symbol: "doc.on.clipboard",
+                ResultAction(id: "copy", title: L("Copy the result"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .run),
-                ResultAction(id: "paste", title: "Pegar en la app anterior", symbol: "arrow.down.doc",
+                ResultAction(id: "paste", title: L("Paste into the previous app"), symbol: "arrow.down.doc",
                              shortcut: .commandEnter, intent: .paste(text: result.payload)),
             ]
         }

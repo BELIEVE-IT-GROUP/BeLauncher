@@ -78,9 +78,9 @@ public struct Episode: Sendable, Equatable, Identifiable {
             .map(\.title)
         var seen = Set<String>()
         let unique = named.filter { seen.insert($0).inserted }
-        guard !unique.isEmpty else { return "Sin título" }
+        guard !unique.isEmpty else { return L("No title") }
         let head = unique.prefix(3).joined(separator: ", ")
-        return unique.count > 3 ? head + " y \(unique.count - 3) más" : head
+        return unique.count > 3 ? head + L(" and %@ more", String(unique.count - 3)) : head
     }
 }
 

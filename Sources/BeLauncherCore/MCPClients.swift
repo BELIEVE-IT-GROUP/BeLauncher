@@ -64,9 +64,9 @@ public enum MCPSetup {
         public var message: String {
             switch self {
             case .connected(let name):
-                "\(name) ya puede consultar tu cerebro. Reinícialo para que lo vea."
+                L("%@ can consult your brain now. Restart it so it notices.", name)
             case .alreadyConnected(let name):
-                "\(name) ya estaba conectado."
+                L("%@ was already connected.", name)
             case .failed(let why):
                 why
             }
@@ -115,11 +115,9 @@ public enum MCPSetupError: Error, Equatable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .unreadable(let name):
-            "El archivo de configuración de \(name) tiene algo que no es JSON válido. Ábrelo y "
-            + "arréglalo, o bórralo y vuelve a intentarlo: no lo voy a sobrescribir, porque ahí "
-            + "puede haber otras conexiones tuyas."
+            L("%@'s configuration file has something in it that is not valid JSON. Open it and fix it, or delete it and try again: I will not overwrite it, because there may be other connections of yours in there.", name)
         case .notWritable(let name):
-            "No se pudo escribir la configuración de \(name)."
+            L("%@'s configuration could not be written.", name)
         }
     }
 }

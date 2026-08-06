@@ -265,7 +265,7 @@ public enum CorpusBuilder {
     /// dozens of questions asked inside one piece of work.
     public static func signals(fromExchanges exchanges: [Conversations.Exchange]) -> [Episode.Signal] {
         exchanges.map { exchange in
-            let subject = exchange.workingDirectory.isEmpty ? "conversación" : exchange.workingDirectory
+            let subject = exchange.workingDirectory.isEmpty ? L("conversation") : exchange.workingDirectory
             let title = String(exchange.asked.prefix(70)).replacingOccurrences(of: "\n", with: " ")
             return Episode.Signal(at: exchange.at, kind: .conversation, subject: subject, title: title)
         }
@@ -380,7 +380,7 @@ public enum CorpusBuilder {
             // that cited it in the meantime cited half a story.
             let settled = EpisodeBuilder.isSettled(episode, now: input.now)
             let worth = Relevance.isWorthIndexing(signals)
-            let why = settled ? Relevance.explain(signals) : "Todavía está pasando; se indexa al terminar."
+            let why = settled ? Relevance.explain(signals) : L("It is still going on; it gets indexed when it ends.")
 
             return Corpus.Considered(episode: episode, signals: signals, score: score,
                                      isIndexed: settled && worth, why: why)

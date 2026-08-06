@@ -98,7 +98,7 @@ struct AgentDriverTests {
     func emptyPlanFails() {
         let failed = AgentDriver.afterPlanning(Self.run())
         #expect(failed.stage == .failed)
-        #expect(failed.failure?.contains("Mejor decirlo que inventarlo") == true)
+        #expect(failed.failure?.contains("Better to say so") == true)
     }
 
     @Test("approving only works from the stage that was waiting for it")
@@ -200,7 +200,7 @@ struct CanvasTests {
         let text = canvas.render()
         #expect(text.contains("## Problema"))
         #expect(text.contains("No venden online."))
-        #expect(text.contains("_(vacío)_"), "un hueco se ve como hueco, no se disimula")
+        #expect(text.contains("_(empty)_"), "un hueco se ve como hueco, no se disimula")
     }
 }
 
@@ -233,7 +233,7 @@ struct OutcomePackTests {
         let instruction = pack.instruction(with: "para Nike")
         #expect(instruction.contains("directo, sin adjetivos"))
         #expect(instruction.contains("para Nike"))
-        #expect(instruction.contains("obligatorias"))
+        #expect(instruction.contains("not optional"))
     }
 
     @Test("a pack survives a round trip through a file")
@@ -337,8 +337,8 @@ struct MissionTrayTests {
                                     label: "Recuperar el portapapeles")]
         )
         let receipt = mission.receipt()
-        for expected in ["## Plan", "## De dónde salió", "## Qué hizo", "## Coste",
-                         "## Permisos usados", "## Se puede deshacer", "## Resultado"] {
+        for expected in ["## Plan", "## Where it came from", "## What it did", "## Cost",
+                         "## Permissions used", "## Can be undone", "## Result"] {
             #expect(receipt.contains(expected), "al recibo le falta \(expected)")
         }
         #expect(receipt.contains("1200 tokens"))
@@ -347,7 +347,7 @@ struct MissionTrayTests {
     @Test("a local model costs nothing, and the receipt says so plainly")
     func localCostsNothing() {
         let mission = TrayMission(intent: "x", state: .completed)
-        #expect(mission.receipt().contains("se hizo con un modelo local"))
+        #expect(mission.receipt().contains("done with a local model"))
     }
 }
 
@@ -476,7 +476,7 @@ struct OperatingModelTests {
                 "una preferencia a medias dirigiendo el trabajo es peor que ninguna")
 
         let settled = Trait(name: "writing.length", value: "corto", confidence: 0.9, observations: 6)
-        #expect(OperatingModel.systemPrompt(from: [settled]).contains("breve"))
+        #expect(OperatingModel.systemPrompt(from: [settled]).contains("short"))
     }
 
     @Test("every trait can be explained in a sentence the person would recognise")

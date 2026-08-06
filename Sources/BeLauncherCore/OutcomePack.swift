@@ -3,7 +3,7 @@ import Foundation
 /// A store of outcomes, not of plugins.
 ///
 /// "Install the Google Calendar extension" asks a person to know which tool solves their problem
-/// and how to wire it. "Prepárame para cualquier reunión" asks them to know what they want. The
+/// and how to wire it. L("Get me ready for any meeting") asks them to know what they want. The
 /// second is the only one an ordinary user can answer, and it is the one place where a launcher
 /// with agents can beat a launcher with a plugin directory.
 ///
@@ -69,9 +69,9 @@ public struct OutcomePack: Sendable, Equatable, Identifiable, Codable {
     /// This is what makes a team pack worth having: without it, "prepara una propuesta" produces
     /// the model's idea of a proposal instead of yours.
     public func instruction(with brief: String) -> String {
-        var text = instruction.isEmpty ? "Produce el resultado pedido." : instruction
+        var text = instruction.isEmpty ? "Produce the result that was asked for." : instruction
         if !rules.isEmpty {
-            text += "\n\nReglas de la casa, obligatorias:\n"
+            text += "\n\nHouse rules, not optional:\n"
             text += rules.map { "- \($0.name): \($0.value)" }.joined(separator: "\n")
         }
         if !brief.isEmpty {
@@ -89,11 +89,11 @@ public enum PackError: Error, Equatable, CustomStringConvertible {
     public var description: String {
         switch self {
         case .unsupportedVersion(let version):
-            "Este paquete lo escribió una versión más nueva (formato \(version))."
+            L("This package was written by a newer version (format %@).", String(version))
         case .malformed:
-            "El archivo no es un paquete de BeLauncher."
+            L("The file is not a BeLauncher package.")
         case .verbTaken(let verb):
-            "Ya tienes un comando /\(verb). Cambia el nombre de uno de los dos."
+            L("You already have a /%@ command. Rename one of the two.", verb)
         }
     }
 }
@@ -105,48 +105,46 @@ extension OutcomePack {
     /// An outcome marketplace with nothing in it teaches people the feature is not for them. These
     /// are also the worked examples someone copies to write their own.
     public static let builtIn: [OutcomePack] = [
-        .init(id: "prepare-any-meeting", name: "Prepárame para cualquier reunión",
-              outcome: "Reúne quién viene, qué se decidió la última vez y qué está pendiente, y te "
-                     + "deja un guion antes de entrar.",
+        .init(id: "prepare-any-meeting", name: L("Get me ready for any meeting"),
+              outcome: L("It gathers who is coming, what was decided last time and what is still open, and leaves you a script before you walk in."),
               verb: "prepare", symbol: "person.2",
               reads: [.calendar, .brain, .workGraph], canvasTemplate: "meeting-prep",
               author: "BeLauncher"),
 
-        .init(id: "close-my-day", name: "Cierra mi día",
-              outcome: "Repasa lo que hiciste, saca lo que quedó pendiente y lo guarda en tu cerebro.",
+        .init(id: "close-my-day", name: L("Close my day"),
+              outcome: L("It goes back over what you did, pulls out what was left open, and keeps it in your brain."),
               verb: "cierre", symbol: "moon",
               reads: [.workGraph, .brain, .clipboard],
-              instruction: "Repasa el trabajo del día y devuelve: qué se cerró, qué quedó abierto y "
-                         + "qué habría que decidir mañana. Sé breve y concreto.",
+              instruction: "Go back over the day's work and return: what closed, what stayed open and "
+                         + "what should be decided tomorrow. Be short and concrete.",
               author: "BeLauncher"),
 
-        .init(id: "follow-up", name: "Haz seguimiento de una propuesta",
-              outcome: "Escribe el seguimiento con el tono correcto y sabiendo dónde quedó la cosa.",
+        .init(id: "follow-up", name: L("Follow up on a proposal"),
+              outcome: L("It writes the follow-up in the right tone, knowing where things were left."),
               verb: "followup", symbol: "arrowshape.turn.up.right",
               reads: [.brain, .workGraph, .clipboard],
-              instruction: "Redacta un seguimiento corto y directo. Sin disculpas de relleno, sin "
-                         + "«espero que estés bien». Recuerda el último acuerdo y propón un paso "
+              instruction: "Write a short, direct follow-up. No filler apologies, no "
+                         + "“hope you are well”. Recall the last agreement and propose one "
                          + "concreto.",
               author: "BeLauncher"),
 
-        .init(id: "call-to-actions", name: "Convierte una llamada en acciones",
-              outcome: "De las notas en crudo saca decisiones y compromisos, y te los propone uno "
-                     + "a uno para el cerebro.",
-              verb: "acciones", symbol: "checklist",
+        .init(id: "call-to-actions", name: L("Turn a call into actions"),
+              outcome: L("From raw notes it pulls out decisions and commitments, and offers them to you one at a time for the brain."),
+              verb: L("actions"), symbol: "checklist",
               reads: [.clipboard, .brain],
-              instruction: "Saca del texto las decisiones tomadas y los compromisos adquiridos. "
-                         + "Una línea por cosa, con responsable y fecha si aparecen. Nada de "
+              instruction: "Pull the decisions taken and the commitments made out of the text. "
+                         + "One line each, with owner and date if they appear. No "
                          + "resumen general.",
               author: "BeLauncher"),
 
-        .init(id: "new-client", name: "Alta de un cliente nuevo",
-              outcome: "Ficha, accesos, entregables, carpeta y agenda de arranque, en una pasada.",
+        .init(id: "new-client", name: L("Onboard a new client"),
+              outcome: L("Profile, access, deliverables, folder and a kick-off agenda, in one pass."),
               verb: "alta", symbol: "person.badge.plus",
               reads: [.brain, .clipboard], canvasTemplate: "onboarding",
               author: "BeLauncher"),
 
-        .init(id: "campaign", name: "Monta una campaña",
-              outcome: "Audiencia, oferta, concepto, landing, anuncios, email y tareas.",
+        .init(id: "campaign", name: L("Put a campaign together"),
+              outcome: L("Audience, offer, concept, landing page, ads, email and tasks."),
               verb: "campana", symbol: "megaphone",
               reads: [.brain, .clipboard], canvasTemplate: "campaign",
               author: "BeLauncher"),

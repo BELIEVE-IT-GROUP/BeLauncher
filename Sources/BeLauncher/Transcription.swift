@@ -39,8 +39,7 @@ enum Transcription {
 
     /// Said plainly for the settings screen, since "no disponible" invites a support ticket.
     static var unsupportedReason: String {
-        "La transcripción en local necesita macOS 26 o posterior. En esta versión de macOS no hay "
-        + "un modelo de voz que funcione sin enviar el audio fuera del Mac, así que no se activa."
+        L("On-device transcription needs macOS 26 or later. This version of macOS has no speech model that works without sending the audio off the Mac, so it stays off.")
     }
 
     // MARK: - Which language
@@ -211,11 +210,10 @@ enum Transcription {
             switch self {
             case .tooOld: Transcription.unsupportedReason
             case .noLanguage:
-                "No hay un modelo de voz para tu idioma en este Mac."
+                L("There is no speech model for your language on this Mac.")
             case .untrustworthy:
-                "El modelo de voz está instalado a medias y devuelve texto inventado, así que no "
-                + "se guarda nada. Descarga el idioma desde Ajustes para arreglarlo."
-            case .empty: "No se entendió nada en ese audio."
+                L("The speech model is half installed and returns invented text, so nothing is kept. Download the language from Settings to fix it.")
+            case .empty: L("Nothing could be made out in that audio.")
             }
         }
     }
