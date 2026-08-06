@@ -9,6 +9,7 @@
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Calculator.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Canvas.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Capture.swift
+/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Conversations.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Database.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Diagnostics.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Distillation.swift
@@ -43,6 +44,7 @@
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Onboarding.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/OperatingModel.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/OutcomePack.swift
+/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Privacy.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Processes.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Pulse.swift
 /Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/RecallResults.swift

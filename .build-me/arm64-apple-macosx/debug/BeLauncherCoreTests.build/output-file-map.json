@@ -142,6 +142,13 @@
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests.dia"
   },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.dia"
+  },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PulseTests.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PulseTests.d",
     "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PulseTests.swift.o",

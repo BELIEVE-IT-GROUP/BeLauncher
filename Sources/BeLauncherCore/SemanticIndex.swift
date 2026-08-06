@@ -16,6 +16,9 @@ public struct IndexedSource: Sendable, Equatable, Hashable, Codable {
         case clip
         /// A note written from the launcher.
         case note
+        /// Something asked to an assistant, and what it answered. The reasoning behind a piece of
+        /// work lives here and almost never in the file it produced.
+        case conversation
 
         public var label: String {
             switch self {
@@ -23,6 +26,7 @@ public struct IndexedSource: Sendable, Equatable, Hashable, Codable {
             case .node: "Trabajo"
             case .clip: "Portapapeles"
             case .note: "Nota"
+            case .conversation: "Conversación"
             }
         }
     }

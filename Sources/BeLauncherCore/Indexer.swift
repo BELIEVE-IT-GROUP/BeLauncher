@@ -138,7 +138,7 @@ extension Store {
                 }
                 .prefix(limit)
                 .map { IndexedSource(kind: .node, id: $0.id) }
-        case .clip, .note:
+        case .clip, .note, .conversation:
             return []
         }
     }
