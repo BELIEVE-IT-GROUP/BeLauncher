@@ -21,6 +21,12 @@ enum SystemCommandRunner {
         lastFailure = nil
 
         switch command.kind {
+        case .openBrain:
+            // Handled by the app before it ever reaches here: it opens a window of ours rather
+            // than asking macOS for anything. Present so the switch stays exhaustive and a future
+            // caller does not get silence.
+            return nil
+
         case .lockScreen:
             // The same path the Apple menu uses; no Automation prompt.
             shell("/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession", ["-suspend"])

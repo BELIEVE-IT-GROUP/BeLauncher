@@ -69,7 +69,7 @@ final class ActivationModel {
             if freed {
                 activate()
             } else {
-                phase = .failed("No pudimos liberar ese equipo. Intenta de nuevo en un momento.")
+                phase = .failed(L("We could not release that Mac. Try again in a moment."))
             }
         }
     }
@@ -85,9 +85,9 @@ struct ActivationView: View {
                 AppIconView(side: 88)
                     .padding(.top, 30)
                 VStack(spacing: 5) {
-                    Text("Activa BeLauncher")
+                    Text(L("Activate BeLauncher"))
                         .font(.system(size: 21, weight: .semibold))
-                    Text("Licencia de por vida · hasta 3 Macs")
+                    Text(L("Lifetime licence · up to 3 Macs"))
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -127,8 +127,7 @@ struct ActivationView: View {
                 .disabled(!model.canSubmit)
                 .padding(.top, 2)
 
-                Text("La clave llega por correo al comprar. Se guarda en tu Llavero y BeLauncher "
-                     + "funciona sin conexión a partir de aquí.")
+                Text(L("The key arrives by email when you buy. It is kept in your Keychain and BeLauncher works offline from here on."))
                     .font(.system(size: 10.5))
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -141,13 +140,13 @@ struct ActivationView: View {
     @ViewBuilder
     private func limitSection(devices: [LicenseDevice], maxDevices: Int) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text("Esta licencia ya está en \(maxDevices) Macs. Libera uno para activar este.")
+            Text(L("This licence is already on %@ Macs. Release one to activate this.", String(maxDevices)))
                 .font(.system(size: 11.5))
                 .foregroundStyle(.orange)
                 .fixedSize(horizontal: false, vertical: true)
 
             if devices.contains(where: { !$0.canBeReleased }) {
-                Text("Para liberar uno, ábrelo en ese Mac y usa Ajustes › Desactivar en este equipo.")
+                Text(L("To release one, open it on that Mac and use Settings › Deactivate this Mac."))
                     .font(.system(size: 10.5))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -165,7 +164,7 @@ struct ActivationView: View {
                     }
                     Spacer()
                     if device.canBeReleased {
-                        Button("Liberar este Mac") { model.release(device) }
+                        Button(L("Release this Mac")) { model.release(device) }
                             .controlSize(.small)
                     }
                 }

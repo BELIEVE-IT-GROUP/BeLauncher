@@ -110,13 +110,13 @@ struct PromisedTests {
         let promise = MemoryObject(level: .committed, kind: .commitment,
                                    statement: "Enviar a Andrés", validUntil: yesterday)
         let answer = WorkQuery.promised(to: "Andrés", nodes: [], edges: [], memories: [promise])
-        #expect(answer.body.contains("vencido"))
+        #expect(answer.body.contains("overdue"))
     }
 
     @Test("nothing pending says so plainly instead of inventing a summary")
     func nothingPending() {
         let answer = WorkQuery.promised(to: "Nadie", nodes: [], edges: [], memories: [])
-        #expect(answer.headline.contains("No hay nada pendiente"))
+        #expect(answer.headline.contains("Nothing outstanding"))
         #expect(answer.nodes.isEmpty)
     }
 
@@ -126,7 +126,7 @@ struct PromisedTests {
                                    statement: "Enviar a Andrés")
         promise.status = .superseded
         let answer = WorkQuery.promised(to: "Andrés", nodes: [], edges: [], memories: [promise])
-        #expect(answer.headline.contains("No hay nada pendiente"))
+        #expect(answer.headline.contains("Nothing outstanding"))
     }
 }
 

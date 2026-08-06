@@ -380,7 +380,10 @@ public final class Store {
         // The strong rule: a token pasted mid-sentence, inside a URL or after an `=` used to
         // be stored happily, and the sweep below could not find it afterwards either.
         guard !SecretGuard.carriesSecret(trimmed) else { return false }
-        guard !excludedApps().contains(sourceApp.lowercased()) else { return false }
+        // excludedFromCapture, not excludedApps: the raw list is empty on a clean install, so on a
+        // fresh Mac a copy out of a password manager was stored. The factory list is the whole
+        // point of shipping one.
+        guard !excludedFromCapture().contains(sourceApp.lowercased()) else { return false }
 
         let resolved = kind ?? Clip.detectKind(trimmed)
         let digest = Digest.sha256(trimmed)

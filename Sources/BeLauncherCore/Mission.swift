@@ -107,18 +107,18 @@ extension LauncherModel.Action {
         case .startTimer(let minutes, _): "Temporizador de \(minutes) min"
         case .arrangeWindow(let layout): "Colocar la ventana: \(layout)"
         case .remember(let text, _): "Proponer memoria: \(text.prefix(40))"
-        case .confirmCommit: "Confirmar una memoria"
-        case .discardCommit: "Descartar una propuesta"
+        case .confirmCommit: L("Confirm a memory")
+        case .discardCommit: L("Discard a proposal")
         case .runFlow(let steps): "Ejecutar un flujo de \(steps.count) pasos"
         case .runVerb(let id, _): "Pedir a la IA: \(id)"
-        case .quickLook: "Vista rápida"
-        case .openWith: "Abrir con otra app"
+        case .quickLook: L("Quick Look")
+        case .openWith: L("Open with another app")
         case .openSettings: "Abrir ajustes"
         case .wait(let seconds): "Esperar \(Int(seconds))s"
         case .assignAlias(_, let suggestion): "Asignar un alias a \(suggestion)"
         case .runMission(let mission): "Ejecutar la misión “\(mission.intent)”"
-        case .missionCancelled: "Misión cancelada"
-        case .cancelAI: "Petición cancelada"
+        case .missionCancelled: L("Mission cancelled")
+        case .cancelAI: L("Request cancelled")
         case .quitProcess(let pid): "Cerrar el proceso \(pid)"
         case .forceQuit(let pid): "Forzar la salida del proceso \(pid)"
         case .stayAwake(let minutes):
@@ -128,7 +128,7 @@ extension LauncherModel.Action {
         case .restoreWorkspace(let name): "Colocar el reparto «\(name)»"
         case .openCanvas(_, let brief): "Abrir un lienzo: \(brief.prefix(40))"
         case .runAgent(let id, _): "Encargar «\(id)»"
-        case .dismiss: "Cerrar la ventana"
+        case .dismiss: L("Close the window")
         }
     }
 }
@@ -177,7 +177,7 @@ public struct MissionReceipt: Sendable, Equatable {
                 if case .moveToTrash(let path) = step.action {
                     return "Recuperar \((path as NSString).lastPathComponent) de la papelera"
                 }
-                if case .confirmCommit = step.action { return "Revertir la memoria confirmada" }
+                if case .confirmCommit = step.action { return L("Undo the confirmed memory") }
                 return nil
             }
         )
@@ -196,7 +196,7 @@ public struct MissionReceipt: Sendable, Equatable {
         var text = ["# \(intent)", "", "Pedido por \(requestedBy)", ""]
         text += lines
         if !changed.isEmpty {
-            text += ["", "Cambió:"] + changed.map { "- \($0)" }
+            text += ["", L("Changed:")] + changed.map { "- \($0)" }
         }
         if !undoable.isEmpty {
             text += ["", "Se puede deshacer:"] + undoable.map { "- \($0)" }
@@ -234,46 +234,58 @@ public enum MissionPlanner {
     /// name of a tool. "Organiza mis descargas", not "abre Finder". The catalogue is closed on
     /// purpose: nine things it does properly beats a universal agent that produces something
     /// plausible for anything and something useful for nothing.
-    public static let outcomes: [Outcome] = [
-        .init(id: "focus", title: "Ponerme a trabajar",
-              triggers: ["enfoque", "concentrar", "focus", "ponerme a trabajar"],
-              describe: { _ in "Silencia, abre lo tuyo y arranca un bloque de trabajo." }),
-        .init(id: "close-day", title: "Cerrar el día",
-              triggers: ["cerrar el dia", "cerrar dia", "close my day"],
-              describe: { _ in "Repasa lo pendiente y guarda lo aprendido." }),
-        .init(id: "capture-meeting", title: "Convertir notas en memoria",
-              triggers: ["guardar notas", "capturar reunion", "capture meeting"],
-              describe: { _ in "Saca decisiones y compromisos de tus notas y los propone." }),
-        .init(id: "tidy-downloads", title: "Ordenar las descargas",
-              triggers: ["ordenar descargas", "limpiar descargas", "organiza mis descargas",
-                         "tidy downloads"],
-              describe: { _ in "Enseña qué hay y te deja moverlo o tirarlo." }),
-        .init(id: "make-proposal", title: "Convertir esto en una propuesta",
-              triggers: ["convierte esto en una propuesta", "haz una propuesta",
-                         "convertir en propuesta", "make a proposal"],
-              describe: { subject in
-                  subject.isEmpty
-                      ? "Monta la propuesta con lo que tengas copiado."
-                      : "Monta la propuesta para \(subject)."
-              }),
-        .init(id: "answer-urgent", title: "Responder lo urgente",
-              triggers: ["responde lo urgente", "responder lo urgente", "que es urgente",
-                         "answer what is urgent"],
-              describe: { _ in "Mira qué está vencido o a punto y te dice por dónde empezar." }),
-        .init(id: "publish-idea", title: "Publicar esta idea",
-              triggers: ["publica esta idea", "publicar esta idea", "publish this"],
-              describe: { _ in "Convierte la nota en algo publicable y te lo deja copiado." }),
-        .init(id: "clean-desktop", title: "Limpiar el escritorio",
-              triggers: ["limpia el escritorio", "limpiar escritorio", "clean desktop"],
-              describe: { _ in "Abre el escritorio para que veas qué sobra." }),
-        .init(id: "start-week", title: "Arrancar la semana",
-              triggers: ["arrancar la semana", "empezar la semana", "start my week"],
-              describe: { _ in "Repasa compromisos abiertos y lo que se está pudriendo." }),
-    ]
+    /// Computed rather than stored so a language chosen after launch reaches these titles. The
+    /// **triggers stay bilingual whatever the interface says** — somebody who switched the menu bar
+    /// to English and still types "enfoque" is not making a mistake, and losing a mission they use
+    /// every morning is not an acceptable price for a language setting.
+    public static var outcomes: [Outcome] {
+        [
+            .init(id: "focus", title: L("Get me working"),
+                  triggers: ["focus", "get me working", "deep work",
+                             "enfoque", "concentrar", "ponerme a trabajar"],
+                  describe: { _ in L("Silences everything, opens your things and starts a block of work.") }),
+            .init(id: "close-day", title: L("Close the day"),
+                  triggers: ["close my day", "close the day", "wrap up",
+                             "cerrar el dia", "cerrar dia"],
+                  describe: { _ in L("Goes over what is left and keeps what you learned.") }),
+            .init(id: "capture-meeting", title: L("Turn notes into memory"),
+                  triggers: ["capture meeting", "save notes", "save my notes",
+                             "guardar notas", "capturar reunion"],
+                  describe: { _ in L("Pulls decisions and commitments out of your notes and proposes them.") }),
+            .init(id: "tidy-downloads", title: L("Tidy up Downloads"),
+                  triggers: ["tidy downloads", "clean downloads", "sort my downloads",
+                             "ordenar descargas", "limpiar descargas", "organiza mis descargas"],
+                  describe: { _ in L("Shows you what is in there and lets you move it or bin it.") }),
+            .init(id: "make-proposal", title: L("Turn this into a proposal"),
+                  triggers: ["make a proposal", "turn this into a proposal", "write a proposal",
+                             "convierte esto en una propuesta", "haz una propuesta",
+                             "convertir en propuesta"],
+                  describe: { subject in
+                      subject.isEmpty
+                          ? L("Builds the proposal from whatever you have copied.")
+                          : L("Builds the proposal for %@.", subject)
+                  }),
+            .init(id: "answer-urgent", title: L("Answer what is urgent"),
+                  triggers: ["answer what is urgent", "what is urgent", "whats urgent",
+                             "responde lo urgente", "responder lo urgente", "que es urgente"],
+                  describe: { _ in L("Looks at what is overdue or nearly due and tells you where to start.") }),
+            .init(id: "publish-idea", title: L("Publish this idea"),
+                  triggers: ["publish this", "publish this idea",
+                             "publica esta idea", "publicar esta idea"],
+                  describe: { _ in L("Turns the note into something publishable and leaves it copied.") }),
+            .init(id: "clean-desktop", title: L("Clear the desktop"),
+                  triggers: ["clean desktop", "clear the desktop", "tidy my desktop",
+                             "limpia el escritorio", "limpiar escritorio"],
+                  describe: { _ in L("Opens the desktop so you can see what is in the way.") }),
+            .init(id: "start-week", title: L("Start the week"),
+                  triggers: ["start my week", "start the week",
+                             "arrancar la semana", "empezar la semana"],
+                  describe: { _ in L("Goes over open commitments and whatever is going stale.") }),
+        ]
+    }
 
     public static func outcome(for intent: String) -> (outcome: Outcome, argument: String)? {
-        let folded = intent.folding(options: [.diacriticInsensitive, .caseInsensitive],
-                                    locale: .current)
+        let folded = Phrases.fold(intent)
         for outcome in outcomes {
             for trigger in outcome.triggers where folded.contains(trigger) {
                 let argument = folded
@@ -294,31 +306,31 @@ public enum MissionPlanner {
         switch outcome.id {
         case "focus":
             steps = [
-                .init(title: "Activar No molestar",
+                .init(title: L("Turn on Do Not Disturb"),
                       action: .systemCommand(SystemCommand.Kind.toggleDoNotDisturb.rawValue)),
-                .init(title: "Temporizador de 50 minutos",
-                      action: .startTimer(minutes: 50, label: "Bloque de enfoque")),
+                .init(title: L("50-minute timer"),
+                      action: .startTimer(minutes: 50, label: L("Focus block"))),
             ]
 
         case "close-day":
             steps = [
-                .init(title: "Sacar lo pendiente de hoy",
+                .init(title: L("Pull out what is left today"),
                       action: .runVerb(id: "extract-tasks", text: clipboard)),
-                .init(title: "Proponerlo como memoria",
-                      action: .remember(text: clipboard, source: "Cierre del día")),
+                .init(title: L("Propose it as a memory"),
+                      action: .remember(text: clipboard, source: L("End of day"))),
             ]
 
         case "capture-meeting":
             steps = [
-                .init(title: "Sacar decisiones y compromisos",
+                .init(title: L("Pull out decisions and commitments"),
                       action: .runVerb(id: "extract-tasks", text: clipboard)),
-                .init(title: "Proponerlas al cerebro",
-                      action: .remember(text: clipboard, source: "Notas de reunión")),
+                .init(title: L("Propose them to the brain"),
+                      action: .remember(text: clipboard, source: L("Meeting notes"))),
             ]
 
         case "tidy-downloads":
             steps = [
-                .init(title: "Abrir Descargas",
+                .init(title: L("Open Downloads"),
                       action: .systemCommand(SystemCommand.Kind.openDownloads.rawValue)),
             ]
 
@@ -326,32 +338,32 @@ public enum MissionPlanner {
             // A proposal is not one answer, it is six pieces, so this opens a canvas rather than
             // producing a wall of text nobody can edit piece by piece.
             steps = [
-                .init(title: "Montar la propuesta",
+                .init(title: L("Build the proposal"),
                       action: .openCanvas(template: "proposal", brief: argument.isEmpty
                           ? clipboard : argument)),
             ]
 
         case "answer-urgent":
             steps = [
-                .init(title: "Mirar qué está vencido o a punto",
+                .init(title: L("Look at what is overdue or nearly due"),
                       action: .runVerb(id: "extract-tasks", text: clipboard)),
             ]
 
         case "publish-idea":
             steps = [
-                .init(title: "Convertirlo en algo publicable",
+                .init(title: L("Turn it into something publishable"),
                       action: .runVerb(id: "publish", text: clipboard)),
             ]
 
         case "clean-desktop":
             steps = [
-                .init(title: "Abrir el escritorio",
+                .init(title: L("Open the desktop"),
                       action: .systemCommand(SystemCommand.Kind.openDesktop.rawValue)),
             ]
 
         case "start-week":
             steps = [
-                .init(title: "Repasar lo que se está pudriendo",
+                .init(title: L("Go over what is going stale"),
                       action: .runVerb(id: "week-review", text: clipboard)),
             ]
 

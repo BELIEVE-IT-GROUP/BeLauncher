@@ -55,8 +55,8 @@ struct MissionTests {
     func focusMission() {
         let mission = try! #require(MissionPlanner.plan("modo enfoque"))
         #expect(mission.steps.count == 2)
-        #expect(mission.summary.contains("No molestar"))
-        #expect(mission.summary.contains("50 minutos"))
+        #expect(mission.summary.contains("Do Not Disturb"))
+        #expect(mission.summary.contains("50-minute"))
     }
 
     @Test("an intent is matched however it is written")

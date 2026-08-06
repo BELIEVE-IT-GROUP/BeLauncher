@@ -336,7 +336,7 @@ struct BrainSearchTests {
         model.query = "precio viejo"
 
         let detail = try! #require(model.detail)
-        #expect(detail.metadata.contains { $0.label == "Vigente" && $0.value == "No" })
+        #expect(detail.metadata.contains { $0.label == "In force" && $0.value == "No" })
     }
 }
 
@@ -475,11 +475,11 @@ struct OnboardingTests {
 
     @Test("the privacy promise names what leaves the Mac")
     func privacy() {
-        for expected in ["licencia", "versión nueva", "proveedor"] {
+        for expected in ["licence", "new version", "provider"] {
             #expect(Onboarding.privacy.localizedCaseInsensitiveContains(expected),
                     "la promesa no menciona \(expected)")
         }
-        #expect(Onboarding.privacy.contains("no tiene cuenta"))
+        #expect(Onboarding.privacy.contains("no account"))
     }
 }
 

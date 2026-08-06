@@ -29,13 +29,15 @@ public enum ModelInstall {
 
     /// The one line that has to justify a 2 GB download. Said once, said honestly: what it is
     /// for, what it costs, and where it stays.
-    public static let pitch = "El cerebro necesita un modelo que entienda significados: son unos "
-        + "2 GB, se queda en tu Mac y no sale nada a internet."
+    public static var pitch: String {
+        L("The brain needs a model that understands meaning: about 2 GB, it stays on your Mac, and nothing goes to the internet.")
+    }
 
     /// What the app is still able to do without this model. Not a footnote — every place that
     /// reports "no hay modelo" has to say this in the same breath, or it reads as broken.
-    public static let wordSearchStillWorks = "Sin este modelo, BeLauncher sigue buscando por "
-        + "palabras exactas y por relaciones: no está roto, solo no entiende sinónimos todavía."
+    public static var wordSearchStillWorks: String {
+        L("Without this model, BeLauncher still searches by exact words and by relations: it is not broken, it just does not understand synonyms yet.")
+    }
 
     // MARK: - What is on the machine
 
@@ -67,9 +69,9 @@ public enum ModelInstall {
         /// application the Homebrew path guarantees does not exist.
         public var title: String {
             switch self {
-            case .installOllama: "Instalar Ollama"
-            case .startOllama: "Poner Ollama en marcha"
-            case .pullModel: "Descargar \(modelName) (~2 GB)"
+            case .installOllama: L("Install Ollama")
+            case .startOllama: L("Get Ollama running")
+            case .pullModel: L("Download %@ (~2 GB)", modelName)
             }
         }
     }
@@ -106,14 +108,13 @@ public enum ModelInstall {
     public static func startFailure(for method: StartMethod) -> String {
         switch method {
         case .openApp:
-            "Ollama no arrancó. Ábrelo desde Aplicaciones y vuelve a intentarlo."
+            L("Ollama did not start. Open it from Applications and try again.")
         case .brewService:
-            "Ollama no arrancó. En una terminal: «brew services start ollama», y vuelve a "
-            + "intentarlo aquí."
+            L("Ollama did not start. In a terminal: “brew services start ollama”, then try again here.")
         case .serveCommand(let path):
-            "Ollama no arrancó. En una terminal: «\(path) serve», y vuelve a intentarlo aquí."
+            L("Ollama did not start. In a terminal: “%@ serve”, then try again here.", path)
         case .notInstalled:
-            "Ollama todavía no está en este Mac. Instálalo primero."
+            L("Ollama is not on this Mac yet. Install it first.")
         }
     }
 
@@ -176,23 +177,22 @@ public enum ModelInstall {
     public static func message(for phase: Phase) -> String {
         return switch phase {
         case .idle:
-            "Todavía no se ha mirado si el modelo está en este Mac."
+            L("Nobody has looked yet at whether the model is on this Mac.")
         case .checking:
-            "Comprobando si el modelo de significado está instalado…"
+            L("Checking whether the meaning model is installed…")
         case .ready(let model):
-            "Listo. La búsqueda por significado usa \(model)."
+            L("Ready. Search by meaning is using %@.", model)
         case .notReady(let state):
-            "\(wordSearchStillWorks) Para activar la búsqueda por significado falta: "
-                + "\(plan(for: state).map(\.title).joined(separator: " → "))."
+            wordSearchStillWorks + " " + L("To switch on search by meaning, what is missing: %@.",
+                                           plan(for: state).map(\.title).joined(separator: " → "))
         case .installingOllama:
-            "Instalando Ollama…"
+            L("Installing Ollama…")
         case .startingOllama:
-            "Poniendo Ollama en marcha…"
+            L("Getting Ollama running…")
         case .downloading(let progress):
             describe(progress)
         case .cancelled:
-            "Descarga cancelada. No se instaló nada y puedes retomarla cuando quieras: lo que ya "
-                + "se había bajado se conserva."
+            L("Download cancelled. Nothing was installed and you can pick it up whenever you like: what came down already is kept.")
         case .insufficientSpace(let free):
             spaceMessage(freeBytes: free)
         case .failed(let reason):
@@ -211,7 +211,7 @@ public enum ModelInstall {
         formatter.countStyle = .file
         let free = formatter.string(fromByteCount: freeBytes)
         let needed = formatter.string(fromByteCount: requiredDiskBytes)
-        return "No caben los \(needed) del modelo: solo quedan \(free) libres en el disco."
+        return L("The model's %1$@ will not fit: only %2$@ is free on the disk.", needed, free)
     }
 
     // MARK: - Reading "ollama pull" as it streams
@@ -334,11 +334,13 @@ public enum ModelInstall {
     /// (`pulling manifest`, `pulling <digest>`, `verifying sha256 digest`, `success`) is not
     /// meant for a person.
     public static func describe(status: String, fraction: Double) -> String {
-        if status.hasPrefix("pulling manifest") { return "Preparando la descarga…" }
-        if status.hasPrefix("pulling") { return "Descargando… \(Int((fraction * 100).rounded()))%" }
-        if status.hasPrefix("verifying") { return "Verificando lo descargado…" }
-        if status == "success" { return "Listo." }
-        return status.isEmpty ? "Descargando…" : status
+        if status.hasPrefix("pulling manifest") { return L("Getting the download ready…") }
+        if status.hasPrefix("pulling") {
+            return L("Downloading… %@%%", String(Int((fraction * 100).rounded())))
+        }
+        if status.hasPrefix("verifying") { return L("Verifying what came down…") }
+        if status == "success" { return L("Done.") }
+        return status.isEmpty ? L("Downloading…") : status
     }
 
     /// The same sentence with the bytes appended, because a percentage on its own cannot be
@@ -351,7 +353,7 @@ public enum ModelInstall {
         let done = formatter.string(fromByteCount: progress.completedBytes)
         let total = formatter.string(
             fromByteCount: max(progress.knownTotalBytes, expectedModelBytes))
-        return "\(headline) (\(done) de \(total))"
+        return L("%1$@ (%2$@ of %3$@)", headline, done, total)
     }
 
     // MARK: - Reading what went wrong
@@ -368,16 +370,15 @@ public enum ModelInstall {
         public var description: String {
             switch self {
             case .noDiskSpace:
-                "No hay espacio suficiente en el disco para terminar la descarga."
+                L("There is not enough room on the disk to finish the download.")
             case .network:
-                "No hay conexión a internet. Revisa la red e inténtalo de nuevo."
+                L("No internet connection. Check the network and try again.")
             case .serverDown:
-                "Ollama no responde. Ponlo en marcha y vuelve a intentarlo."
+                L("Ollama is not answering. Start it and try again.")
             case .modelNotFound(let model):
-                "Ollama respondió, pero no encuentra el modelo «\(model)». Actualiza Ollama: las "
-                + "versiones viejas no conocen este modelo."
+                L("Ollama answered, but it cannot find the model “%@”. Update Ollama: older versions do not know this one.", model)
             case .other(let raw):
-                "La descarga falló: \(raw)"
+                L("The download failed: %@", raw)
             }
         }
 
@@ -390,7 +391,7 @@ public enum ModelInstall {
             switch status {
             case 404: .modelNotFound(model)
             case 502, 503, 504: .serverDown
-            default: .other("Ollama respondió \(status).")
+            default: .other(L("Ollama answered %@.", String(status)))
             }
         }
 

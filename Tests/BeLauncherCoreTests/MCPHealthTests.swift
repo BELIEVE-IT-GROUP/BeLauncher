@@ -109,7 +109,7 @@ struct MCPHealthTests {
         guard case .failed(let reason) = outcome else {
             Issue.record("debía fallar, dio \(outcome)"); return
         }
-        #expect(reason.contains("sin dato real"))
+        #expect(reason.contains("no real datum"))
     }
 
     @Test("la respuesta real de recall sin nada NO cuenta como conectado")
@@ -194,7 +194,7 @@ struct MCPHealthTests {
         guard case .failed(let reason) = outcome else {
             Issue.record("debía fallar, dio \(outcome)"); return
         }
-        #expect(reason.contains("índice"))
+        #expect(reason.contains("index"))
     }
 
     @Test("una llamada que devuelve texto vacío NO cuenta como conectado")
@@ -369,7 +369,7 @@ struct MCPHealthTests {
             toolCall: vacia, echoing: canary.echo
         )
         #expect(report.summary.contains("Cursor"))
-        #expect(report.summary.contains("Una llamada real trae datos"))
+        #expect(report.summary.contains("A real call brings data back"))
     }
 
     // MARK: - JSON malformado no revienta nada
@@ -477,8 +477,8 @@ struct MCPHealthTests {
         let texto = MCPHealth.render([sano, roto])
         #expect(texto.contains("Claude Desktop"))
         #expect(texto.contains("Cursor"))
-        #expect(texto.contains("conectado de verdad"))
-        #expect(texto.contains("no conectado"))
-        #expect(texto.contains("El asistente conoce a BeLauncher"))
+        #expect(texto.contains("really connected"))
+        #expect(texto.contains("not connected"))
+        #expect(texto.contains("The assistant knows about BeLauncher"))
     }
 }

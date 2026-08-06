@@ -10,6 +10,9 @@ public struct SystemCommand: Sendable, Equatable, Identifiable {
     public let kind: Kind
 
     public enum Kind: String, Sendable, Equatable {
+        /// Opens the brain. Not a system action, but it belongs in the same list: it is a thing
+        /// you type a word for and a window appears, which is what this list is.
+        case openBrain
         case lockScreen
         case sleepDisplay
         case sleepMac
@@ -52,48 +55,51 @@ public struct SystemCommand: Sendable, Equatable, Identifiable {
     }
 
     public static let all: [SystemCommand] = [
-        .init(id: "lock", title: "Bloquear pantalla", keywords: ["lock", "bloquear", "candado"],
+        .init(id: "brain", title: L("Your brain"),
+              keywords: ["cerebro", "brain", "grafo", "graph", "memoria", "memory"],
+              symbol: "brain", kind: .openBrain),
+        .init(id: "lock", title: L("Lock the screen"), keywords: ["lock", "bloquear", "candado"],
               symbol: "lock.fill", kind: .lockScreen),
-        .init(id: "sleep-display", title: "Apagar la pantalla", keywords: ["display", "pantalla", "apagar"],
+        .init(id: "sleep-display", title: L("Turn the display off"), keywords: ["display", "pantalla", "apagar"],
               symbol: "display", kind: .sleepDisplay),
-        .init(id: "sleep", title: "Suspender el Mac", keywords: ["sleep", "suspender", "dormir"],
+        .init(id: "sleep", title: L("Put the Mac to sleep"), keywords: ["sleep", "suspender", "dormir"],
               symbol: "powersleep", kind: .sleepMac),
-        .init(id: "screensaver", title: "Salvapantallas", keywords: ["screensaver", "salvapantallas"],
+        .init(id: "screensaver", title: L("Screen saver"), keywords: ["screensaver", "salvapantallas"],
               symbol: "sparkles.tv", kind: .screenSaver),
-        .init(id: "dark-mode", title: "Cambiar modo claro/oscuro", keywords: ["dark", "oscuro", "claro", "tema"],
+        .init(id: "dark-mode", title: L("Switch light or dark mode"), keywords: ["dark", "oscuro", "claro", "tema"],
               symbol: "circle.lefthalf.filled", kind: .toggleDarkMode),
-        .init(id: "dnd", title: "Concentración: no molestar", keywords: ["dnd", "molestar", "focus", "silencio"],
+        .init(id: "dnd", title: L("Focus: do not disturb"), keywords: ["dnd", "molestar", "focus", "silencio"],
               symbol: "moon.fill", kind: .toggleDoNotDisturb),
-        .init(id: "empty-trash", title: "Vaciar la papelera", keywords: ["trash", "papelera", "vaciar"],
+        .init(id: "empty-trash", title: L("Empty the Trash"), keywords: ["trash", "papelera", "vaciar"],
               symbol: "trash", kind: .emptyTrash),
-        .init(id: "open-trash", title: "Abrir la papelera", keywords: ["trash", "papelera"],
+        .init(id: "open-trash", title: L("Open the Trash"), keywords: ["trash", "papelera"],
               symbol: "trash.circle", kind: .openTrash),
-        .init(id: "downloads", title: "Abrir Descargas", keywords: ["downloads", "descargas"],
+        .init(id: "downloads", title: L("Open Downloads"), keywords: ["downloads", "descargas"],
               symbol: "arrow.down.circle", kind: .openDownloads),
-        .init(id: "desktop-folder", title: "Abrir la carpeta Escritorio",
+        .init(id: "desktop-folder", title: L("Open the Desktop folder"),
               keywords: ["escritorio", "desktop folder", "carpeta escritorio"],
               symbol: "menubar.dock.rectangle", kind: .openDesktop),
-        .init(id: "home", title: "Abrir carpeta personal", keywords: ["home", "personal", "casa"],
+        .init(id: "home", title: L("Open your home folder"), keywords: ["home", "personal", "casa"],
               symbol: "house", kind: .openHome),
-        .init(id: "desktop", title: "Mostrar el escritorio", keywords: ["desktop", "escritorio"],
+        .init(id: "desktop", title: L("Show the desktop"), keywords: ["desktop", "escritorio"],
               symbol: "macwindow.on.rectangle", kind: .showDesktop),
-        .init(id: "mute", title: "Silenciar el sonido", keywords: ["mute", "silenciar", "volumen"],
+        .init(id: "mute", title: L("Mute the sound"), keywords: ["mute", "silenciar", "volumen"],
               symbol: "speaker.slash", kind: .volumeMute),
-        .init(id: "wifi", title: "Activar o desactivar el wifi", keywords: ["wifi", "red"],
+        .init(id: "wifi", title: L("Turn Wi-Fi on or off"), keywords: ["wifi", "red"],
               symbol: "wifi", kind: .toggleWiFi),
-        .init(id: "bluetooth", title: "Activar o desactivar Bluetooth", keywords: ["bluetooth"],
+        .init(id: "bluetooth", title: L("Turn Bluetooth on or off"), keywords: ["bluetooth"],
               symbol: "antenna.radiowaves.left.and.right", kind: .toggleBluetooth),
-        .init(id: "eject", title: "Expulsar discos", keywords: ["eject", "expulsar", "disco"],
+        .init(id: "eject", title: L("Eject disks"), keywords: ["eject", "expulsar", "disco"],
               symbol: "eject", kind: .ejectDisks),
-        .init(id: "logout", title: "Cerrar sesión", keywords: ["logout", "cerrar sesión"],
+        .init(id: "logout", title: L("Log out"), keywords: ["logout", "cerrar sesión"],
               symbol: "rectangle.portrait.and.arrow.right", kind: .logOut),
-        .init(id: "restart", title: "Reiniciar el Mac", keywords: ["restart", "reiniciar"],
+        .init(id: "restart", title: L("Restart the Mac"), keywords: ["restart", "reiniciar"],
               symbol: "arrow.clockwise", kind: .restart),
-        .init(id: "shutdown", title: "Apagar el Mac", keywords: ["shutdown", "apagar"],
+        .init(id: "shutdown", title: L("Shut the Mac down"), keywords: ["shutdown", "apagar"],
               symbol: "power", kind: .shutDown),
-        .init(id: "relaunch", title: "Reiniciar BeLauncher", keywords: ["relaunch", "reiniciar belauncher"],
+        .init(id: "relaunch", title: L("Restart BeLauncher"), keywords: ["relaunch", "reiniciar belauncher"],
               symbol: "arrow.triangle.2.circlepath", kind: .restartBeLauncher),
-        .init(id: "quit", title: "Salir de BeLauncher", keywords: ["quit", "salir"],
+        .init(id: "quit", title: L("Quit BeLauncher"), keywords: ["quit", "salir"],
               symbol: "xmark.circle", kind: .quitBeLauncher),
     ]
 

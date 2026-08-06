@@ -153,7 +153,7 @@ struct RetrieverTests {
         )
         #expect(result.hits.count == 1)
         #expect(result.usedMeaning == false)
-        #expect(result.gap?.contains("embeddings") == true)
+        #expect(result.gap?.contains("embedding model") == true)
     }
 
     @Test("El grafo trae lo relacionado aunque su texto no diga nada del tema")
@@ -205,7 +205,10 @@ struct RetrieverTests {
     func prompt() {
         let hits = [Retrieved(passage: passage("a", "el precio es 1000"), score: 1, route: .meaning)]
         let (system, user) = Retriever.prompt(for: "cuánto cobramos", hits: hits)
-        #expect(system.contains("No consta"))
+        // La regla que no puede perderse al cambiar de idioma: contestar que no consta antes que
+        // rellenar con lo que el modelo se sepa.
+        #expect(system.contains("do not contain the answer"))
+        #expect(system.contains("Do not fill gaps with your own knowledge"))
         #expect(user.contains("[1]"))
         #expect(user.contains("el precio es 1000"))
     }

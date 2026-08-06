@@ -142,7 +142,7 @@ struct DistillationTests {
     func promptCites() {
         let (system, user) = Distillation.prompt(for: [episode("e1"), episode("e2")])
         #expect(system.contains("[n]"))
-        #expect(system.contains("No inventes"))
+        #expect(system.contains("Do not invent"))
         #expect(user.contains("[1]"))
         #expect(user.contains("[2]"))
     }

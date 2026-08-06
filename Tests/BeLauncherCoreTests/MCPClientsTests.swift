@@ -116,7 +116,7 @@ struct WorkspaceTests {
                                   displays: 2)
         let fit = WorkspaceLayouts.fit(workspace, displays: 1, runningBundles: ["com.Notion"])
         // Quien desconecta el portátil debe saberlo, no buscar una ventana en una pantalla que no está.
-        #expect(try #require(fit.warning).contains("2 pantallas"))
+        #expect(try #require(fit.warning).contains("2 displays"))
     }
 
     @Test("con todo en su sitio no se avisa de nada")

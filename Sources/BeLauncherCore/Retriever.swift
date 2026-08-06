@@ -106,10 +106,10 @@ public struct Retriever: Sendable {
         let gap: String?
         if hits.isEmpty {
             gap = queryVector.isEmpty
-                ? "No hay nada con esas palabras. Sin modelo de embeddings no puedo buscar por significado."
-                : "El cerebro no tiene nada sobre esto todavía."
+                ? L("Nothing matches those words, and without an embedding model there is no search by meaning.")
+                : L("The brain knows nothing about this yet.")
         } else if queryVector.isEmpty {
-            gap = "Solo por palabras: falta un modelo de embeddings para buscar por significado."
+            gap = L("Words only. Searching by meaning needs an embedding model.")
         } else {
             gap = nil
         }
@@ -126,12 +126,25 @@ public struct Retriever: Sendable {
     /// failure everyone has seen is a fluent answer built half from the notes and half from the
     /// model's own priors, with no way to tell which sentence is which. An answer that says "no
     /// consta" is worth more than a plausible one.
+    /// The instruction is in English even when the passages are not.
+    ///
+    /// This was written in Spanish and it cost accuracy twice over. Instruction-following is
+    /// measurably better in English on every local model small enough to run on a laptop, and the
+    /// grounding rules are the part that must not be ignored — an instruction to refuse is worth
+    /// nothing if it is the instruction the model paraphrases away. Worse, a Spanish instruction
+    /// over English passages made the model answer in Spanish about English material, which reads
+    /// like a bug to the person who asked.
+    ///
+    /// The language of the *answer* follows the question, not the interface and not this file. A
+    /// bilingual corpus produces bilingual answers, which is correct: someone who asks in Spanish
+    /// about an English meeting wants the answer in Spanish and the quotes as they were written.
     public static func prompt(for question: String, hits: [Retrieved]) -> (system: String, user: String) {
         let system = """
-        Respondes solo con lo que aparece en los pasajes numerados. Cita la fuente con [n] \
-        después de cada afirmación. Si los pasajes no contienen la respuesta, dilo en una \
-        frase: «No consta en el cerebro». No completes con conocimiento propio, no supongas \
-        y no generalices. Español neutro, sin rodeos.
+        Answer using only what appears in the numbered passages. Cite the source with [n] after \
+        every claim. If the passages do not contain the answer, say so in one sentence and stop. \
+        Do not fill gaps with your own knowledge, do not assume, do not generalise. \
+        Write the answer in the same language as the question, and quote passages in the language \
+        they were written in. Be direct.
         """
         var lines: [String] = []
         for (index, hit) in hits.enumerated() {
@@ -139,9 +152,9 @@ public struct Retriever: Sendable {
             lines.append("[\(index + 1)] (\(hit.passage.source.kind.label) · \(hit.passage.title) · \(when))\n\(hit.passage.text)")
         }
         let user = """
-        Pregunta: \(question)
+        Question: \(question)
 
-        Pasajes:
+        Passages:
         \(lines.joined(separator: "\n\n"))
         """
         return (system, user)
@@ -151,9 +164,13 @@ public struct Retriever: Sendable {
 extension DateFormatter {
     /// Fresh each call: DateFormatter is not Sendable and a shared one would race the background
     /// indexer.
+    ///
+    /// The locale follows the interface language. Dates inside a prompt are read by a model, but
+    /// the same stamp is shown next to a citation in the UI, and "5 Aug 2026" next to English text
+    /// is the difference between a product and a port.
     static func retrievalStamp() -> DateFormatter {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_ES")
+        formatter.locale = Loc.language.locale
         formatter.dateFormat = "d MMM yyyy"
         return formatter
     }

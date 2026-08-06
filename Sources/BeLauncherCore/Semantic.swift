@@ -96,9 +96,10 @@ public enum Semantic {
         tokenizer.string = text
         // The language has to be stated. Left to guess, the tokenizer gets a short line wrong in
         // exactly the way it is supposed to prevent: "Hablé con el Sr. García" came back as two
-        // sentences until this line existed. Detection can decline to answer on a fragment, so
-        // Spanish is the floor — it is the language this app is used in.
-        tokenizer.setLanguage(NLLanguageRecognizer.dominantLanguage(for: text) ?? .spanish)
+        // sentences until this line existed. Detection runs per text rather than per install, so a
+        // Spanish note and an English one land correctly in the same index — the floor only applies
+        // to fragments too short to identify.
+        tokenizer.setLanguage(Phrases.language(of: text))
         var result: [String] = []
         var cursor = text.startIndex
 

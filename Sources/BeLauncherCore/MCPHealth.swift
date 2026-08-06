@@ -32,11 +32,11 @@ public enum MCPHealth {
 
         public var title: String {
             switch self {
-            case .configured: "El asistente conoce a BeLauncher"
-            case .launched: "El proceso arranca"
-            case .handshake: "Se completa el saludo inicial"
-            case .toolsListed: "Aparecen las herramientas"
-            case .toolCalled: "Una llamada real trae datos"
+            case .configured: L("The assistant knows about BeLauncher")
+            case .launched: L("The process starts")
+            case .handshake: L("The opening handshake completes")
+            case .toolsListed: L("The tools show up")
+            case .toolCalled: L("A real call brings data back")
             }
         }
     }
@@ -70,7 +70,7 @@ public enum MCPHealth {
     public static func evaluateConfigured(_ configured: Bool) -> Outcome {
         configured
             ? .passed
-            : .failed("No está en la configuración de ese cliente. Pulsa conectar en Ajustes.")
+            : .failed(L("It is not in that client's configuration. Press Connect in Settings."))
     }
 
     public static func evaluateLaunch(_ launch: LaunchOutcome?) -> Outcome {
@@ -79,26 +79,24 @@ public enum MCPHealth {
         case .started:
             return .passed
         case .failed(let why):
-            return .failed("El proceso no arrancó (\(why)). Comprueba que BeLauncher siga "
-                          + "instalado en esa ruta.")
+            return .failed(L("The process did not start (%@). Check that BeLauncher is still installed at that path.", why))
         }
     }
 
     /// `raw` is the JSON-RPC reply to `initialize`, or `nil` if nothing came back in time.
     public static func evaluateHandshake(_ raw: String?) -> Outcome {
         guard let raw else {
-            return .failed("No contestó al saludo inicial (initialize). El proceso puede haberse "
-                          + "colgado o haberse cerrado antes de responder.")
+            return .failed(L("No answer to the opening handshake (initialize). The process may have hung, or closed before replying."))
         }
         guard let envelope = parseEnvelope(raw) else {
-            return .failed("Contestó al saludo con algo que no es JSON válido.")
+            return .failed(L("It answered the handshake with something that is not valid JSON."))
         }
         if let error = envelope["error"] as? [String: Any] {
-            return .failed("El saludo devolvió un error: \(errorMessage(error)).")
+            return .failed(L("The handshake came back with an error: %@.", errorMessage(error)))
         }
         guard let result = envelope["result"] as? [String: Any],
               result["protocolVersion"] != nil else {
-            return .failed("El saludo respondió sin protocolVersion: no habla el protocolo MCP.")
+            return .failed(L("The handshake replied with no protocolVersion: it does not speak MCP."))
         }
         return .passed
     }
@@ -106,21 +104,20 @@ public enum MCPHealth {
     /// `raw` is the JSON-RPC reply to `tools/list`, or `nil` if nothing came back in time.
     public static func evaluateToolsList(_ raw: String?) -> Outcome {
         guard let raw else {
-            return .failed("No contestó al pedir la lista de herramientas (tools/list).")
+            return .failed(L("No answer when asked for the tool list (tools/list)."))
         }
         guard let envelope = parseEnvelope(raw) else {
-            return .failed("La lista de herramientas no es JSON válido.")
+            return .failed(L("The tool list is not valid JSON."))
         }
         if let error = envelope["error"] as? [String: Any] {
-            return .failed("Pedir la lista de herramientas devolvió un error: \(errorMessage(error)).")
+            return .failed(L("Asking for the tool list came back with an error: %@.", errorMessage(error)))
         }
         guard let result = envelope["result"] as? [String: Any],
               let tools = result["tools"] as? [[String: Any]] else {
-            return .failed("La respuesta no trae ninguna lista de herramientas.")
+            return .failed(L("The reply carries no tool list at all."))
         }
         guard !tools.isEmpty else {
-            return .failed("El servidor respondió pero anunció cero herramientas: el asistente no "
-                          + "tendría nada que llamar.")
+            return .failed(L("The server answered but announced zero tools: the assistant would have nothing to call."))
         }
         return .passed
     }
@@ -143,16 +140,16 @@ public enum MCPHealth {
         _ raw: String?, echoing expected: String
     ) -> Outcome {
         guard let raw else {
-            return .failed("No contestó a la llamada de prueba (tools/call).")
+            return .failed(L("No answer to the test call (tools/call)."))
         }
         guard let envelope = parseEnvelope(raw) else {
-            return .failed("La respuesta a la llamada de prueba no es JSON válido.")
+            return .failed(L("The reply to the test call is not valid JSON."))
         }
         if let error = envelope["error"] as? [String: Any] {
-            return .failed("La llamada de prueba devolvió un error: \(errorMessage(error)).")
+            return .failed(L("The test call came back with an error: %@.", errorMessage(error)))
         }
         guard let result = envelope["result"] as? [String: Any] else {
-            return .failed("La respuesta no trae resultado.")
+            return .failed(L("The reply carries no result."))
         }
         let text = contentText(result)
         // The tool's own words, not a paraphrase of them. A probe against an older build answers
@@ -160,24 +157,20 @@ public enum MCPHealth {
         // sends them nowhere.
         if (result["isError"] as? Bool) == true {
             return .failed(text.isEmpty
-                ? "La herramienta se ejecutó pero devolvió un error interno."
-                : "La herramienta se ejecutó pero devolvió un error: «\(text.prefix(120))».")
+                ? L("The tool ran but came back with an internal error.")
+                : L("The tool ran but came back with an error: “%@”.", String(text.prefix(120))))
         }
         guard let content = result["content"] as? [[String: Any]], !content.isEmpty else {
-            return .failed("La herramienta respondió sin contenido: el asistente no recibiría "
-                          + "nada que leer.")
+            return .failed(L("The tool replied with no content: the assistant would have nothing to read."))
         }
         guard !text.isEmpty else {
-            return .failed("La herramienta respondió con el texto vacío.")
+            return .failed(L("The tool replied with empty text."))
         }
         guard !expected.isEmpty else {
-            return .failed("No se pudo dejar el dato de prueba en el índice, así que esta llamada "
-                          + "no demuestra nada. Rehaz el índice en «Estado del cerebro» y vuelve a "
-                          + "comprobar.")
+            return .failed(L("The test datum could not be put into the index, so this call proves nothing. Rebuild the index under “Brain status” and check again."))
         }
         guard text.lowercased().contains(expected.lowercased()) else {
-            return .failed("Contestó, pero sin dato real: dijo «\(text.prefix(80))». El circuito "
-                          + "funciona, el contenido no llegó.")
+            return .failed(L("It answered, but with no real datum: it said “%@”. The circuit works, the content did not arrive.", String(text.prefix(80))))
         }
         return .passed
     }
@@ -210,14 +203,18 @@ public enum MCPHealth {
 
         /// The readable part, identical on every run, so a person who stumbles on this passage in
         /// their own search results can tell what it is.
-        public static let mark = "Prueba interna de conexión MCP de BeLauncher"
+        /// Not translated, and that is the point: this string is planted in the index, searched
+        /// for, and deleted seconds later. If it followed the interface language, a probe started
+        /// in English and finished after a language change would look for a sentence that no longer
+        /// exists — a self-test that fails for a reason having nothing to do with the connection.
+        public static let mark = "BeLauncher internal MCP connection test"
 
         /// What gets written to the index. No colons and no long first word: `SecretGuard` would
         /// read `NOMBRE: valor` or a long bare token as a credential and drop the passage on the
         /// way out, which would look exactly like the failure being tested for.
         public var statement: String {
-            "\(Self.mark). Palabra preguntada \(needle), palabra devuelta \(echo). "
-            + "Se borra sola en cuanto termina la comprobación."
+            "\(Self.mark). Word asked \(needle), word returned \(echo). "
+            + "It deletes itself as soon as the check finishes."
         }
 
         public static func make(seed: UUID = UUID()) -> Canary {
@@ -283,13 +280,15 @@ public enum MCPHealth {
 
         /// One line, for a status pill in Ajustes.
         public var summary: String {
-            if isConnected { return "\(clientName): conectado de verdad." }
-            guard let failure = firstFailure else { return "\(clientName): sin comprobar." }
-            return "\(clientName): falla en «\(failure.step.title)». \(failure.outcome.reason ?? "")"
+            if isConnected { return L("%@: really connected.", clientName) }
+            guard let failure = firstFailure else { return L("%@: unchecked.", clientName) }
+            return L("%1$@: fails at “%2$@”. %3$@", clientName, failure.step.title,
+                     failure.outcome.reason ?? "")
         }
 
         public func render() -> String {
-            var lines = [clientName, isConnected ? "  conectado de verdad" : "  no conectado"]
+            var lines = [clientName,
+                         isConnected ? "  " + L("really connected") : "  " + L("not connected")]
             for status in steps {
                 let mark: String
                 switch status.outcome {

@@ -35,6 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var vault: Vault?
     private var brain: BrainSearch?
     private var lastBrainRefresh: Date?
+    /// Builds the corpus in the background: episodes, entities, and the nightly distillation.
+    private var corpusRunner: CorpusRunner?
+    private var consentWindow: NSWindow?
+    private var graphWindow: NSWindow?
+    private var readerWindow: NSWindow?
     private var lastReceipt: MissionReceipt?
     private let calendar = CalendarAccess()
     private var environment: [String: String] = [:]
@@ -69,6 +74,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         self.store = store
+
+        // Before anything draws. The very first screen a new user sees is the activation window,
+        // and it is the one where the language matters most: somebody who cannot read the box they
+        // are typing their licence key into does not get a second chance to change a setting.
+        Loc.language = Language.resolve(stored: store.setting("ui_language"),
+                                        systemPreferred: Locale.preferredLanguages)
 
         // Paid app: nothing else starts until this Mac is activated. An activated Mac never
         // waits on the network again.
@@ -190,9 +201,88 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         indexApplications()
         captureCalendarIntoGraph()
         startBrain()
+        startCorpus(store: store)
         openWithLaunchQueryIfAny()
         showWelcomeOnFirstRun()
         offerBrainSetupIfNeeded()
+    }
+
+    // MARK: - Operational memory
+
+    /// Starts the corpus pass, and asks about capture the first time.
+    ///
+    /// Nothing here touches the launch path: the runner sleeps ninety seconds before its first pass
+    /// and does its reading off the main actor, so the hot key is live long before any of this
+    /// costs anything.
+    private func startCorpus(store: Store) {
+        let runner = CorpusRunner(store: store, brain: brain) { [weak self] system, user in
+            guard let self else { throw IntelligenceError.noProviderConfigured }
+            // Confidential: the day's episodes are the most personal thing the app holds, so this
+            // pass is pinned to a local model and never routes to a hosted one.
+            return try await self.askModel(user, sensitivity: .confidential, system: system)
+        }
+        corpusRunner = runner
+        runner.start()
+        askAboutCaptureIfNeeded()
+    }
+
+    /// Asks, once, whether the brain may watch what happens on this Mac.
+    ///
+    /// `graph_enabled` has been `false` since the app shipped and it shows: a real database from
+    /// somebody who has used BeLauncher for months holds zero nodes. The feature was not rejected,
+    /// it was never offered — the switch lives in Ajustes under a name that does not explain what
+    /// it does, so nobody ever found it.
+    ///
+    /// The fix is not to turn it on quietly. Capture that a person did not agree to is the one bug
+    /// that cannot be apologised for afterwards, and a memory product that starts by helping itself
+    /// has nothing left to promise. So it is asked, in plain words, with the list of what would be
+    /// read and the controls for stopping it on the same screen — and a no is remembered as an
+    /// answer rather than as a question that was not read yet.
+    private func askAboutCaptureIfNeeded() {
+        guard let store else { return }
+        guard store.setting("capture_asked", default: false) == false else { return }
+        guard store.setting("welcomed", default: false) == true else { return }
+
+        Task { @MainActor [weak self] in
+            // Behind the welcome window and the model offer. Three windows competing for a first
+            // run is how all three get dismissed unread.
+            try? await Task.sleep(for: .seconds(12))
+            guard let self, self.welcomeWindow == nil, self.consentWindow == nil else { return }
+            guard self.store?.setting("capture_asked", default: false) == false else { return }
+            self.presentCaptureConsent()
+        }
+    }
+
+    private func presentCaptureConsent() {
+        // Marked as asked before the window appears, not in the callback: closing it from the title
+        // bar never reaches the callback, and a question that reappears every morning is one that
+        // gets dismissed unread. Silence stays a no, which is the safe direction for this switch.
+        store?.setSetting("capture_asked", true)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 640),
+            styleMask: [.titled, .closable],
+            backing: .buffered, defer: false
+        )
+        window.title = "Memoria de trabajo"
+        window.contentViewController = NSHostingController(rootView: CaptureConsentView(
+            excluded: store?.excludedFromCapture().count ?? 0,
+            onDecide: { [weak self] enabled in
+                guard let self else { return }
+                self.store?.setSetting("graph_enabled", enabled)
+                self.settingsModel?.graphEnabled = enabled
+                self.consentWindow?.close()
+                self.consentWindow = nil
+                if enabled { self.captureCalendarIntoGraph() }
+            }
+        ))
+        window.isReleasedWhenClosed = false
+        place(window)
+        consentWindow = window
+
+        panel?.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
     }
 
     /// Builds the searchable brain in the background, after the window is already usable.
@@ -408,6 +498,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(awake)
         awakeItem = awake
 
+        // The brain has to be reachable from the menu, not only from a command somebody has to
+        // know exists. It was reachable from nowhere at all until this line.
+        let brain = NSMenuItem(title: "Tu cerebro…", action: #selector(openGraph), keyEquivalent: "")
+        brain.target = self
+        menu.addItem(brain)
+
         let guide = NSMenuItem(title: "Guía rápida", action: #selector(openWelcome), keyEquivalent: "")
         guide.target = self
         menu.addItem(guide)
@@ -611,6 +707,64 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.isReleasedWhenClosed = false
         place(window)
         settingsWindow = window
+
+        panel?.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    /// Opens the brain: what it knows about you, drawn, and correctable.
+    ///
+    /// Wired here because it was not wired anywhere. Nine hundred lines of graph existed and no
+    /// path in the binary reached them, so every correction it can make, every merge it can undo
+    /// and every hour it can forget were unreachable — the feature was written, tested and
+    /// invisible. An audit found it with one grep.
+    @objc func openGraph() {
+        guard let store else { return }
+        if let window = graphWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        // The same root the corpus runner writes to. A different one silently opens the loop
+        // again: corrections would be written where nothing reads them, and nothing would fail.
+        let folder = try? CorpusFolder(root: CorpusFolder.defaultRoot())
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 980, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered, defer: false
+        )
+        window.title = "Tu cerebro"
+        window.contentViewController = NSHostingController(
+            rootView: GraphView(model: GraphModel(store: store, corpus: folder)))
+        window.isReleasedWhenClosed = false
+        place(window)
+        graphWindow = window
+
+        panel?.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    /// Reads the corpus as what it is on disk: Markdown files the person owns.
+    @objc func openCorpusReader(selecting id: String? = nil) {
+        if let window = readerWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        guard let folder = try? CorpusFolder(root: CorpusFolder.defaultRoot()) else { return }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 820, height: 680),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered, defer: false
+        )
+        window.title = "Tu corpus"
+        window.contentViewController = NSHostingController(
+            rootView: CorpusReaderView(model: CorpusReaderModel(folder: folder, selecting: id)))
+        window.isReleasedWhenClosed = false
+        place(window)
+        readerWindow = window
 
         panel?.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -903,6 +1057,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Shared so there is exactly one place that decides which provider answers, which model it
     /// asks for, and what the person's own style adds to the prompt.
     func askModel(_ prompt: String, sensitivity: Sensitivity = .personal,
+                  system override: String? = nil,
                   onFragment: (@Sendable (String) -> Void)? = nil) async throws -> String {
         guard let store else { throw IntelligenceError.noProviderConfigured }
         let running = await LocalModels.installed()
@@ -926,9 +1081,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // How this person writes, when the app has watched long enough to be sure.
         let style = OperatingModel.systemPrompt(from: store.traits())
-        let system = "Eres una herramienta dentro de un launcher. Respondes solo con el resultado "
-                   + "pedido, sin saludos y sin explicar lo que vas a hacer."
-                   + (style.isEmpty ? "" : "\n\n" + style)
+        // An override replaces the launcher's own instructions rather than being appended to them.
+        // The distillation prompt forbids inventing anything and requires a citation on every line;
+        // stacking it after "respondes solo con el resultado pedido" leaves two sets of rules and
+        // the model picks whichever it likes, which is how uncited lines start appearing.
+        let system = override ??
+                     ("Eres una herramienta dentro de un launcher. Respondes solo con el resultado "
+                      + "pedido, sin saludos y sin explicar lo que vas a hacer."
+                      + (style.isEmpty ? "" : "\n\n" + style))
 
         return try await IntelligenceClient().stream(
             IntelligenceRequest(system: system, prompt: prompt, sensitivity: sensitivity,
@@ -1203,6 +1363,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .systemCommand(let kind):
             panel?.orderOut(nil)
+            // Not a system action: it opens a window of ours. Handled before the runner rather
+            // than inside it, so the runner keeps meaning "things macOS does".
+            if kind == SystemCommand.Kind.openBrain.rawValue { openGraph(); return nil }
             let failure = SystemCommandRunner.run(kind) { title in
                 let alert = NSAlert()
                 alert.messageText = "¿\(title)?"
@@ -1478,5 +1641,153 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.selectFile(Store.defaultPath(), inFileViewerRootedAtPath: "")
         }
         NSApp.terminate(nil)
+    }
+}
+
+// MARK: - Asking for capture
+
+/// The one screen where the app asks to watch.
+///
+/// Written as a decision, not as a feature pitch. Somebody deciding whether to let software read
+/// their browser history and their conversations needs three things on one screen: exactly what
+/// gets read, what never does, and how to stop it afterwards. Splitting those across a marketing
+/// panel and a settings tab is how consent becomes a checkbox nobody understood.
+///
+/// The escape is a real button with a real label, never a greyed-out one and never a close box in
+/// the corner. "Ahora no" sits next to "Activar" at the same size on purpose: an offer whose refusal
+/// is hard to find is not an offer.
+@MainActor
+private struct CaptureConsentView: View {
+
+    /// How many apps are already excluded, so the promise is a number rather than an adjective.
+    let excluded: Int
+    let onDecide: (Bool) -> Void
+
+    private struct Source: Identifiable {
+        let id = UUID()
+        let symbol: String
+        let title: String
+        let detail: String
+    }
+
+    private var sources: [Source] {
+        [
+            Source(symbol: "doc.text", title: "Archivos y apps",
+                   detail: "Qué abriste y cuánto rato estuviste. El nombre, nunca el contenido."),
+            Source(symbol: "safari", title: "Historial del navegador",
+                   detail: "Títulos de las páginas que leíste, de Safari y Chrome."),
+            Source(symbol: "bubble.left.and.bubble.right", title: "Conversaciones con la IA",
+                   detail: "Lo que preguntaste en tus sesiones, que ya están en tu carpeta."),
+            Source(symbol: "calendar", title: "Reuniones y portapapeles",
+                   detail: "Con quién te viste y lo que copiaste mientras trabajabas."),
+        ]
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
+                    Divider()
+                    list
+                    promise
+                }
+                .padding(26)
+            }
+
+            Divider()
+            HStack(spacing: 10) {
+                Spacer()
+                Button("Ahora no") { onDecide(false) }
+                    .keyboardShortcut(.cancelAction)
+                Button("Activar la memoria") { onDecide(true) }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(14)
+        }
+        .frame(width: 620, height: 640)
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 18) {
+            Mascot(height: 96)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("¿Dejas que recuerde en qué trabajas?")
+                    .font(.system(size: 22, weight: .semibold))
+                    .tracking(-0.4)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Sin esto, BeLauncher solo encuentra lo que guardas a mano. Con esto, puedes "
+                     + "preguntarle **cómo resolviste algo hace dos meses** y te contesta.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var list: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("QUÉ MIRA")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+
+            ForEach(sources) { source in
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: source.symbol)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 22)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(source.title).font(.system(size: 13, weight: .medium))
+                        Text(source.detail)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
+    }
+
+    /// The controls, on the same screen as the question rather than a tab away.
+    private var promise: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Y QUÉ NO")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.8)
+                .foregroundStyle(.secondary)
+
+            guarantee("lock.shield", "Todo se queda en este Mac.",
+                      "Nada sale a internet salvo que tú configures un modelo de fuera.")
+            guarantee("eye.slash", "Hay \(excluded) apps excluidas desde el primer día.",
+                      "Gestores de contraseñas, el llavero y los bancos. Puedes añadir más.")
+            guarantee("pause.circle", "Pausa cuando quieras.",
+                      "Mientras compartes pantalla se pausa solo, sin que tengas que acordarte.")
+            guarantee("trash", "Y puedes hacer que olvide.",
+                      "Borra la última hora, la tarde o el día entero, y te dice qué se lleva antes de hacerlo.")
+
+            Text("Puedes cambiar todo esto en Ajustes cuando quieras.")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+        }
+    }
+
+    private func guarantee(_ symbol: String, _ title: String, _ detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 13, weight: .medium))
+                Text(detail)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

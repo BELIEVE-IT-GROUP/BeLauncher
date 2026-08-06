@@ -26,7 +26,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .application: "App"
         case .snippet: "Snippet"
         case .clipboard: "Portapapeles"
-        case .workflow: "Búsqueda"
+        case .workflow: L("Search")
         case .calculation: "Resultado"
         case .file: "Archivo"
         case .flow: "Flujo"
@@ -36,9 +36,9 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .shortcut: "Atajo"
         case .memory: "Memoria"
         case .recall: "Recuerdo"
-        case .pendingCommit: "Por confirmar"
+        case .pendingCommit: L("To confirm")
         case .answer: "Respuesta"
-        case .mission: "Misión"
+        case .mission: L("Mission")
         case .agent: "Comando"
         case .process: "Proceso"
         }
@@ -215,7 +215,7 @@ public enum SearchEngine {
                 pinned.append(SearchResult(
                     id: "workspace-save", kind: .window,
                     title: "Guardar este reparto de ventanas como «\(name)»",
-                    subtitle: "Dónde está cada ventana, en qué pantalla y de qué tamaño",
+                    subtitle: L("Where every window is, on which display and how big"),
                     score: 99_870, matched: [], payload: "save:\(name)"
                 ))
             case .restore(let name):
@@ -241,7 +241,7 @@ public enum SearchEngine {
         // A note is written the moment you press Enter: no confirmation, because it is yours.
         if let note = QuickNote.text(from: query) {
             pinned.append(SearchResult(
-                id: "note", kind: .answer, title: "Guardar la nota",
+                id: "note", kind: .answer, title: L("Save the note"),
                 subtitle: note, score: 99_900, matched: [], payload: note
             ))
         }
@@ -253,8 +253,8 @@ public enum SearchEngine {
                     id: "awake-\(offer.minutes.map(String.init) ?? "forever")", kind: .system,
                     title: "No dejar dormir el Mac · \(offer.label)",
                     subtitle: offer.minutes == nil
-                        ? "Hasta que lo apagues desde la barra de menús"
-                        : "Se apaga solo al terminar",
+                        ? L("Until you turn it off from the menu bar")
+                        : L("It switches itself off when it finishes"),
                     score: 99_850, matched: [],
                     payload: "awake:\(offer.minutes.map(String.init) ?? "")"
                 ))
@@ -268,7 +268,8 @@ public enum SearchEngine {
             if top.isEmpty, !input.processes.isEmpty {
                 pinned.append(SearchResult(
                     id: "process-none", kind: .answer,
-                    title: filter.isEmpty ? "Nada está trabajando de más" : "Nada llamado «\(filter)»",
+                    title: filter.isEmpty ? L("Nothing is working harder than it should")
+                        : L("Nothing called “%@”", filter),
                     subtitle: order.label, score: 99_800, matched: [], payload: ""
                 ))
             }
@@ -299,7 +300,7 @@ public enum SearchEngine {
             }
             pinned.append(SearchResult(
                 id: "work-answer", kind: .answer, title: answer.headline,
-                subtitle: answer.nodes.first?.name ?? "Memoria de trabajo",
+                subtitle: answer.nodes.first?.name ?? L("Working memory"),
                 score: 99_500, matched: [], payload: answer.body
             ))
             // The things it found are offered directly, so "abre lo último de Atlas" opens it.
@@ -323,15 +324,16 @@ public enum SearchEngine {
         case .remember(let text):
             pinned.append(SearchResult(
                 id: "answer-remember", kind: .answer, title: "Recordar: \(text)",
-                subtitle: "Se guardará como propuesta hasta que la confirmes",
+                subtitle: L("It is kept as a proposal until you confirm it"),
                 score: 100_000, matched: [], payload: text
             ))
         case .pulse:
             let signals = Pulse.signals(for: input.memories, traits: input.traits)
             pinned.append(SearchResult(
                 id: "answer-pulse", kind: .answer,
-                title: signals.isEmpty ? "Nada que señalar" : "\(signals.count) cosa(s) que mirar",
-                subtitle: signals.first?.headline ?? "El cerebro está en orden",
+                title: signals.isEmpty ? L("Nothing to flag")
+                       : L("%@ thing(s) to look at", String(signals.count)),
+                subtitle: signals.first?.headline ?? L("The brain is in order"),
                 score: 100_000, matched: [], payload: Pulse.render(signals)
             ))
 
@@ -347,7 +349,7 @@ public enum SearchEngine {
                     pinned.append(SearchResult(
                         id: "verb-\(verb.id)", kind: .answer, title: verb.title,
                         subtitle: argument.isEmpty
-                            ? "sobre lo último que copiaste · \(preview(source))"
+                            ? L("on the last thing you copied · %@", preview(source))
                             : preview(source),
                         score: 99_000, matched: [], payload: verb.id + "\u{1F}" + source
                     ))
@@ -375,7 +377,7 @@ public enum SearchEngine {
                 pinned.append(SearchResult(
                     id: "mission-\(mission.id)", kind: .mission, title: mission.intent,
                     subtitle: mission.needsApproval
-                        ? "\(mission.steps.count) pasos · te enseño el plan antes de tocar nada"
+                        ? L("%@ steps · you see the plan before anything is touched", String(mission.steps.count))
                         : "\(mission.steps.count) pasos",
                     score: 95_000, matched: [], payload: mission.intent
                 ))
@@ -385,7 +387,7 @@ public enum SearchEngine {
         if let calculation {
             pinned.append(SearchResult(
                 id: "calc", kind: .calculation, title: calculation.display,
-                subtitle: "\(calculation.detail) · ↩ lo copia",
+                subtitle: calculation.detail + " · " + L("↩ copies it"),
                 score: 100_000, matched: [], payload: calculation.raw
             ))
         }
@@ -459,7 +461,7 @@ public enum SearchEngine {
                 id: "commit-\(commit.id)", kind: .pendingCommit, title: commit.object.statement,
                 subtitle: commit.conflicts.isEmpty
                     ? "Propuesta · confirma o descarta"
-                    : "Propuesta · sustituiría \(commit.conflicts.count) memoria(s)",
+                    : L("Proposal · would replace %@ memory/memories", String(commit.conflicts.count)),
                 // A large, deliberate bonus: something waiting on your decision should not lose
                 // to a settled memory just because the wording matched better.
                 score: match.score + 200, matched: [], payload: commit.id
@@ -470,7 +472,7 @@ public enum SearchEngine {
             guard let match = Fuzzy.match(needle: needle, hay: Fuzzy.folded(name)) else { continue }
             results.append(SearchResult(
                 id: "shortcut-run-\(name)", kind: .shortcut, title: name,
-                subtitle: "Atajo de macOS", score: match.score + 15, matched: match.matched,
+                subtitle: L("macOS Shortcut"), score: match.score + 15, matched: match.matched,
                 payload: name
             ))
         }
@@ -478,7 +480,7 @@ public enum SearchEngine {
         for (command, score) in WindowCommand.search(query) {
             results.append(SearchResult(
                 id: "window-\(command.id)", kind: .window, title: command.title,
-                subtitle: "Coloca la ventana activa", score: score, matched: [],
+                subtitle: L("Places the active window"), score: score, matched: [],
                 payload: command.layout.rawValue
             ))
         }
@@ -486,7 +488,7 @@ public enum SearchEngine {
         for (command, score) in SystemCommand.search(query) {
             results.append(SearchResult(
                 id: "system-\(command.id)", kind: .system, title: command.title,
-                subtitle: command.needsConfirmation ? "Pide confirmación" : "Comando del sistema",
+                subtitle: command.needsConfirmation ? L("Asks you first") : L("System command"),
                 score: score, matched: [], payload: command.kind.rawValue
             ))
         }
@@ -573,7 +575,9 @@ public enum SearchEngine {
     static func answerResult(_ answer: BrainQuery.Answer, id: String) -> SearchResult {
         SearchResult(
             id: id, kind: .answer, title: answer.headline,
-            subtitle: answer.gap ?? "\(answer.citations.count) fuente(s)",
+            subtitle: answer.gap ?? (answer.citations.count == 1
+                ? L("1 source")
+                : L("%@ sources", String(answer.citations.count))),
             score: 100_000, matched: [], payload: answer.body
         )
     }

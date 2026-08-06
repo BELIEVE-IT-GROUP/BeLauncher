@@ -79,6 +79,27 @@
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Capture.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Capture.dia"
   },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Conversations.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Corpus.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/CorpusFiles.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.dia"
+  },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Database.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Database.d",
     "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Database.swift.o",
@@ -93,6 +114,13 @@
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Diagnostics.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Diagnostics.dia"
   },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Distillation.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.dia"
+  },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Embedder.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Embedder.d",
     "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Embedder.swift.o",
@@ -106,6 +134,13 @@
     "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env~partial.swiftmodule",
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Episodes.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.dia"
   },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ExportImport.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/ExportImport.d",
@@ -148,6 +183,20 @@
     "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath~partial.swiftmodule",
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GraphLayout.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Identity.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.dia"
   },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Importers.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Importers.d",
@@ -296,6 +345,20 @@
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/OutcomePack.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/OutcomePack.dia"
   },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Privacy.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/PrivacyCopy.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.dia"
+  },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Processes.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Processes.d",
     "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Processes.swift.o",
@@ -316,6 +379,13 @@
     "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults~partial.swiftmodule",
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Relevance.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.dia"
   },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ResultAction.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/ResultAction.d",

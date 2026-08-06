@@ -21,12 +21,6 @@ struct PrivacyTests {
         #expect(state.isCapturing(at: noon.addingTimeInterval(1801)))
     }
 
-    @Test("Compartir pantalla pausa la captura")
-    func screenSharing() {
-        // Capturar durante una demo es grabar la pantalla de otro, que nadie autorizó.
-        #expect(!Privacy.State(reason: .sharingScreen).isCapturing(at: noon))
-    }
-
     @Test("Una pausa se ve como pausa, no como funcionamiento normal")
     func pauseIsVisible() {
         let text = Privacy.State(reason: .byHand).summary(at: noon)
@@ -228,5 +222,48 @@ struct ConversationTests {
         #expect(item.text.hasPrefix("cómo resolví"))
         #expect(item.text.contains("waw-trips"))
         #expect(item.source.kind == .conversation)
+    }
+}
+
+@Suite("Lo olvidado no vuelve")
+@MainActor
+struct ForgottenStaysForgottenTests {
+
+    private let noon = Date(timeIntervalSince1970: 1_785_240_000)
+
+    private func makeStore() throws -> Store {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-forgotten-\(UUID().uuidString)")
+            .appendingPathComponent("s.sqlite3").path
+        let store = try Store(path: path)
+        try store.migrateSemanticIndex()
+        return store
+    }
+
+    @Test("Olvidar un rato se anota, y se anota para siempre")
+    func ledgerPersists() throws {
+        let store = try makeStore()
+        store.forget(Privacy.Period(from: noon.addingTimeInterval(-3600), to: noon))
+        #expect(store.isForgotten(noon.addingTimeInterval(-1800)))
+        #expect(!store.isForgotten(noon.addingTimeInterval(3600)))
+    }
+
+    @Test("Volver a ensamblar el corpus no resucita lo olvidado")
+    func reassemblyDoesNotResurrect() {
+        // Este es el fallo que midió la auditoría: las fuentes se releen en cada pasada y los
+        // identificadores salen del contenido, así que la reconstrucción era exacta. «Para
+        // siempre» duraba hasta la siguiente indexación, media hora.
+        let exchange = Conversations.Exchange(
+            at: noon, asked: "una conversación con longitud más que suficiente para indexarse",
+            answered: "la respuesta", workingDirectory: "/Users/mac/Developer/waw-trips")
+
+        let sinOlvido = CorpusBuilder.assemble(CorpusBuilder.Input(exchanges: [exchange], now: noon.addingTimeInterval(7200)))
+        #expect(!sinOlvido.items.isEmpty)
+
+        let conOlvido = CorpusBuilder.assemble(CorpusBuilder.Input(
+            exchanges: [exchange],
+            forgotten: [Privacy.Period(from: noon.addingTimeInterval(-600), to: noon.addingTimeInterval(600))],
+            now: noon.addingTimeInterval(7200)))
+        #expect(conOlvido.items.isEmpty)
     }
 }

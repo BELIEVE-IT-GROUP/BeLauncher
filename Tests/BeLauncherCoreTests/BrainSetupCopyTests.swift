@@ -13,8 +13,8 @@ struct BrainSetupCopyTests {
     func cerebroVacio() {
         let readout = BrainSetupCopy.readout(passages: 0, vectorised: 0,
                                              engine: "bge-m3", isLocal: true)
-        #expect(readout.headline.contains("Todavía no hay nada"))
-        #expect(readout.detail.contains("copies"))
+        #expect(readout.headline.contains("Nothing is indexed"))
+        #expect(readout.detail.contains("copy a piece of text"))
         #expect(readout.percent == 0)
         #expect(readout.isComplete == false)
     }
@@ -25,8 +25,8 @@ struct BrainSetupCopyTests {
                                              engine: "bge-m3", isLocal: true)
         #expect(readout.isComplete)
         #expect(readout.percent == 1)
-        #expect(readout.detail == "Todos entienden significado.")
-        #expect(readout.headline.contains("1.240"))
+        #expect(readout.detail == "All of them understand meaning.")
+        #expect(readout.headline.contains("1,240"))
     }
 
     @Test("A medio procesar se dice cuántos faltan, no solo cuántos van")
@@ -42,8 +42,8 @@ struct BrainSetupCopyTests {
     func indiceSinVectores() {
         let readout = BrainSetupCopy.readout(passages: 50, vectorised: 0,
                                              engine: "bge-m3", isLocal: true)
-        #expect(readout.detail.contains("Ninguno"))
-        #expect(readout.detail.contains("Faltan") == false)
+        #expect(readout.detail.contains("None of them"))
+        #expect(readout.detail.contains("still to process") == false)
     }
 
     @Test("Sin modelo se avisa de que la búsqueda por palabras sigue funcionando")
@@ -52,7 +52,7 @@ struct BrainSetupCopyTests {
                                              engine: nil, isLocal: false)
         #expect(readout.needsModel)
         #expect(readout.engineLine.contains(ModelInstall.wordSearchStillWorks))
-        #expect(readout.detail.contains("falta el modelo"))
+        #expect(readout.detail.contains("the model is missing"))
     }
 
     @Test("Un modelo local promete que nada sale a internet; uno remoto no lo promete")
@@ -61,24 +61,26 @@ struct BrainSetupCopyTests {
                                            engine: "bge-m3", isLocal: true)
         let remoto = BrainSetupCopy.readout(passages: 10, vectorised: 10,
                                             engine: "text-embedding-3-small", isLocal: false)
-        #expect(local.engineLine.contains("en tu Mac"))
-        #expect(local.engineLine.contains("No sale nada a internet"))
-        #expect(remoto.engineLine.contains("sale de tu Mac"))
-        #expect(remoto.engineLine.contains("No sale nada a internet") == false)
+        #expect(local.engineLine.contains("on your Mac"))
+        #expect(local.engineLine.contains("Nothing goes to the internet"))
+        #expect(remoto.engineLine.contains("leaves your Mac"))
+        #expect(remoto.engineLine.contains("Nothing goes to the internet") == false)
     }
 
     @Test("Un solo fragmento se dice en singular")
     func singular() {
         let readout = BrainSetupCopy.readout(passages: 1, vectorised: 1,
                                              engine: "bge-m3", isLocal: true)
-        #expect(readout.headline.contains("1 fragmento de"))
+        #expect(readout.headline.contains("One fragment of"))
     }
 
-    @Test("Los miles se separan con punto pase lo que pase con el idioma del sistema")
+    @Test("Cada idioma agrupa los miles a su manera, sin depender de la región del Mac")
     func agrupacionDeMiles() {
-        #expect(BrainSetupCopy.number(1_240) == "1.240")
+        // Antes se forzaba el punto siempre. Con el inglés por defecto eso deja "1.240" delante de
+        // un lector estadounidense, que lo lee como uno coma doscientos cuarenta.
+        #expect(BrainSetupCopy.number(1_240) == "1,240")
         #expect(BrainSetupCopy.number(999) == "999")
-        #expect(BrainSetupCopy.number(1_000_000) == "1.000.000")
+        #expect(BrainSetupCopy.number(1_000_000) == "1,000,000")
     }
 
     @Test("Un porcentaje nunca pasa de uno aunque sobren vectores")
@@ -113,7 +115,7 @@ struct BrainSetupCopyTests {
     func sinComprobar() {
         let veredicto = BrainSetupCopy.verdict(for: nil)
         #expect(veredicto.level == .unknown)
-        #expect(veredicto.label == "sin comprobar")
+        #expect(veredicto.label == "unchecked")
         #expect(veredicto.whatToDo.isEmpty == false)
     }
 
@@ -121,7 +123,7 @@ struct BrainSetupCopyTests {
     func todoEnVerde() {
         let veredicto = BrainSetupCopy.verdict(for: Self.report("Claude", failing: nil))
         #expect(veredicto.level == .working)
-        #expect(veredicto.label == "responde con datos")
+        #expect(veredicto.label == "answers with data")
         #expect(veredicto.whatToDo.isEmpty)
     }
 
@@ -129,9 +131,9 @@ struct BrainSetupCopyTests {
     func respondePeroVacio() {
         let veredicto = BrainSetupCopy.verdict(for: Self.report("Claude", failing: .toolCalled))
         #expect(veredicto.level == .broken)
-        #expect(veredicto.label == "responde vacío")
-        #expect(veredicto.headline.contains("sin dato real"))
-        #expect(veredicto.whatToDo.contains("Rehaz el índice"))
+        #expect(veredicto.label == "comes back empty")
+        #expect(veredicto.headline.contains("no real datum"))
+        #expect(veredicto.whatToDo.contains("Rebuild the index"))
     }
 
     @Test("Cada paso que falla lleva su propia instrucción, nunca la misma para todos")
@@ -145,16 +147,18 @@ struct BrainSetupCopyTests {
     func cadaPasoSuEtiqueta() {
         let etiquetas = MCPHealth.Step.allCases.map { BrainSetupCopy.shortFailure($0) }
         #expect(Set(etiquetas).count == MCPHealth.Step.allCases.count)
-        #expect(etiquetas.contains("responde vacío"))
-        #expect(etiquetas.contains { $0.contains("conectado") } == false)
+        #expect(etiquetas.contains("comes back empty"))
+        // Ni «conectado» ni «connected»: la etiqueta nombra lo que no está pasando, en el idioma
+        // que sea. Que la app hable inglés no relaja la regla que la hizo existir.
+        #expect(etiquetas.contains { $0.contains("conectado") || $0.contains("connected") } == false)
     }
 
     @Test("No estar en la configuración manda a conectar, no a reinstalar")
     func sinConfigurar() {
         let veredicto = BrainSetupCopy.verdict(for: Self.report("Cursor", failing: .configured))
         #expect(veredicto.level == .broken)
-        #expect(veredicto.label == "sin configurar")
-        #expect(veredicto.whatToDo.contains("Conectar"))
+        #expect(veredicto.label == "not set up")
+        #expect(veredicto.whatToDo.contains("Connect"))
     }
 
     @Test("El resumen de varios clientes nombra a los que no reciben nada")
@@ -187,15 +191,18 @@ struct BrainSetupCopyTests {
 
     @Test("El texto del botón de comprobar promete lo que hace, no una conexión")
     func botonHonesto() {
-        #expect(BrainSetupCopy.checkButton.contains("de verdad"))
-        #expect(BrainSetupCopy.checkExplanation.contains("archivo de"))
+        #expect(BrainSetupCopy.checkButton.contains("Really check"))
+        #expect(BrainSetupCopy.checkExplanation.contains("configuration file"))
+        // Y lo mismo en español: la promesa del botón no puede perderse al traducir.
+        #expect(Loc.render(BrainSetupCopy.checkButton, in: .spanish).contains("de verdad"))
     }
 
     // MARK: - Pantalla de puesta a punto
 
     @Test("La pantalla explica el porqué con un ejemplo, no con jerga")
     func porqueConEjemplo() {
-        let jerga = ["embedding", "vectorial", "vectorización", "coseno", "modelo de lenguaje"]
+        let jerga = ["embedding", "vectorial", "vectorización", "coseno", "modelo de lenguaje",
+                     "vector", "cosine", "language model"]
         let texto = (BrainSetupCopy.setupTitle + BrainSetupCopy.setupWhy
                      + BrainSetupCopy.setupCost).lowercased()
         #expect(jerga.allSatisfy { !texto.contains($0) })
@@ -204,14 +211,15 @@ struct BrainSetupCopyTests {
 
     @Test("Se dice que la app se sigue usando mientras descarga y que se puede saltar")
     func sePuedeSeguirSinEl() {
-        #expect(BrainSetupCopy.setupKeepUsing.contains("Sigue usando"))
-        #expect(BrainSetupCopy.setupSkip == "Seguir sin él")
-        #expect(BrainSetupCopy.setupLater.contains("Ajustes"))
+        #expect(BrainSetupCopy.setupKeepUsing.contains("Keep using"))
+        #expect(BrainSetupCopy.setupSkip == "Carry on without it")
+        #expect(BrainSetupCopy.setupLater.contains("Settings"))
+        #expect(Loc.render(BrainSetupCopy.setupSkip, in: .spanish) == "Seguir sin él")
     }
 
     @Test("Nada se instala sin que la persona lo pulse, y el texto lo dice")
     func nadaSilencioso() {
-        #expect(BrainSetupCopy.installExplanation.contains("nada se ejecuta sin que lo pulses"))
+        #expect(BrainSetupCopy.installExplanation.contains("nothing runs until you press something"))
     }
 
     // MARK: - Lo que «Conectar» puede afirmar
@@ -223,8 +231,8 @@ struct BrainSetupCopyTests {
     func conectarNoAfirmaLaConexion() {
         let mensaje = BrainSetupCopy.connectWrote(client: "Cursor")
         #expect(mensaje.contains("Cursor"))
-        #expect(mensaje.lowercased().contains("escrita"))
-        #expect(!mensaje.contains("ya puede consultar"))
+        #expect(mensaje.lowercased().contains("wrote"))
+        #expect(!mensaje.contains("can now consult"))
         // Y termina llevando a comprobarlo de verdad, que es lo único que zanja la duda.
         #expect(mensaje.contains(BrainSetupCopy.checkButton))
     }
@@ -233,7 +241,7 @@ struct BrainSetupCopyTests {
     func yaEstabaEnElArchivo() {
         let mensaje = BrainSetupCopy.connectAlreadyThere(client: "Claude Code")
         #expect(mensaje.contains("Claude Code"))
-        #expect(mensaje.contains("no prueba"))
+        #expect(mensaje.contains("no proof"))
         #expect(mensaje.contains(BrainSetupCopy.checkButton))
     }
 }

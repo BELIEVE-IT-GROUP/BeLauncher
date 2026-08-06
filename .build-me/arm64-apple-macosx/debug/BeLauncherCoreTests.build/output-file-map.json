@@ -44,6 +44,20 @@
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CalculatorTests.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CalculatorTests.dia"
   },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusFilesTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.dia"
+  },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/EpisodeTests.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/EpisodeTests.d",
     "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/EpisodeTests.swift.o",
@@ -64,6 +78,13 @@
     "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests~partial.swiftmodule",
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GraphLayoutTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.dia"
   },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IdentityTests.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IdentityTests.d",
@@ -99,6 +120,13 @@
     "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LicenseTests~partial.swiftmodule",
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LicenseTests.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LicenseTests.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/LocalizationTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LocalizationTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LocalizationTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LocalizationTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LocalizationTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LocalizationTests.dia"
   },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/MCPClientsTests.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MCPClientsTests.d",
@@ -141,6 +169,20 @@
     "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests~partial.swiftmodule",
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PhrasesTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PhrasesTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PhrasesTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PhrasesTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PhrasesTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PhrasesTests.dia"
+  },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyCopyTests.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.dia"
   },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyTests.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.d",

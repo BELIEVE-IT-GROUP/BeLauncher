@@ -44,7 +44,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainStatusView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrowserHistory.swift"
         },
         {
           "kind" : "file",
@@ -72,11 +80,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusReaderView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusRunner.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/DeviceIdentity.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/FlowEditor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/GraphView.swift"
         },
         {
           "kind" : "file",
@@ -97,6 +117,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Permissions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/PrivacyView.swift"
         },
         {
           "kind" : "file",
@@ -136,6 +160,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Transcription.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Updater.swift"
         },
         {
@@ -171,20 +199,26 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/AgentRunner.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/AppDelegate.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrainSetupView.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrowserHistory.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BuildConfig.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CalendarAccess.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CanvasView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/ClipboardWatcher.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CommandPanel.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CommandView.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CorpusReaderView.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CorpusRunner.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/DeviceIdentity.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/FlowEditor.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/GraphView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/HotKey.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/LaunchAtLogin.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/MCPProbe.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/ModelInstaller.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Permissions.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/PrivacyView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/ScreenCapture.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/ServiceProvider.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/SettingsModel.swift.o",
@@ -194,6 +228,7 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/SystemCommandRunner.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/SystemUtilities.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Theme.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Transcription.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Updater.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/WelcomeView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/WindowArranger.swift.o",
@@ -268,7 +303,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrowserHistory.swift.o"
         },
         {
           "kind" : "file",
@@ -296,11 +339,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CorpusReaderView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CorpusRunner.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/DeviceIdentity.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/FlowEditor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/GraphView.swift.o"
         },
         {
           "kind" : "file",
@@ -321,6 +376,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Permissions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/PrivacyView.swift.o"
         },
         {
           "kind" : "file",
@@ -360,6 +419,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Transcription.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Updater.swift.o"
         },
         {
@@ -385,20 +448,26 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/AgentRunner.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/AppDelegate.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainSetupView.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainStatusView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrowserHistory.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BuildConfig.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CalendarAccess.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CanvasView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ClipboardWatcher.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CommandPanel.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CommandView.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusReaderView.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusRunner.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/DeviceIdentity.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/FlowEditor.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/GraphView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/HotKey.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/LaunchAtLogin.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/MCPProbe.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ModelInstaller.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Permissions.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/PrivacyView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ScreenCapture.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ServiceProvider.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/SettingsModel.swift",
@@ -408,6 +477,7 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/SystemCommandRunner.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/SystemUtilities.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Theme.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Transcription.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Updater.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/WelcomeView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/WindowArranger.swift",
@@ -467,6 +537,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Conversations.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Corpus.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/CorpusFiles.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Database.swift"
         },
         {
@@ -475,11 +557,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Distillation.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Embedder.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Env.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Episodes.swift"
         },
         {
           "kind" : "file",
@@ -504,6 +594,14 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GoToPath.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GraphLayout.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Identity.swift"
         },
         {
           "kind" : "file",
@@ -591,6 +689,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Privacy.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/PrivacyCopy.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Processes.swift"
         },
         {
@@ -600,6 +706,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/RecallResults.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Relevance.swift"
         },
         {
           "kind" : "file",
@@ -725,16 +835,23 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Calculator.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Canvas.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Capture.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Database.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Diagnostics.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Embedder.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/ExportImport.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/FileSearch.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Flow.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/FlowRunner.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/FuzzyMatch.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Importers.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Indexer.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Intelligence.swift.o",
@@ -756,9 +873,12 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Onboarding.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/OperatingModel.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/OutcomePack.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Processes.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Pulse.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/ResultAction.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/ResultDetail.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Retriever.swift.o",
@@ -882,6 +1002,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Database.swift.o"
         },
         {
@@ -890,11 +1022,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Embedder.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.swift.o"
         },
         {
           "kind" : "file",
@@ -919,6 +1059,14 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.swift.o"
         },
         {
           "kind" : "file",
@@ -1006,6 +1154,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Processes.swift.o"
         },
         {
@@ -1015,6 +1171,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.swift.o"
         },
         {
           "kind" : "file",
@@ -1134,16 +1294,23 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Calculator.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Canvas.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Capture.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Conversations.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Corpus.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/CorpusFiles.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Database.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Diagnostics.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Distillation.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Embedder.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Env.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Episodes.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ExportImport.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/FileSearch.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Flow.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/FlowRunner.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/FuzzyMatch.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GoToPath.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GraphLayout.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Identity.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Importers.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Indexer.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Intelligence.swift",
@@ -1165,9 +1332,12 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Onboarding.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/OperatingModel.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/OutcomePack.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Privacy.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/PrivacyCopy.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Processes.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Pulse.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/RecallResults.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Relevance.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ResultAction.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ResultDetail.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Retriever.swift",
@@ -1228,11 +1398,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusFilesTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/EpisodeTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/FlowTests.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GoToPathTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GraphLayoutTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IdentityTests.swift"
         },
         {
           "kind" : "file",
@@ -1276,7 +1466,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyCopyTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PulseTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RelevanceTests.swift"
         },
         {
           "kind" : "file",
@@ -1365,8 +1567,13 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/BrainQueryTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/BrainSetupCopyTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CalculatorTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/EpisodeTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/FlowTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IdentityTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ImportersTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IntelligenceTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/KeyboardWorkflowTests.swift.o",
@@ -1377,7 +1584,10 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MCPToolsTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MissionTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PulseTests.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RelevanceTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RetrievalTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RichClipboardTests.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/SearchPerformanceTests.swift.o",
@@ -1471,11 +1681,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/EpisodeTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/FlowTests.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IdentityTests.swift.o"
         },
         {
           "kind" : "file",
@@ -1519,7 +1749,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PulseTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RelevanceTests.swift.o"
         },
         {
           "kind" : "file",
@@ -1598,8 +1840,13 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/BrainQueryTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/BrainSetupCopyTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CalculatorTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusFilesTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/EpisodeTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/FlowTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GoToPathTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GraphLayoutTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IdentityTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/ImportersTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IntelligenceTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift",
@@ -1610,7 +1857,10 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/MCPToolsTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/MissionTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/ModelInstallTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyCopyTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PulseTests.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RelevanceTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RetrievalTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RichClipboardTests.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/SearchPerformanceTests.swift",
@@ -1742,20 +1992,26 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/AgentRunner.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/AppDelegate.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainSetupView.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainStatusView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrowserHistory.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BuildConfig.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CalendarAccess.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CanvasView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ClipboardWatcher.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CommandPanel.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CommandView.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusReaderView.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusRunner.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/DeviceIdentity.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/FlowEditor.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/GraphView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/HotKey.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/LaunchAtLogin.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/MCPProbe.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ModelInstaller.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Permissions.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/PrivacyView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ScreenCapture.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/ServiceProvider.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/SettingsModel.swift",
@@ -1765,6 +2021,7 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/SystemCommandRunner.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/SystemUtilities.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Theme.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Transcription.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Updater.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/WelcomeView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/WindowArranger.swift",
@@ -1839,16 +2096,23 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Calculator.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Canvas.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Capture.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Conversations.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Corpus.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/CorpusFiles.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Database.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Diagnostics.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Distillation.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Embedder.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Env.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Episodes.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ExportImport.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/FileSearch.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Flow.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/FlowRunner.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/FuzzyMatch.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GoToPath.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GraphLayout.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Identity.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Importers.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Indexer.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Intelligence.swift",
@@ -1870,9 +2134,12 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Onboarding.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/OperatingModel.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/OutcomePack.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Privacy.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/PrivacyCopy.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Processes.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Pulse.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/RecallResults.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Relevance.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ResultAction.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/ResultDetail.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Retriever.swift",
@@ -1963,8 +2230,13 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/BrainQueryTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/BrainSetupCopyTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CalculatorTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusFilesTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/EpisodeTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/FlowTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GoToPathTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GraphLayoutTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IdentityTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/ImportersTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IntelligenceTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift",
@@ -1975,7 +2247,10 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/MCPToolsTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/MissionTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/ModelInstallTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyCopyTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PulseTests.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RelevanceTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RetrievalTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RichClipboardTests.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/SearchPerformanceTests.swift",
@@ -2180,7 +2455,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainStatusView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrowserHistory.swift"
         },
         {
           "kind" : "file",
@@ -2208,11 +2491,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusReaderView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/CorpusRunner.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/DeviceIdentity.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/FlowEditor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/GraphView.swift"
         },
         {
           "kind" : "file",
@@ -2233,6 +2528,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Permissions.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/PrivacyView.swift"
         },
         {
           "kind" : "file",
@@ -2269,6 +2568,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Theme.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/Transcription.swift"
         },
         {
           "kind" : "file",
@@ -2314,7 +2617,15 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/BrowserHistory.swift.o"
         },
         {
           "kind" : "file",
@@ -2342,11 +2653,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CorpusReaderView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/CorpusRunner.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/DeviceIdentity.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/FlowEditor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/GraphView.swift.o"
         },
         {
           "kind" : "file",
@@ -2367,6 +2690,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Permissions.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/PrivacyView.swift.o"
         },
         {
           "kind" : "file",
@@ -2403,6 +2730,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Theme.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncher.build/Transcription.swift.o"
         },
         {
           "kind" : "file",
@@ -2466,6 +2797,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Database.swift.o"
         },
         {
@@ -2474,11 +2817,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Embedder.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.swift.o"
         },
         {
           "kind" : "file",
@@ -2503,6 +2854,14 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.swift.o"
         },
         {
           "kind" : "file",
@@ -2590,6 +2949,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Processes.swift.o"
         },
         {
@@ -2599,6 +2966,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.swift.o"
         },
         {
           "kind" : "file",
@@ -2756,6 +3127,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Conversations.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Corpus.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/CorpusFiles.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Database.swift"
         },
         {
@@ -2764,11 +3147,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Distillation.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Embedder.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Env.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Episodes.swift"
         },
         {
           "kind" : "file",
@@ -2793,6 +3184,14 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GoToPath.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/GraphLayout.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Identity.swift"
         },
         {
           "kind" : "file",
@@ -2880,6 +3279,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Privacy.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/PrivacyCopy.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Processes.swift"
         },
         {
@@ -2889,6 +3296,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/RecallResults.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncherCore/Relevance.swift"
         },
         {
           "kind" : "file",
@@ -3026,11 +3437,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusFilesTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/CorpusTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/EpisodeTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/FlowTests.swift"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GoToPathTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/GraphLayoutTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/IdentityTests.swift"
         },
         {
           "kind" : "file",
@@ -3074,7 +3505,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyCopyTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PrivacyTests.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/PulseTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Tests/BeLauncherCoreTests/RelevanceTests.swift"
         },
         {
           "kind" : "file",
@@ -3210,6 +3653,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Conversations.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Corpus.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/CorpusFiles.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Database.swift.o"
         },
         {
@@ -3218,11 +3673,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Embedder.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Env.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Episodes.swift.o"
         },
         {
           "kind" : "file",
@@ -3247,6 +3710,14 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GoToPath.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/GraphLayout.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.swift.o"
         },
         {
           "kind" : "file",
@@ -3334,6 +3805,14 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Privacy.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/PrivacyCopy.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Processes.swift.o"
         },
         {
@@ -3343,6 +3822,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/RecallResults.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.swift.o"
         },
         {
           "kind" : "file",
@@ -3470,11 +3953,31 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusFilesTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CorpusTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/EpisodeTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/FlowTests.swift.o"
         },
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GraphLayoutTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IdentityTests.swift.o"
         },
         {
           "kind" : "file",
@@ -3518,7 +4021,19 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyCopyTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PrivacyTests.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PulseTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-A/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RelevanceTests.swift.o"
         },
         {
           "kind" : "file",

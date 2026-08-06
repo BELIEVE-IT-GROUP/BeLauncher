@@ -19,34 +19,37 @@ struct SettingsView: View {
     /// as "there are four more sections in here". A sidebar shows all seven at once and has room
     /// for a subtitle, which is where most of the "what is this even for" went.
     enum Section: String, CaseIterable, Identifiable {
-        case general, intelligence, clipboard, commands, agents, memory, content, brain, data
+        case general, intelligence, clipboard, commands, agents, memory, privacy, content, brain,
+             data
         var id: String { rawValue }
 
         var title: String {
             switch self {
-            case .general: "General"
-            case .intelligence: "Inteligencia"
-            case .clipboard: "Portapapeles"
-            case .commands: "Qué puedo escribir"
-            case .agents: "Encargos"
-            case .memory: "Lo que observa"
-            case .content: "Mis atajos"
-            case .brain: "Mi cerebro"
-            case .data: "Datos y privacidad"
+            case .general: L("General")
+            case .intelligence: L("Intelligence")
+            case .clipboard: L("Clipboard")
+            case .commands: L("What I can type")
+            case .agents: L("Errands")
+            case .memory: L("What it watches")
+            case .privacy: L("Privacy")
+            case .content: L("My shortcuts")
+            case .brain: L("My brain")
+            case .data: L("Data")
             }
         }
 
         var subtitle: String {
             switch self {
-            case .general: "Atajo, arranque, licencia"
-            case .intelligence: "Qué modelo responde y con qué clave"
-            case .clipboard: "Qué se guarda y qué no"
-            case .commands: "Todo lo que entiende la ventana"
-            case .agents: "Comandos con «/» y misiones en marcha"
-            case .memory: "Historial, memoria de trabajo y lo aprendido"
-            case .content: "Snippets, flujos, alias, secretos"
-            case .brain: "Dónde viven tus notas y quién puede leerlas"
-            case .data: "Exportar, importar, desinstalar"
+            case .general: L("Shortcut, startup, licence")
+            case .intelligence: L("Which model answers, and with whose key")
+            case .clipboard: L("What gets saved and what does not")
+            case .commands: L("Everything the window understands")
+            case .agents: L("“/” commands and missions in flight")
+            case .memory: L("History, working memory and what it learned")
+            case .privacy: L("Pause, exclude, forget")
+            case .content: L("Snippets, flows, aliases, secrets")
+            case .brain: L("Where your notes live and who can read them")
+            case .data: L("Export, import, uninstall")
             }
         }
 
@@ -58,6 +61,7 @@ struct SettingsView: View {
             case .commands: "command"
             case .agents: "terminal"
             case .memory: "eye"
+            case .privacy: "hand.raised"
             case .content: "text.quote"
             case .brain: "brain"
             case .data: "lock.shield"
@@ -95,6 +99,7 @@ struct SettingsView: View {
                 case .commands: CommandsTab()
                 case .agents: AgentsTab(model: model)
                 case .memory: MemoryTab(model: model)
+                case .privacy: PrivacyView(model: model)
                 case .content: ContentTab(model: model)
                 case .brain: BrainTab(model: model)
                 case .data: DataTab(model: model)
@@ -102,8 +107,23 @@ struct SettingsView: View {
             }
             .navigationTitle(selection.title)
         }
-        .frame(width: 860, height: 620)
-        .onAppear { model.reload(); model.scanLocalModels(); model.reloadIntelligenceExtras() }
+        // Ideal rather than fixed, so the layout follows the window the day it can be resized.
+        // Everything inside reflows: the counts are an adaptive grid and the button rows wrap.
+        .frame(minWidth: 760, idealWidth: 860, minHeight: 540, idealHeight: 620)
+        .onAppear {
+            model.reload(); model.scanLocalModels(); model.reloadIntelligenceExtras()
+            openRequestedSection()
+        }
+        // The window is reused rather than rebuilt, so `onAppear` fires once in its whole life.
+        // Without this, asking for a panel from outside only worked the first time.
+        .onChange(of: model.requestedSection) { _, _ in openRequestedSection() }
+    }
+
+    private func openRequestedSection() {
+        guard let requested = model.requestedSection,
+              let section = Section(rawValue: requested) else { return }
+        selection = section
+        model.requestedSection = nil
     }
 }
 
@@ -116,11 +136,19 @@ private struct GeneralTab: View {
     var body: some View {
         Form {
             Section {
-                Picker("Atajo global", selection: $model.hotkey) {
+                // Each language written in itself. "Spanish" in an English list is a small tell
+                // that the product was translated rather than made for the person reading it.
+                Picker(L("Language"), selection: $model.language) {
+                    ForEach(Language.allCases, id: \.self) { Text($0.endonym).tag($0) }
+                }
+                Text(L("Only what the app says to you. What you have saved keeps whatever language it was written in, and search still works across both."))
+                    .font(.caption).foregroundStyle(.secondary)
+
+                Picker(L("Global shortcut"), selection: $model.hotkey) {
                     ForEach(HotKey.Combo.all, id: \.label) { Text($0.label).tag($0.label) }
                 }
-                LabeledContent("Portapapeles", value: "⌥C")
-                Toggle("Abrir BeLauncher al iniciar sesión", isOn: $model.launchAtLogin)
+                LabeledContent(L("Clipboard"), value: "⌥C")
+                Toggle(L("Open BeLauncher at login"), isOn: $model.launchAtLogin)
                 if let error = model.launchAtLoginError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
@@ -692,7 +720,7 @@ private struct BrainTab: View {
     var body: some View {
         Form {
             Section("Estado del cerebro") {
-                BrainStateBlock(model: model, installer: installer)
+                BrainStatusView(model: model, installer: installer)
             }
 
             Section("Cómo se llena tu cerebro") {
@@ -820,84 +848,6 @@ private struct BrainTab: View {
             model.refreshBrainState()
             await installer.check()
         }
-    }
-}
-
-// MARK: - What the brain holds, in numbers
-
-/// The counts, the model, and the way to fix the index — because a brain nobody can inspect is a
-/// brain nobody trusts.
-///
-/// The number is the point. "Tu cerebro está listo" is a claim; "1.240 fragmentos, 1.240 con
-/// significado" is something the person can compare against what they know they have written,
-/// and it is what turns this from a feature into a tool.
-@MainActor
-private struct BrainStateBlock: View {
-    @Bindable var model: SettingsModel
-    let installer: ModelInstaller
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let readout = model.brainReadout {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(readout.headline)
-                        .font(.system(size: 13, weight: .semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(readout.detail)
-                        .font(.system(size: 11.5)).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if readout.passages > 0, !readout.needsModel {
-                    ProgressView(value: readout.percent)
-                        .progressViewStyle(.linear)
-                        .opacity(readout.isComplete ? 0.35 : 1)
-                }
-
-                Label(readout.engineLine, systemImage: readout.needsModel
-                      ? "questionmark.circle" : "cpu")
-                    .font(.system(size: 11.5))
-                    .foregroundStyle(readout.needsModel ? Color.primary : .secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                // Only when there is something to solve. A settings panel that shows an installer
-                // to someone who already installed it is noise.
-                if readout.needsModel {
-                    ModelInstallControls(installer: installer)
-                        .padding(.top, 2)
-                }
-            } else {
-                HStack(spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Contando lo que hay indexado…")
-                        .font(.system(size: 12)).foregroundStyle(.secondary)
-                }
-            }
-
-            Divider()
-
-            HStack(spacing: 10) {
-                Button(model.brainRebuilding
-                       ? BrainSetupCopy.rebuildRunning : BrainSetupCopy.rebuildTitle) {
-                    model.rebuildIndex()
-                }
-                .disabled(model.brainRebuilding)
-                if model.brainRebuilding { ProgressView().controlSize(.small) }
-                Spacer()
-                Button("Actualizar") { model.refreshBrainState() }
-                    .buttonStyle(.link).font(.system(size: 11))
-            }
-            Text(BrainSetupCopy.rebuildExplanation)
-                .font(.system(size: 11)).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            if let status = model.brainStatus {
-                Text(status)
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: model.brainRebuilding)
     }
 }
 

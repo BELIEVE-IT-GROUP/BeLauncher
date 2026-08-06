@@ -139,3 +139,49 @@ struct CarriesSecretTests {
         }
     }
 }
+
+@Suite("Las formas que midió la auditoría")
+struct MeasuredLeakTests {
+
+    /// Cada una salió de verdad en una sonda contra el módulo real. El comentario que estaba en
+    /// `namesASecret` afirmaba que `GITHUB_KEY` se partía en dos y se detectaba; no lo hacía,
+    /// porque el guion bajo contaba como parte del token.
+    @Test("Un nombre compuesto delante del igual sí se detecta")
+    func compoundNames() {
+        #expect(SecretGuard.carriesSecret("SUPABASE_SERVICE_ROLE_KEY=9f8a7b6c5d4e3f2a1b0c9d8e"))
+        #expect(SecretGuard.carriesSecret("GITHUB_KEY=9f8a7b6c5d4e3f2a1b0c9d8e"))
+        #expect(SecretGuard.carriesSecret("MY_APP_SECRET=9f8a7b6c5d4e3f2a1b0c9d8e"))
+    }
+
+    @Test("Una cabecera de autorización no se escapa por los dos puntos de otra cosa")
+    func headers() {
+        #expect(SecretGuard.carriesSecret("Authorization: Bearer 9f8a7b6c5d4e3f2a1b0c9d8e7f6a"))
+        #expect(SecretGuard.carriesSecret("x-api-key: 9f8a7b6c5d4e3f2a1b0c9d8e7f6a"))
+    }
+
+    @Test("Un token en el parámetro de una URL no se escapa")
+    func urlParameter() {
+        #expect(SecretGuard.carriesSecret("https://x.com/a?token=9f8a7b6c5d4e3f2a1b0c9d8e"))
+    }
+
+    @Test("Una cadena de conexión con contraseña dentro no se escapa")
+    func connectionString() {
+        // Es lo más dañino que puede salir de la app y no se parece a un token: sin prefijo, sin
+        // nombre, solo dos puntos en medio de una URL.
+        #expect(SecretGuard.carriesSecret("postgres://usuario:hunter2secreto@host:5432/db"))
+        #expect(SecretGuard.carriesSecret("https://admin:hunter2secreto@panel.example.com"))
+    }
+
+    @Test("Y el texto normal con dos puntos sigue pasando")
+    func ordinarySurvives() {
+        for line in [
+            "Nota: hay que rotar la clave antes del viernes",
+            "Reunión: jueves a las 10:00 con Acme",
+            "https://github.com/acme/infra/pull/1234",
+            "Clave: 4",
+            "correo: jorge@believe-global.com",
+        ] {
+            #expect(!SecretGuard.carriesSecret(line), "descartó texto normal: \(line)")
+        }
+    }
+}

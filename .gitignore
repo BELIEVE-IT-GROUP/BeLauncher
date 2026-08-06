@@ -4,3 +4,4 @@ build/
 *.xcuserdatad
 .DS_Store
 .claude/
+.build-*/

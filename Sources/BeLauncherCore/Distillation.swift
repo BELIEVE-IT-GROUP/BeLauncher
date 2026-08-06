@@ -48,13 +48,18 @@ public struct Distillation: Sendable, Equatable {
     /// Numbered episodes and a required citation on every line, for the same reason the retrieval
     /// prompt has them: the failure mode is a fluent paragraph half built from the notes and half
     /// from the model's own priors, with nothing to tell them apart afterwards.
+    /// In English, for the same reasons as the retrieval prompt: small local models follow English
+    /// instructions more reliably, and "do not invent" is the instruction that must survive.
+    /// The statements themselves come out in the language of the episodes, because they are built
+    /// from the words in them.
     public static func prompt(for episodes: [Episode]) -> (system: String, user: String) {
         let system = """
-        Resumes el día de una persona a partir de sus episodios de trabajo. Escribe entre una y \
-        tres frases, cada una en una línea y terminada en su cita [n]. Cada frase describe algo \
-        que se hizo, no algo que se sintió, y usa las palabras que aparecen en los episodios. \
-        Si los episodios no dan para una frase honesta, no escribas ninguna. No inventes \
-        resultados, no supongas por qué se hizo algo, no adornes. Español neutro.
+        Summarise a person's day from their work episodes. Write one to three sentences, each on \
+        its own line, each ending with its citation [n]. Every sentence describes something that \
+        was done, not something that was felt, and uses the words that appear in the episodes. \
+        If the episodes do not support an honest sentence, write none. Do not invent outcomes, \
+        do not guess why something was done, do not embellish. Write in the language the episodes \
+        are in.
         """
         let listed = episodes.enumerated().map { index, episode in
             let when = DateFormatter.retrievalStamp().string(from: episode.start)
@@ -66,7 +71,7 @@ public struct Distillation: Sendable, Equatable {
             let unique = touched.filter { seen.insert($0).inserted }.prefix(8)
             return "[\(index + 1)] \(when), \(minutes) min: \(unique.joined(separator: ", "))"
         }
-        return (system, "Episodios:\n" + listed.joined(separator: "\n"))
+        return (system, "Episodes:\n" + listed.joined(separator: "\n"))
     }
 
     /// Reads back what the model wrote, keeping only what it can prove.

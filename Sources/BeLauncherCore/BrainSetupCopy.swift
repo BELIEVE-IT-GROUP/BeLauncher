@@ -38,36 +38,34 @@ public enum BrainSetupCopy {
 
         let headline: String
         if passages == 0 {
-            headline = "Todavía no hay nada indexado."
+            headline = L("Nothing is indexed yet.")
+        } else if passages == 1 {
+            headline = L("One fragment of your notes, your work and your clipboard.")
         } else {
-            headline = "\(number(passages)) \(passages == 1 ? "fragmento" : "fragmentos") "
-                + "de tus notas, tu trabajo y tu portapapeles."
+            headline = L("%@ fragments of your notes, your work and your clipboard.", number(passages))
         }
 
         let detail: String
         if passages == 0 {
-            detail = "En cuanto guardes algo o copies un texto, aparece aquí."
+            detail = L("The moment you save something or copy a piece of text, it shows up here.")
         } else if engine == nil {
-            detail = "Se buscan por palabras exactas. Ninguno entiende significado todavía: "
-                + "falta el modelo."
+            detail = L("They are searched by exact words. None of them understands meaning yet: the model is missing.")
         } else if complete {
-            detail = "Todos entienden significado."
+            detail = L("All of them understand meaning.")
         } else if vectorised == 0 {
-            detail = "Ninguno entiende significado todavía. Empieza a procesarlos y esta cifra sube."
+            detail = L("None of them understands meaning yet. Start processing and this number climbs.")
         } else {
-            let left = passages - vectorised
-            detail = "\(number(vectorised)) entienden significado. Faltan \(number(left)) "
-                + "por procesar."
+            detail = L("%1$@ understand meaning. %2$@ still to process.",
+                       number(vectorised), number(passages - vectorised))
         }
 
         let engineLine: String
         if let engine {
             engineLine = isLocal
-                ? "Modelo \(engine), corriendo en tu Mac. No sale nada a internet."
-                : "Modelo \(engine), en un servidor. El texto que buscas sale de tu Mac para "
-                    + "llegar hasta él."
+                ? L("Model %@, running on your Mac. Nothing goes to the internet.", engine)
+                : L("Model %@, on a server. The text you search leaves your Mac to reach it.", engine)
         } else {
-            engineLine = "Sin modelo instalado. " + ModelInstall.wordSearchStillWorks
+            engineLine = L("No model installed.") + " " + ModelInstall.wordSearchStillWorks
         }
 
         return IndexReadout(headline: headline, detail: detail, engineLine: engineLine,
@@ -75,55 +73,56 @@ public enum BrainSetupCopy {
                             needsModel: engine == nil, isComplete: complete)
     }
 
-    /// Fixed Spanish grouping rather than the system locale: the same numbers have to read the
-    /// same way in a screenshot, in a support ticket and in a test that runs on a machine set to
-    /// English.
+    /// Grouping fixed per language rather than taken from the system locale: the same numbers have
+    /// to read the same way in a screenshot, in a support ticket and in a test running on a machine
+    /// set to anything. English groups with commas, Spanish with points, and neither depends on
+    /// which country the Mac thinks it is in.
     public static func number(_ value: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.groupingSeparator = "."
+        formatter.groupingSeparator = Loc.language == .spanish ? "." : ","
         formatter.groupingSize = 3
         return formatter.string(from: NSNumber(value: value)) ?? String(value)
     }
 
     // MARK: - Rebuilding the index
 
-    public static let rebuildTitle = "Rehacer el índice"
-    public static let rebuildExplanation =
-        "Vuelve a cortar todo y a procesarlo desde cero. Tarda, no borra ninguna nota y solo hace "
-        + "falta si los resultados dejan de tener sentido."
-    public static let rebuildRunning = "Rehaciendo el índice…"
+    public static var rebuildTitle: String { L("Rebuild the index") }
+    public static var rebuildExplanation: String {
+        L("Cuts everything again and reprocesses it from scratch. It takes a while, it deletes no notes, and it is only worth doing if the results stop making sense.")
+    }
+    public static var rebuildRunning: String { L("Rebuilding the index…") }
 
     public static func rebuildFinished(passages: Int, vectorised: Int) -> String {
-        "Índice rehecho: \(number(passages)) fragmentos, \(number(vectorised)) con significado."
+        L("Index rebuilt: %1$@ fragments, %2$@ of them with meaning.",
+          number(passages), number(vectorised))
     }
 
     // MARK: - The setup screen
 
-    public static let setupTitle = "Que entienda lo que quieres decir"
+    public static var setupTitle: String { L("Let it understand what you mean") }
 
     /// The reason, with the example that makes it obvious. A number of gigabytes without a reason
     /// is a request; with the example it is an offer.
-    public static let setupWhy =
-        "Ahora mismo encuentra por las palabras que escribes. Con este modelo encuentra también "
-        + "por lo que significan: preguntas «cuánto cobramos por el Pro» y aparece «el precio "
-        + "base es 1000 EUR», aunque no compartan ni una palabra."
+    public static var setupWhy: String {
+        L("Right now it finds things by the words you type. With this model it also finds them by what they mean: you ask “what do we charge for Pro” and up comes “the base price is 1000 EUR”, without a single word in common.")
+    }
 
-    public static let setupCost = ModelInstall.pitch
-    public static let setupSkip = "Seguir sin él"
-    public static let setupLater =
-        "Puedes ponerlo más tarde desde Ajustes, en «Mi cerebro»."
+    public static var setupCost: String { ModelInstall.pitch }
+    public static var setupSkip: String { L("Carry on without it") }
+    public static var setupLater: String { L("You can add it later from Settings, under “My brain”.") }
     /// Said while the bytes are moving, because the honest answer to "do I have to wait" is no.
-    public static let setupKeepUsing =
-        "Sigue usando BeLauncher mientras se descarga. Cuando termine te lo decimos aquí."
-    public static let setupDone = "Listo. Ya busca por significado."
+    public static var setupKeepUsing: String {
+        L("Keep using BeLauncher while it downloads. We will tell you here when it is done.")
+    }
+    public static var setupDone: String { L("Done. It searches by meaning now.") }
 
     /// The two ways to get Ollama, worded so neither one runs anything behind the person's back.
-    public static let installByHand = "Descargar Ollama"
-    public static let installByHomebrew = "Instalar con Homebrew"
-    public static let installExplanation =
-        "El modelo se descarga a través de Ollama, que es gratis y también se queda en tu Mac. "
-        + "Elige cómo instalarlo: nada se ejecuta sin que lo pulses."
+    public static var installByHand: String { L("Download Ollama") }
+    public static var installByHomebrew: String { L("Install with Homebrew") }
+    public static var installExplanation: String {
+        L("The model comes down through Ollama, which is free and also stays on your Mac. Pick how to install it: nothing runs until you press something.")
+    }
 
     // MARK: - Whether "conectado" means anything
 
@@ -147,58 +146,51 @@ public enum BrainSetupCopy {
     }
 
     public static func verdict(for report: MCPHealth.Report?) -> Verdict {
-        guard let report else {
-            return Verdict(level: .unknown, label: "sin comprobar",
-                           headline: "Todavía no se ha probado la conexión.",
-                           whatToDo: "Pulsa «Comprobar de verdad» y se ejecutan los cinco pasos.")
-        }
+        guard let report else { return neverChecked }
         if report.isConnected {
-            return Verdict(level: .working, label: "responde con datos",
-                           headline: "Los cinco pasos pasan: una llamada real trae contenido.",
+            return Verdict(level: .working, label: L("answers with data"),
+                           headline: L("All five steps pass: a real call brings content back."),
                            whatToDo: "")
         }
-        guard let failure = report.firstFailure else {
-            return Verdict(level: .unknown, label: "sin comprobar",
-                           headline: "Todavía no se ha probado la conexión.",
-                           whatToDo: "Pulsa «Comprobar de verdad» y se ejecutan los cinco pasos.")
-        }
+        guard let failure = report.firstFailure else { return neverChecked }
         return Verdict(level: .broken, label: shortFailure(failure.step),
                        headline: failure.outcome.reason ?? failure.step.title,
                        whatToDo: whatToDo(about: failure.step))
     }
 
-    /// The pill wording per failing step. Deliberately never the word "conectado" and never a
-    /// bare "error": it names the thing that is not happening, because "falla en el paso 4" sends
-    /// nobody anywhere.
+    static var neverChecked: Verdict {
+        Verdict(level: .unknown, label: L("unchecked"),
+                headline: L("The connection has not been tested yet."),
+                whatToDo: L("Press “%@” and the five steps run.", checkButton))
+    }
+
+    /// The pill wording per failing step. Deliberately never the word "connected" and never a bare
+    /// "error": it names the thing that is not happening, because "step 4 failed" sends nobody
+    /// anywhere.
     public static func shortFailure(_ step: MCPHealth.Step) -> String {
         switch step {
-        case .configured: "sin configurar"
-        case .launched: "no arranca"
-        case .handshake: "no contesta"
-        case .toolsListed: "sin herramientas"
-        case .toolCalled: "responde vacío"
+        case .configured: L("not set up")
+        case .launched: L("will not start")
+        case .handshake: L("no reply")
+        case .toolsListed: L("no tools")
+        case .toolCalled: L("comes back empty")
         }
     }
 
     /// Each failure has exactly one fix, and it is different for every step. This is the whole
-    /// reason the five checks are separate: one green dot could only ever say "algo va mal".
+    /// reason the five checks are separate: one green dot could only ever say "something is wrong".
     public static func whatToDo(about step: MCPHealth.Step) -> String {
         switch step {
         case .configured:
-            "Pulsa «Conectar» aquí al lado. Se añade la entrada a la configuración de esa app sin "
-            + "tocar lo que ya tuviera."
+            L("Press “Connect” next to it. The entry is added to that app's configuration without touching anything already in there.")
         case .launched:
-            "La ruta guardada en ese asistente ya no lleva a BeLauncher, normalmente porque la app "
-            + "se movió de carpeta. Pulsa «Conectar» otra vez para escribir la ruta actual."
+            L("The path saved in that assistant no longer leads to BeLauncher, usually because the app moved folder. Press “Connect” again to write the current one.")
         case .handshake:
-            "El proceso arranca pero no responde. Cierra el asistente, ábrelo de nuevo y vuelve a "
-            + "comprobar. Si sigue igual, reinstala BeLauncher."
+            L("The process starts but does not answer. Quit the assistant, open it again and check once more. If it stays like this, reinstall BeLauncher.")
         case .toolsListed:
-            "Esta versión arranca pero no anuncia ninguna herramienta. Actualiza BeLauncher desde "
-            + "Ajustes › General."
+            L("This version starts but announces no tools. Update BeLauncher from Settings › General.")
         case .toolCalled:
-            "La tubería funciona y el contenido no llega. Rehaz el índice en «Estado del cerebro» "
-            + "y vuelve a comprobar; si sigue vacío, manda el diagnóstico."
+            L("The plumbing works and the content does not arrive. Rebuild the index under “Brain status” and check again; if it is still empty, send the diagnostic.")
         }
     }
 
@@ -206,50 +198,49 @@ public enum BrainSetupCopy {
     /// reads the rows.
     public static func summary(of reports: [MCPHealth.Report]) -> Verdict {
         guard !reports.isEmpty else {
-            return Verdict(level: .unknown, label: "sin comprobar",
-                           headline: "Nadie ha comprobado esta conexión todavía.",
-                           whatToDo: "Pulsa «Comprobar de verdad»: arranca BeLauncher como lo "
-                                   + "haría tu asistente y hace una pregunta real.")
+            return Verdict(level: .unknown, label: L("unchecked"),
+                           headline: L("Nobody has checked this connection yet."),
+                           whatToDo: L("Press “%@”: it starts BeLauncher the way your assistant would and asks it a real question.", checkButton))
         }
         let broken = reports.filter { !$0.isConnected }
         guard !broken.isEmpty else {
             let count = reports.count
-            return Verdict(level: .working, label: "todo responde",
-                           headline: "\(number(count)) \(count == 1 ? "asistente recibe" : "asistentes reciben") "
-                                   + "datos de verdad.",
+            return Verdict(level: .working, label: L("everything answers"),
+                           headline: count == 1
+                               ? L("One assistant is getting real data.")
+                               : L("%@ assistants are getting real data.", number(count)),
                            whatToDo: "")
         }
         let names = broken.map(\.clientName).joined(separator: ", ")
-        return Verdict(level: .broken, label: "\(broken.count) sin datos",
-                       headline: "No llega nada a: \(names).",
-                       whatToDo: "Abre cada uno para ver en qué paso se corta.")
+        return Verdict(level: .broken, label: L("%@ with no data", String(broken.count)),
+                       headline: L("Nothing reaches: %@.", names),
+                       whatToDo: L("Open each one to see which step it breaks at."))
     }
 
-    // MARK: - What pressing «Conectar» is allowed to claim
+    // MARK: - What pressing «Connect» is allowed to claim
 
     /// Connecting writes a line into another app's configuration file. That is all it does, and
     /// that is all this says.
     ///
-    /// The old message was "X ya puede consultar tu cerebro. Reinícialo para que lo vea" — the
-    /// exact unverified claim the five-step probe exists to replace. A path in a JSON file does
-    /// not prove the assistant launches it: the most common failure in the probe is `launched`,
-    /// on machines whose config file said everything was fine.
+    /// The old message was "X can now consult your brain. Restart it so it sees it" — the exact
+    /// unverified claim the five-step probe exists to replace. A path in a JSON file does not prove
+    /// the assistant launches it: the most common failure in the probe is `launched`, on machines
+    /// whose config file said everything was fine.
     public static func connectWrote(client: String) -> String {
-        "Escrita la configuración de \(client). Eso es lo único que se puede afirmar por ahora: "
-        + "reinicia \(client) y pulsa «\(checkButton)» para ver si de verdad le llegan datos."
+        L("Wrote %1$@'s configuration. That is the only thing we can claim so far: restart %1$@ and press “%2$@” to see whether data actually reaches it.",
+          client, checkButton)
     }
 
     public static func connectAlreadyThere(client: String) -> String {
-        "\(client) ya tenía la entrada de BeLauncher. Que el archivo la mencione no prueba que "
-        + "reciba nada: pulsa «\(checkButton)» para comprobarlo."
+        L("%1$@ already had the BeLauncher entry. A file mentioning it is no proof that anything arrives: press “%2$@” to find out.",
+          client, checkButton)
     }
 
     /// The label on the button that runs the probe. It promises what it does, because the old
     /// button promised connection and delivered a file write.
-    public static let checkButton = "Comprobar de verdad"
-    public static let checkRunning = "Comprobando…"
-    public static let checkExplanation =
-        "Arranca BeLauncher igual que lo haría tu asistente, le hace una pregunta cuya respuesta "
-        + "conocemos y comprueba que vuelva con contenido. No basta con que el archivo de "
-        + "configuración nos mencione."
+    public static var checkButton: String { L("Really check it") }
+    public static var checkRunning: String { L("Checking…") }
+    public static var checkExplanation: String {
+        L("It starts BeLauncher exactly as your assistant would, asks it a question whose answer we know, and checks that content comes back. A configuration file mentioning us is not enough.")
+    }
 }

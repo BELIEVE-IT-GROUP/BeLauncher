@@ -68,7 +68,7 @@ struct PulseTests {
         let signals = Pulse.signals(for: [object("Precio enterprise 2000", days: -300)], at: now)
         let stale = signals.first { $0.kind == .stale }
         #expect(stale != nil)
-        #expect(stale?.headline.contains("meses") == true)
+        #expect(stale?.headline.contains("months") == true)
 
         #expect(!Pulse.signals(for: [object("Reciente", days: -30)], at: now)
             .contains { $0.kind == .stale })
@@ -102,7 +102,7 @@ struct PulseTests {
     @Test("an empty brain produces silence, not invented concern")
     func quietWhenEmpty() {
         #expect(Pulse.signals(for: [], at: now).isEmpty)
-        #expect(Pulse.render([]).contains("Nada que señalar"))
+        #expect(Pulse.render([]).contains("Nothing to flag"))
     }
 
     @Test("a healthy brain says nothing")
@@ -189,6 +189,6 @@ struct PulseInLauncherTests {
         let result = SearchEngine.search("pulse", in: SearchInput(memories: [
             object("Precio enterprise 2000", entities: ["pricing"]),
         ])).first
-        #expect(result?.title == "Nada que señalar")
+        #expect(result?.title == "Nothing to flag")
     }
 }

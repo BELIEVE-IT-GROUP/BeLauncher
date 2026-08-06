@@ -45,76 +45,82 @@ public struct MCPServer: Sendable {
     /// cannot be a Sendable global.
     static func limitProperty() -> [String: Any] {
         ["type": "integer",
-         "description": "Cuántos pasajes devolver. Entre 1 y \(MCPTools.maximumLimit), "
-                      + "por defecto \(MCPTools.defaultLimit)."]
+         "description": "How many passages to return. Between 1 and \(MCPTools.maximumLimit), "
+                      + "\(MCPTools.defaultLimit) by default."]
     }
 
+    /// The tool descriptions are English and are not localised.
+    ///
+    /// They are read by an assistant deciding which tool to call, never by a person. Tool selection
+    /// is one of the places a model is most easily thrown off, and every model this reaches was
+    /// trained on English tool schemas. The answers those tools return quote the user's own
+    /// material in whatever language it was written in, which is the part that matters to them.
     public static let tools: [Tool] = [
         Tool(
             name: "recall",
-            description: "Busca por significado en todo lo que esta persona tiene indexado: "
-                       + "memorias, portapapeles, grafo de trabajo y notas. Devuelve pasajes "
-                       + "citados, cada uno con su origen, su fecha y por qué vía apareció. "
-                       + "Úsala cuando necesites saber si el cerebro sabe algo de un tema.",
+            description: "Search by meaning across everything this person has indexed: memories, "
+                       + "clipboard, work graph and notes. Returns cited passages, each with its "
+                       + "origin, its date and which route found it. Use it whenever you need to "
+                       + "know whether the brain knows anything about a subject.",
             schema: { ["type": "object",
                      "properties": ["query": ["type": "string",
-                                              "description": "La pregunta, en lenguaje natural"],
+                                              "description": "The question, in natural language"],
                                     "limit": limitProperty()],
                      "required": ["query"]] }
         ),
         Tool(
             name: "context_for",
-            description: "Reúne el material que hace falta para trabajar sobre una tarea "
-                       + "concreta (rehacer un documento, escribir una propuesta, contestar a un "
-                       + "cliente) y lo devuelve agrupado por origen, con la cita textual "
-                       + "separada del metadato. Pídelo antes de escribir, en vez de esperar a "
-                       + "que la persona te pegue el contexto a mano.",
+            description: "Gathers the material needed to work on one concrete task (redoing a "
+                       + "document, writing a proposal, answering a client) and returns it grouped "
+                       + "by origin, with the verbatim quote kept apart from the metadata. Ask for "
+                       + "it before you write, instead of waiting for the person to paste the "
+                       + "context in by hand.",
             schema: { ["type": "object",
                      "properties": ["task": ["type": "string",
-                                             "description": "La tarea, descrita como se la "
-                                                          + "dirías a un compañero"],
+                                             "description": "The task, described the way you "
+                                                          + "would put it to a colleague"],
                                     "limit": limitProperty()],
                      "required": ["task"]] }
         ),
         Tool(
             name: "what_was_i_doing",
-            description: "Lo último en lo que esta persona estuvo trabajando, por tramos de "
-                       + "tiempo, a partir del grafo de trabajo y del portapapeles reciente. "
-                       + "Es actividad capturada, no decisiones.",
+            description: "The last things this person was working on, in time bands, drawn from "
+                       + "the work graph and the recent clipboard. This is captured activity, not "
+                       + "decisions.",
             schema: { ["type": "object",
                      "properties": ["since": ["type": "string",
-                                              "description": "Desde cuándo: una duración como "
-                                                           + "«24h», «7d», «2w», o «hoy», «ayer», "
-                                                           + "o una fecha 2026-08-01. "
-                                                           + "Por defecto, 24h."]],
+                                              "description": "How far back: a duration such as "
+                                                           + "24h, 7d, 2w, or today, yesterday, "
+                                                           + "or a date like 2026-08-01. "
+                                                           + "Defaults to 24h."]],
                      "required": []] }
         ),
         Tool(
             name: "what_did_we_decide",
-            description: "La decisión vigente de la empresa sobre un tema, con quién la tomó, "
-                       + "desde cuándo, su fuente y a qué decisión sustituyó. Responde con lo que "
-                       + "está en vigor hoy, no con todo lo que se dijo alguna vez, y añade el "
-                       + "material indexado que la rodea.",
+            description: "The company's decision in force on a subject, with who took it, since "
+                       + "when, its source and which decision it replaced. It answers with what "
+                       + "holds today, not with everything ever said, and adds the indexed "
+                       + "material around it.",
             schema: { ["type": "object",
                      "properties": ["topic": ["type": "string",
-                                              "description": "El tema, por ejemplo: pricing enterprise"]],
+                                              "description": "The subject, for example: enterprise pricing"]],
                      "required": ["topic"]] }
         ),
         Tool(
             name: "prepare",
-            description: "Reúne lo que se sabe sobre una persona, cliente o proyecto antes de una "
-                       + "reunión: decisiones vigentes, compromisos abiertos, notas y lo que haya "
-                       + "indexado sobre ello.",
+            description: "Gathers what is known about a person, client or project before a "
+                       + "meeting: decisions in force, open commitments, notes and whatever is "
+                       + "indexed about it.",
             schema: { ["type": "object",
                      "properties": ["subject": ["type": "string"]],
                      "required": ["subject"]] }
         ),
         Tool(
             name: "search_memory",
-            description: "Busca solo en la memoria deliberada, la que una persona confirmó. "
-                       + "Devuelve objetos con su estado, su dueño y si siguen vigentes. Es la "
-                       + "única que sabe responder «¿esto sigue en vigor?»; para buscar en todo "
-                       + "lo demás, usa recall.",
+            description: "Searches deliberate memory only, the part a person confirmed. Returns "
+                       + "objects with their state, their owner and whether they still hold. It is "
+                       + "the only tool that can answer “is this still in force?”; to search "
+                       + "everything else, use recall.",
             schema: { ["type": "object",
                      "properties": ["query": ["type": "string"],
                                     "include_superseded": ["type": "boolean"]],
@@ -122,9 +128,9 @@ public struct MCPServer: Sendable {
         ),
         Tool(
             name: "propose_memory",
-            description: "Propone guardar algo en la memoria de la empresa. Queda como propuesta "
-                       + "hasta que una persona la confirme en BeLauncher; esta herramienta nunca "
-                       + "escribe directamente en el cerebro.",
+            description: "Proposes saving something into the company's memory. It stays a "
+                       + "proposal until a person confirms it in BeLauncher; this tool never "
+                       + "writes into the brain directly.",
             schema: { ["type": "object",
                      "properties": ["statement": ["type": "string"],
                                     "kind": ["type": "string",
@@ -160,14 +166,14 @@ public struct MCPServer: Sendable {
         switch name {
         case "recall":
             guard let query = text(arguments["query"]) else {
-                return Response(text: "Falta la consulta.", isError: true)
+                return Response(text: "The query is missing.", isError: true)
             }
             return await MCPTools.recall(query: query, limit: integer(arguments["limit"]),
                                          context: context)
 
         case "context_for":
             guard let task = text(arguments["task"]) else {
-                return Response(text: "Falta la tarea.", isError: true)
+                return Response(text: "The task is missing.", isError: true)
             }
             return await MCPTools.contextFor(task: task, limit: integer(arguments["limit"]),
                                              context: context)
@@ -178,19 +184,19 @@ public struct MCPServer: Sendable {
 
         case "what_did_we_decide":
             guard let topic = text(arguments["topic"]) else {
-                return Response(text: "Falta el tema.", isError: true)
+                return Response(text: "The subject is missing.", isError: true)
             }
             return await MCPTools.whatDidWeDecide(topic: topic, context: context, date: date)
 
         case "prepare":
             guard let subject = text(arguments["subject"]) else {
-                return Response(text: "Falta el asunto.", isError: true)
+                return Response(text: "The subject is missing.", isError: true)
             }
             return await MCPTools.prepare(subject: subject, context: context, date: date)
 
         case "search_memory":
             guard let query = text(arguments["query"]) else {
-                return Response(text: "Falta la consulta.", isError: true)
+                return Response(text: "The query is missing.", isError: true)
             }
             return MCPTools.searchMemory(
                 query: query, includeSuperseded: arguments["include_superseded"] as? Bool ?? false,

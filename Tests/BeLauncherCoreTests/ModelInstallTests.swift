@@ -129,8 +129,8 @@ struct ModelInstallPullProgressTests {
     @Test("El texto legible incluye el porcentaje mientras descarga")
     func textoLegible() {
         #expect(ModelInstall.describe(status: "pulling 8934d96d3f08", fraction: 0.42).contains("42"))
-        #expect(ModelInstall.describe(status: "pulling manifest", fraction: 0).contains("Preparando"))
-        #expect(ModelInstall.describe(status: "success", fraction: 1).contains("Listo"))
+        #expect(ModelInstall.describe(status: "pulling manifest", fraction: 0).contains("ready"))
+        #expect(ModelInstall.describe(status: "success", fraction: 1).contains("Done"))
     }
 
     @Test("Cada capa se distingue por su digest, no por el texto del estado")
@@ -219,7 +219,7 @@ struct ModelInstallProgressAccumulationTests {
                                               completed: 600_000_000, digest: "sha256:bbb"))
         let texto = ModelInstall.describe(progress)
         #expect(texto.contains("%"))
-        #expect(texto.contains("de"))
+        #expect(texto.contains(" of "))
         #expect(texto.contains("GB") || texto.contains("MB"))
     }
 }
@@ -269,7 +269,7 @@ struct ModelInstallStartMethodTests {
         #expect(porBinario.contains("/usr/local/bin/ollama"))
 
         // Y cuando la app SÍ está, sigue siendo el consejo correcto.
-        #expect(ModelInstall.startFailure(for: .openApp).contains("Aplicaciones"))
+        #expect(ModelInstall.startFailure(for: .openApp).contains("Applications"))
     }
 
     @Test("El paso se llama poner en marcha, no abrir: con Homebrew no hay nada que abrir")
@@ -285,14 +285,14 @@ struct ModelInstallPullFailureTests {
     func sinEspacio() {
         #expect(ModelInstall.PullFailure.classify("write /root/.ollama/models: no space left on device")
                 == .noDiskSpace)
-        #expect(ModelInstall.PullFailure.noDiskSpace.description.contains("espacio"))
+        #expect(ModelInstall.PullFailure.noDiskSpace.description.contains("room on the disk"))
     }
 
     @Test("Sin red se reconoce y lo dice")
     func sinRed() {
         #expect(ModelInstall.PullFailure.classify("The Internet connection appears to be offline.")
                 == .network)
-        #expect(ModelInstall.PullFailure.network.description.contains("conexión"))
+        #expect(ModelInstall.PullFailure.network.description.contains("connection"))
     }
 
     @Test("El servidor de Ollama caído se reconoce y lo dice")

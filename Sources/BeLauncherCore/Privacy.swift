@@ -17,16 +17,19 @@ public enum Privacy {
         case byHand
         /// Turned off for a while.
         case untilLater
-        /// Screen sharing, recording, or a presentation. Capturing during a demo means recording
-        /// somebody else's screen, which nobody agreed to.
-        case sharingScreen
+        // There used to be a `sharingScreen` case here, offered as a control and never wired to
+        // anything: no macOS API reports that somebody else is capturing your screen. It was
+        // checked on this machine rather than assumed — CGDisplayIsCaptured is unavailable,
+        // CGSessionCopyCurrentDictionary carries no such key, and ScreenCaptureKit only describes
+        // what this app may capture. Guessing from a list of video-call apps would miss a screen
+        // shared from a browser tab, so it would be off exactly when somebody believed it was on.
+        // A control that does nothing is worse than one never offered.
 
         public var label: String {
             switch self {
             case .notPaused: "Capturando"
             case .byHand: "En pausa"
             case .untilLater: "En pausa un rato"
-            case .sharingScreen: "En pausa: estás compartiendo pantalla"
             }
         }
     }
@@ -44,7 +47,7 @@ public enum Privacy {
         public func isCapturing(at date: Date = .now) -> Bool {
             switch reason {
             case .notPaused: true
-            case .byHand, .sharingScreen: false
+            case .byHand: false
             case .untilLater: until.map { date >= $0 } ?? true
             }
         }
@@ -202,6 +205,35 @@ extension Store {
         )
     }
 
+    /// Periods the person asked to forget.
+    ///
+    /// Kept forever, and this is not bookkeeping: the sources are re-read on every pass, and the
+    /// identifiers are derived from content so the rebuild is exact. Without a ledger, forgetting
+    /// an afternoon lasted until the next indexing run — half an hour — and the app said "para
+    /// siempre" while it happened. A promise that expires silently is worse than one never made.
+    public func forgottenPeriods() -> [Privacy.Period] {
+        (setting("capture_forgotten") ?? "")
+            .split(whereSeparator: \.isNewline)
+            .compactMap { line in
+                let parts = line.split(separator: "|")
+                guard parts.count == 2, let from = Double(parts[0]), let to = Double(parts[1])
+                else { return nil }
+                return Privacy.Period(from: Date(timeIntervalSince1970: from),
+                                      to: Date(timeIntervalSince1970: to))
+            }
+    }
+
+    func rememberForgotten(_ period: Privacy.Period) {
+        var lines = forgottenPeriods().map { "\($0.from.timeIntervalSince1970)|\($0.to.timeIntervalSince1970)" }
+        lines.append("\(period.from.timeIntervalSince1970)|\(period.to.timeIntervalSince1970)")
+        setSetting("capture_forgotten", lines.joined(separator: "\n"))
+    }
+
+    /// Whether something that happened then is allowed back in.
+    public func isForgotten(_ date: Date) -> Bool {
+        forgottenPeriods().contains { $0.contains(date) }
+    }
+
     /// Removes everything captured in that period, from every table it touched.
     ///
     /// The passage index goes too, not just the source rows. Deleting a clip and leaving its
@@ -210,6 +242,7 @@ extension Store {
     @discardableResult
     public func forget(_ period: Privacy.Period) -> Privacy.Forgetting {
         let counted = whatWouldBeForgotten(period)
+        rememberForgotten(period)
         let bounds: [SQLValue] = [.double(period.from.timeIntervalSince1970),
                                   .double(period.to.timeIntervalSince1970)]
         try? database.execute("DELETE FROM passages WHERE occurred_at BETWEEN ? AND ?", bounds)

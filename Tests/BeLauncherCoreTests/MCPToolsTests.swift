@@ -143,8 +143,8 @@ struct MCPToolsTests {
 
         let response = await MCPServer.call(name: "recall", arguments: ["query": "cuesta el plan"],
                                             context: context)
-        #expect(response.text.contains("solo por palabras"))
-        #expect(response.text.contains("embeddings"))
+        #expect(response.text.contains("by words only"))
+        #expect(response.text.contains("embedding model"))
     }
 
     @Test("con el índice vacío dice qué buscó y dónde miró, no una frase genérica")
@@ -157,8 +157,8 @@ struct MCPToolsTests {
                                             arguments: ["query": "precios de enterprise"],
                                             context: context)
         #expect(response.text.contains("precios de enterprise"))
-        #expect(response.text.contains("memoria deliberada (0 objeto(s))"))
-        #expect(response.text.contains("0 pasaje(s)"))
+        #expect(response.text.contains("deliberate memory (0 object(s))"))
+        #expect(response.text.contains("0 passage(s)"))
     }
 
     // MARK: - context_for
@@ -241,12 +241,12 @@ struct MCPToolsTests {
         let context = MCPContext(vault: try makeVault(), store: store)
         let response = MCPTools.whatWasIDoing(since: "7d", context: context, date: ahora)
 
-        #expect(response.text.contains("## Hoy"))
-        #expect(response.text.contains("## Ayer"))
+        #expect(response.text.contains("## Today"))
+        #expect(response.text.contains("## Yesterday"))
         #expect(response.text.contains("MCPServer.swift"))
         #expect(response.text.contains("Repaso con Acme"))
-        #expect(response.text.contains("Portapapeles (cita textual)"))
-        #expect(response.text.contains("grafo de trabajo (2 nodo(s))"))
+        #expect(response.text.contains("Clipboard (verbatim quote)"))
+        #expect(response.text.contains("work graph (2 node(s))"))
     }
 
     @Test("un tramo sin actividad dice qué miró y cómo ampliarlo")
@@ -259,8 +259,8 @@ struct MCPToolsTests {
         let context = MCPContext(vault: try makeVault(), store: store)
         let response = MCPTools.whatWasIDoing(since: "1h", context: context, date: ahora)
 
-        #expect(response.text.contains("grafo de trabajo (0 nodo(s))"))
-        #expect(response.text.contains("portapapeles (0 fragmento(s))"))
+        #expect(response.text.contains("work graph (0 node(s))"))
+        #expect(response.text.contains("clipboard (0 fragment(s))"))
         #expect(response.text.contains("7d"),
                 "decir que no hay nada sin decir cómo ampliar el tramo obliga a adivinar")
     }
@@ -297,10 +297,10 @@ struct MCPToolsTests {
         let response = await MCPServer.call(name: "what_did_we_decide",
                                             arguments: ["topic": "precio enterprise"],
                                             context: context)
-        #expect(response.text.contains("No hay ninguna decisión registrada"))
-        #expect(response.text.contains("Busqué «precio enterprise»"))
-        #expect(response.text.contains("índice semántico"))
-        #expect(response.text.contains("trátalo como contexto y no como respuesta"))
+        #expect(response.text.contains("No decision is recorded"))
+        #expect(response.text.contains("I searched for “precio enterprise”"))
+        #expect(response.text.contains("semantic index"))
+        #expect(response.text.contains("treat it as context and not as the answer"))
     }
 
     @Test("prepare suma lo indexado a lo que hay en el vault")
@@ -471,7 +471,7 @@ struct MCPToolsTests {
             arguments: ["statement": "El cliente pidió facturación anual", "kind": "commitment"],
             context: context)
         #expect(!response.isError)
-        #expect(response.text.contains("confirmarla"))
+        #expect(response.text.contains("has to confirm it"))
         #expect(vault.current().isEmpty, "nada entró en el cerebro sin una persona")
         #expect(vault.commits(state: .proposed).count == 1)
         #expect(!MCPServer.tools.contains { $0.name.contains("confirm") })

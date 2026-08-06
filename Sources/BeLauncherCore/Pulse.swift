@@ -97,9 +97,10 @@ public enum Pulse {
 
                 found.append(Signal(
                     kind: .contradiction,
-                    headline: "Dos versiones vigentes sobre \(shared.sorted().joined(separator: ", "))",
-                    detail: "«\(first.statement)» y «\(second.statement)» están las dos en vigor. "
-                          + "Una debería sustituir a la otra.",
+                    headline: L("Two live versions of %@",
+                                shared.sorted().joined(separator: ", ")),
+                    detail: L("“%1$@” and “%2$@” are both in force. One should be replacing the other.",
+                              first.statement, second.statement),
                     weight: 100, objects: [first, second]
                 ))
             }
@@ -135,7 +136,7 @@ public enum Pulse {
             }
             .map { commitment in
                 Signal(kind: .overdue,
-                       headline: "Compromiso vencido",
+                       headline: L("Overdue commitment"),
                        detail: "«\(commitment.statement)»"
                              + (commitment.owner.isEmpty ? "" : " · \(commitment.owner)"),
                        weight: 90, objects: [commitment])
@@ -148,8 +149,8 @@ public enum Pulse {
             .map { object in
                 let months = Int(date.timeIntervalSince(object.validFrom) / (30 * 24 * 3600))
                 return Signal(kind: .stale,
-                              headline: "Sin revisar desde hace \(months) meses",
-                              detail: "«\(object.statement)». ¿Sigue siendo cierto?",
+                              headline: L("Unreviewed for %@ months", String(months)),
+                              detail: L("“%@”. Is it still true?", object.statement),
                               weight: 50, objects: [object])
             }
     }
@@ -158,9 +159,9 @@ public enum Pulse {
         live.filter { $0.kind == .decision && $0.evidence.isEmpty && $0.source.isEmpty }
             .map { object in
                 Signal(kind: .unsupported,
-                       headline: "Decisión sin respaldo",
-                       detail: "«\(object.statement)» no tiene fuente ni evidencia. "
-                             + "Dentro de un año nadie sabrá por qué se tomó.",
+                       headline: L("Decision with nothing behind it"),
+                       detail: L("“%@” has no source and no evidence. A year from now nobody will know why it was taken.",
+                                 object.statement),
                        weight: 60, objects: [object])
             }
     }
@@ -169,8 +170,8 @@ public enum Pulse {
         live.filter { ($0.kind == .project || $0.kind == .commitment) && $0.owner.isEmpty }
             .map { object in
                 Signal(kind: .ownerless,
-                       headline: "Sin responsable",
-                       detail: "«\(object.statement)» no tiene dueño.",
+                       headline: L("Nobody owns it"),
+                       detail: L("“%@” has no owner.", object.statement),
                        weight: 70, objects: [object])
             }
     }
@@ -182,9 +183,9 @@ public enum Pulse {
             .filter { $0.status == .superseded && $0.supersededBy == nil && $0.kind == .decision }
             .map { object in
                 Signal(kind: .gap,
-                       headline: "Decisión caducada sin reemplazo",
-                       detail: "«\(object.statement)» dejó de estar vigente y nadie registró "
-                             + "qué la sustituye.",
+                       headline: L("Expired decision with no replacement"),
+                       detail: L("“%@” stopped being in force and nobody recorded what replaces it.",
+                                 object.statement),
                        weight: 80, objects: [object])
             }
     }
@@ -193,8 +194,7 @@ public enum Pulse {
 
     public static func render(_ signals: [Signal]) -> String {
         guard !signals.isEmpty else {
-            return "Nada que señalar. Ninguna contradicción, ningún compromiso vencido y nada "
-                 + "sin revisar desde hace medio año."
+            return L("Nothing to flag. No contradictions, no overdue commitments, and nothing left unreviewed for half a year.")
         }
         return signals.map { signal in
             "**\(signal.headline)**\n\(signal.detail)"

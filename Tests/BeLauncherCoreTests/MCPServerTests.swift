@@ -90,8 +90,8 @@ struct MCPServerTests {
         let response = await MCPServer.call(name: "what_did_we_decide",
                                             arguments: ["topic": "pricing"],
                                             context: try context())
-        #expect(response.text.contains("No hay ninguna decisión registrada"))
-        #expect(response.text.contains("Busqué «pricing»"))
+        #expect(response.text.contains("No decision is recorded"))
+        #expect(response.text.contains("I searched for “pricing”"))
     }
 
     @Test("la búsqueda dice si cada memoria sigue vigente")
@@ -111,7 +111,7 @@ struct MCPServerTests {
                                                    "include_superseded": true],
                                        context: context)
         #expect(all.text.contains("1500"))
-        #expect(all.text.contains("sustituida"))
+        #expect(all.text.contains("superseded"))
     }
 
     @Test("un asistente puede proponer, y solo proponer")
@@ -123,7 +123,7 @@ struct MCPServerTests {
             context: context
         )
         #expect(!response.isError)
-        #expect(response.text.contains("confirmarla"))
+        #expect(response.text.contains("has to confirm it"))
 
         #expect(context.vault.current().isEmpty, "nada entró en el cerebro sin una persona")
         #expect(context.vault.commits(state: .proposed).count == 1)
@@ -145,7 +145,7 @@ struct MCPServerTests {
                         "entities": ["pricing"]],
             context: context
         )
-        #expect(response.text.contains("Chocaría"))
+        #expect(response.text.contains("would clash"))
     }
 
     @Test("los argumentos malos se rechazan, nunca se adivinan")

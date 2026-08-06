@@ -46,7 +46,7 @@ struct BrainQueryTests {
                                                 in: [old, new], at: now)
 
         #expect(answer.body.contains("Precio enterprise 2000"))
-        #expect(answer.body.contains("Sustituyó a:"), "what it replaced is the part nobody keeps")
+        #expect(answer.body.contains("Replaced:"), "what it replaced is the part nobody keeps")
         #expect(answer.body.contains("Precio enterprise 1500"))
         #expect(answer.body.contains("Jorge"))
         #expect(answer.citations.count == 2, "every claim carries its source")
@@ -68,8 +68,9 @@ struct BrainQueryTests {
                                status: .superseded)
         let answer = BrainQuery.whatDidWeDecide(topic: "precio enterprise", in: [expired], at: now)
 
-        #expect(answer.headline.contains("Ya no hay"))
-        #expect(answer.gap == "Falta registrar la decisión vigente.")
+        #expect(answer.headline.contains("no decision in force"))
+        #expect(answer.gap == "The decision in force is missing.")
+        #expect(Loc.render(answer.gap ?? "", in: .spanish) == "Falta registrar la decisión vigente.")
         #expect(answer.citations == [expired])
     }
 
@@ -78,7 +79,7 @@ struct BrainQueryTests {
         let answer = BrainQuery.whatDidWeDecide(topic: "pricing", in: [], at: now)
         #expect(answer.citations.isEmpty)
         #expect(answer.gap != nil)
-        #expect(answer.headline.contains("No hay ninguna decisión"))
+        #expect(answer.headline.contains("Nothing has been decided"))
     }
 
     // MARK: - Prepare me
@@ -102,7 +103,7 @@ struct BrainQueryTests {
         #expect(answer.body.contains("Andrés"))
         #expect(answer.body.contains("Descuento del 15%"))
         #expect(answer.body.contains("Enviar la propuesta"))
-        #expect(answer.gap?.contains("compromiso") == true, "an open commitment is worth flagging")
+        #expect(answer.gap?.contains("commitment") == true, "an open commitment is worth flagging")
         #expect(answer.citations.count == 2)
     }
 
@@ -162,10 +163,10 @@ struct BrainInLauncherTests {
             "qué decidimos sobre pricing",
             in: SearchInput(memories: [decision("Precio 2000", entities: ["pricing"])])
         )
-        #expect(withMemory.first?.subtitle.contains("fuente") == true)
+        #expect(withMemory.first?.subtitle.contains("source") == true)
 
         let empty = SearchEngine.search("qué decidimos sobre pricing", in: SearchInput())
-        #expect(empty.first?.subtitle.contains("no sabe nada") == true,
+        #expect(empty.first?.subtitle.contains("knows nothing") == true,
                 "an empty brain must say so, not answer vaguely")
     }
 

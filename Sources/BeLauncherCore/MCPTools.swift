@@ -40,20 +40,27 @@ public enum MCPTools {
 
         /// The honest line. Present whenever the search that just ran was weaker than the search
         /// this tool is supposed to be able to run.
+        ///
+        /// English, always, and not through the string catalog. Everything in this file is read by
+        /// another model, never by a person: these are the assistant's working notes about what it
+        /// did and did not look at. Instruction-following is measurably better in English on every
+        /// model this is likely to reach, and the caller relays the answer in whatever language the
+        /// user is speaking anyway. The material quoted back stays in the language it was written
+        /// in, which is the part that has to be preserved.
         var warning: String? {
             guard hasIndex else {
-                return "Aviso: el índice semántico no está montado en esta sesión. Solo puedo "
-                     + "mirar la memoria deliberada del vault, no el portapapeles ni el grafo de "
-                     + "trabajo. Lo que no aparezca aquí puede existir igualmente."
+                return "Warning: the semantic index is not mounted in this session. I can only "
+                     + "look at the deliberate memory in the vault, not the clipboard or the work "
+                     + "graph. Anything missing here may well exist."
             }
             guard engine != nil else {
-                return "Aviso: no hay modelo de embeddings, así que estoy buscando solo por "
-                     + "palabras. Una paráfrasis o un sinónimo no van a aparecer aunque estén en "
-                     + "el cerebro. Para arreglarlo: «ollama pull bge-m3»."
+                return "Warning: there is no embedding model, so I am searching by words only. A "
+                     + "paraphrase or a synonym will not show up even if it is in the brain. To fix "
+                     + "it: `ollama pull bge-m3`."
             }
             if passages > 0, vectorised < passages {
-                return "Aviso: el índice todavía se está calculando, \(vectorised) de "
-                     + "\(passages) pasajes tienen vector. El resto solo se encuentra por palabras."
+                return "Warning: the index is still being built, \(vectorised) of \(passages) "
+                     + "passages carry a vector. The rest are only findable by words."
             }
             return nil
         }
@@ -61,14 +68,14 @@ public enum MCPTools {
         /// Named places with counts, not a shrug. When the answer is "nada", the caller has to be
         /// able to tell an empty brain from a brain that was never asked properly.
         func whereILooked(_ query: String) -> String {
-            var places = ["la memoria deliberada (\(memories) objeto(s))"]
+            var places = ["deliberate memory (\(memories) object(s))"]
             if hasIndex {
-                places.append("el índice semántico (\(passages) pasaje(s), \(vectorised) con "
-                            + "vector\(engine.map { ", motor \($0)" } ?? ", sin motor"))")
+                places.append("the semantic index (\(passages) passage(s), \(vectorised) with a "
+                            + "vector\(engine.map { ", engine \($0)" } ?? ", no engine"))")
             } else {
-                places.append("el índice semántico, que no está disponible")
+                places.append("the semantic index, which is unavailable")
             }
-            return "Busqué «\(query)» en \(places.joined(separator: " y en "))."
+            return "I searched for “\(query)” in \(places.joined(separator: " and in "))."
         }
     }
 
@@ -91,7 +98,7 @@ public enum MCPTools {
     /// Visible on purpose. Removing the line in silence would leave the caller reading an answer
     /// with a hole in it and no way to know there was one, which is the same lie as answering
     /// "no hay nada" when the index is not mounted.
-    static let redactionMark = "[credencial omitida]"
+    static let redactionMark = "[credential omitted]"
 
     /// Punctuation a rendered line wraps a value in. Stripped off each word before it is checked.
     private static let decoration = CharacterSet(
@@ -173,14 +180,14 @@ public enum MCPTools {
             return reply(nothingFound(query: query, cover: cover, result: result))
         }
 
-        var lines = ["\(hits.count) pasaje(s) sobre «\(query)». \(routeSummary(result))"]
+        var lines = ["\(hits.count) passage(s) about “\(query)”. \(routeSummary(result))"]
         if let warning = cover.warning { lines.append(warning) }
         lines.append("")
         for (index, hit) in hits.enumerated() {
             lines.append(citation(index + 1, hit))
             lines.append("")
         }
-        lines.append("Cita cada afirmación con su [n]. Lo que no esté aquí, no lo supongas.")
+        lines.append("Cite every claim with its [n]. Do not assume anything that is not here.")
         return reply(lines.joined(separator: "\n"))
     }
 
@@ -281,14 +288,14 @@ public enum MCPTools {
             .filter { isSafeToSend($0.text) }
             .sorted { $0.createdAt > $1.createdAt }
 
-        var lines = ["Trabajo desde el \(stamp(from)) (\(sinceLabel(since))). "
-                   + "Miré el grafo de trabajo (\(nodes.count) nodo(s)) y el portapapeles "
-                   + "(\(clips.count) fragmento(s))."]
+        var lines = ["Work since \(stamp(from)) (\(sinceLabel(since))). "
+                   + "I looked at the work graph (\(nodes.count) node(s)) and the clipboard "
+                   + "(\(clips.count) fragment(s))."]
 
         guard !nodes.isEmpty || !clips.isEmpty else {
             lines.append("")
-            lines.append("No hay nada registrado en ese tramo. O no se capturó actividad, o el "
-                       + "tramo es demasiado corto: prueba con since=\"7d\".")
+            lines.append("Nothing is recorded in that stretch. Either no activity was captured, "
+                       + "or the stretch is too short: try since=\"7d\".")
             return reply(lines.joined(separator: "\n"))
         }
 
@@ -300,7 +307,7 @@ public enum MCPTools {
             lines.append("")
             lines.append("## \(band.label)")
             if !bandNodes.isEmpty {
-                lines.append("Trabajo:")
+                lines.append("Work:")
                 for node in bandNodes.prefix(12) {
                     // Field by field, so the row keeps its hour and its kind when the name is a
                     // `.env` line. A node named after one is how a credential reaches the graph
@@ -311,17 +318,17 @@ public enum MCPTools {
                 }
             }
             if !bandClips.isEmpty {
-                lines.append("Portapapeles (cita textual):")
+                lines.append("Clipboard (verbatim quote):")
                 for clip in bandClips.prefix(8) {
                     lines.append("- \(time(clip.createdAt)) · «\(excerpt(clip.text))»"
-                               + (clip.sourceApp.isEmpty ? "" : " · desde \(clip.sourceApp)"))
+                               + (clip.sourceApp.isEmpty ? "" : " · from \(clip.sourceApp)"))
                 }
             }
         }
 
         lines.append("")
-        lines.append("Esto es actividad capturada, no decisiones. Para lo que la empresa cree, "
-                   + "usa what_did_we_decide.")
+        lines.append("This is captured activity, not decisions. For what the company believes, "
+                   + "use what_did_we_decide.")
         return reply(lines.joined(separator: "\n"))
     }
 
@@ -335,9 +342,9 @@ public enum MCPTools {
 
         var label: String {
             switch self {
-            case .today: "Hoy"
-            case .yesterday: "Ayer"
-            case .thisWeek: "Esta semana"
+            case .today: "Today"
+            case .yesterday: "Yesterday"
+            case .thisWeek: "This week"
             case .earlier: "Antes"
             }
         }
@@ -394,7 +401,7 @@ public enum MCPTools {
 
     static func sinceLabel(_ since: String?) -> String {
         let raw = since?.trimmingCharacters(in: .whitespaces) ?? ""
-        return raw.isEmpty ? "últimas 24 h" : raw
+        return raw.isEmpty ? "last 24 h" : raw
     }
 
     // MARK: - what_did_we_decide
@@ -423,13 +430,13 @@ public enum MCPTools {
 
         // The vault does not know. Saying so is only useful if it also says what was searched:
         // "no hay ninguna decisión registrada" and "no pude buscar bien" are different facts.
-        var lines = ["No hay ninguna decisión registrada sobre «\(topic)».",
+        var lines = ["No decision is recorded about “\(topic)”.",
                      cover.whereILooked(topic)]
         if let warning = cover.warning { lines.append(warning) }
         if !found.hits.isEmpty {
             lines.append("")
-            lines.append("El índice sí tiene material cercano. Nada de esto está registrado como "
-                       + "decisión, así que trátalo como contexto y no como respuesta:")
+            lines.append("The index does have nearby material. None of it is recorded as a "
+                       + "decision, so treat it as context and not as the answer:")
             for (index, hit) in found.hits.enumerated() {
                 lines.append("")
                 lines.append(citation(index + 1, hit))
@@ -484,9 +491,9 @@ public enum MCPTools {
             .prefix(10)
         guard !found.isEmpty else {
             return reply("""
-                La memoria deliberada no tiene ningún objeto sobre «\(query)» \
-                (\(cover.memories) revisado(s)). Esto no cubre el portapapeles ni el grafo de \
-                trabajo: para eso, usa recall.
+                Deliberate memory holds no object about “\(query)” (\(cover.memories) \
+                reviewed). This does not cover the clipboard or the work graph: for those, \
+                use recall.
                 """)
         }
         // Field by field so one memory written with a key in it does not take the rest of the
@@ -494,7 +501,7 @@ public enum MCPTools {
         // hay nada" because of one bad line would be read as "no está vigente".
         return reply(found.map { object in
             "- \(redacted(object.statement))\n  \(object.kind.rawValue) · "
-            + "\(object.isCurrent(at: date) ? "vigente" : "sustituida")"
+            + "\(object.isCurrent(at: date) ? "in force" : "superseded")"
             + (object.owner.isEmpty ? "" : " · \(redacted(object.owner))")
             + (object.source.isEmpty ? "" : " · \(redacted(object.source))")
         }.joined(separator: "\n"))
@@ -509,24 +516,24 @@ public enum MCPTools {
                                      date: Date = .now) -> MCPServer.Response {
         guard let statement = arguments["statement"] as? String,
               !statement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return reply("Falta la frase.", isError: true)
+            return reply("The statement is missing.", isError: true)
         }
         let kind = MemoryObject.Kind(rawValue: arguments["kind"] as? String ?? "") ?? .note
         let object = MemoryObject(
             level: .extracted, kind: kind, statement: statement,
-            source: arguments["source"] as? String ?? "Propuesto por un asistente",
+            source: arguments["source"] as? String ?? "Proposed by an assistant",
             createdAt: date, validFrom: date,
             entities: arguments["entities"] as? [String] ?? []
         )
         do {
-            let commit = try context.vault.propose(object, reason: "Vía MCP")
+            let commit = try context.vault.propose(object, reason: "Via MCP")
             let conflicts = commit.conflicts.isEmpty
                 ? ""
-                : " Chocaría con \(commit.conflicts.count) memoria(s) vigente(s)."
-            return reply("Propuesta registrada. Una persona debe confirmarla en "
-                                          + "BeLauncher antes de que forme parte de la memoria.\(conflicts)")
+                : " It would clash with \(commit.conflicts.count) memory/memories in force."
+            return reply("Proposal recorded. A person has to confirm it in BeLauncher before it "
+                       + "becomes part of the memory.\(conflicts)")
         } catch {
-            return reply("No se pudo proponer: \(error)", isError: true)
+            return reply("Could not propose it: \(error)", isError: true)
         }
     }
 
@@ -551,7 +558,7 @@ public enum MCPTools {
 
     static func nothingFound(query: String, cover: Coverage,
                              result: Retriever.Result) -> String {
-        var lines = ["No encontré nada sobre «\(query)».", cover.whereILooked(query)]
+        var lines = ["I found nothing about “\(query)”.", cover.whereILooked(query)]
         if let warning = cover.warning {
             lines.append(warning)
         } else if let gap = result.gap {
@@ -565,26 +572,26 @@ public enum MCPTools {
         // Redacted before it is cut: half a key is still a key, and a title that gets truncated at
         // seventy characters would hand over the half that matters.
         let clean = redacted(hit.passage.title)
-        let title = clean.isEmpty ? "sin título" : String(clean.prefix(70))
+        let title = clean.isEmpty ? "untitled" : String(clean.prefix(70))
         return "[\(number)] \(hit.passage.source.kind.label) · \(title) · "
              + "\(stamp(hit.passage.occurredAt)) · \(RecallResults.reason(hit))\n\(hit.passage.text)"
     }
 
     static func route(_ hit: Retrieved) -> String {
         switch hit.route {
-        case .meaning: "significado"
-        case .words: "palabras"
-        case .both: "significado y palabras"
-        case .related: "relacionado"
+        case .meaning: "meaning"
+        case .words: "words"
+        case .both: "meaning and words"
+        case .related: "related"
         }
     }
 
     static func routeSummary(_ result: Retriever.Result) -> String {
         switch (result.usedMeaning, result.usedWords) {
-        case (true, true): "Buscado por significado y por palabras."
-        case (true, false): "Buscado por significado."
-        case (false, true): "Buscado solo por palabras."
-        case (false, false): "Sin coincidencias por ninguna vía."
+        case (true, true): "Searched by meaning and by words."
+        case (true, false): "Searched by meaning."
+        case (false, true): "Searched by words only."
+        case (false, false): "No matches by either route."
         }
     }
 
