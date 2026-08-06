@@ -48,6 +48,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainWebView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift"
         },
         {
@@ -204,6 +208,7 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/AppDelegate.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainSetupView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrowserHistory.swift.o",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BuildConfig.swift.o",
@@ -309,6 +314,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.swift.o"
         },
         {
           "kind" : "file",
@@ -458,6 +467,7 @@
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/AppDelegate.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainSetupView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainStatusView.swift",
+        "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainWebView.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrowserHistory.swift",
         "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BuildConfig.swift",
@@ -2195,6 +2205,7 @@
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/AppDelegate.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainSetupView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainStatusView.swift",
+      "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainWebView.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrowserHistory.swift",
       "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BuildConfig.swift",
@@ -2736,6 +2747,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainWebView.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift"
         },
         {
@@ -2899,6 +2914,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.swift.o"
         },
         {
           "kind" : "file",
@@ -3977,6 +3996,10 @@
         {
           "kind" : "file",
           "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.swift.o"
         },
         {
           "kind" : "file",

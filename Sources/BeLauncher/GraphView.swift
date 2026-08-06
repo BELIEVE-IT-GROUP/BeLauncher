@@ -67,6 +67,11 @@ final class GraphModel {
 
     // What is on screen.
     private(set) var drawing = GraphLayout.Drawing(nodes: [], lines: [], omitted: 0)
+
+    /// What the library is handed. The positions are its problem, not ours: dragging, zooming and
+    /// the endless canvas all come from it, and every one of those was missing while this app drew
+    /// the graph itself.
+    private(set) var web = BrainGraphData(nodes: [], links: [])
     private(set) var counted = 0
     /// Whether a layout is being worked out right now, so the empty canvas is not mistaken for an
     /// empty brain in the moment between a keystroke and its picture.
@@ -192,6 +197,35 @@ final class GraphModel {
     /// about half a second on every keystroke in the filter. The filter itself is one pass over a
     /// few thousand nodes — that part is fine where it is, and doing it here is what lets the
     /// count update while the picture is still being worked out.
+    /// The palette keys the page uses. Kept as strings because they cross into JavaScript, and a
+    /// mismatch there fails by drawing everything grey rather than by failing to compile.
+    /// One line, never a paragraph.
+    ///
+    /// Node labels come from clip and conversation titles, which are whole sentences. Handing
+    /// those to the graph filled the canvas with overlapping walls of text.
+    static func shortLabel(_ label: String) -> String {
+        let flat = label.replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        return flat.count > 34 ? String(flat.prefix(33)) + "…" : flat
+    }
+
+    static func typeName(_ shape: GraphLayout.Node.Shape) -> String {
+        switch shape {
+        case .episode: "episode"
+        case .person: "person"
+        case .project: "project"
+        case .company: "company"
+        case .topic: "topic"
+        case .thing: "thing"
+        }
+    }
+
+    /// Only edges that mean "this came out of that" carry particles, so the animation says
+    /// something instead of decorating everything.
+    private func linkKind(_ link: GraphLayout.Link) -> String {
+        link.strength > 1 ? "cameFrom" : "workedWith"
+    }
+
     func rebuild() {
         let cutoff = span.seconds.map { now.addingTimeInterval(-$0) }
         let needle = Identity.fold(query.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -208,6 +242,16 @@ final class GraphModel {
                                           arrangement: arrangement)
 
         counted = visible.count
+        web = BrainGraphData(
+            nodes: visible.map {
+                BrainGraphData.Node(id: $0.id, label: Self.shortLabel($0.label),
+                                    type: Self.typeName($0.shape), weight: max($0.weight, 0.08))
+            },
+            links: links.map {
+                BrainGraphData.Link(source: $0.source, target: $0.target,
+                                    kind: linkKind($0), weight: $0.strength)
+            }
+        )
         // Cancelling before scheduling is the half of this that matters. The layout in flight is
         // for a filter the person has already moved past, and `GraphLayout.arrange` gives up
         // between passes, so the letter that arrives mid-layout stops the old one instead of
@@ -651,75 +695,47 @@ struct GraphView: View {
     // MARK: Canvas
 
     private var canvas: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .topLeading) {
-                TimelineView(.animation(minimumInterval: 1.0 / 30, paused: model.hovered == nil)) { timeline in
-                    Canvas { context, size in
-                        if model.arrangement == .timeline { drawAxis(&context, size: size) }
-                        let neighbours = GraphPainter.adjacency(model.drawing.lines)
-                        // Only the second of the current minute matters: the phase has to advance
-                        // smoothly and mean nothing, and anchoring it to the wall clock keeps it
-                        // identical across a redraw for any other reason.
-                        let phase = timeline.date.timeIntervalSinceReferenceDate
-                            .truncatingRemainder(dividingBy: 2) / 2
-                        GraphPainter.drawLines(&context, drawing: model.drawing,
-                                               focus: model.hovered ?? model.selected,
-                                               neighbours: neighbours, phase: phase)
-                        GraphPainter.drawNodes(&context, drawing: model.drawing,
-                                               selected: model.selected, compared: model.compared,
-                                               hovered: model.hovered, neighbours: neighbours,
-                                               labelled: labelledNodes)
-                    }
-                }
-                // One Canvas rather than a view per node: a few hundred SwiftUI views laying
-                // themselves out on every hover is a slideshow, and this is meant to be flown
-                // through.
-                .contentShape(Rectangle())
-                .onTapGesture { location in
-                    model.tap(x: location.x, y: location.y,
-                              extending: NSEvent.modifierFlags.contains(.shift))
-                }
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active(let point):
-                        model.hovered = GraphLayout.nearest(toX: point.x, y: point.y,
-                                                            in: model.drawing)?.id
-                    case .ended:
-                        model.hovered = nil
-                    }
-                }
+        ZStack(alignment: .topLeading) {
+            // The graph itself: force-graph 1.51.4, the same engine GetMaas, Maasy and BeMail
+            // draw with. Nodes drag, the wheel zooms, the canvas has no edges — none of which the
+            // hand-written version had, and none of which was worth rebuilding.
+            BrainWebView(
+                graph: model.web,
+                onSelect: { id in model.selected = id.isEmpty ? nil : id },
+                onCompare: { id in model.compared = id },
+                onOpen: { id in model.selected = id; model.open() }
+            )
+            .ignoresSafeArea()
 
-                // Not while one is being worked out: the canvas is empty for the moment between a
-                // keystroke and its picture, and "aquí no hay nada" flashing during a search reads
-                // as a brain that just lost everything.
-                if model.drawing.isEmpty, !model.isLaying { emptyState }
-            }
-            .onAppear { model.size = geometry.size }
-            .onChange(of: geometry.size) { _, size in model.size = size }
+            if model.web.isEmpty, !model.isLaying { emptyState }
         }
         .focusable()
         .focused($focused)
         .onAppear { focused = true }
-        .onKeyPress(.leftArrow) { model.move(.left); return .handled }
-        .onKeyPress(.rightArrow) { model.move(.right); return .handled }
-        .onKeyPress(.upArrow) { model.move(.up); return .handled }
-        .onKeyPress(.downArrow) { model.move(.down); return .handled }
         .onKeyPress(.return) { model.open(); return .handled }
         .onKeyPress(.space) { model.markImportant(true); return .handled }
         .onKeyPress(.delete) { model.forget(); return .handled }
         .onKeyPress(.escape) { model.selected = nil; model.compared = nil; return .handled }
-        .onKeyPress(KeyEquivalent("l")) { openReader(); return .handled }
     }
 
+    /// Said with the reason, not with a shrug. "Aquí no hay nada" over a brain that is simply
+    /// filtered to last week is the fastest way to make somebody think they lost everything.
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Mascot(height: 96)
-            Text("Aquí no hay nada todavía")
-                .font(.system(size: 15, weight: .semibold))
-            Text("El grafo sale de lo que haces, no de lo que escribes. En cuanto la captura lleve un rato encendida, esto se llena solo.")
-                .font(.system(size: 12)).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center).frame(maxWidth: 380)
+        VStack(spacing: 8) {
+            Mascot(height: 92)
+            Text(model.query.isEmpty
+                 ? "Todavía no hay nada que dibujar aquí."
+                 : "Nada coincide con «\(model.query)».")
+                .font(.system(size: 13, weight: .medium))
+            Text(model.query.isEmpty
+                 ? "El cerebro se llena solo mientras trabajas, si activaste la captura. Prueba con «Todo» arriba."
+                 : "Prueba con menos palabras o amplía el periodo.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: 340)
+        .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

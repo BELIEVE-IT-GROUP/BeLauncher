@@ -37,6 +37,13 @@
     "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.swiftdeps",
     "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainStatusView.dia"
   },
+  "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrainWebView.swift": {
+    "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.d",
+    "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.swift.o",
+    "swiftmodule": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView~partial.swiftmodule",
+    "swift-dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.swiftdeps",
+    "diagnostics": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainWebView.dia"
+  },
   "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/Sources/BeLauncher/BrandMark.swift": {
     "dependencies": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.d",
     "object": "/Users/mac/Developer/beacon/.claude/worktrees/belauncher/.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.swift.o",

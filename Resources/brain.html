@@ -1,0 +1,170 @@
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: #0a0d14; overflow: hidden; }
+  #graph { width: 100vw; height: 100vh; }
+</style>
+<div id="graph"></div>
+<script src="force-graph.min.js"></script>
+<script>
+// The same library the other Believe brains use — force-graph 1.51.4, which is exactly what
+// react-force-graph-2d wraps. Reimplementing it in a SwiftUI Canvas produced a still picture with
+// no drag, no zoom and no infinite canvas, and there was never a reason to: the engine runs fine
+// in a WebView and the painter below is the one from GetMaas, not a lookalike.
+
+const VISUALS = {
+  episode: { fill: "#06b6d4", glow: "rgba(6,182,212,0.85)",   ring: "#67e8f9", icon: "✦" },
+  project: { fill: "#3861C4", glow: "rgba(56,97,196,0.55)",   ring: "#9ed7ff", icon: "◆" },
+  person:  { fill: "#0099FF", glow: "rgba(0,153,255,0.55)",   ring: "#9ed7ff", icon: "●" },
+  company: { fill: "#C428D4", glow: "rgba(196,40,212,0.6)",   ring: "#e69cf0", icon: "▲" },
+  topic:   { fill: "#F5B454", glow: "rgba(245,180,84,0.6)",   ring: "#ffd27a", icon: "◇" },
+  thing:   { fill: "#737b8b", glow: "rgba(115,123,139,0.4)",  ring: "#b4bac8", icon: null },
+};
+
+let hoveredId = null;
+let selectedId = null;
+let comparedId = null;
+let neighbours = new Map();
+
+const send = (name, body) => {
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.brain) {
+    window.webkit.messageHandlers.brain.postMessage({ name, ...body });
+  }
+};
+
+const idOf = (end) => (typeof end === "string" ? end : end.id);
+
+const graph = ForceGraph()(document.getElementById("graph"))
+  .backgroundColor("#0a0d14")
+  .cooldownTicks(220)
+  .warmupTicks(50)
+  .nodeLabel(() => "")
+  .nodeRelSize(1)
+  // Dragging, zooming and panning come from the library. This is the whole reason for using it.
+  .enableNodeDrag(true)
+  .enableZoomInteraction(true)
+  .enablePanInteraction(true)
+  .onNodeClick((node, event) => {
+    if (event && event.shiftKey) { comparedId = node.id; send("compare", { id: node.id }); }
+    else { selectedId = node.id; send("select", { id: node.id }); }
+  })
+  .onNodeRightClick((node) => send("open", { id: node.id }))
+  .onBackgroundClick(() => { selectedId = null; comparedId = null; send("select", { id: "" }); })
+  .onNodeHover((node) => { hoveredId = node ? node.id : null; })
+  .linkColor((link) => {
+    const s = idOf(link.source), t = idOf(link.target);
+    if (hoveredId && s !== hoveredId && t !== hoveredId) return "rgba(255,255,255,0.04)";
+    return "rgba(158,215,255,0.35)";
+  })
+  .linkWidth((link) => {
+    const s = idOf(link.source), t = idOf(link.target);
+    const active = hoveredId && (s === hoveredId || t === hoveredId);
+    return (active ? 1.8 : 0.9) * (link.weight || 1);
+  })
+  .linkDirectionalParticles((link) => (link.kind === "cameFrom" ? 2 : 0))
+  .linkDirectionalParticleWidth(1.4)
+  .linkDirectionalParticleSpeed(0.006)
+  .linkDirectionalParticleColor(() => "rgba(158,215,255,0.95)")
+  .nodeCanvasObjectMode(() => "replace")
+  .nodeCanvasObject((node, ctx, globalScale) => {
+    const visual = VISUALS[node.type] || VISUALS.thing;
+    const r = Math.max(4, Math.sqrt(node.weight || 1) * 2.4);
+    const dimmed = hoveredId && node.id !== hoveredId && !(neighbours.get(hoveredId) || new Set()).has(node.id);
+    const hot = hoveredId === node.id;
+    const x = node.x, y = node.y;
+
+    ctx.save();
+    ctx.globalAlpha = dimmed ? 0.18 : 1;
+
+    const haloR = r * (hot ? 4.5 : 3);
+    const grad = ctx.createRadialGradient(x, y, r * 0.4, x, y, haloR);
+    grad.addColorStop(0, visual.glow);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(x, y, haloR, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = visual.fill;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = visual.ring;
+    ctx.lineWidth = hot ? 1.6 : 1;
+    ctx.beginPath(); ctx.arc(x, y, r + 1.4, 0, Math.PI * 2); ctx.stroke();
+
+    if (node.id === selectedId || node.id === comparedId) {
+      ctx.strokeStyle = node.id === selectedId ? visual.ring : "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.setLineDash(node.id === comparedId ? [3, 3] : []);
+      ctx.beginPath(); ctx.arc(x, y, r + 6, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (visual.icon && r > 6 && globalScale > 0.9) {
+      ctx.font = `${r}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.fillText(visual.icon, x, y);
+    }
+
+    // Labels, and only when they can be read.
+    //
+    // The first version showed one on any heavy node at any zoom, with a font of 11/globalScale so
+    // it kept a constant size on screen. Zoomed out that is a correct font size and a wall of
+    // overlapping paragraphs: the labels are clip and conversation titles, which run to whole
+    // sentences. So they appear once there is room for them, or on the one node being pointed at.
+    const roomForLabels = globalScale > 1.4;
+    if (roomForLabels || hot || node.id === selectedId) {
+      const text = node.label.length > 30 ? node.label.slice(0, 29) + "…" : node.label;
+      ctx.font = `${hot ? 600 : 400} ${11 / globalScale}px -apple-system, sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.fillStyle = `rgba(255,255,255,${dimmed ? 0.18 : 0.92})`;
+      ctx.fillText(text, x, y + r + 3);
+    }
+    ctx.restore();
+  });
+
+// Swift hands the graph over as one object. Positions are kept across updates so filtering does
+// not throw the layout away and start it spinning from scratch.
+const positions = new Map();
+window.setGraph = (payload) => {
+  const data = typeof payload === "string" ? JSON.parse(payload) : payload;
+  neighbours = new Map();
+  for (const link of data.links) {
+    if (!neighbours.has(link.source)) neighbours.set(link.source, new Set());
+    if (!neighbours.has(link.target)) neighbours.set(link.target, new Set());
+    neighbours.get(link.source).add(link.target);
+    neighbours.get(link.target).add(link.source);
+  }
+  for (const node of data.nodes) {
+    const kept = positions.get(node.id);
+    if (kept) { node.x = kept.x; node.y = kept.y; }
+  }
+  graph.graphData(data);
+};
+
+window.focusNode = (id) => {
+  const node = graph.graphData().nodes.find((n) => n.id === id);
+  if (!node) return;
+  selectedId = id;
+  graph.centerAt(node.x, node.y, 700);
+  graph.zoom(2.4, 700);
+};
+
+window.fitAll = () => graph.zoomToFit(600, 60);
+
+let hasFitted = false;
+graph.onEngineStop(() => {
+  for (const node of graph.graphData().nodes) positions.set(node.id, { x: node.x, y: node.y });
+  // Frame it once, when the layout has settled. Opening onto a small clump adrift in a large
+  // empty canvas reads as a broken window, and asking somebody to scroll to find their own brain
+  // is the wrong first impression. Only the first time: re-framing on every filter would yank the
+  // view out from under anyone who had zoomed in on purpose.
+  if (!hasFitted && graph.graphData().nodes.length > 0) {
+    hasFitted = true;
+    graph.zoomToFit(600, 70);
+  }
+});
+
+const resize = () => graph.width(window.innerWidth).height(window.innerHeight);
+window.addEventListener("resize", resize);
+resize();
+send("ready", {});
+</script>
