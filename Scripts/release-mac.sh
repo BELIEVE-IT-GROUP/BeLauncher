@@ -42,6 +42,29 @@ bash "$ROOT/Scripts/make-icon.sh" "$APP/Contents/Resources/AppIcon.icns"
 # command bar, because the system-provided icon comes pre-framed on macOS 26.
 [ -f "$ROOT/Resources/AppIcon-1024.png" ] && cp "$ROOT/Resources/AppIcon-1024.png" "$APP/Contents/Resources/AppIconArt.png"
 
+# Everything else in Resources/ goes in as-is. Copying files one by one is what let the mascot
+# ship in local builds and not in the release: bundle.sh and this script each had their own list,
+# and only one of them was updated. A loop cannot drift; two lists always do.
+for asset in "$ROOT/Resources/"*; do
+    [ -f "$asset" ] || continue
+    case "$(basename "$asset")" in
+        AppIcon-1024.png) continue ;;   # already copied above, under its bundle name
+    esac
+    cp "$asset" "$APP/Contents/Resources/$(basename "$asset")"
+done
+
+# And prove it landed, rather than trusting the loop. Same discipline as the entitlement check:
+# a release that quietly ships without its artwork looks exactly like one that worked.
+for asset in "$ROOT/Resources/"*; do
+    [ -f "$asset" ] || continue
+    name="$(basename "$asset")"
+    [ "$name" = "AppIcon-1024.png" ] && continue
+    if [ ! -f "$APP/Contents/Resources/$name" ]; then
+        echo "✗ Falta $name dentro del .app" >&2
+        exit 1
+    fi
+done
+
 lipo -archs "$APP/Contents/MacOS/BeLauncher"
 
 # ---------------------------------------------------------------- sign
