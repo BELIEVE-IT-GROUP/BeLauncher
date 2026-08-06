@@ -301,6 +301,7 @@ struct LocalizationTests {
             // Lo que la persona teclea para disparar algo. Son datos que el buscador reconoce; si
             // se traducen, deja de funcionar lo que ya sabía escribir.
             "salir", "cerrar sesión", "que no se duerma", "nº de factura", "cerebro", "memoria",
+            "grafo", "asunto:",
             "pantalla", "papelera", "carpeta escritorio", "portapapeles", "nota ",
             "cpu · memoria", "espacio trabajo · espacios",
             "que consume", "que esta lento", "un abrazo", "con-guiones", "con_guiones_bajos",
@@ -343,7 +344,9 @@ struct LocalizationTests {
                                    "memoria", "trabajo", "portapapeles", "nota", "fuentes",
                                    "reunión", "decisión", "conversación", "misión", "misiones",
                                    "propuesta", "pantalla", "ventana", "ventanas", "archivo",
-                                   "carpeta", "permiso", "permisos", "papelera", "cerebro"]
+                                   "carpeta", "permiso", "permisos", "papelera", "cerebro",
+                                   "episodio", "persona", "proyecto", "empresa", "asunto", "cosa",
+                                   "nodos", "relaciones"]
         return pieces.contains(where: labels.contains)
     }
 

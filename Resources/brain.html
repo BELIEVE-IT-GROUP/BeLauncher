@@ -126,6 +126,20 @@ const graph = ForceGraph()(document.getElementById("graph"))
 const positions = new Map();
 window.setGraph = (payload) => {
   const data = typeof payload === "string" ? JSON.parse(payload) : payload;
+
+  // A link pointing at an id that is not in `nodes` makes d3's link force throw, and a throw here
+  // means the canvas stays empty under a header that confidently says how many nodes and relations
+  // there are. That exact picture — counts on the chrome, nothing drawn — has now happened twice
+  // for two different reasons, and both times it took a person opening the window to notice.
+  // Dropping the dangling ones keeps the rest of the graph on screen, and `send("trouble")` tells
+  // Swift what was dropped so the next time there is a number instead of a guess.
+  const known = new Set(data.nodes.map((n) => n.id));
+  const dangling = data.links.filter((l) => !known.has(idOf(l.source)) || !known.has(idOf(l.target)));
+  if (dangling.length) {
+    data.links = data.links.filter((l) => known.has(idOf(l.source)) && known.has(idOf(l.target)));
+    send("trouble", { id: `${dangling.length} relaciones apuntaban a nodos que no están` });
+  }
+
   neighbours = new Map();
   for (const link of data.links) {
     if (!neighbours.has(link.source)) neighbours.set(link.source, new Set());
@@ -162,6 +176,13 @@ graph.onEngineStop(() => {
     graph.zoomToFit(600, 70);
   }
 });
+
+// Anything the page throws reaches Swift instead of dying inside a WebView nobody can see into.
+// A blank canvas with no explanation is the worst possible failure for this window: it looks like
+// an empty brain, which is a lie about the person's own work.
+window.onerror = (message, _source, line) => {
+  send("trouble", { id: `${message} (línea ${line})` });
+};
 
 const resize = () => graph.width(window.innerWidth).height(window.innerHeight);
 window.addEventListener("resize", resize);

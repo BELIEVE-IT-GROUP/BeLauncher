@@ -62,6 +62,33 @@ public struct IndexedPassage: Sendable, Equatable, Identifiable {
     /// Whether a vector was stored for it. False means this passage can only be found by word.
     public let hasVector: Bool
 
+    /// The longest a title may be. A title is a label — "the Acme meeting", "auth.swift" — so a
+    /// person reading a citation knows where the quote came from.
+    ///
+    /// Enforced rather than assumed, because assuming it cost 13 GB. Titles are built from captured
+    /// signals, and a signal's title is whatever the capture layer saw: a page name usually, a
+    /// megabyte of pasted text occasionally. That title is then written onto *every passage of its
+    /// source*, so one episode with a 960 KB title and 3,439 passages stored 3.3 GB — for a single
+    /// afternoon's work. Measured on a real brain: 19,413 passages holding 14 MB of text and
+    /// **10.3 GB of titles**, in a database file that had grown to 13 GB and filled the disk.
+    ///
+    /// The cap lives here, at the one door everything goes through, rather than at each of the
+    /// places that build a title. Capping it at the sources means the next capture source added
+    /// gets it wrong again, and the weakest copy of a rule is the one that decides.
+    public static let titleLimit = 160
+
+    /// A title cut to a label, keeping whole words where it can and saying that it was cut.
+    public static func label(_ title: String) -> String {
+        let clean = title.replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        guard clean.count > titleLimit else { return clean }
+        let head = clean.prefix(titleLimit)
+        // Back up to the last space so a citation does not end mid-word, unless there is no space
+        // in range — a pasted URL or a wall of text without one.
+        let cut = head.lastIndex(of: " ").map { head[head.startIndex..<$0] } ?? head
+        return cut.trimmingCharacters(in: .whitespaces) + "…"
+    }
+
     public init(id: String, source: IndexedSource, title: String, ordinal: Int,
                 text: String, occurredAt: Date, hasVector: Bool = false) {
         self.id = id
@@ -130,6 +157,9 @@ extension Store {
             """)
         try database.execute("CREATE INDEX IF NOT EXISTS passages_source ON passages (source_key)")
         try database.execute("CREATE INDEX IF NOT EXISTS passages_kind ON passages (source_kind)")
+        // What the embedding pass walks. Without it that query is a full scan plus a full sort,
+        // once per batch, on the main thread. See `passagesNeedingVectors`.
+        try database.execute("CREATE INDEX IF NOT EXISTS passages_when ON passages (occurred_at DESC)")
 
         // FTS5 with unicode61 and diacritic folding: "reunion" has to find "reunión", because
         // nobody types accents into a launcher.
@@ -159,6 +189,112 @@ extension Store {
                 INSERT INTO passages_fts(rowid, text, title) VALUES (new.rowid, new.text, new.title);
             END
             """)
+
+        trimOversizedTitles()
+    }
+
+    /// Cuts titles that were written before there was a cap on them.
+    ///
+    /// The cap in `replacePassages` only protects what gets written from now on, and that is not
+    /// enough on its own: a source whose content has not changed is deliberately never rewritten —
+    /// its digest matches, so re-cutting and re-embedding it is skipped. That is the right
+    /// behaviour and it means an oversized title, once stored, would stay stored forever. Someone
+    /// upgrading would keep their thirteen gigabytes and never find out why.
+    ///
+    /// So the repair happens once, here, where every launch already passes. It is a single UPDATE
+    /// over the rows that are actually oversized; on a healthy brain it matches nothing and costs
+    /// one indexless pass over a small table.
+    ///
+    /// Note what it does *not* do: the file does not shrink. SQLite keeps the freed pages and
+    /// reuses them, so the brain stops growing but a database already at thirteen gigabytes stays
+    /// that size on disk until it is compacted. Compacting needs room for a second copy, which is
+    /// exactly what a person in this situation does not have, so it is a deliberate action with a
+    /// button rather than something that happens behind them at launch.
+    private func trimOversizedTitles() {
+        let oversized = (try? database.query(
+            "SELECT count(*) AS n FROM passages WHERE length(title) > ?",
+            [.int(Int64(IndexedPassage.titleLimit))]))?.first?.int("n") ?? 0
+        guard oversized > 0 else { return }
+
+        try? database.execute("""
+            UPDATE passages SET title = rtrim(substr(title, 1, ?)) || '…'
+            WHERE length(title) > ?
+            """, [.int(Int64(IndexedPassage.titleLimit)), .int(Int64(IndexedPassage.titleLimit))])
+        // The word index carries the titles too, and it grew with them: on the brain that prompted
+        // this, 448,487 index blocks for 19,413 documents. Rebuilding from the now-small titles
+        // took it to 1,437.
+        try? database.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')")
+    }
+
+    // MARK: - How much room it takes
+
+    /// What the database occupies on disk, in bytes.
+    ///
+    /// The write-ahead log counts. In WAL mode everything written since the last checkpoint lives
+    /// in `-wal`, so measuring only the main file reports 4 KB for a database holding megabytes —
+    /// which is how a size check ends up reassuring somebody about a disk that is filling up.
+    public var fileSize: Int {
+        [path, path + "-wal", path + "-shm"].reduce(0) { total, file in
+            total + (((try? FileManager.default.attributesOfItem(atPath: file))?[.size] as? Int) ?? 0)
+        }
+    }
+
+    /// Roughly what the contents actually need, from SQLite's own page accounting.
+    ///
+    /// Pages in use rather than bytes of text: a healthy database is legitimately larger than the
+    /// sum of its strings, and comparing against the strings would call every normal brain bloated.
+    public var contentSize: Int {
+        let pages = (try? database.query("SELECT * FROM pragma_page_count()"))?
+            .first?.int("page_count") ?? 0
+        let free = (try? database.query("SELECT * FROM pragma_freelist_count()"))?
+            .first?.int("freelist_count") ?? 0
+        let size = (try? database.query("SELECT * FROM pragma_page_size()"))?
+            .first?.int("page_size") ?? 4096
+        return Int(max(0, pages - free) * size)
+    }
+
+    public enum CompactionFailure: LocalizedError {
+        case notEnoughRoom(needed: Int)
+        case failed(String)
+
+        public var errorDescription: String? {
+            switch self {
+            case .notEnoughRoom(let needed):
+                L("There is not enough free disk. It needs about %@ for the new copy.",
+                  ByteCountFormatter.string(fromByteCount: Int64(needed), countStyle: .file))
+            case .failed(let reason): reason
+            }
+        }
+    }
+
+    /// Rewrites the database compactly and returns how many bytes came back.
+    ///
+    /// Plain `VACUUM`, in place. SQLite rebuilds into a temporary file and swaps atomically, so the
+    /// open connection stays valid and a failure halfway through costs nothing — which is why this
+    /// is preferable to writing a copy and juggling the files here, where a mistake loses somebody
+    /// their brain.
+    ///
+    /// The room it needs is the size of the *compacted* result, not of the bloated file, because
+    /// what SQLite builds is the compacted one. That distinction is the whole reason this can help
+    /// somebody whose disk is already full: the trim runs first at migration and makes the answer
+    /// small, and only then is there any point compacting.
+    ///
+    /// The free-space check exists because running out mid-VACUUM is how a full disk became a
+    /// completely full disk while trying to fix it.
+    @discardableResult
+    public func compact() throws -> Int {
+        let before = fileSize
+        let needed = Int(Double(contentSize) * 1.3) + 50_000_000
+        let free = (try? FileManager.default.attributesOfFileSystem(forPath: path))?[.systemFreeSize] as? Int ?? 0
+        guard free > needed else { throw CompactionFailure.notEnoughRoom(needed: needed) }
+
+        do {
+            try database.execute("PRAGMA temp_store = MEMORY")
+            try database.execute("VACUUM")
+        } catch {
+            throw CompactionFailure.failed(String(describing: error))
+        }
+        return max(0, before - fileSize)
     }
 
     // MARK: - Writing
@@ -171,6 +307,7 @@ extension Store {
     public func replacePassages(for source: IndexedSource, title: String, occurredAt: Date,
                                 text: String) -> [IndexedPassage] {
         let cut = Semantic.passages(of: text)
+        let title = IndexedPassage.label(title)
         let digest = Semantic.digest(text)
 
         // Unchanged content keeps its vectors: re-embedding an untouched note on every index pass
@@ -210,17 +347,38 @@ extension Store {
             [.text(Semantic.encode(vector).base64EncodedString()), .text(model), .text(passageID)])
     }
 
-    /// Passages still waiting for a vector, oldest content first.
+    /// Passages still waiting for a vector, newest content first.
     ///
     /// Changing the embedding model invalidates every vector: two models put the same sentence in
     /// completely different places, and comparing across them produces confident nonsense.
+    ///
+    /// The two details in this query are the difference between a launcher and a beachball. It
+    /// used to be `SELECT *` with no index behind it, which on a real brain — 11,256 passages,
+    /// 12.5 MB of vectors — planned as `SCAN passages` plus a temp B-tree to sort all of them
+    /// before taking sixty-four. That is 6.8 seconds per batch, `SELECT *` dragging in every
+    /// base64 vector only to throw it away, and the embedding pass runs it once per batch until
+    /// the brain is full. With nine thousand passages pending that is a quarter of an hour of
+    /// frozen window, which is exactly what it looked like.
+    ///
+    /// So: only the columns needed to embed, and an index on `occurred_at` so SQLite walks in
+    /// order and stops at sixty-four instead of sorting the table. Measured on that same brain:
+    /// 6.775 s → 0.031 s.
     public func passagesNeedingVectors(model: String, limit: Int = 64) -> [IndexedPassage] {
         let rows = (try? database.query("""
-            SELECT * FROM passages
+            SELECT id, source_key, title, ordinal, text, occurred_at FROM passages
             WHERE vector IS NULL OR vector_model <> ?
             ORDER BY occurred_at DESC LIMIT ?
             """, [.text(model), .int(Int64(limit))])) ?? []
-        return rows.compactMap(Store.passage)
+        return rows.compactMap { row in
+            guard let source = IndexedSource.key(row.string("source_key")) else { return nil }
+            return IndexedPassage(
+                id: row.string("id"), source: source, title: row.string("title"),
+                ordinal: Int(row.int("ordinal")), text: row.string("text"),
+                occurredAt: Date(timeIntervalSince1970: row.double("occurred_at")),
+                // Not selected, and known anyway: these are the ones without a usable vector.
+                hasVector: false
+            )
+        }
     }
 
     public func passages(for source: IndexedSource) -> [IndexedPassage] {

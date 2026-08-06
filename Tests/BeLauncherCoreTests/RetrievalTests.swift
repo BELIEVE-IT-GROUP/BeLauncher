@@ -344,4 +344,104 @@ struct SemanticIndexTests {
         #expect(nearest.first?.id == written[0].id)
         #expect(abs((nearest.first?.similarity ?? 0) - 1) < 1e-4)
     }
+    @Test("la pasada de vectores no recorre la tabla entera en cada lote")
+    func laPasadaNoEscanea() throws {
+        let store = try makeStore()
+        for n in 0..<40 {
+            store.replacePassages(for: IndexedSource(kind: .memory, id: "m\(n)"),
+                                  title: "T\(n)", occurredAt: .now.addingTimeInterval(-Double(n)),
+                                  text: "Una frase cualquiera número \(n) con suficiente texto.")
+        }
+
+        // La consulta que alimenta el embebido corría como SCAN + ordenación temporal de toda la
+        // tabla, una vez por lote, en el hilo principal: con once mil pasajes eran 6,8 segundos por
+        // lote y la ventana se quedaba clavada. Lo que lo arregla es el índice; si alguien lo quita
+        // en un refactor, el plan vuelve a decir SCAN y la app vuelve a congelarse en silencio.
+        let plan = try store.database.query("""
+            EXPLAIN QUERY PLAN
+            SELECT id, source_key, title, ordinal, text, occurred_at FROM passages
+            WHERE vector IS NULL OR vector_model <> ? ORDER BY occurred_at DESC LIMIT ?
+            """, [.text("bge-m3"), .int(64)])
+        let detail = plan.map { $0.string("detail") }.joined(separator: " | ")
+        #expect(detail.contains("passages_when"),
+                Comment(rawValue: "el plan ya no usa el índice: «\(detail)»"))
+        #expect(!detail.contains("TEMP B-TREE"),
+                Comment(rawValue: "vuelve a ordenar la tabla entera: «\(detail)»"))
+
+        // Y sigue devolviendo lo que debe: los cuarenta están sin vector.
+        #expect(store.passagesNeedingVectors(model: "bge-m3", limit: 100).count == 40)
+    }
+
+    @Test("un título gigante no se guarda entero en cada pasaje")
+    func elTituloEsUnaEtiqueta() throws {
+        let store = try makeStore()
+        // Lo que pasó de verdad: el título de un episodio se arma con los títulos de las señales
+        // capturadas, y una señal puede ser un megabyte de texto pegado. Ese título se escribe en
+        // CADA pasaje de la fuente. Un episodio con 3.439 pasajes y un título de 960 KB guardó
+        // 3,3 GB él solo; la base entera llegó a 13 GB con 14 MB de texto dentro, y llenó el disco.
+        let enorme = String(repeating: "palabra ", count: 200_000)   // ~1,6 MB
+        let escritos = store.replacePassages(
+            for: IndexedSource(kind: .node, id: "episodio"), title: enorme, occurredAt: .now,
+            text: String(repeating: "Una frase con contenido de verdad. ", count: 300))
+
+        #expect(escritos.count > 1, "hacen falta varios pasajes para que el título se multiplique")
+        for passage in escritos {
+            #expect(passage.title.count <= IndexedPassage.titleLimit + 1,
+                    "un título de \(passage.title.count) caracteres por pasaje es como se llega a 13 GB")
+        }
+
+        // Y lo que se guardó es legible, no un recorte a mitad de palabra.
+        #expect(escritos.first?.title.hasSuffix("…") == true)
+        #expect(escritos.first?.title.hasPrefix("palabra") == true)
+    }
+
+    @Test("un título normal se guarda tal cual")
+    func elTituloNormalNoSeToca() throws {
+        let store = try makeStore()
+        let escritos = store.replacePassages(
+            for: IndexedSource(kind: .memory, id: "m"), title: "La reunión con Acme",
+            occurredAt: .now, text: "Acordamos revisar el precio en septiembre.")
+        #expect(escritos.first?.title == "La reunión con Acme")
+    }
+
+    @Test("al actualizar, los títulos gigantes que ya estaban se recortan solos")
+    func laMigracionReparaLoQueYaEstaba() throws {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-migra-\(UUID().uuidString)")
+            .appendingPathComponent("s.sqlite3").path
+        let viejo = try Store(path: path)
+        try viejo.migrateSemanticIndex()
+
+        // Una fila escrita como las escribía la versión anterior: sin tope, por la puerta de atrás,
+        // porque el tope de `replacePassages` es justamente lo que no existía entonces.
+        let enorme = String(repeating: "palabra ", count: 100_000)
+        try viejo.database.execute("""
+            INSERT INTO passages (id, source_key, source_kind, title, ordinal, text, occurred_at,
+                                  digest, vector, vector_model)
+            VALUES ('p1', 'node:e1', 'node', ?, 0, 'texto', 0, 'd', NULL, '')
+            """, [.text(enorme)])
+        #expect(try viejo.database.query("SELECT length(title) AS n FROM passages")
+            .first?.int("n") == Int64(enorme.count))
+
+        // Y ahora arranca la versión con el arreglo. Esto importa porque una fuente cuyo contenido
+        // no cambió nunca se reescribe —su digest coincide— así que sin esta migración el título
+        // gigante se quedaba ahí para siempre y la persona conservaba sus trece gigabytes.
+        let nuevo = try Store(path: path)
+        try nuevo.migrateSemanticIndex()
+        let despues = try nuevo.database.query("SELECT length(title) AS n FROM passages")
+            .first?.int("n") ?? -1
+        #expect(despues <= Int64(IndexedPassage.titleLimit + 1),
+                "la migración dejó un título de \(despues) caracteres")
+    }
+
+    @Test("una base sana no se declara hinchada")
+    func loSanoNoSeToca() throws {
+        let store = try makeStore()
+        store.replacePassages(for: IndexedSource(kind: .memory, id: "m"), title: "Acme",
+                              occurredAt: .now, text: "Una nota corta.")
+        #expect(store.fileSize > 0)
+        #expect(store.contentSize > 0)
+        #expect(store.contentSize <= store.fileSize)
+    }
+
 }

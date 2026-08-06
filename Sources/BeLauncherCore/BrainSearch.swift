@@ -81,8 +81,16 @@ public final class BrainSearch {
         return pending.count
     }
 
-    /// Runs to completion. Used by the diagnostic and by a deliberate "rebuild the index" action,
-    /// never on the path of someone typing.
+    /// Runs to completion, giving the window a turn between batches.
+    ///
+    /// This used to say it never ran while somebody was typing. It does: the app starts it at
+    /// launch, which is precisely when somebody reaches for the launcher. Saying otherwise in a
+    /// comment did not make it true — it only meant nobody looked here when the window froze.
+    ///
+    /// Every batch reads and writes SQLite, and this class is on the main actor, so a tight loop
+    /// over a hundred and forty batches holds the main thread for the whole pass. The `yield`
+    /// hands control back between batches so a keystroke is serviced instead of queued behind the
+    /// rest of the brain. The batches themselves are fast now; this is what keeps them polite.
     @discardableResult
     public func embedEverything(maximumBatches: Int = 500) async throws -> Int {
         var total = 0
@@ -90,6 +98,7 @@ public final class BrainSearch {
             let done = try await embedPending()
             if done == 0 { break }
             total += done
+            await Task.yield()
         }
         return total
     }

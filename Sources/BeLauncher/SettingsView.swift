@@ -339,7 +339,7 @@ private struct IntelligenceTab: View {
                             Label(L("%@ is running", installation.name),
                                   systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green).font(.system(size: 12))
-                            Picker("Modelo", selection: Binding(
+                            Picker(L("Model"), selection: Binding(
                                 get: { model.selectedLocalModels[installation.providerID]
                                         ?? installation.models[0] },
                                 set: { model.chooseLocalModel($0, for: installation.providerID) }
@@ -1021,6 +1021,26 @@ private struct DataTab: View {
                     Button(L("Export…")) { model.export(includeClipboard: false) }
                     Button(L("With clipboard…")) { model.export(includeClipboard: true) }
                     Button(L("Import…")) { model.importArchive() }
+                }
+                // How much room it takes, said out loud.
+                //
+                // A brain that quietly reached thirteen gigabytes is how a Mac ends up with no disk
+                // left, and the person finds out from macOS rather than from us. If a database is
+                // holding far more space than its contents need, that is a fact the person owns and
+                // gets to act on.
+                LabeledContent(L("Size")) {
+                    HStack(spacing: 8) {
+                        Text(model.databaseSize)
+                        if model.isBloated {
+                            Button(L("Compact")) { model.compactDatabase() }
+                                .controlSize(.small)
+                        }
+                    }
+                }
+                if model.isBloated {
+                    Text(L("It is taking far more room than its contents need. Compacting rewrites it and gives the space back; it needs enough free disk for one copy of the result."))
+                        .font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 HStack {
                     Button(L("Diagnostics…")) { model.exportDiagnostics() }

@@ -22,10 +22,10 @@ public struct Entity: Sendable, Equatable, Identifiable, Codable {
 
         public var label: String {
             switch self {
-            case .person: "Persona"
-            case .project: "Proyecto"
-            case .company: "Empresa"
-            case .topic: "Asunto"
+            case .person: L("Person")
+            case .project: L("Project")
+            case .company: L("Company")
+            case .topic: L("Subject")
             }
         }
     }
