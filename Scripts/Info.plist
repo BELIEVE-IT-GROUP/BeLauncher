@@ -22,6 +22,59 @@
 	<string>14.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<!--
+	    The right-click → Servicios menu, in every app on the Mac.
+
+	    This is the surface people already reach for with something selected, and macOS hands over
+	    exactly what was highlighted — no Accessibility permission, no OCR, no guessing what was
+	    meant. NSRequiredContext keeps each entry out of the menu when there is no text selected,
+	    so the menu does not fill with entries that would only fail.
+	-->
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key><dict><key>default</key><string>Traducir con BeLauncher</string></dict>
+			<key>NSMessage</key><string>translate</string>
+			<key>NSPortName</key><string>BeLauncher</string>
+			<key>NSSendTypes</key><array><string>NSStringPboardType</string></array>
+			<key>NSRequiredContext</key><dict><key>NSTextContent</key><string>Text</string></dict>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key><dict><key>default</key><string>Resumir con BeLauncher</string></dict>
+			<key>NSMessage</key><string>summarise</string>
+			<key>NSPortName</key><string>BeLauncher</string>
+			<key>NSSendTypes</key><array><string>NSStringPboardType</string></array>
+			<key>NSRequiredContext</key><dict><key>NSTextContent</key><string>Text</string></dict>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key><dict><key>default</key><string>Corregir con BeLauncher</string></dict>
+			<key>NSMessage</key><string>fix</string>
+			<key>NSPortName</key><string>BeLauncher</string>
+			<key>NSSendTypes</key><array><string>NSStringPboardType</string></array>
+			<key>NSRequiredContext</key><dict><key>NSTextContent</key><string>Text</string></dict>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key><dict><key>default</key><string>Sacar las tareas con BeLauncher</string></dict>
+			<key>NSMessage</key><string>extractTasks</string>
+			<key>NSPortName</key><string>BeLauncher</string>
+			<key>NSSendTypes</key><array><string>NSStringPboardType</string></array>
+			<key>NSRequiredContext</key><dict><key>NSTextContent</key><string>Text</string></dict>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key><dict><key>default</key><string>Guardar como nota en BeLauncher</string></dict>
+			<key>NSMessage</key><string>note</string>
+			<key>NSPortName</key><string>BeLauncher</string>
+			<key>NSSendTypes</key><array><string>NSStringPboardType</string></array>
+			<key>NSRequiredContext</key><dict><key>NSTextContent</key><string>Text</string></dict>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key><dict><key>default</key><string>Recordar esto en BeLauncher</string></dict>
+			<key>NSMessage</key><string>rememberThis</string>
+			<key>NSPortName</key><string>BeLauncher</string>
+			<key>NSSendTypes</key><array><string>NSStringPboardType</string></array>
+			<key>NSRequiredContext</key><dict><key>NSTextContent</key><string>Text</string></dict>
+		</dict>
+	</array>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>BeLauncher usa esto para los comandos de sistema y los flujos: silenciar notificaciones, poner el Mac en reposo, vaciar la papelera, expulsar discos, cambiar a modo oscuro. Solo cuando tú ejecutas uno. No lee ni controla el contenido de tus apps.</string>
 	<key>NSHumanReadableCopyright</key>

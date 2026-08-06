@@ -17,21 +17,33 @@ import BeLauncherCore
 @MainActor
 enum ScreenCapture {
 
-    /// Grabs the best context available right now.
-    static func read() async -> ScreenContext {
+    /// Grabs what the person meant, which is what they selected.
+    ///
+    /// Reading the whole screen when there is no selection was a mistake that made the feature
+    /// useless: OCR of a desktop returns menu items, window titles and whatever half-sentence
+    /// happened to be visible, and the app then confidently offered to summarise it. An offer
+    /// built on the wrong text is worse than no offer, because it teaches people the shortcut is
+    /// random.
+    ///
+    /// So: your selection, then the document in the window in front, then the clipboard. Reading
+    /// the screen is still there and still on-device, but it has to be asked for — `whole: true`,
+    /// which is a second, explicit gesture rather than a silent guess.
+    static func read(whole: Bool = false) async -> ScreenContext {
         let app = NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
 
         if let selection = selectedText(), selection.count >= ScreenReader.minimumLength {
             return ScreenContext(text: selection, origin: .selection, application: app)
         }
+        if whole, let recognised = await recogniseScreen(),
+           recognised.count >= ScreenReader.minimumLength {
+            return ScreenContext(text: recognised, origin: .recognised, application: app)
+        }
         if let path = frontmostDocumentPath() {
             return ScreenContext(text: (path as NSString).lastPathComponent, origin: .file,
                                  application: app, path: path)
         }
-        if let recognised = await recogniseScreen(), recognised.count >= ScreenReader.minimumLength {
-            return ScreenContext(text: recognised, origin: .recognised, application: app)
-        }
-        // Falling back to the clipboard keeps the shortcut from ever doing nothing at all.
+        // The clipboard is a fair last resort: the person put it there on purpose, which is more
+        // than can be said for anything OCR finds lying around.
         let clipboard = NSPasteboard.general.string(forType: .string) ?? ""
         return ScreenContext(text: clipboard, origin: .clipboard, application: app)
     }
