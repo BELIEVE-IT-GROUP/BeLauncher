@@ -1,0 +1,367 @@
+Sources/BeLauncherCore/ScreenContext.swift
+  s_3bf5a4753c6c6c::t_7057eb5d54f4eb 238-239,241-242,244-245,247-248,250-252,254-255,257,259
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 150,152,154,161,163,168,170,172,177,179,181,186,188,190,195,197,199,205,207,212,214,216
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 27-30,71-77,123
+Tests/BeLauncherCoreTests/UpdateInstallerTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 100,102
+Sources/BeLauncherCore/Episodes.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 81,83
+Sources/BeLauncherCore/Privacy.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 31-32,57,62,146,151,184,191
+  s_3bf5a4753c6c6c::t_44e77ac4e7d5c0 148
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 60,149-150
+Sources/BeLauncherCore/WorkGraph.swift
+  s_3bf5a4753c6c6c::t_ba7410a1340287 31
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 32-34,101-102,104-105,322-323,352,364
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 333-334,351
+Sources/BeLauncherCore/OutcomePack.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 6,92,108,114,122,131,146
+  s_3bf5a4753c6c6c::t_719395c07e6024 94,109,115,123,132-133,141,147
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 140
+  s_3bf5a4753c6c6c::t_34d16abf328347 96
+  s_3bf5a4753c6c6c::t_bf239c5913d816 72,74
+  s_3bf5a4753c6c6c::t_7057eb5d54f4eb 118-119,126-127,135-136
+Sources/BeLauncherCore/ResultAction.swift
+  s_3bf5a4753c6c6c::t_1084c3c0bebb9c 14-29
+  s_3bf5a4753c6c6c::t_34d16abf328347 10-13
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 175,177,181,192,198,201,258,272,274,283,285,292,298,300,324,338
+  s_3bf5a4753c6c6c::t_3cf77780c802c1 212,223,228,232,241,243,250,252,277,318,336
+  s_3bf5a4753c6c6c::t_2b9cc7d6244a49 219
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 190,208,210
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 158,160,162,164,171,173,179
+Tests/BeLauncherCoreTests/CorpusFilesTests.swift
+  s_3bf5a4753c6c6c::t_922890446d68f5 28
+Tests/BeLauncherAppTests/TranscriptionTests.swift
+  s_3bf5a4753c6c6c::t_8c4768b1cffeda 79,82,96
+Sources/BeLauncherCore/Pulse.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 140
+Sources/BeLauncherCore/Store.swift
+  s_3bf5a4753c6c6c::t_3cf77780c802c1 439
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 443
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 465
+Sources/BeLauncherCore/RecallResults.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 63-65
+  s_3bf5a4753c6c6c::t_e62fb44b615a2e 66
+Tests/BeLauncherCoreTests/RelevanceTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 57-58,64
+Sources/BeLauncher/BrainSetupView.swift
+  s_3bf5a4753c6c6c::t_420fabe3216eee 45,100,104,140,197,234,266,304
+Sources/BeLauncher/MCPProbe.swift
+  s_3bf5a4753c6c6c::t_a9402ab456dff0 126-127
+  s_3bf5a4753c6c6c::t_420fabe3216eee 116
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 124
+Sources/BeLauncherCore/MCPHealth.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 254
+Sources/BeLauncher/CanvasView.swift
+  s_3bf5a4753c6c6c::t_420fabe3216eee 52,112,151,159,173-174,201,222
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 211,227
+  s_3bf5a4753c6c6c::t_ccde56f3135a92 78,104
+Tests/BeLauncherCoreTests/MCPToolsTests.swift
+  s_3bf5a4753c6c6c::t_133cc20e163b9b 203
+  s_3bf5a4753c6c6c::t_bad792004acbbd 321,323
+  s_3bf5a4753c6c6c::t_922890446d68f5 134
+  s_3bf5a4753c6c6c::t_a69f0dcc3f198d 285
+  s_3bf5a4753c6c6c::t_5f986b4e0d3a4a 116
+  s_3bf5a4753c6c6c::t_94280ea0cca89d 180
+  s_3bf5a4753c6c6c::t_0bb17036e9fbb6 181-185
+Sources/BeLauncher/CorpusRunner.swift
+  s_3bf5a4753c6c6c::t_2b9cc7d6244a49 170,392
+Sources/BeLauncherCore/UpdateInstaller.swift
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 49,51,53,56,58
+  s_3bf5a4753c6c6c::t_037d868f23da19 55
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 47,60
+Sources/BeLauncherCore/SemanticIndex.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 29
+  s_3bf5a4753c6c6c::t_2ceb43582af4ce 25-28
+Sources/BeLauncherCore/Processes.swift
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 48-49,76,78
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 80
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 82
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 144
+  s_3bf5a4753c6c6c::t_e62fb44b615a2e 85-86
+Tests/BeLauncherCoreTests/IdentityTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 64
+Sources/BeLauncher/Transcription.swift
+  s_3bf5a4753c6c6c::t_d5f227ccb0dc13 42,215
+  s_3bf5a4753c6c6c::t_420fabe3216eee 213,216
+Tests/BeLauncherAppTests/BrowserHistoryTests.swift
+  s_3bf5a4753c6c6c::t_13a51f58011dbc 337
+Sources/BeLauncherCore/Identity.swift
+  s_3bf5a4753c6c6c::t_ba7410a1340287 119
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 75,102
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 76-78
+Sources/BeLauncherCore/OperatingModel.swift
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 55-57,59
+  s_3bf5a4753c6c6c::t_bf239c5913d816 53-54,175,180,182-183,186-187,190-191,193,195
+Sources/BeLauncher/ModelInstaller.swift
+  s_3bf5a4753c6c6c::t_ccde56f3135a92 121
+  s_3bf5a4753c6c6c::t_420fabe3216eee 202
+  s_3bf5a4753c6c6c::t_89881ce0de6dfb 118
+  s_3bf5a4753c6c6c::t_4d58122c114aa8 119
+Sources/BeLauncherCore/SearchEngine.swift
+  s_3bf5a4753c6c6c::t_ba7410a1340287 31,35,37,463,598
+  s_3bf5a4753c6c6c::t_2ceb43582af4ce 28,602
+  s_3bf5a4753c6c6c::t_1b009369d9beff 32-34,36,38,40,42-43
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 217,226,254
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 30
+Sources/BeLauncherCore/Calculator.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 51
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 87
+Sources/BeLauncherCore/TeamBrain.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 99,101
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 97,103
+Sources/BeLauncher/CommandView.swift
+  s_3bf5a4753c6c6c::t_ba7410a1340287 864
+  s_3bf5a4753c6c6c::t_763866a77bf4f8 295-301
+  s_3bf5a4753c6c6c::t_4f431e51d69c30 253
+  s_3bf5a4753c6c6c::t_ce8343e3b8fa6e 304-308
+  s_3bf5a4753c6c6c::t_098707136dbf54 241
+  s_3bf5a4753c6c6c::t_639e8def82ccb4 489-490
+  s_3bf5a4753c6c6c::t_01d0518b3a4996 153,168,198,280,285
+  s_3bf5a4753c6c6c::t_140b7fb875e612 229
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 451,857
+  s_3bf5a4753c6c6c::t_54a2b7fb091670 100-118,124-125
+  s_3bf5a4753c6c6c::t_aefb2f819fd37e 212-221,223-228,230-237
+  s_3bf5a4753c6c6c::t_420fabe3216eee 389,404,437,520,685
+Sources/BeLauncherCore/Corpus.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 268,383
+Sources/BeLauncherCore/Relevance.swift
+  s_3bf5a4753c6c6c::t_037d868f23da19 96
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 94,99
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 92,98,102
+Sources/BeLauncherCore/Importers.swift
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 91
+Tests/BeLauncherCoreTests/LicenseTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 102,119
+  s_3bf5a4753c6c6c::t_94280ea0cca89d 51,78
+  s_3bf5a4753c6c6c::t_13a51f58011dbc 129
+Sources/BeLauncherCore/GraphLayout.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 123,135-136
+Sources/BeLauncherCore/ShortcutIndex.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 84
+  s_3bf5a4753c6c6c::t_ba7410a1340287 85
+Sources/BeLauncherCore/Memory.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 148-151
+Tests/BeLauncherCoreTests/WorkGraphTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 167
+Sources/BeLauncherCore/VaultGuide.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 18-24
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 161
+  s_3bf5a4753c6c6c::t_b757d884404da0 27-32,34-37,39,41,43-79
+  s_3bf5a4753c6c6c::t_00558d4d12e10d 96-100
+  s_3bf5a4753c6c6c::t_0ed07aa79ea51f 101-102,126,129
+Sources/BeLauncherCore/Mission.swift
+  s_3bf5a4753c6c6c::t_b98776206caa9a 99-101,104-108,112-113,118-119,122-123,126-130,178
+  s_3bf5a4753c6c6c::t_719395c07e6024 116
+Sources/BeLauncher/BrainWebView.swift
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 44
+Tests/BeLauncherCoreTests/RichClipboardTests.swift
+  s_3bf5a4753c6c6c::t_5f986b4e0d3a4a 91
+Sources/BeLauncher/AppDelegate.swift
+  s_3bf5a4753c6c6c::t_027120516f87d0 890-892,1300-1301
+  s_3bf5a4753c6c6c::t_ba7410a1340287 1001,1287,1539,1688
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 459,902,1313,1383,1566,1684,1686,1768
+  s_3bf5a4753c6c6c::t_a66492dd8e1b7a 921,1231,1306,1322,1333,1352,1355,1369,1380-1381,1384,1387,1460,1522-1523,1525,1537,1541-1542,1544,1553-1556,1568,1580,1727
+  s_3bf5a4753c6c6c::t_2c7716df9721a1 143,272,454,462-463,485,508,512,515,518,522,537,710,742,768,889,893-894,904,920,936,1248,1266,1273,1289,1303,1683,1685,1687,1689,1708,1710,1723,1737,1763,1769,1771,1775,1777
+  s_3bf5a4753c6c6c::t_ddce305a78e2d1 1092-1095,1097-1098,1214-1215,1221
+  s_3bf5a4753c6c6c::t_fbb4e6ad2bca1a 561,695,932,951,1299,1770,1772-1774
+Sources/BeLauncherCore/Utilities.swift
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 16,68,70
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 72-73
+Sources/BeLauncherCore/GoToPath.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 28,110
+Sources/BeLauncher/BrowserHistory.swift
+  s_3bf5a4753c6c6c::t_3aec11d697f621 206-207
+  s_3bf5a4753c6c6c::t_2b9cc7d6244a49 209
+Sources/BeLauncher/SystemCommandRunner.swift
+  s_3bf5a4753c6c6c::t_420fabe3216eee 18,141-142
+  s_3bf5a4753c6c6c::t_ccde56f3135a92 117,128
+Tests/BeLauncherCoreTests/MissionTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 100
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 338-373
+  s_3bf5a4753c6c6c::t_b5e9b3b832cde1 536-537
+  s_3bf5a4753c6c6c::t_495a9a3fbf70e2 170-181
+  s_3bf5a4753c6c6c::t_22f924c1dc012c 696-712
+  s_3bf5a4753c6c6c::t_0bb17036e9fbb6 713-714
+  s_3bf5a4753c6c6c::t_420fabe3216eee 444-516
+  s_3bf5a4753c6c6c::t_0afe02fc62b5d1 110-116
+  s_3bf5a4753c6c6c::t_1b009369d9beff 715-722
+  s_3bf5a4753c6c6c::t_86c65cadef94b0 52-109
+  s_3bf5a4753c6c6c::t_ddce305a78e2d1 245-250
+  s_3bf5a4753c6c6c::t_81ff2292766eee 165-167
+  s_3bf5a4753c6c6c::t_83ec4a597081ba 517-533
+  s_3bf5a4753c6c6c::t_037d868f23da19 374-375
+  s_3bf5a4753c6c6c::t_d5f227ccb0dc13 534-535
+  s_3bf5a4753c6c6c::t_b98776206caa9a 321-337
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 376-402,404-411
+  s_3bf5a4753c6c6c::t_601b6613beb0e4 38-45
+  s_3bf5a4753c6c6c::t_a7d956cd25e156 660-695
+  s_3bf5a4753c6c6c::t_027120516f87d0 219-228
+  s_3bf5a4753c6c6c::t_2c7716df9721a1 182-218
+  s_3bf5a4753c6c6c::t_719395c07e6024 289-320
+  s_3bf5a4753c6c6c::t_44e77ac4e7d5c0 441-443
+  s_3bf5a4753c6c6c::t_6605006b49c8f5 168-169
+  s_3bf5a4753c6c6c::t_34d16abf328347 403
+  s_3bf5a4753c6c6c::t_a66492dd8e1b7a 229-244
+  s_3bf5a4753c6c6c::t_aba93b59c95b5f 1-13,723-724
+  s_3bf5a4753c6c6c::t_fb4d369732e414 273-288
+  s_3bf5a4753c6c6c::t_01d0518b3a4996 14-37
+  s_3bf5a4753c6c6c::t_639e8def82ccb4 412-415
+  s_3bf5a4753c6c6c::t_e9edca386d31bc 416-437
+  s_3bf5a4753c6c6c::t_16ea8d7d5b09d2 538-659
+  s_3bf5a4753c6c6c::t_50e673d8cf715c 117-164
+  s_3bf5a4753c6c6c::t_53b19c3d1bed71 46-51
+  s_3bf5a4753c6c6c::t_a575b9d56da252 251-272
+  s_3bf5a4753c6c6c::t_45f5406cae95c2 438-440
+Sources/BeLauncherCore/CorpusFiles.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 133-135
+  s_3bf5a4753c6c6c::t_ba7410a1340287 581
+  s_3bf5a4753c6c6c::t_44e77ac4e7d5c0 184-185,210
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 186,191,212,216,245,583-584
+  s_3bf5a4753c6c6c::t_2ceb43582af4ce 585-586
+  s_3bf5a4753c6c6c::t_1340e55dc05b10 627
+Sources/BeLauncherCore/License.swift
+  s_3bf5a4753c6c6c::t_e62fb44b615a2e 59-60
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 55,57
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 51,53
+Sources/BeLauncherCore/Sound.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 51
+  s_3bf5a4753c6c6c::t_4b54eb5287a2c7 49-50,52-53
+Sources/BeLauncher/AgentRunner.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 103,255
+  s_3bf5a4753c6c6c::t_420fabe3216eee 122,125,194-195,238,263
+  s_3bf5a4753c6c6c::t_ba7410a1340287 181
+  s_3bf5a4753c6c6c::t_e62fb44b615a2e 66-69
+Tests/BeLauncherCoreTests/LocalizationTests.swift
+  s_3bf5a4753c6c6c::t_add4ba70de95db 318-322,339
+  s_3bf5a4753c6c6c::t_1a22656455a2c2 81-87
+  s_3bf5a4753c6c6c::t_2ceb43582af4ce 342-346
+  s_3bf5a4753c6c6c::t_097750fcd03d85 324-338,340-341,347
+  s_3bf5a4753c6c6c::t_f81efdd2888a9a 293-302,310-312
+  s_3bf5a4753c6c6c::t_bdff755b6cae1e 243-292,313-317,323,348-384
+  s_3bf5a4753c6c6c::t_95b311df54a27d 303-305
+  s_3bf5a4753c6c6c::t_a9402ab456dff0 306-309
+Sources/BeLauncher/WindowArranger.swift
+  s_3bf5a4753c6c6c::t_cd982cfd28d19c 41-42,71,192-193,337,339
+  s_3bf5a4753c6c6c::t_2420c4b0783209 51-52
+  s_3bf5a4753c6c6c::t_420fabe3216eee 28,30,36,65,72,74,81,174,184,186,188,190,243,281,290
+Sources/BeLauncherCore/MCPTools.swift
+  s_3bf5a4753c6c6c::t_822851cae13b94 323
+  s_3bf5a4753c6c6c::t_ba7410a1340287 236
+  s_3bf5a4753c6c6c::t_7057eb5d54f4eb 235,237,272,422,461,473,475
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 464,652
+  s_3bf5a4753c6c6c::t_0bb17036e9fbb6 249,256,258,260,264-270,650-651
+Sources/BeLauncherCore/Embedder.swift
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 130,132,134,136
+Tests/BeLauncherCoreTests/UtilitiesTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 62,103,149
+  s_3bf5a4753c6c6c::t_13a51f58011dbc 83
+Sources/BeLauncherCore/Autopilot.swift
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 35
+Sources/BeLauncherCore/Canvas.swift
+  s_3bf5a4753c6c6c::t_c86d76db5909e7 170-171
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 144,161
+  s_3bf5a4753c6c6c::t_719395c07e6024 115
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 150,159,168,174
+  s_3bf5a4753c6c6c::t_8612681eee768f 145-149,151,154,156-158,162-166,169,172,175-177,179
+  s_3bf5a4753c6c6c::t_ba7410a1340287 153,178
+  s_3bf5a4753c6c6c::t_2d1522927096fd 155
+Sources/BeLauncher/SystemUtilities.swift
+  s_3bf5a4753c6c6c::t_420fabe3216eee 35,39,67,69-70,90,96,103
+  s_3bf5a4753c6c6c::t_ccde56f3135a92 50,59,66,110,139,146
+  s_3bf5a4753c6c6c::t_89881ce0de6dfb 52-53
+Sources/BeLauncherCore/SpanishStrings.swift
+  s_3bf5a4753c6c6c::t_ae9992e2a4a949 21
+Sources/BeLauncher/CorpusReaderView.swift
+  s_3bf5a4753c6c6c::t_f4f7a4aa34f1d8 70,97,168
+  s_3bf5a4753c6c6c::t_01d0518b3a4996 95,128,136,167,240,256,269,278,281,294
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 260
+Sources/BeLauncherCore/MCPServer.swift
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 209
+Tests/BeLauncherCoreTests/CorpusTests.swift
+  s_3bf5a4753c6c6c::t_34fdad64436411 212,238,252
+Tests/BeLauncherCoreTests/ActionPanelTests.swift
+  s_3bf5a4753c6c6c::t_94280ea0cca89d 68
+Sources/BeLauncher/GraphView.swift
+  s_3bf5a4753c6c6c::t_01d0518b3a4996 32-33,35,940,942,953,969,986,994,1006
+  s_3bf5a4753c6c6c::t_420fabe3216eee 344,352,365,378,429,467-468,642,657,670,682,728,732-733,872,926,938
+  s_3bf5a4753c6c6c::t_f4f7a4aa34f1d8 351,377,407-408,729,975
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 452,519
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 844
+Sources/BeLauncher/SettingsView.swift
+  s_3bf5a4753c6c6c::t_0afe02fc62b5d1 248,339,388,390,1176,1198-1199
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 178,234,243,477,757,805-806,894,1021,1023,1099-1100,1161
+  s_3bf5a4753c6c6c::t_d19dde842d7d79 478,496-498,507-508,510,513
+  s_3bf5a4753c6c6c::t_86c65cadef94b0 157-159,163,165,174,179,181,187-188,191-192,194,199,219,235,259,279,285-286,298,302,306,317,321,331,351,354,358,365,369,387,392-393,401,415,426,449,456,462,467,472,554,572-573,579,582,612
+  s_3bf5a4753c6c6c::t_f273dfb63e9a49 239,423
+  s_3bf5a4753c6c6c::t_725e0c6623a8d2 463,465,469,473,475,500-501,697-701
+  s_3bf5a4753c6c6c::t_b12e967e110d99 468,743,1162
+  s_3bf5a4753c6c6c::t_22f924c1dc012c 732
+  s_3bf5a4753c6c6c::t_81ff2292766eee 816,821,855
+  s_3bf5a4753c6c6c::t_ba7410a1340287 488,820
+  s_3bf5a4753c6c6c::t_1b009369d9beff 481
+  s_3bf5a4753c6c6c::t_50e673d8cf715c 613-614,620,623,634,666,668,677,710,714,727,731,735,738,741,745,758,764,768-769,787,795,799,803,808,1016-1017,1022,1026-1027,1034,1036-1037,1039,1066-1067,1097,1102,1120,1138-1140,1144,1157,1166,1179,1182,1184,1188,1209,1213,1215
+Sources/BeLauncherCore/MCPClients.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 69
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 67,120
+  s_3bf5a4753c6c6c::t_e62fb44b615a2e 118
+Sources/BeLauncher/ActivationView.swift
+  s_3bf5a4753c6c6c::t_ccde56f3135a92 52,160
+  s_3bf5a4753c6c6c::t_420fabe3216eee 97
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 121
+Tests/BeLauncherCoreTests/AgentTests.swift
+  s_3bf5a4753c6c6c::t_922890446d68f5 203,236,350,479
+  s_3bf5a4753c6c6c::t_5f986b4e0d3a4a 340-341
+  s_3bf5a4753c6c6c::t_34fdad64436411 101
+Sources/BeLauncher/CalendarAccess.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 35
+Sources/BeLauncher/SettingsModel.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 693,911
+  s_3bf5a4753c6c6c::t_fb4d369732e414 647-648,681-683,924-926
+  s_3bf5a4753c6c6c::t_cb5d07889f81f7 728
+  s_3bf5a4753c6c6c::t_de12f522aed33f 804-808
+  s_3bf5a4753c6c6c::t_b80685efaf9c3e 126-127,129,587,650,674,678,817,904,1157,1160,1162
+  s_3bf5a4753c6c6c::t_a575b9d56da252 149,215,406,608,623,627-628,633,659,664-665,694,708,721,814,869,875,886,898,1111,1124,1155,1182,1186
+Sources/BeLauncherCore/MissionTray.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 132
+  s_3bf5a4753c6c6c::t_ba7410a1340287 129
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 28-29,32,126
+  s_3bf5a4753c6c6c::t_0bb17036e9fbb6 125,135
+  s_3bf5a4753c6c6c::t_5adbe3ea0970c6 120,123,127
+Sources/BeLauncher/PrivacyView.swift
+  s_3bf5a4753c6c6c::t_420fabe3216eee 64,194,203,274,297,311,407,426
+Sources/BeLauncher/ServiceProvider.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 37,78
+Sources/BeLauncher/Updater.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 85
+Sources/BeLauncherCore/Agent.swift
+  s_3bf5a4753c6c6c::t_0cef9adede9b43 66
+  s_3bf5a4753c6c6c::t_719395c07e6024 27-34,61-64,67-68,223,225,259
+  s_3bf5a4753c6c6c::t_22f924c1dc012c 221
+Sources/BeLauncherCore/Intelligence.swift
+  s_3bf5a4753c6c6c::t_f5e14336aba9a6 85,89,211
+  s_3bf5a4753c6c6c::t_323bea72adbfe4 91,263
+  s_3bf5a4753c6c6c::t_e8f671bb9b6419 83,87
+Sources/BeLauncher/WelcomeView.swift
+  s_3bf5a4753c6c6c::t_420fabe3216eee 109,112
+Tests/BeLauncherCoreTests/PrivacyTests.swift
+  s_3bf5a4753c6c6c::t_922890446d68f5 93
+  s_3bf5a4753c6c6c::t_34fdad64436411 27-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "629c64b821b96c381c029373e32f1999b04ab160",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
