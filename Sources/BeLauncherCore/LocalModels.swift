@@ -45,7 +45,13 @@ public enum LocalModels {
 
     /// Looks for every local runner at once. A short timeout on purpose: this runs while a window
     /// is opening, and a runner that is not there must not cost anyone a spinner.
-    public static func installed(timeout: TimeInterval = 1.2) async -> [Installation] {
+    /// `including` decides which models count. It defaults to the chat filter because that is
+    /// what every caller wanted until embeddings existed — and the default silently hid every
+    /// embedding model from the semantic index, which then reported "no hay ningún modelo" on a
+    /// machine with three of them installed.
+    public static func installed(timeout: TimeInterval = 1.2,
+                                 including accept: @Sendable @escaping (String) -> Bool = canChat)
+    async -> [Installation] {
         await withTaskGroup(of: Installation?.self) { group in
             for entry in catalogues {
                 group.addTask {
@@ -55,7 +61,7 @@ public enum LocalModels {
                     guard let (data, _) = try? await URLSession.shared.data(for: request) else {
                         return nil
                     }
-                    let models = models(in: data).filter(canChat)
+                    let models = models(in: data).filter(accept)
                     guard !models.isEmpty else { return nil }
                     return Installation(providerID: entry.providerID, name: entry.name,
                                         models: models)

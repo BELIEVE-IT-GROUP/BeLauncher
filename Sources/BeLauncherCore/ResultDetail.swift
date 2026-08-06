@@ -151,6 +151,12 @@ public enum DetailBuilder {
             return ResultDetail(body: result.payload,
                                 metadata: [.init(label: "Basado en", value: result.subtitle)])
 
+        case .recall:
+            // The whole passage, so the row's one-line excerpt can be read in full before it is
+            // trusted — a citation nobody can expand is a citation nobody should believe.
+            return ResultDetail(body: result.payload,
+                                metadata: [.init(label: "De dónde", value: result.subtitle)])
+
         case .memory:
             let memory = memories.first { $0.id == result.payload }
             return ResultDetail(

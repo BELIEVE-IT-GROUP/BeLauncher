@@ -25,6 +25,88 @@ if CommandLine.arguments.contains("--mcp") {
 }
 
 
+// `BeLauncher --diagnose-brain` builds the index for real and asks it real questions.
+//
+// Semantic search fails silently by nature: every query still returns something, so a broken
+// index and a working one look identical from the outside. This runs the whole path — cut into
+// passages, embed, store, fuse, expand through the graph — and prints what came back and why, so
+// "no me encuentra nada" stops being a claim nobody can check.
+//
+// Optionally takes the questions to ask: `--diagnose-brain "qué decidimos sobre precios"`.
+if CommandLine.arguments.contains("--diagnose-brain") {
+    let out = { (line: String) in FileHandle.standardOutput.write(Data((line + "\n").utf8)) }
+    let asked = CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("--") }
+
+    MainActor.assumeIsolated {
+        Task { @MainActor in
+            guard let store = try? Store(path: Store.defaultPath()),
+                  let vault = try? Vault(root: Vault.defaultRoot()) else {
+                out("No pude abrir la base ni el vault."); exit(1)
+            }
+            try? store.migrateSemanticIndex()
+            let brain = BrainSearch(store: store)
+
+            out("1. ¿Hay un modelo de embeddings?")
+            let started = Date()
+            let engine = await brain.detectEngine()
+            out("   tardó \(String(format: "%.1f", Date().timeIntervalSince(started)))s")
+            if let engine {
+                out("   \(engine.name) · \(engine.model) \(engine.isLocal ? "(local)" : "(en la nube)")")
+            } else {
+                out("   ninguno. La búsqueda será solo por palabras.")
+                out("   \(EmbeddingEngine.howToGetOne)")
+            }
+
+            out("\n2. Troceando lo que hay")
+            let memories = vault.objects()
+            let nodes = store.nodes(limit: 2_000)
+            let clips = store.clips(limit: 500)
+            let written = brain.index(memories: memories, nodes: nodes, clips: clips)
+            out("   \(memories.count) memorias · \(nodes.count) nodos · \(clips.count) del portapapeles")
+            out("   → \(written) pasajes")
+            if written == 0 {
+                out("   El cerebro está vacío. Guarda algo con «recordar» y vuelve a probar.")
+                exit(0)
+            }
+
+            if engine != nil {
+                out("\n3. Calculando vectores")
+                let embedStarted = Date()
+                do {
+                    let done = try await brain.embedEverything()
+                    let elapsed = Date().timeIntervalSince(embedStarted)
+                    out("   \(done) pasajes en \(String(format: "%.1f", elapsed))s"
+                        + (done > 0 ? " (\(Int(elapsed / Double(done) * 1000)) ms cada uno)" : ""))
+                } catch {
+                    out("   falló: \(error)")
+                }
+                let progress = brain.progress()
+                out("   índice: \(progress.vectorised)/\(progress.passages) con vector")
+            }
+
+            let questions = asked.isEmpty
+                ? ["qué decidimos", "en qué he estado trabajando", "qué tengo pendiente"]
+                : Array(asked)
+            out("\n4. Preguntando")
+            for question in questions {
+                let result = await brain.search(question, limit: 4)
+                out("\n   «\(question)»")
+                if let gap = result.gap { out("   ⚠︎ \(gap)") }
+                for (index, hit) in result.hits.enumerated() {
+                    let where_ = hit.route == .related ? "vía \(hit.via ?? "?")" : hit.route.rawValue
+                    out("   \(index + 1). [\(hit.passage.source.kind.label) · \(where_)] \(hit.passage.title.prefix(58))")
+                    out("      \(hit.passage.text.replacingOccurrences(of: "\n", with: " ").prefix(96))")
+                }
+                if result.hits.isEmpty { out("   sin resultados") }
+            }
+            out("")
+            exit(0)
+        }
+    }
+    RunLoop.main.run()
+}
+
+
 // `BeLauncher --diagnose-ai` walks the whole intelligence path out loud and exits.
 //
 // It exists because the AI failing in the field was undiagnosable: the window showed one line of

@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var shortcuts: [BeLauncherCore.Shortcut] = []
     private var systemShortcuts: [String] = []
     private var vault: Vault?
+    private var brain: BrainSearch?
+    private var lastBrainRefresh: Date?
     private var lastReceipt: MissionReceipt?
     private let calendar = CalendarAccess()
     private var environment: [String: String] = [:]
@@ -187,8 +189,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         indexApplications()
         captureCalendarIntoGraph()
+        startBrain()
         openWithLaunchQueryIfAny()
         showWelcomeOnFirstRun()
+    }
+
+    /// Builds the searchable brain in the background, after the window is already usable.
+    ///
+    /// Deliberately last and deliberately off the launch path: cutting passages is fast but
+    /// embedding them is not, and a launcher that is busy the first ten seconds after login is a
+    /// launcher people stop opening. Nothing here blocks the hot key.
+    private func startBrain() {
+        guard let store else { return }
+        try? store.migrateSemanticIndex()
+        let brain = BrainSearch(store: store)
+        self.brain = brain
+        model?.brain = brain
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await brain.detectEngine()
+            self.reindexBrain()
+            // Vectors come after the passages exist, so word search works from the first second
+            // and meaning search fills in behind it.
+            _ = try? await brain.embedEverything()
+        }
+    }
+
+    /// Re-cuts everything that changed. Cheap: unchanged sources keep their passages and their
+    /// vectors, so this is a no-op for anything untouched since the last pass.
+    private func reindexBrain() {
+        guard let brain, let store else { return }
+        brain.index(
+            memories: vault?.objects() ?? [],
+            nodes: store.nodes(limit: 2_000),
+            clips: store.clips(limit: 500)
+        )
+    }
+
+    /// Called after anything is added to the brain, so a memory saved thirty seconds ago is
+    /// findable now rather than after the next launch.
+    private func refreshBrain(force: Bool = false) {
+        // Copying happens dozens of times an hour; re-embedding on each one would keep a model
+        // busy for no gain, since nobody searches for something the same second they copied it.
+        if !force, let last = lastBrainRefresh, Date().timeIntervalSince(last) < 60 { return }
+        lastBrainRefresh = Date()
+        reindexBrain()
+        Task { @MainActor [weak self] in _ = try? await self?.brain?.embedEverything() }
     }
 
     /// `open -a BeLauncher --args --query "algo"` opens the window with that text already typed.
@@ -517,6 +564,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 appBeforePanel = front
             }
             model.activate(mode: mode)
+            // Catches up whatever was copied or opened since the last time the window was used.
+            // Throttled inside, so summoning the launcher twice in a row costs nothing.
+            refreshBrain()
             panel.present()
         }
     }
@@ -1090,6 +1140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let object = try vault?.confirm(commitID: id)
                 if let object {
                     rememberMemory(object)
+                    refreshBrain(force: true)
                     report("Guardado en el cerebro", object.statement)
                 }
             } catch {

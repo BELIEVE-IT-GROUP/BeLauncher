@@ -277,6 +277,15 @@ public enum ActionRegistry {
                              shortcut: .enter, intent: .run),
             ]
 
+        case .recall:
+            return [
+                ResultAction(id: "copy", title: "Copiar el pasaje", symbol: "doc.on.clipboard",
+                             shortcut: .enter, intent: .run),
+                ResultAction(id: "remember", title: "Guardarlo como memoria",
+                             symbol: "brain", shortcut: .remember, section: .manage,
+                             intent: .remember(text: result.payload, source: result.subtitle)),
+            ]
+
         case .pendingCommit:
             return [
                 ResultAction(id: "confirm", title: "Confirmar", symbol: "checkmark.seal.fill",

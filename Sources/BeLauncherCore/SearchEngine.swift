@@ -13,6 +13,8 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case window
     case shortcut
     case memory
+    /// Something the brain recalled by meaning, from anywhere it was indexed.
+    case recall
     case pendingCommit
     case answer
     case mission
@@ -33,6 +35,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .window: "Ventana"
         case .shortcut: "Atajo"
         case .memory: "Memoria"
+        case .recall: "Recuerdo"
         case .pendingCommit: "Por confirmar"
         case .answer: "Respuesta"
         case .mission: "Misión"
@@ -55,6 +58,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .window: "macwindow"
         case .shortcut: "square.stack.3d.up"
         case .memory: "brain"
+        case .recall: "sparkle.magnifyingglass"
         case .pendingCommit: "checkmark.seal"
         case .answer: "text.bubble"
         case .mission: "wand.and.stars"
