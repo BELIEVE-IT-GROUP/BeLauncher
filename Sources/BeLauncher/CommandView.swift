@@ -153,7 +153,7 @@ struct CommandView: View {
 
         case .noMatch:
             message {
-                Image(systemName: "sparkle.magnifyingglass").foregroundStyle(.secondary)
+                Mascot(height: 46)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Nada para “\(model.query)”").fontWeight(.medium)
                     // The empty state is the one place everybody lands, so it is the one place
@@ -377,8 +377,10 @@ private struct AIPane: View {
                 // A local model on a cold start can take half a minute, which without a way out
                 // and without saying why reads as the whole machine having locked up.
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
+                    HStack(spacing: 10) {
+                        // Waiting is the other moment the mascot earns its place: something has
+                        // to fill the seconds before the first word arrives.
+                        Mascot(height: 34, isWorking: true)
                         Text(title).font(.system(size: 12))
                         Spacer()
                         Button("Cancelar") { dismiss() }

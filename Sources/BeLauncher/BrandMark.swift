@@ -80,3 +80,47 @@ struct AppIconView: View {
         }
     }
 }
+
+/// The mascot, shown where the app is seen rarely and large.
+///
+/// Not in the command bar and not in the menu bar, and that is a decision rather than an
+/// oversight: at 26 and 18 points the arms, the legs and the specular highlights collapse into a
+/// blue smudge, and that mark appears fifty times a day — character at that frequency stops being
+/// character and becomes noise. Here, where it is seen once or while waiting, it is the whole
+/// point.
+@MainActor
+struct Mascot: View {
+    var height: CGFloat = 120
+    /// Breathes gently while something is being waited for.
+    var isWorking = false
+
+    @State private var lifted = false
+
+    var body: some View {
+        Group {
+            if let image = Mascot.image {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                // A build without the artwork still shows something rather than a hole.
+                BeLauncherMark(side: height * 0.7)
+            }
+        }
+        .frame(height: height)
+        .offset(y: lifted ? -5 : 0)
+        .animation(isWorking
+                   ? .easeInOut(duration: 1.1).repeatForever(autoreverses: true)
+                   : .default,
+                   value: lifted)
+        .onAppear { if isWorking { lifted = true } }
+        .onChange(of: isWorking) { _, working in lifted = working }
+        .accessibilityHidden(true)
+    }
+
+    /// Loaded once: this appears in list rows and reading the file per frame would be silly.
+    static let image: NSImage? = {
+        guard let path = Bundle.main.path(forResource: "Mascot", ofType: "png") else { return nil }
+        return NSImage(contentsOfFile: path)
+    }()
+}
