@@ -372,4 +372,36 @@ struct SemanticIndexTests {
         #expect(store.passagesNeedingVectors(model: "bge-m3", limit: 100).count == 40)
     }
 
+    @Test("un título gigante no se guarda entero en cada pasaje")
+    func elTituloEsUnaEtiqueta() throws {
+        let store = try makeStore()
+        // Lo que pasó de verdad: el título de un episodio se arma con los títulos de las señales
+        // capturadas, y una señal puede ser un megabyte de texto pegado. Ese título se escribe en
+        // CADA pasaje de la fuente. Un episodio con 3.439 pasajes y un título de 960 KB guardó
+        // 3,3 GB él solo; la base entera llegó a 13 GB con 14 MB de texto dentro, y llenó el disco.
+        let enorme = String(repeating: "palabra ", count: 200_000)   // ~1,6 MB
+        let escritos = store.replacePassages(
+            for: IndexedSource(kind: .node, id: "episodio"), title: enorme, occurredAt: .now,
+            text: String(repeating: "Una frase con contenido de verdad. ", count: 300))
+
+        #expect(escritos.count > 1, "hacen falta varios pasajes para que el título se multiplique")
+        for passage in escritos {
+            #expect(passage.title.count <= IndexedPassage.titleLimit + 1,
+                    "un título de \(passage.title.count) caracteres por pasaje es como se llega a 13 GB")
+        }
+
+        // Y lo que se guardó es legible, no un recorte a mitad de palabra.
+        #expect(escritos.first?.title.hasSuffix("…") == true)
+        #expect(escritos.first?.title.hasPrefix("palabra") == true)
+    }
+
+    @Test("un título normal se guarda tal cual")
+    func elTituloNormalNoSeToca() throws {
+        let store = try makeStore()
+        let escritos = store.replacePassages(
+            for: IndexedSource(kind: .memory, id: "m"), title: "La reunión con Acme",
+            occurredAt: .now, text: "Acordamos revisar el precio en septiembre.")
+        #expect(escritos.first?.title == "La reunión con Acme")
+    }
+
 }

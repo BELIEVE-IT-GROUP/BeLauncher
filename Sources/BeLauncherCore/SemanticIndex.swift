@@ -62,6 +62,33 @@ public struct IndexedPassage: Sendable, Equatable, Identifiable {
     /// Whether a vector was stored for it. False means this passage can only be found by word.
     public let hasVector: Bool
 
+    /// The longest a title may be. A title is a label — "the Acme meeting", "auth.swift" — so a
+    /// person reading a citation knows where the quote came from.
+    ///
+    /// Enforced rather than assumed, because assuming it cost 13 GB. Titles are built from captured
+    /// signals, and a signal's title is whatever the capture layer saw: a page name usually, a
+    /// megabyte of pasted text occasionally. That title is then written onto *every passage of its
+    /// source*, so one episode with a 960 KB title and 3,439 passages stored 3.3 GB — for a single
+    /// afternoon's work. Measured on a real brain: 19,413 passages holding 14 MB of text and
+    /// **10.3 GB of titles**, in a database file that had grown to 13 GB and filled the disk.
+    ///
+    /// The cap lives here, at the one door everything goes through, rather than at each of the
+    /// places that build a title. Capping it at the sources means the next capture source added
+    /// gets it wrong again, and the weakest copy of a rule is the one that decides.
+    public static let titleLimit = 160
+
+    /// A title cut to a label, keeping whole words where it can and saying that it was cut.
+    public static func label(_ title: String) -> String {
+        let clean = title.replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        guard clean.count > titleLimit else { return clean }
+        let head = clean.prefix(titleLimit)
+        // Back up to the last space so a citation does not end mid-word, unless there is no space
+        // in range — a pasted URL or a wall of text without one.
+        let cut = head.lastIndex(of: " ").map { head[head.startIndex..<$0] } ?? head
+        return cut.trimmingCharacters(in: .whitespaces) + "…"
+    }
+
     public init(id: String, source: IndexedSource, title: String, ordinal: Int,
                 text: String, occurredAt: Date, hasVector: Bool = false) {
         self.id = id
@@ -174,6 +201,7 @@ extension Store {
     public func replacePassages(for source: IndexedSource, title: String, occurredAt: Date,
                                 text: String) -> [IndexedPassage] {
         let cut = Semantic.passages(of: text)
+        let title = IndexedPassage.label(title)
         let digest = Semantic.digest(text)
 
         // Unchanged content keeps its vectors: re-embedding an untouched note on every index pass
