@@ -464,6 +464,8 @@ private struct CommandsTab: View {
                     row("Calcular", hint: "2+2 · 15% of 300", symbol: "equal.square")
                     row("Convertir", hint: "10 km to mi", symbol: "arrow.left.arrow.right")
                     row("Buscar archivos", hint: "f informe", symbol: "doc")
+                    row("Ir a una ruta", hint: "/Users/… · ~/Desktop · Tab completa",
+                        symbol: "arrow.right.doc.on.clipboard")
                     row("Buscar en Google, Claude, ChatGPT…", hint: "g · c · gpt", symbol: "link")
                     row("Traducir, resumir, corregir…", hint: "traducir · resume · corrige",
                         symbol: "sparkles")

@@ -191,6 +191,19 @@ public enum SearchEngine {
             }
         }
 
+        // Paste a path, press Enter, you are there. Above everything, because someone who just
+        // pasted an absolute path is not searching for an app whose name contains a slash.
+        if let target = GoToPath.resolve(query) {
+            pinned.append(SearchResult(
+                id: "goto", kind: target.isDirectory ? .file : .file,
+                title: target.exists ? "Ir a \(target.name)" : "No existe",
+                subtitle: target.exists ? target.path : GoToPath.explain(target),
+                score: 100_500, matched: [],
+                payload: target.exists ? target.path : "",
+                completion: target.completion
+            ))
+        }
+
         // Whole arrangements of windows: the thing people buy a separate app for.
         if let intent = WorkspaceLayouts.Intent.detect(query) {
             switch intent {
