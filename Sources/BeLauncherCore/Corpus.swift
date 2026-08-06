@@ -423,7 +423,10 @@ public enum CorpusBuilder {
             switch node.kind {
             case .person: add(Entity(kind: .person, canonical: node.name))
             case .company: add(Entity(kind: .company, canonical: node.name))
-            case .project: add(Entity(kind: .project, canonical: node.name))
+            case .project:
+                if !Identity.isPassingThrough(node.name) {
+                    add(Entity(kind: .project, canonical: node.name))
+                }
             default: break
             }
         }
@@ -435,7 +438,13 @@ public enum CorpusBuilder {
             for signal in episode.signals {
                 let subject = signal.subject
                 if subject.contains("/"), let project = Identity.project(fromPath: path(for: signal)) {
-                    add(Entity(kind: .project, canonical: project))
+                    // Somewhere you passed through is not something you work on. Without this the
+                    // graph fills with google.com and instagram.com, and the real projects are
+                    // three dots lost among twenty. Not a `continue`: the same signal may still
+                    // carry an address worth reading.
+                    if !Identity.isPassingThrough(project) {
+                        add(Entity(kind: .project, canonical: project))
+                    }
                 }
                 if subject.contains("@"), let company = Identity.company(fromEmail: subject) {
                     add(Entity(kind: .company, canonical: company))

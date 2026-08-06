@@ -119,6 +119,34 @@ public enum Identity {
         "untitled", "sin titulo", "nueva carpeta", "new folder",
     ]
 
+    /// Sites that are places you pass through, never things you work on.
+    ///
+    /// A graph of somebody's month that lists `google.com`, `instagram.com` and `youtube.com` as
+    /// projects is a browser history with a nicer font. It was measured on a real Mac: the first
+    /// graph anyone saw was twenty three dots and most of them were these. They are still visited,
+    /// still captured and still searchable; they just do not get to be entities, because an entity
+    /// is something work is *about*.
+    public static let passingThrough: Set<String> = [
+        "google.com", "google.es", "bing.com", "duckduckgo.com", "youtube.com", "instagram.com",
+        "facebook.com", "x.com", "twitter.com", "threads.com", "tiktok.com", "reddit.com",
+        "linkedin.com", "whatsapp.com", "web.whatsapp.com", "mail.google.com", "gmail.com",
+        "calendar.google.com", "drive.google.com", "amazon.com", "amazon.es", "netflix.com",
+        "chatgpt.com", "claude.ai", "spotify.com", "wikipedia.org", "stackoverflow.com",
+        "localhost", "127.0.0.1",
+    ]
+
+    /// Whether a host is somewhere you pass through rather than something you work on.
+    public static func isPassingThrough(_ host: String) -> Bool {
+        let clean = host.lowercased()
+            .replacingOccurrences(of: "www.", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        if passingThrough.contains(clean) { return true }
+        // A subdomain of one of these is the same place: `m.youtube.com` is still YouTube. But a
+        // subdomain of your own company is not, which is why the match is on the tail and the list
+        // holds no bare company names.
+        return passingThrough.contains { clean.hasSuffix("." + $0) }
+    }
+
     /// Free mail providers, which say nothing about where somebody works.
     public static let freeMail: Set<String> = [
         "gmail.com", "googlemail.com", "hotmail.com", "outlook.com", "live.com", "yahoo.com",
