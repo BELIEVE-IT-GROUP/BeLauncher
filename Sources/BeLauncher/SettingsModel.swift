@@ -729,6 +729,38 @@ final class SettingsModel {
             + (summary.skipped > 0 ? ", \(summary.skipped) omitidos." : ".")
     }
 
+    // MARK: - How much room the brain takes
+
+    /// The file on disk, in words.
+    var databaseSize: String {
+        ByteCountFormatter.string(fromByteCount: Int64(store.fileSize), countStyle: .file)
+    }
+
+    /// Whether the file is holding much more space than its contents need.
+    ///
+    /// The threshold is a ratio and a floor together, because either alone lies: a brand new brain
+    /// is nearly all overhead and would look permanently bloated on ratio, and a large healthy
+    /// brain would look broken on size. What matters is a file several times its own content, and
+    /// big enough for that to be worth a person's attention.
+    var isBloated: Bool { store.fileSize > 200_000_000 && store.fileSize > store.contentSize * 4 }
+
+    /// Rewrites the database compactly and gives the space back.
+    ///
+    /// Deliberately a button rather than something done at launch. Compacting writes a second copy
+    /// before replacing the first, and somebody whose disk filled up because of this is exactly the
+    /// person who cannot spare it. Failing here must cost nothing: the original is untouched until
+    /// the new one is complete.
+    func compactDatabase() {
+        status = L("Compacting…")
+        do {
+            let saved = try store.compact()
+            status = L("Compacted: %@ freed.",
+                       ByteCountFormatter.string(fromByteCount: Int64(saved), countStyle: .file))
+        } catch {
+            status = L("It could not be compacted: %@", error.localizedDescription)
+        }
+    }
+
     func revealDataFolder() {
         NSWorkspace.shared.selectFile(store.path, inFileViewerRootedAtPath: "")
     }

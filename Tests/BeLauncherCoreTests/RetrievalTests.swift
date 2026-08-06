@@ -404,4 +404,44 @@ struct SemanticIndexTests {
         #expect(escritos.first?.title == "La reunión con Acme")
     }
 
+    @Test("al actualizar, los títulos gigantes que ya estaban se recortan solos")
+    func laMigracionReparaLoQueYaEstaba() throws {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-migra-\(UUID().uuidString)")
+            .appendingPathComponent("s.sqlite3").path
+        let viejo = try Store(path: path)
+        try viejo.migrateSemanticIndex()
+
+        // Una fila escrita como las escribía la versión anterior: sin tope, por la puerta de atrás,
+        // porque el tope de `replacePassages` es justamente lo que no existía entonces.
+        let enorme = String(repeating: "palabra ", count: 100_000)
+        try viejo.database.execute("""
+            INSERT INTO passages (id, source_key, source_kind, title, ordinal, text, occurred_at,
+                                  digest, vector, vector_model)
+            VALUES ('p1', 'node:e1', 'node', ?, 0, 'texto', 0, 'd', NULL, '')
+            """, [.text(enorme)])
+        #expect(try viejo.database.query("SELECT length(title) AS n FROM passages")
+            .first?.int("n") == Int64(enorme.count))
+
+        // Y ahora arranca la versión con el arreglo. Esto importa porque una fuente cuyo contenido
+        // no cambió nunca se reescribe —su digest coincide— así que sin esta migración el título
+        // gigante se quedaba ahí para siempre y la persona conservaba sus trece gigabytes.
+        let nuevo = try Store(path: path)
+        try nuevo.migrateSemanticIndex()
+        let despues = try nuevo.database.query("SELECT length(title) AS n FROM passages")
+            .first?.int("n") ?? -1
+        #expect(despues <= Int64(IndexedPassage.titleLimit + 1),
+                "la migración dejó un título de \(despues) caracteres")
+    }
+
+    @Test("una base sana no se declara hinchada")
+    func loSanoNoSeToca() throws {
+        let store = try makeStore()
+        store.replacePassages(for: IndexedSource(kind: .memory, id: "m"), title: "Acme",
+                              occurredAt: .now, text: "Una nota corta.")
+        #expect(store.fileSize > 0)
+        #expect(store.contentSize > 0)
+        #expect(store.contentSize <= store.fileSize)
+    }
+
 }

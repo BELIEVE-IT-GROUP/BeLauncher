@@ -730,5 +730,11 @@ extension SpanishStrings {
         "%1$@ nodes · %2$@ relations": "%1$@ nodos · %2$@ relaciones",
         "Episode · ": "Episodio · ",
         "Model": "Modelo",
+        "Compact": "Compactar",
+        "Compacted: %@ freed.": "Compactada: %@ liberados.",
+        "Compacting…": "Compactando…",
+        "It could not be compacted: %@": "No se pudo compactar: %@",
+        "It is taking far more room than its contents need. Compacting rewrites it and gives the space back; it needs enough free disk for one copy of the result.": "Está ocupando mucho más de lo que necesita su contenido. Compactar la reescribe y devuelve el espacio; hace falta disco libre para una copia del resultado.",
+        "There is not enough free disk. It needs about %@ for the new copy.": "No hay disco libre suficiente. Hacen falta unos %@ para la copia nueva.",
     ]
 }

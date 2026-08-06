@@ -189,6 +189,112 @@ extension Store {
                 INSERT INTO passages_fts(rowid, text, title) VALUES (new.rowid, new.text, new.title);
             END
             """)
+
+        trimOversizedTitles()
+    }
+
+    /// Cuts titles that were written before there was a cap on them.
+    ///
+    /// The cap in `replacePassages` only protects what gets written from now on, and that is not
+    /// enough on its own: a source whose content has not changed is deliberately never rewritten —
+    /// its digest matches, so re-cutting and re-embedding it is skipped. That is the right
+    /// behaviour and it means an oversized title, once stored, would stay stored forever. Someone
+    /// upgrading would keep their thirteen gigabytes and never find out why.
+    ///
+    /// So the repair happens once, here, where every launch already passes. It is a single UPDATE
+    /// over the rows that are actually oversized; on a healthy brain it matches nothing and costs
+    /// one indexless pass over a small table.
+    ///
+    /// Note what it does *not* do: the file does not shrink. SQLite keeps the freed pages and
+    /// reuses them, so the brain stops growing but a database already at thirteen gigabytes stays
+    /// that size on disk until it is compacted. Compacting needs room for a second copy, which is
+    /// exactly what a person in this situation does not have, so it is a deliberate action with a
+    /// button rather than something that happens behind them at launch.
+    private func trimOversizedTitles() {
+        let oversized = (try? database.query(
+            "SELECT count(*) AS n FROM passages WHERE length(title) > ?",
+            [.int(Int64(IndexedPassage.titleLimit))]))?.first?.int("n") ?? 0
+        guard oversized > 0 else { return }
+
+        try? database.execute("""
+            UPDATE passages SET title = rtrim(substr(title, 1, ?)) || '…'
+            WHERE length(title) > ?
+            """, [.int(Int64(IndexedPassage.titleLimit)), .int(Int64(IndexedPassage.titleLimit))])
+        // The word index carries the titles too, and it grew with them: on the brain that prompted
+        // this, 448,487 index blocks for 19,413 documents. Rebuilding from the now-small titles
+        // took it to 1,437.
+        try? database.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')")
+    }
+
+    // MARK: - How much room it takes
+
+    /// What the database occupies on disk, in bytes.
+    ///
+    /// The write-ahead log counts. In WAL mode everything written since the last checkpoint lives
+    /// in `-wal`, so measuring only the main file reports 4 KB for a database holding megabytes —
+    /// which is how a size check ends up reassuring somebody about a disk that is filling up.
+    public var fileSize: Int {
+        [path, path + "-wal", path + "-shm"].reduce(0) { total, file in
+            total + (((try? FileManager.default.attributesOfItem(atPath: file))?[.size] as? Int) ?? 0)
+        }
+    }
+
+    /// Roughly what the contents actually need, from SQLite's own page accounting.
+    ///
+    /// Pages in use rather than bytes of text: a healthy database is legitimately larger than the
+    /// sum of its strings, and comparing against the strings would call every normal brain bloated.
+    public var contentSize: Int {
+        let pages = (try? database.query("SELECT * FROM pragma_page_count()"))?
+            .first?.int("page_count") ?? 0
+        let free = (try? database.query("SELECT * FROM pragma_freelist_count()"))?
+            .first?.int("freelist_count") ?? 0
+        let size = (try? database.query("SELECT * FROM pragma_page_size()"))?
+            .first?.int("page_size") ?? 4096
+        return Int(max(0, pages - free) * size)
+    }
+
+    public enum CompactionFailure: LocalizedError {
+        case notEnoughRoom(needed: Int)
+        case failed(String)
+
+        public var errorDescription: String? {
+            switch self {
+            case .notEnoughRoom(let needed):
+                L("There is not enough free disk. It needs about %@ for the new copy.",
+                  ByteCountFormatter.string(fromByteCount: Int64(needed), countStyle: .file))
+            case .failed(let reason): reason
+            }
+        }
+    }
+
+    /// Rewrites the database compactly and returns how many bytes came back.
+    ///
+    /// Plain `VACUUM`, in place. SQLite rebuilds into a temporary file and swaps atomically, so the
+    /// open connection stays valid and a failure halfway through costs nothing — which is why this
+    /// is preferable to writing a copy and juggling the files here, where a mistake loses somebody
+    /// their brain.
+    ///
+    /// The room it needs is the size of the *compacted* result, not of the bloated file, because
+    /// what SQLite builds is the compacted one. That distinction is the whole reason this can help
+    /// somebody whose disk is already full: the trim runs first at migration and makes the answer
+    /// small, and only then is there any point compacting.
+    ///
+    /// The free-space check exists because running out mid-VACUUM is how a full disk became a
+    /// completely full disk while trying to fix it.
+    @discardableResult
+    public func compact() throws -> Int {
+        let before = fileSize
+        let needed = Int(Double(contentSize) * 1.3) + 50_000_000
+        let free = (try? FileManager.default.attributesOfFileSystem(forPath: path))?[.systemFreeSize] as? Int ?? 0
+        guard free > needed else { throw CompactionFailure.notEnoughRoom(needed: needed) }
+
+        do {
+            try database.execute("PRAGMA temp_store = MEMORY")
+            try database.execute("VACUUM")
+        } catch {
+            throw CompactionFailure.failed(String(describing: error))
+        }
+        return max(0, before - fileSize)
     }
 
     // MARK: - Writing
