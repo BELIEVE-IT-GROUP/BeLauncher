@@ -45,8 +45,34 @@ enum WindowArranger {
         }
         let axWindow = unsafeBitCast(window, to: AXUIElement.self)
 
-        guard let current = frame(of: axWindow) else {
-            return "No pude leer el tamaño de la ventana."
+        // A window in full screen reports its size and refuses to move, so arranging it looks
+        // like nothing happened. Say so instead.
+        var fullScreenValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(axWindow, "AXFullScreen" as CFString,
+                                         &fullScreenValue) == .success,
+           (fullScreenValue as? Bool) == true {
+            return "«\(app.localizedName ?? "Esa app")» está en pantalla completa y macOS no deja "
+                 + "mover esas ventanas. Sácala de pantalla completa y vuelve a intentarlo."
+        }
+
+        // Read once, and once more after a beat: the launcher has just closed and some apps take
+        // a moment to answer while their window is still settling. One retry turns a race into a
+        // pause nobody notices.
+        var reading = read(axWindow)
+        if case .failed = reading {
+            Thread.sleep(forTimeInterval: 0.15)
+            reading = read(axWindow)
+        }
+        guard case .ok(let current) = reading else {
+            if case .failed(let why) = reading { return why }
+            return "No pude leer la ventana."
+        }
+
+        var settable: DarwinBoolean = false
+        AXUIElementIsAttributeSettable(axWindow, kAXPositionAttribute as CFString, &settable)
+        guard settable.boolValue else {
+            return "«\(app.localizedName ?? "Esa app")» no deja que se muevan sus ventanas. "
+                 + "Suele pasar con ventanas de sistema y diálogos."
         }
         guard let screen = screen(containing: current) else { return "No encontré la pantalla." }
 
@@ -87,18 +113,58 @@ enum WindowArranger {
         )
     }
 
-    private static func frame(of window: AXUIElement) -> WindowLayoutMath.Frame? {
+    /// Reads position and size, saying which one failed and with what error.
+    ///
+    /// "No pude leer el tamaño de la ventana" had four different causes behind it and named none,
+    /// which is useless to the person and useless to whoever has to fix it. `-25204` is macOS
+    /// saying the app did not answer in time; `-25211` is the Accessibility permission missing.
+    enum Reading {
+        case ok(WindowLayoutMath.Frame)
+        /// A sentence for the person, not an error type: nothing rethrows this.
+        case failed(String)
+    }
+
+    private static func read(_ window: AXUIElement) -> Reading {
         var positionValue: CFTypeRef?
         var sizeValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue) == .success,
-              AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeValue) == .success,
-              let positionValue, let sizeValue else { return nil }
+        let positionStatus = AXUIElementCopyAttributeValue(
+            window, kAXPositionAttribute as CFString, &positionValue)
+        let sizeStatus = AXUIElementCopyAttributeValue(
+            window, kAXSizeAttribute as CFString, &sizeValue)
+
+        guard positionStatus == .success, sizeStatus == .success,
+              let positionValue, let sizeValue else {
+            let failing = positionStatus == .success ? sizeStatus : positionStatus
+            return .failed(explain(failing))
+        }
 
         var origin = CGPoint.zero
         var size = CGSize.zero
-        AXValueGetValue(unsafeBitCast(positionValue, to: AXValue.self), .cgPoint, &origin)
-        AXValueGetValue(unsafeBitCast(sizeValue, to: AXValue.self), .cgSize, &size)
-        return WindowLayoutMath.Frame(x: origin.x, y: origin.y, width: size.width, height: size.height)
+        guard AXValueGetValue(unsafeBitCast(positionValue, to: AXValue.self), .cgPoint, &origin),
+              AXValueGetValue(unsafeBitCast(sizeValue, to: AXValue.self), .cgSize, &size),
+              size.width > 0, size.height > 0 else {
+            return .failed("Esa ventana devolvió un tamaño que no tiene sentido.")
+        }
+        return .ok(WindowLayoutMath.Frame(x: origin.x, y: origin.y,
+                                          width: size.width, height: size.height))
+    }
+
+    /// What an AXError means, in words, plus what to do about it.
+    static func explain(_ error: AXError) -> String {
+        switch error {
+        case .apiDisabled:
+            "Falta el permiso de Accesibilidad. Ajustes del sistema › Privacidad y seguridad › "
+            + "Accesibilidad, y activa BeLauncher."
+        case .notImplemented, .attributeUnsupported:
+            "Esa app no le cuenta a macOS dónde está su ventana, así que no se puede colocar."
+        case .cannotComplete:
+            "La app no respondió a tiempo. Si acaba de abrirse o está ocupada, prueba otra vez."
+        case .invalidUIElement:
+            "La ventana cambió mientras la miraba. Vuelve a intentarlo."
+        default:
+            "macOS no dejó leer la ventana (error \(error.rawValue)). Ejecuta "
+            + "«BeLauncher --diagnose-windows» y mándanos lo que salga."
+        }
     }
 
     private static func set(frame: WindowLayoutMath.Frame, on window: AXUIElement) {
