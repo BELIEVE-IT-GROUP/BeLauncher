@@ -1,0 +1,28 @@
+Sources/BeLauncher/ServiceProvider.swift
+  s_3bf5a4753c6c6c::t_6b4802c3124756 1-80
+Scripts/Info.plist
+  s_3bf5a4753c6c6c::t_bbe5497468b391 25-77
+Sources/BeLauncher/AppDelegate.swift
+  s_3bf5a4753c6c6c::t_2d0e00ececffe7 173,295-329
+  s_3bf5a4753c6c6c::t_baa5c7bda56fe6 705-708
+  s_3bf5a4753c6c6c::t_1d792510d73d91 14,174,281-294
+  s_3bf5a4753c6c6c::t_6dbe569d0c6747 330
+Sources/BeLauncher/ScreenCapture.swift
+  s_3bf5a4753c6c6c::t_baa5c7bda56fe6 20-31,37-40,45-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "9495bc1a74e53b260c7b36e8aadbe0ec6f295596",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
