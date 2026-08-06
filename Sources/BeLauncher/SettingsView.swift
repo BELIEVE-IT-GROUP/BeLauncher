@@ -760,19 +760,24 @@ private struct BrainTab: View {
                 }
             }
 
-            Section("Llevártelo a otro sitio") {
-                HStack {
-                    Button("Abrir en Obsidian") { model.openInObsidian() }
-                    Button("Convertir en repositorio git") { model.makeVaultGitRepository() }
+            // La sección que ofrecía abrir la bóveda en Obsidian y convertirla en repositorio
+            // git ya no está. No era un botón de más: enseñaba la salida antes que el producto.
+            // Lo que se vende aquí es el cerebro, y más adelante la sincronización; un panel que
+            // empieza invitando a llevarse los archivos a otra app convierte a BeLauncher en el
+            // indexador de fondo de otro. Los archivos siguen siendo del usuario, en su carpeta,
+            // en Markdown, y quien quiera abrirlos con otra cosa puede: eso es portabilidad. Otra
+            // cosa es ponerlo en el escaparate.
+
+            Section("Idioma") {
+                Picker("Idioma de la app", selection: $model.interfaceLanguage) {
+                    ForEach(Language.allCases, id: \.self) { language in
+                        Text(language.endonym).tag(language)
+                    }
                 }
-                Text("Obsidian no necesita nada especial: esta carpeta ya es un almacén válido, y "
-                     + "el botón se lo abre. El de git hace `git init` con un `.gitignore` sensato; "
-                     + "el remoto y el push los decides tú, porque dónde acaba la memoria de tu "
-                     + "empresa no es una decisión nuestra.")
+                .pickerStyle(.segmented)
+                Text("El idioma de la ventana. Tu cerebro no cambia: sigue guardando y "
+                     + "encontrando lo que escribiste en el idioma en que lo escribiste.")
                     .font(.caption).foregroundStyle(.secondary)
-                if let status = model.status {
-                    Text(status).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                }
             }
 
             Section("Desde Claude, ChatGPT o Gemini") {

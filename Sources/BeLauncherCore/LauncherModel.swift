@@ -395,7 +395,14 @@ public final class LauncherModel {
             guard let self, self.query.trimmingCharacters(in: .whitespaces) == query else { return }
             self.recallQuery = query
             self.recallRows = RecallResults.rows(from: result)
-            self.mergeRecall(for: query)
+            // Through the normal path rather than by appending to `results` from here.
+            //
+            // Mutating the list from outside `refresh()` meant rows appeared without the rest of
+            // the state being recomputed: the selection index, the empty/loading state and the
+            // action panel were all left describing the list as it was a moment earlier, and the
+            // window resized around a layout that had not been rebuilt. One code path produces
+            // the list, always.
+            self.refresh()
         }
     }
 

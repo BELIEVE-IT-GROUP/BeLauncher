@@ -234,6 +234,8 @@ final class SettingsModel {
         soundsEnabled = store.setting("sounds_enabled", default: true)
         soundsChrome = store.setting("sounds_chrome", default: false)
         graphEnabled = store.setting("graph_enabled", default: false)
+        interfaceLanguage = Language(rawValue: store.setting("interface_language") ?? "")
+            ?? Loc.language
         habitsEnabledSetting = store.setting("habits_enabled", default: false)
         learningEnabledSetting = store.setting("learning_enabled", default: false)
         aiProvider = store.setting("ai_provider") ?? "ollama"
@@ -842,6 +844,19 @@ final class SettingsModel {
     var graphEnabled: Bool {
         didSet { store.setSetting("graph_enabled", graphEnabled) }
     }
+    /// The language the interface is drawn in.
+    ///
+    /// There was no way to choose it and nothing remembered the choice, so the app took whatever
+    /// the system said. On a Mac set to English that produced neither language: the strings that
+    /// go through the catalog came out in English and the ones still written by hand stayed in
+    /// Spanish, in the same window.
+    var interfaceLanguage: Language {
+        didSet {
+            store.setSetting("interface_language", interfaceLanguage.rawValue)
+            Loc.language = interfaceLanguage
+        }
+    }
+
     var habitsEnabledSetting: Bool {
         didSet { store.setSetting("habits_enabled", habitsEnabledSetting) }
     }

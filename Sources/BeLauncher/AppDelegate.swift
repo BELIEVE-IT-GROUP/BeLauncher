@@ -74,6 +74,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         self.store = store
+        // Before a single label is drawn. Reading it later means the first window renders in the
+        // system language and then changes under the person, which looks like a bug even when the
+        // final state is right.
+        Loc.language = Language.resolve(stored: store.setting("interface_language"),
+                                        systemPreferred: Locale.preferredLanguages)
 
         // Before anything draws. The very first screen a new user sees is the activation window,
         // and it is the one where the language matters most: somebody who cannot read the box they
