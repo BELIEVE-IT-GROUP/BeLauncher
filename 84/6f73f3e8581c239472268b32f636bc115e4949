@@ -1,0 +1,190 @@
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrainSetupView.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MCPHealthTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/Shortcuts.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MissionTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IntelligenceTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/AgentTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/SearchPerformanceTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/SecretGuardTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/sources
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 22
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 10
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/MCPProbe.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCore.build/BeLauncherCore.emit-module.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1-4
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/EpisodeTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/ModelInstaller.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/AIVerbTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/BeLauncherCoreTests.emit-module.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1-3
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/UpdateCheckTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/HotKey.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/ActivationView.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/FlowTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/debug.yaml
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 43,49,55,72,95,100,115,136-138,143-145,157
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/SystemUtilities.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/description.json
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 518-519,756,951-953,1185,1283-1284,1423,1541-1542,1671,1924,2043,2592-2594,2898-2900,3148-3150,3380-3382,3620-3622
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 476-479,516-517,616-619,746,781,911-914,954,1051-1054,1175,1210,1281-1282,1329-1332,1435,1539-1540,1587-1590,1683,1914,1949,2055,2552-2555,2595,2692-2695,2858-2861,2901,2998-3001,3151,3196-3199,3340-3343,3383,3480-3483,3623,3668-3671
+.build-me/arm64-apple-macosx/debug/BeLauncherCore.build/sources
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 14,49
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 24
+Tests/BeLauncherCoreTests/RelevanceTests.swift
+  s_3bf5a4753c6c6c::t_fd847d8b3149f2 1-164
+.build-me/arm64-apple-macosx/debug/BeLauncherCore.build/Relevance.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/UpdateInstallerTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/CommandView.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/Theme.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/AgentRunner.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.product/Objects.LinkFileList
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 45,80
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 55
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/output-file-map.json
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 152-158
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 68-74
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/PulseTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/StoreTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/ClipboardWatcher.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/BrainQueryTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RichClipboardTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MCPClientsTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCore.build/output-file-map.json
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 96-102,341-346
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 166-172,347
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/BrainSetupCopyTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/Updater.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+Sources/BeLauncherCore/Distillation.swift
+  s_3bf5a4753c6c6c::t_657ac5b0abb996 1-134
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/KeyboardWorkflowTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/SemanticTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/LaunchAtLogin.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MCPServerTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ModelInstallTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/CalendarAccess.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+Sources/BeLauncherCore/Identity.swift
+  s_3bf5a4753c6c6c::t_09145140e489d7 112-113
+  s_3bf5a4753c6c6c::t_8779fb5f0645f3 1-111,114-115,117-244
+  s_3bf5a4753c6c6c::t_8a4de917c1aa66 116
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/BrandMark.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/CalculatorTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/TransformationTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/SystemCommandTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/TeamBrainTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCore.build/Identity.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ActionPanelTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/WindowCommandTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+Tests/BeLauncherCoreTests/IdentityTests.swift
+  s_3bf5a4753c6c6c::t_7233b3ddf54289 1-33,49-138
+  s_3bf5a4753c6c6c::t_8a4de917c1aa66 34-48
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/ImportersTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/SoundTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/ScreenCapture.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/LicenseTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/WorkGraphTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RelevanceTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/Permissions.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/MCPToolsTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherPackageTests.product/Objects.LinkFileList
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 24,84
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 14,49,96
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/VaultTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/plugin-tools.yaml
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 43,49,55,72,95,100,115,136-138,143-145,157
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/GoToPathTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/RetrievalTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/UtilitiesTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+Sources/BeLauncherCore/Relevance.swift
+  s_3bf5a4753c6c6c::t_a26bea84d95acb 1-118
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/ServiceProvider.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCore.build/Distillation.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/CanvasView.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncher.build/CommandPanel.d
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 1
+.build-me/arm64-apple-macosx/debug/BeLauncherCoreTests.build/IdentityTests.d
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 1
+.build-me/arm64-apple-macosx/debug/plugin-tools-description.json
+  s_3bf5a4753c6c6c::t_41eaf093f62ab5 518-519,756,951-953,1185,1283-1284,1423,1541-1542,1671,1924,2043,2592-2594,2898-2900,3148-3150,3380-3382,3620-3622
+  s_3bf5a4753c6c6c::t_2e4feaaca11c4e 476-479,516-517,616-619,746,781,911-914,954,1051-1054,1175,1210,1281-1282,1329-1332,1435,1539-1540,1587-1590,1683,1914,1949,2055,2552-2555,2595,2692-2695,2858-2861,2901,2998-3001,3151,3196-3199,3340-3343,3383,3480-3483,3623,3668-3671
+.build-me/arm64-apple-macosx/debug/BeLauncher.dSYM/Contents/Resources/Relocations/aarch64/BeLauncher.yml
+  s_3bf5a4753c6c6c::t_435b6df07ea96d 1572,1574-1575,1887-1888,2075,2635-2636,3826-3831,3905-3908,4041-4044,5564,6918,6960-6962,6993,7029-7032,7101-7111,7682-7683,7821,7938,8253,8519-8534,8657-8658,8762,8932-8934,8996,9128-16330
+.build-me/arm64-apple-macosx/debug/BeLauncherPackageTests.xctest/Contents/MacOS/BeLauncherPackageTests.dSYM/Contents/Resources/Relocations/aarch64/BeLauncherPackageTests.yml
+  s_3bf5a4753c6c6c::t_7a2c8794f74911 6,154,512,814-829,958-959,1075,1255-1257,1329,1486-39532
+.build-me/.lock
+  s_3bf5a4753c6c6c::t_845965e0a9129f 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "846f73f3e8581c239472268b32f636bc115e4949",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
