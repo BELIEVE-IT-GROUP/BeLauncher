@@ -145,14 +145,22 @@ public struct IntelligenceRequest: Sendable, Equatable {
 public struct IntelligenceClient: Sendable {
     public typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
 
+    /// Separate from `Transport` because a stream is bytes arriving over time, not a payload
+    /// that has finished.
+    public typealias ByteTransport =
+        @Sendable (URLRequest) async throws -> (URLSession.AsyncBytes, URLResponse)
+
     public var transport: Transport
+    public var byteTransport: ByteTransport
     public var keyLookup: @Sendable (String) -> String?
 
     public init(
         transport: @escaping Transport = { try await URLSession.shared.data(for: $0) },
+        byteTransport: @escaping ByteTransport = { try await URLSession.shared.bytes(for: $0) },
         keyLookup: @escaping @Sendable (String) -> String? = { Keychain.get($0) }
     ) {
         self.transport = transport
+        self.byteTransport = byteTransport
         self.keyLookup = keyLookup
     }
 
@@ -174,7 +182,86 @@ public struct IntelligenceClient: Sendable {
         return text
     }
 
-    func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String) throws -> URLRequest {
+    /// Asks and reports each fragment as it arrives.
+    ///
+    /// Waiting for the whole answer was the bug people actually felt. A local model on this
+    /// machine generates about 14 tokens a second, so a 400-token answer is 28 seconds of a
+    /// spinner with nothing in it, and anything longer than about 850 tokens simply blew past the
+    /// 60-second timeout and reported a failure for work that was going fine.
+    ///
+    /// Streaming fixes both at once: the first words appear in under a second, and the timeout
+    /// goes back to meaning what it should — the gap between packets, not the length of the
+    /// answer. The whole text is still returned at the end for whoever wants it in one piece.
+    @discardableResult
+    public func stream(
+        _ request: IntelligenceRequest,
+        using provider: IntelligenceProvider,
+        model: String? = nil,
+        onFragment: @escaping @Sendable (String) -> Void
+    ) async throws -> String {
+        var urlRequest = try build(request, provider: provider,
+                                   model: model ?? provider.defaultModel, streaming: true)
+        urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+
+        let bytes: URLSession.AsyncBytes
+        let response: URLResponse
+        do {
+            (bytes, response) = try await byteTransport(urlRequest)
+        } catch {
+            throw IntelligenceError.transport(error.localizedDescription)
+        }
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw IntelligenceError.transport("El proveedor respondió HTTP \(http.statusCode).")
+        }
+
+        var whole = ""
+        do {
+            for try await line in bytes.lines {
+                guard let fragment = Self.fragment(fromSSE: line) else { continue }
+                whole += fragment
+                onFragment(fragment)
+            }
+        } catch {
+            // Something already arrived: better a partial answer than losing it to a hiccup.
+            guard whole.isEmpty else { return whole.trimmingCharacters(in: .whitespacesAndNewlines) }
+            throw IntelligenceError.transport(error.localizedDescription)
+        }
+
+        let text = whole.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { throw IntelligenceError.emptyAnswer }
+        return text
+    }
+
+    /// One line of a server-sent event stream, or nil when it carries nothing to show.
+    ///
+    /// Pure so the parsing is testable without a server: this is the part that breaks silently
+    /// when a provider changes shape, and a stream that quietly yields nothing looks exactly like
+    /// a model that has hung.
+    public static func fragment(fromSSE line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("data:") else { return nil }
+        let payload = String(trimmed.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+        guard !payload.isEmpty, payload != "[DONE]" else { return nil }
+        guard let data = payload.data(using: .utf8),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+
+        // OpenAI-compatible, which also covers Ollama and LM Studio.
+        if let choices = root["choices"] as? [[String: Any]],
+           let delta = choices.first?["delta"] as? [String: Any],
+           let content = delta["content"] as? String, !content.isEmpty {
+            return content
+        }
+        // Anthropic sends the text inside a content_block_delta.
+        if let delta = root["delta"] as? [String: Any],
+           let text = delta["text"] as? String, !text.isEmpty {
+            return text
+        }
+        return nil
+    }
+
+    func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String,
+               streaming: Bool = false) throws -> URLRequest {
         guard let url = URL(string: provider.endpoint) else {
             throw IntelligenceError.transport("endpoint inválido")
         }
@@ -207,6 +294,7 @@ public struct IntelligenceClient: Sendable {
             "messages": messages,
             "max_tokens": request.maxTokens,
         ]
+        if streaming { body["stream"] = true }
         if provider.id == "anthropic", !request.system.isEmpty {
             body["system"] = request.system
         }

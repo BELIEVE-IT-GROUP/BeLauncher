@@ -121,3 +121,96 @@ struct IntelligenceTests {
         }
     }
 }
+
+/// Streaming, which is the difference between 28 seconds of spinner and 28 seconds of watching an
+/// answer arrive — and between a long answer finishing and a long answer timing out.
+@Suite("Reading an answer as it arrives")
+struct StreamingTests {
+
+    @Test("the OpenAI shape, which also covers Ollama and LM Studio")
+    func openAIShape() {
+        #expect(IntelligenceClient.fragment(
+            fromSSE: #"data: {"choices":[{"delta":{"content":"Hola"}}]}"#) == "Hola")
+        #expect(IntelligenceClient.fragment(
+            fromSSE: #"data: {"choices":[{"delta":{"content":" allí"}}]}"#) == " allí")
+    }
+
+    @Test("the Anthropic shape")
+    func anthropicShape() {
+        #expect(IntelligenceClient.fragment(
+            fromSSE: #"data: {"type":"content_block_delta","delta":{"text":"Hola"}}"#) == "Hola")
+    }
+
+    @Test("the lines that carry nothing are skipped instead of appearing as empty text")
+    func skipsNoise() {
+        // A stream that yields empty strings looks exactly like a model that has hung.
+        #expect(IntelligenceClient.fragment(fromSSE: "") == nil)
+        #expect(IntelligenceClient.fragment(fromSSE: ": keep-alive") == nil)
+        #expect(IntelligenceClient.fragment(fromSSE: "data: [DONE]") == nil)
+        #expect(IntelligenceClient.fragment(fromSSE: "event: message_start") == nil)
+        #expect(IntelligenceClient.fragment(fromSSE: "data: no soy json") == nil)
+        #expect(IntelligenceClient.fragment(
+            fromSSE: #"data: {"choices":[{"delta":{}}]}"#) == nil)
+        #expect(IntelligenceClient.fragment(
+            fromSSE: #"data: {"choices":[{"delta":{"content":""}}]}"#) == nil)
+    }
+
+    @Test("whitespace around the payload never breaks it")
+    func tolerantOfSpacing() {
+        #expect(IntelligenceClient.fragment(
+            fromSSE: #"  data:  {"choices":[{"delta":{"content":"x"}}]}  "#) == "x")
+    }
+
+    @Test("fragments assembled in order rebuild the whole answer")
+    func assembles() {
+        let lines = ["data: {\"choices\":[{\"delta\":{\"content\":\"Hola\"}}]}",
+                     "data: {\"choices\":[{\"delta\":{\"content\":\" allí\"}}]}",
+                     "data: [DONE]"]
+        #expect(lines.compactMap(IntelligenceClient.fragment(fromSSE:)).joined() == "Hola allí")
+    }
+
+    @Test("a streaming request tells the provider it wants a stream")
+    func asksForAStream() throws {
+        let client = IntelligenceClient()
+        let ollama = try #require(IntelligenceProvider.named("ollama"))
+        let request = try client.build(
+            IntelligenceRequest(prompt: "hola", sensitivity: .personal),
+            provider: ollama, model: "qwen2.5", streaming: true
+        )
+        let body = try #require(request.httpBody)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["stream"] as? Bool == true)
+
+        // And a plain request must not, or the non-streaming parser gets an event stream.
+        let plain = try client.build(
+            IntelligenceRequest(prompt: "hola", sensitivity: .personal),
+            provider: ollama, model: "qwen2.5"
+        )
+        let plainBody = try #require(plain.httpBody)
+        let plainJSON = try #require(
+            JSONSerialization.jsonObject(with: plainBody) as? [String: Any])
+        #expect(plainJSON["stream"] == nil)
+    }
+}
+
+@Suite("The pane filling as text arrives")
+@MainActor
+struct StreamingPaneTests {
+
+    @Test("fragments accumulate instead of replacing each other")
+    func accumulates() {
+        let model = LauncherModel(dataSource: { SearchInput() }, perform: { _ in })
+        model.aiWorking("Traducir")
+        model.aiStreaming(verb: "Traducir", fragment: "Hola")
+        model.aiStreaming(verb: "Traducir", fragment: " allí")
+        #expect(model.aiState == .answer(verb: "Traducir", text: "Hola allí"))
+    }
+
+    @Test("a different verb starts a new answer rather than appending to the old one")
+    func newVerbStartsOver() {
+        let model = LauncherModel(dataSource: { SearchInput() }, perform: { _ in })
+        model.aiStreaming(verb: "Traducir", fragment: "Hola")
+        model.aiStreaming(verb: "Resumir", fragment: "En resumen")
+        #expect(model.aiState == .answer(verb: "Resumir", text: "En resumen"))
+    }
+}

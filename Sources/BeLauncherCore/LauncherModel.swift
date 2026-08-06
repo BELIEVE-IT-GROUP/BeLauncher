@@ -103,6 +103,17 @@ public final class LauncherModel {
 
     public func aiWorking(_ title: String) { aiState = .working(title) }
     public func aiAnswered(verb: String, text: String) { aiState = .answer(verb: verb, text: text) }
+
+    /// Appends what has arrived so far. The pane switches from spinner to text on the first
+    /// fragment, which is the whole point: 28 seconds of watching a spinner and 28 seconds of
+    /// watching an answer being written are not the same experience.
+    public func aiStreaming(verb: String, fragment: String) {
+        if case .answer(let existing, let text) = aiState, existing == verb {
+            aiState = .answer(verb: verb, text: text + fragment)
+        } else {
+            aiState = .answer(verb: verb, text: fragment)
+        }
+    }
     public func aiFailed(_ message: String) { aiState = .failed(message) }
     public func clearAI() { aiState = .idle; perform(.cancelAI) }
 

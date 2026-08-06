@@ -384,8 +384,8 @@ private struct AIPane: View {
                         Button("Cancelar") { dismiss() }
                             .controlSize(.small)
                     }
-                    Text("Un modelo local puede tardar la primera vez, mientras se carga en memoria. "
-                         + "Las siguientes van rápidas.")
+                    Text("La primera vez del día tarda unos segundos mientras el modelo se carga "
+                         + "en memoria. Después empieza a escribir casi al instante.")
                         .font(.system(size: 10.5)).foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

@@ -117,11 +117,23 @@ public struct AIVerbRunner: Sendable {
         self.models = models
     }
 
-    public func run(_ verb: AIVerb, on text: String) async throws -> String {
+    /// Runs the verb, reporting each fragment as it arrives.
+    public func run(_ verb: AIVerb, on text: String,
+                    onFragment: (@Sendable (String) -> Void)? = nil) async throws -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw IntelligenceError.emptyAnswer }
 
         let provider = try router.provider(for: verb.sensitivity, available: providers)
+        let request = IntelligenceRequest(
+            system: "Eres una herramienta dentro de un launcher. Respondes solo con el "
+                  + "resultado pedido, sin saludos, sin explicar lo que vas a hacer.",
+            prompt: "\(verb.instruction)\n\n---\n\(trimmed)",
+            sensitivity: verb.sensitivity
+        )
+        if let onFragment {
+            return try await client.stream(request, using: provider, model: models[provider.id],
+                                           onFragment: onFragment)
+        }
         return try await client.answer(
             IntelligenceRequest(
                 system: "Eres una herramienta dentro de un launcher. Respondes solo con el "

@@ -767,6 +767,16 @@ table { border-collapse: collapse; }
   </div>
 
   <div class="fix">
+    <b>Quiero saber por qué falla la IA, exactamente</b>
+    <p class="cause">La app lo cuenta paso a paso.</p>
+    <p>En Terminal:
+       <code>/Applications/BeLauncher.app/Contents/MacOS/BeLauncher --diagnose-ai</code></p>
+    <p>Dice qué modelos ve, qué claves tienes, cuál usaría, a qué dirección va, cuánto tarda la
+       primera palabra y cuánto la respuesta entera. Si algo falla, ahí sale el error de verdad y
+       no un mensaje genérico.</p>
+  </div>
+
+  <div class="fix">
     <b>La IA tarda muchísimo y luego falla</b>
     <p class="cause">El modelo elegido no está disponible.</p>
     <p>Ajustes → Inteligencia. Si usas Ollama, tiene que estar <strong>abierto</strong> y el modelo
