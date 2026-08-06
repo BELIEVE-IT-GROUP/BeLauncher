@@ -121,6 +121,8 @@ public struct SearchInput: Sendable {
     public var workEdges: [WorkEdge]
     /// What is running right now, read only when the person asks for it.
     public var processes: [RunningProcess]
+    /// Saved arrangements of windows.
+    public var workspaces: [Workspace]
     /// What the app has learned about how this person works.
     public var traits: [Trait]
 
@@ -131,7 +133,7 @@ public struct SearchInput: Sendable {
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
                 workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
-                processes: [RunningProcess] = []) {
+                processes: [RunningProcess] = [], workspaces: [Workspace] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -149,6 +151,7 @@ public struct SearchInput: Sendable {
         self.workEdges = workEdges
         self.traits = traits
         self.processes = processes
+        self.workspaces = workspaces
     }
 }
 
@@ -185,6 +188,36 @@ public enum SearchEngine {
                     subtitle: command.summary, score: 100_000, matched: [],
                     payload: command.id + "\u{1F}", completion: "/\(command.verb) "
                 )
+            }
+        }
+
+        // Whole arrangements of windows: the thing people buy a separate app for.
+        if let intent = WorkspaceLayouts.Intent.detect(query) {
+            switch intent {
+            case .save(let name):
+                pinned.append(SearchResult(
+                    id: "workspace-save", kind: .window,
+                    title: "Guardar este reparto de ventanas como «\(name)»",
+                    subtitle: "Dónde está cada ventana, en qué pantalla y de qué tamaño",
+                    score: 99_870, matched: [], payload: "save:\(name)"
+                ))
+            case .restore(let name):
+                for workspace in input.workspaces
+                where workspace.id.hasPrefix(name.lowercased()) {
+                    pinned.append(SearchResult(
+                        id: "workspace-\(workspace.id)", kind: .window,
+                        title: "Colocar «\(workspace.name)»", subtitle: workspace.summary,
+                        score: 99_870, matched: [], payload: "restore:\(workspace.name)"
+                    ))
+                }
+            case .list:
+                for workspace in input.workspaces {
+                    pinned.append(SearchResult(
+                        id: "workspace-\(workspace.id)", kind: .window,
+                        title: workspace.name, subtitle: workspace.summary,
+                        score: 99_870, matched: [], payload: "restore:\(workspace.name)"
+                    ))
+                }
             }
         }
 

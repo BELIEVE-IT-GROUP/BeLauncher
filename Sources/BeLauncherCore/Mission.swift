@@ -86,7 +86,7 @@ extension LauncherModel.Action {
             return false
         case .moveToTrash, .systemCommand, .runShortcut, .startTimer, .arrangeWindow,
              .remember, .confirmCommit, .discardCommit, .runFlow, .assignAlias, .runMission,
-             .quitProcess, .forceQuit, .stayAwake, .writeNote:
+             .quitProcess, .forceQuit, .stayAwake, .writeNote, .saveWorkspace, .restoreWorkspace:
             return true
         case .missionCancelled, .cancelAI:
             return false
@@ -124,6 +124,8 @@ extension LauncherModel.Action {
         case .stayAwake(let minutes):
             minutes.map { "Mantener despierto \($0) min" } ?? "Mantener despierto"
         case .writeNote(let text): "Guardar una nota: \(text.prefix(40))"
+        case .saveWorkspace(let name): "Guardar el reparto de ventanas «\(name)»"
+        case .restoreWorkspace(let name): "Colocar el reparto «\(name)»"
         case .openCanvas(_, let brief): "Abrir un lienzo: \(brief.prefix(40))"
         case .runAgent(let id, _): "Encargar «\(id)»"
         case .dismiss: "Cerrar la ventana"

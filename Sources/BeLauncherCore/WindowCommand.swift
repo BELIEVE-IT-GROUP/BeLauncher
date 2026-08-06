@@ -16,7 +16,7 @@ public struct WindowCommand: Sendable, Equatable, Identifiable {
         case leftHalf, rightHalf, topHalf, bottomHalf
         case topLeft, topRight, bottomLeft, bottomRight
         case leftThird, centreThird, rightThird
-        case leftTwoThirds, rightTwoThirds
+        case leftTwoThirds, centreTwoThirds, rightTwoThirds
         case maximise, centre, almostMaximise
         case nextDisplay, previousDisplay
     }
@@ -54,6 +54,9 @@ public struct WindowCommand: Sendable, Equatable, Identifiable {
               symbol: "rectangle.split.3x1", layout: .rightThird),
         .init(id: "left-two-thirds", title: "Ventana: dos tercios izquierda", keywords: ["tercios"],
               symbol: "rectangle.lefthalf.inset.filled", layout: .leftTwoThirds),
+        .init(id: "centre-two-thirds", title: "Ventana: dos tercios centrados",
+              keywords: ["dos tercios", "centro", "two thirds", "center"],
+              symbol: "rectangle.center.inset.filled", layout: .centreTwoThirds),
         .init(id: "right-two-thirds", title: "Ventana: dos tercios derecha", keywords: ["tercios"],
               symbol: "rectangle.righthalf.inset.filled", layout: .rightTwoThirds),
         .init(id: "maximise", title: "Ventana: maximizar", keywords: ["maximizar", "maximize", "full"],
@@ -132,6 +135,11 @@ public enum WindowLayoutMath {
             return Frame(x: visible.x + third * 2, y: visible.y, width: third, height: visible.height)
         case .leftTwoThirds:
             return Frame(x: visible.x, y: visible.y, width: third * 2, height: visible.height)
+        case .centreTwoThirds:
+            // Centred with a third's worth of margin split either side: the shape for reading
+            // something long on a wide display without it stretching across the whole thing.
+            return Frame(x: visible.x + third / 2, y: visible.y,
+                         width: third * 2, height: visible.height)
         case .rightTwoThirds:
             return Frame(x: visible.x + third, y: visible.y, width: third * 2, height: visible.height)
         case .maximise:

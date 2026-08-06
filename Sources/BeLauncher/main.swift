@@ -177,7 +177,20 @@ if CommandLine.arguments.contains("--diagnose-windows") {
                 out("   no expone la lista de ventanas")
             }
 
-            out("\n6. ¿Se puede mover la del foco?")
+            out("\n6. Qué guardaría un reparto de ventanas ahora mismo")
+            switch WindowArranger.snapshot(named: "diagnostico") {
+            case .taken(let workspace):
+                out("   \(workspace.placements.count) ventana(s) en \(workspace.displays) pantalla(s)")
+                for placement in workspace.placements.prefix(10) {
+                    out("   · \(placement.applicationName) — "
+                        + "\(Int(placement.width))×\(Int(placement.height)) "
+                        + "en pantalla \(placement.display)")
+                }
+            case .failed(let why):
+                out("   \(why)")
+            }
+
+            out("\n7. ¿Se puede mover la del foco?")
             var settable: DarwinBoolean = false
             AXUIElementIsAttributeSettable(window, kAXPositionAttribute as CFString, &settable)
             out("   posición modificable: \(settable.boolValue ? "sí" : "NO — esa ventana no se deja mover")")

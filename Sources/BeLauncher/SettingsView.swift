@@ -457,6 +457,10 @@ private struct CommandsTab: View {
                     row("Que no se duerma el Mac", hint: "cafeina · cafeina 2 horas",
                         symbol: "cup.and.saucer")
                     row("Apuntar algo rápido", hint: "nota llamar a Andrés", symbol: "square.and.pencil")
+                    row("Guardar dónde está cada ventana", hint: "guardar espacio trabajo",
+                        symbol: "rectangle.3.group")
+                    row("Volver a ese reparto", hint: "espacio trabajo · espacios",
+                        symbol: "arrow.uturn.backward.square")
                     row("Calcular", hint: "2+2 · 15% of 300", symbol: "equal.square")
                     row("Convertir", hint: "10 km to mi", symbol: "arrow.left.arrow.right")
                     row("Buscar archivos", hint: "f informe", symbol: "doc")
@@ -712,12 +716,34 @@ private struct BrainTab: View {
                 Text("BeLauncher habla MCP: el asistente que ya pagas puede consultar tu cerebro "
                      + "sin abrir el launcher.")
                     .font(.caption).foregroundStyle(.secondary)
-                Text(model.mcpConfig)
-                    .font(.system(size: 10, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding(8)
-                    .background(.black.opacity(0.15), in: RoundedRectangle(cornerRadius: 6))
-                Button("Copiar la configuración") { model.copyMCPConfig() }
+                ForEach(MCPClient.all) { client in
+                    HStack {
+                        Image(systemName: model.mcpConnections[client.id] == true
+                              ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(model.mcpConnections[client.id] == true
+                                             ? .green : .secondary)
+                            .font(.system(size: 12)).frame(width: 16)
+                        Text(client.name).font(.system(size: 12))
+                        Spacer()
+                        Button(model.mcpConnections[client.id] == true ? "Reconectar" : "Conectar") {
+                            model.connect(client)
+                        }
+                        .controlSize(.small)
+                    }
+                }
+                Text("Se escribe en la configuración de esa app **conservando lo que ya tuviera**. "
+                     + "Después hay que reiniciarla para que lo vea.")
+                    .font(.caption).foregroundStyle(.secondary)
+                DisclosureGroup("Hacerlo a mano") {
+                    Text(model.mcpConfig)
+                        .font(.system(size: 10, design: .monospaced))
+                        .textSelection(.enabled)
+                        .padding(8)
+                        .background(.black.opacity(0.15), in: RoundedRectangle(cornerRadius: 6))
+                    Button("Copiar la configuración") { model.copyMCPConfig() }
+                        .controlSize(.small)
+                }
+                .font(.caption)
                 Text("Cuatro herramientas: qué decidimos, preparar, buscar y proponer. Solo lectura "
                      + "y propuesta: un asistente puede sugerir qué cree la empresa, nunca decidirlo.")
                     .font(.caption).foregroundStyle(.secondary)
