@@ -1,0 +1,66 @@
+Sources/BeLauncher/main.swift
+  s_3bf5a4753c6c6c::t_cc9a0e22baa08f 28-109
+Sources/BeLauncherCore/Embedder.swift
+  s_3bf5a4753c6c6c::t_0f8da9a6e3487c 1-231
+Sources/BeLauncherCore/SemanticIndex.swift
+  s_3bf5a4753c6c6c::t_e3ac5de395c0ad 119-123
+  s_3bf5a4753c6c6c::t_8c7aea464ecd1a 170
+  s_3bf5a4753c6c6c::t_86d4af73bf20f9 1-118,124-169,171-316
+Sources/BeLauncherCore/LauncherModel.swift
+  s_3bf5a4753c6c6c::t_db7b1276ea95a7 270-286,363-364,374-400
+  s_3bf5a4753c6c6c::t_9f8246b6e189d1 469-472
+  s_3bf5a4753c6c6c::t_77e90c63ae2875 401
+Sources/BeLauncherCore/ResultAction.swift
+  s_3bf5a4753c6c6c::t_9f8246b6e189d1 280-288
+Sources/BeLauncherCore/ResultDetail.swift
+  s_3bf5a4753c6c6c::t_9f8246b6e189d1 154-159
+Sources/BeLauncherCore/LocalModels.swift
+  s_3bf5a4753c6c6c::t_0237c7b7f5350b 48-54,64
+Sources/BeLauncherCore/SearchEngine.swift
+  s_3bf5a4753c6c6c::t_289759551be351 16-17,38,61
+Sources/BeLauncherCore/RecallResults.swift
+  s_3bf5a4753c6c6c::t_9f8246b6e189d1 26-29
+  s_3bf5a4753c6c6c::t_fb5b5e18b5cfb9 1-25,30-69
+Sources/BeLauncherCore/Semantic.swift
+  s_3bf5a4753c6c6c::t_b6774bbd90754b 1,3-87,94,102,104,111,114-201
+  s_3bf5a4753c6c6c::t_110b22068574b1 88-93,95-96,103,105-110,112-113
+  s_3bf5a4753c6c6c::t_8556e0dc003476 97-101
+  s_3bf5a4753c6c6c::t_fbce4d49420f11 2
+  s_3bf5a4753c6c6c::t_8c7aea464ecd1a 202-212
+Sources/BeLauncherCore/Indexer.swift
+  s_3bf5a4753c6c6c::t_cc8a88413a90c5 1-54,56-67,69-73,75-141
+  s_3bf5a4753c6c6c::t_8c7aea464ecd1a 55,68,74
+Tests/BeLauncherCoreTests/SemanticTests.swift
+  s_3bf5a4753c6c6c::t_2a2cf50dfe92f3 1-162
+Tests/BeLauncherCoreTests/RetrievalTests.swift
+  s_3bf5a4753c6c6c::t_c7cca6ae9825e1 88-93,96,98,106
+  s_3bf5a4753c6c6c::t_cb2029f5e711a7 1-87,94-95,97,99-105,107-344
+Sources/BeLauncherCore/BrainSearch.swift
+  s_3bf5a4753c6c6c::t_6248794f16509c 1-45,47-117
+  s_3bf5a4753c6c6c::t_0237c7b7f5350b 46
+Sources/BeLauncherCore/Retriever.swift
+  s_3bf5a4753c6c6c::t_8c7aea464ecd1a 53-54
+  s_3bf5a4753c6c6c::t_84a321a354fd23 1-52,55-160
+Sources/BeLauncher/AppDelegate.swift
+  s_3bf5a4753c6c6c::t_6348ac3e64f9cd 192,197-231,237-239
+  s_3bf5a4753c6c6c::t_be67cd18374cfd 36
+  s_3bf5a4753c6c6c::t_e9e5b40c814a29 567-569
+  s_3bf5a4753c6c6c::t_0a997a3d0b4586 37,232-236,1143
+  s_3bf5a4753c6c6c::t_77ebee2c464fe5 240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "34fd7e25cd66dc672d55ff10962d3e17d60127a7",
+  "prompts": {},
+  "sessions": {
+    "s_3bf5a4753c6c6c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54849518-ee1c-4636-9e34-b092bde4c944",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
