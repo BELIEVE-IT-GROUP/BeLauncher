@@ -13,7 +13,15 @@ enum WindowArranger {
     /// Returns a message when it could not do it, so the caller can say so instead of doing
     /// nothing visible.
     @discardableResult
-    static func arrange(_ rawLayout: String) -> String? {
+    /// Arranges a window, on `target` when one is given.
+    ///
+    /// The target has to be passed in, and that is the whole fix: summoning the launcher calls
+    /// `NSApp.activate`, so by the time this runs the frontmost application *is* BeLauncher. Asking
+    /// the system who is in front therefore always answered "us", and every attempt came back
+    /// "No hay ninguna ventana delante" — the app looking at its own window and reporting the room
+    /// empty. Who was in front before the panel appeared is the only thing that means anything
+    /// here, and only the caller knows it.
+    static func arrange(_ rawLayout: String, on target: NSRunningApplication? = nil) -> String? {
         guard let layout = WindowCommand.Layout(rawValue: rawLayout) else { return nil }
 
         guard Permissions.requestAccessibility(
@@ -22,9 +30,11 @@ enum WindowArranger {
             return "Necesito permiso de Accesibilidad para mover ventanas de otras apps."
         }
 
-        guard let app = NSWorkspace.shared.frontmostApplication,
+        let candidate = target ?? NSWorkspace.shared.frontmostApplication
+        guard let app = candidate,
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            return "No hay ninguna ventana delante."
+            return "No hay ninguna ventana delante. Abre una app, súmmona BeLauncher encima y "
+                 + "vuelve a intentarlo."
         }
 
         let element = AXUIElementCreateApplication(app.processIdentifier)

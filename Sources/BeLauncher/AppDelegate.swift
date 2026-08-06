@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
     private var screenHotKey: HotKey?
+    /// Whoever was in front when the launcher was summoned.
+    private var appBeforePanel: NSRunningApplication?
     private var clipboard: ClipboardWatcher?
     private var settingsWindow: NSWindow?
     private var settingsModel: SettingsModel?
@@ -424,6 +426,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if panel.isVisible, model.mode == mode {
             panel.orderOut(nil)
         } else {
+            // Remembered before the panel takes focus: everything that acts on "the window you
+            // were using" needs to know who that was, and a moment later the answer is us.
+            let ours = ProcessInfo.processInfo.processIdentifier
+            if let front = NSWorkspace.shared.frontmostApplication,
+               front.processIdentifier != ours {
+                appBeforePanel = front
+            }
             model.activate(mode: mode)
             panel.present()
         }
@@ -670,7 +679,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         aiTask?.cancel()
         aiTask = Task { @MainActor in
             do {
-                let answer = try await askModel("\(instruction)\n\n---\n\(text)")
+                let answer = try await askModel("\(instruction)\n\n---\n\(text)") { fragment in
+                    Task { @MainActor in model.aiStreaming(verb: title, fragment: fragment) }
+                }
                 model.aiAnswered(verb: title, text: answer)
             } catch let error as IntelligenceError {
                 model.aiFailed(error.description)
@@ -755,7 +766,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// Shared so there is exactly one place that decides which provider answers, which model it
     /// asks for, and what the person's own style adds to the prompt.
-    func askModel(_ prompt: String, sensitivity: Sensitivity = .personal) async throws -> String {
+    func askModel(_ prompt: String, sensitivity: Sensitivity = .personal,
+                  onFragment: (@Sendable (String) -> Void)? = nil) async throws -> String {
         guard let store else { throw IntelligenceError.noProviderConfigured }
         let running = await LocalModels.installed()
         var models: [String: String] = [:]
@@ -782,10 +794,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                    + "pedido, sin saludos y sin explicar lo que vas a hacer."
                    + (style.isEmpty ? "" : "\n\n" + style)
 
-        return try await IntelligenceClient().answer(
+        return try await IntelligenceClient().stream(
             IntelligenceRequest(system: system, prompt: prompt, sensitivity: sensitivity,
                                 maxTokens: 900),
-            using: provider, model: models[provider.id]
+            using: provider, model: models[provider.id],
+            onFragment: onFragment ?? { _ in }
         )
     }
 
@@ -940,9 +953,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? vault?.discard(commitID: id)
 
         case .arrangeWindow(let layout):
-            // A beat so the previous app is frontmost again before we touch its window.
+            // The window belongs to whoever was in front before the launcher appeared. Waiting a
+            // beat and asking the system again was the old approach, and it lost the race often
+            // enough that arranging windows simply did not work.
+            panel?.orderOut(nil)
+            let target = appBeforePanel
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                if let failure = WindowArranger.arrange(layout) {
+                if let failure = WindowArranger.arrange(layout, on: target) {
                     self.report("No se pudo colocar la ventana", failure)
                 }
             }
@@ -1071,7 +1088,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 models: models
             )
             do {
-                let answer = try await runner.run(verb, on: text)
+                // Streaming, so the first words land in under a second instead of after the
+                // whole answer. Fragments arrive off the main actor; hop back to touch the model.
+                let answer = try await runner.run(verb, on: text) { fragment in
+                    Task { @MainActor in model.aiStreaming(verb: verb.title, fragment: fragment) }
+                }
                 model.aiAnswered(verb: verb.title, text: answer)
             } catch let error as IntelligenceError {
                 model.aiFailed(error.description)
