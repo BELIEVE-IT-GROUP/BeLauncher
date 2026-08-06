@@ -85,7 +85,8 @@ extension LauncherModel.Action {
             // runs one of its blocks.
             return false
         case .moveToTrash, .systemCommand, .runShortcut, .startTimer, .arrangeWindow,
-             .remember, .confirmCommit, .discardCommit, .runFlow, .assignAlias, .runMission:
+             .remember, .confirmCommit, .discardCommit, .runFlow, .assignAlias, .runMission,
+             .quitProcess, .forceQuit, .stayAwake, .writeNote:
             return true
         case .missionCancelled, .cancelAI:
             return false
@@ -118,6 +119,11 @@ extension LauncherModel.Action {
         case .runMission(let mission): "Ejecutar la misión “\(mission.intent)”"
         case .missionCancelled: "Misión cancelada"
         case .cancelAI: "Petición cancelada"
+        case .quitProcess(let pid): "Cerrar el proceso \(pid)"
+        case .forceQuit(let pid): "Forzar la salida del proceso \(pid)"
+        case .stayAwake(let minutes):
+            minutes.map { "Mantener despierto \($0) min" } ?? "Mantener despierto"
+        case .writeNote(let text): "Guardar una nota: \(text.prefix(40))"
         case .openCanvas(_, let brief): "Abrir un lienzo: \(brief.prefix(40))"
         case .runAgent(let id, _): "Encargar «\(id)»"
         case .dismiss: "Cerrar la ventana"

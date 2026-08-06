@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: CommandPanel?
     private var statusItem: NSStatusItem?
     private var updateItem: NSMenuItem?
+    private var awakeItem: NSMenuItem?
     private var pendingRelease: Release?
     private var welcomeWindow: NSWindow?
     private var canvasWindow: NSWindow?
@@ -108,7 +109,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     packs: store.availablePacks(),
                     workNodes: store.nodes(),
                     workEdges: store.nodes().flatMap { store.edges(from: $0.id) },
-                    traits: store.traits()
+                    traits: store.traits(),
+                    // Read only when the query asks for it: listing 400 processes on every
+                    // keystroke would make typing anything else noticeably slower.
+                    processes: ProcessList.order(for: self.model?.query ?? "") == nil
+                        ? [] : SystemUtilities.processes()
                 )
             },
             fileInfo: { path in
@@ -290,6 +295,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateItem = update
 
         menu.addItem(.separator())
+        // Visible state, and one click to end it. An assertion you cannot see is how a laptop
+        // ends up awake in a bag all night.
+        let awake = NSMenuItem(title: "", action: #selector(toggleAwake), keyEquivalent: "")
+        awake.target = self
+        awake.isHidden = true
+        menu.addItem(awake)
+        awakeItem = awake
+
         let guide = NSMenuItem(title: "Guía rápida", action: #selector(openWelcome), keyEquivalent: "")
         guide.target = self
         menu.addItem(guide)
@@ -304,6 +317,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quit)
         item.menu = menu
         statusItem = item
+    }
+
+    @objc private func toggleAwake() {
+        SystemUtilities.stopStayingAwake()
+        refreshAwakeItem()
+    }
+
+    private func refreshAwakeItem() {
+        guard let awakeItem else { return }
+        awakeItem.isHidden = !SystemUtilities.isAwake
+        awakeItem.title = SystemUtilities.isAwake
+            ? StayAwake.remaining(until: SystemUtilities.awakeUntil) + " · desactivar"
+            : ""
     }
 
     /// Looks for a new version once, quietly, and only if the person turned that on.
@@ -916,6 +942,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .runMission(let mission):
             runMission(mission)
+
+        case .quitProcess(let pid):
+            panel?.orderOut(nil)
+            if let failure = SystemUtilities.quit(pid: pid, force: false) {
+                report("No se pudo cerrar", failure)
+                return failure
+            }
+
+        case .forceQuit(let pid):
+            panel?.orderOut(nil)
+            if let failure = SystemUtilities.quit(pid: pid, force: true) {
+                report("No se pudo forzar la salida", failure)
+                return failure
+            }
+
+        case .stayAwake(let minutes):
+            panel?.orderOut(nil)
+            report("Modo despierto", SystemUtilities.stayAwake(minutes: minutes))
+            refreshAwakeItem()
+
+        case .writeNote(let text):
+            panel?.orderOut(nil)
+            switch SystemUtilities.write(note: text, inVaultAt: Vault.defaultRoot()) {
+            case .saved(let path):
+                store?.observe(OperatingModel.observeWriting(text))
+                report("Nota guardada", (path as NSString).lastPathComponent)
+            case .failed(let why):
+                report("No se pudo guardar", why)
+                return why
+            }
 
         case .cancelAI:
             aiTask?.cancel()

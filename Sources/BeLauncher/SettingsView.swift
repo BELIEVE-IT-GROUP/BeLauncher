@@ -452,6 +452,11 @@ private struct CommandsTab: View {
                 }
 
                 Section("Utilidades") {
+                    row("Ver qué consume el Mac", hint: "cpu · memoria", symbol: "gauge.with.needle")
+                    row("Cerrar una app que se colgó", hint: "cpu chrome", symbol: "xmark.octagon")
+                    row("Que no se duerma el Mac", hint: "cafeina · cafeina 2 horas",
+                        symbol: "cup.and.saucer")
+                    row("Apuntar algo rápido", hint: "nota llamar a Andrés", symbol: "square.and.pencil")
                     row("Calcular", hint: "2+2 · 15% of 300", symbol: "equal.square")
                     row("Convertir", hint: "10 km to mi", symbol: "arrow.left.arrow.right")
                     row("Buscar archivos", hint: "f informe", symbol: "doc")
