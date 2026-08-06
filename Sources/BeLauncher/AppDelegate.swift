@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var updateItem: NSMenuItem?
     private var awakeItem: NSMenuItem?
+    private var serviceProvider: ServiceProvider?
     private var pendingRelease: Release?
     private var welcomeWindow: NSWindow?
     private var canvasWindow: NSWindow?
@@ -169,6 +170,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             granted: { [weak self] permission in self?.isGranted(permission) ?? false }
         )
 
+        installEditMenu()
+        installServices()
         installStatusItem()
         announceUpdateIfAny()
         installKeyMonitor()
@@ -273,6 +276,56 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             calendar.refresh()
             model?.isIndexing = false
         }
+    }
+
+    /// Puts BeLauncher in the right-click → Servicios menu of every app.
+    private func installServices() {
+        let provider = ServiceProvider()
+        provider.runVerb = { [weak self] id, text in
+            guard let self else { return }
+            self.togglePanel(mode: .all)
+            self.runAIVerb(id: id, text: text)
+        }
+        provider.writeNote = { [weak self] text in self?.perform(.writeNote(text: text)) }
+        provider.remember = { [weak self] text, source in
+            self?.perform(.remember(text: text, source: source))
+        }
+        serviceProvider = provider
+        ServiceProvider.install(provider)
+    }
+
+    /// Gives the app the Edit menu it never had, which is what makes ⌘V work.
+    ///
+    /// A launcher you cannot paste into is not a launcher. macOS routes ⌘X, ⌘C, ⌘V, ⌘A and ⌘Z
+    /// through the main menu — the shortcuts are not built into text fields, they are menu items
+    /// whose action travels the responder chain. This app never built a main menu because it lives
+    /// in the menu bar with no windows of its own, so those keys had nowhere to go and did
+    /// nothing, in the search field and in every text field in Settings.
+    ///
+    /// The menu is never shown, since the app is an accessory. It exists purely so the keys work.
+    private func installEditMenu() {
+        let edit = NSMenu(title: "Edición")
+        let items: [(String, Selector, String, NSEvent.ModifierFlags)] = [
+            ("Deshacer", Selector(("undo:")), "z", .command),
+            ("Rehacer", Selector(("redo:")), "z", [.command, .shift]),
+            ("Cortar", #selector(NSText.cut(_:)), "x", .command),
+            ("Copiar", #selector(NSText.copy(_:)), "c", .command),
+            ("Pegar", #selector(NSText.paste(_:)), "v", .command),
+            // Pasting a styled quote into a search field should paste the words, not the styling.
+            ("Pegar sin formato", Selector(("pasteAsPlainText:")), "v", [.command, .shift, .option]),
+            ("Seleccionar todo", #selector(NSText.selectAll(_:)), "a", .command),
+        ]
+        for (title, action, key, modifiers) in items {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            item.keyEquivalentModifierMask = modifiers
+            edit.addItem(item)
+        }
+
+        let root = NSMenu()
+        let editItem = NSMenuItem()
+        editItem.submenu = edit
+        root.addItem(editItem)
+        NSApp.mainMenu = root
     }
 
     private func installStatusItem() {
@@ -649,8 +702,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             let context = await ScreenCapture.read()
             guard ScreenReader.isWorthOffering(context) else {
-                report("No hay nada que leer",
-                       "Selecciona algo, o abre el archivo del que quieres que se ocupe.")
+                report("Selecciona primero lo que quieres",
+                       "Marca el texto, la tabla o el error del que quieres que me ocupe y vuelve "
+                     + "a pulsar ⌥⇧Espacio. Antes leía la pantalla entera y ofrecía cosas al azar, "
+                     + "que era peor que no ofrecer nada.")
                 return
             }
             let subject = ScreenReader.subject(of: context)
