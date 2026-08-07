@@ -135,6 +135,22 @@ public enum QuickNote {
             """
     }
 
+    public static func renderEvidence(title: String, text: String, at date: Date = .now) -> String {
+        let formatter = ISO8601DateFormatter()
+        return """
+            ---
+            created: \(formatter.string(from: date))
+            kind: evidence
+            title: \(title.replacingOccurrences(of: "\n", with: " "))
+            ---
+
+            # \(title)
+
+            \(text)
+
+            """
+    }
+
     /// Where notes live: the vault's inbox, whose whole job is being emptied.
     public static func folder(inVaultAt root: String) -> String {
         (root as NSString).appendingPathComponent("inbox")

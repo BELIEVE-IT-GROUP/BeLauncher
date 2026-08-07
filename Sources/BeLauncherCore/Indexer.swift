@@ -82,6 +82,21 @@ public enum Indexer {
         }
     }
 
+    public static func items(notes: [QuickNote.Record]) -> [Item] {
+        notes.map { note in
+            Item(source: IndexedSource(kind: .note, id: note.id), title: note.title,
+                 text: note.excerpt, occurredAt: dateFromFilename(note.id))
+        }
+    }
+
+    private static func dateFromFilename(_ path: String) -> Date {
+        let name = (path as NSString).lastPathComponent
+        let stamp = String(name.prefix(16))
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HHmm"
+        return formatter.date(from: stamp) ?? .now
+    }
+
     /// What changed, so a pass only touches what it has to.
     ///
     /// Sources that disappeared are removed rather than left behind: a memory that was deleted and
@@ -97,10 +112,12 @@ extension Store {
     /// Rebuilds the passage index from everything available, without touching vectors that are
     /// still valid. Cheap enough to run at launch and after anything is remembered.
     @discardableResult
-    public func reindex(memories: [MemoryObject], nodes: [WorkNode], clips: [Clip]) -> Int {
+    public func reindex(memories: [MemoryObject], nodes: [WorkNode], clips: [Clip],
+                        notes: [QuickNote.Record] = []) -> Int {
         let items = Indexer.items(memories: memories)
             + Indexer.items(nodes: nodes)
             + Indexer.items(clips: clips)
+            + Indexer.items(notes: notes)
 
         var written = 0
         for item in items {

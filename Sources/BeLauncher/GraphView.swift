@@ -732,6 +732,11 @@ final class GraphModel {
 @MainActor
 struct GraphView: View {
     @Bindable var model: GraphModel
+    let askBrain: @MainActor (String) async throws -> BrainAnswer
+    let importText: @MainActor (String, String) -> Void
+    let importFile: @MainActor (URL) -> Void
+    let saveNote: @MainActor (String) -> Void
+    let runIntent: @MainActor (String) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reader: CorpusReaderModel?
     @FocusState private var focused: Bool
@@ -743,6 +748,9 @@ struct GraphView: View {
             Divider().opacity(0.35)
             VStack(spacing: 0) {
                 controls
+                Divider().opacity(0.35)
+                BrainConversationView(ask: askBrain, importText: importText, importFile: importFile,
+                                      saveNote: saveNote, runIntent: runIntent)
                 Divider().opacity(0.35)
                 HStack(spacing: 0) {
                     canvas

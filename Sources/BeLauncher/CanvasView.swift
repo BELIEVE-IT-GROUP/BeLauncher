@@ -20,6 +20,7 @@ final class CanvasModel {
     private let context: String
     private let run: @MainActor (String) async throws -> String
     private let perform: @MainActor (LauncherModel.Action) -> Void
+    private let saveToBrain: @MainActor (BeLauncherCore.Canvas) -> Void
     /// Told what changed when someone rewrites a block. The strongest signal in the product: a
     /// person editing a draft is saying exactly what was wrong with it, without being asked.
     private let learn: @MainActor (String, String) -> Void
@@ -28,11 +29,13 @@ final class CanvasModel {
     init(definition: CanvasTemplate.Definition, brief: String, context: String = "",
          run: @escaping @MainActor (String) async throws -> String,
          perform: @escaping @MainActor (LauncherModel.Action) -> Void,
+         saveToBrain: @escaping @MainActor (BeLauncherCore.Canvas) -> Void = { _ in },
          learn: @escaping @MainActor (String, String) -> Void = { _, _ in }) {
         self.definition = definition
         self.context = context
         self.run = run
         self.perform = perform
+        self.saveToBrain = saveToBrain
         self.learn = learn
         self.canvas = CanvasTemplate.canvas(definition, brief: brief)
     }
@@ -115,6 +118,11 @@ final class CanvasModel {
         for action in actions { perform(action) }
         status = "Ejecutado: \(actions.count) paso(s)."
     }
+
+    func save() {
+        saveToBrain(canvas)
+        status = L("Saved in your Brain.")
+    }
 }
 
 /// The canvas on screen: blocks side by side, each editable, each runnable.
@@ -170,6 +178,7 @@ struct CanvasView: View {
                     .textSelection(.enabled)
             }
             Spacer()
+            Button(L("Save in Brain")) { model.save() }
             Button(L("Copy it all")) { model.copyAll() }
             Button(L("Run the steps")) { model.runActions() }
                 .buttonStyle(.borderedProminent)

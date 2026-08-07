@@ -59,8 +59,9 @@ public final class BrainSearch {
 
     /// Cuts everything into passages. Cheap, synchronous, no network.
     @discardableResult
-    public func index(memories: [MemoryObject], nodes: [WorkNode], clips: [Clip]) -> Int {
-        store.reindex(memories: memories, nodes: nodes, clips: clips)
+    public func index(memories: [MemoryObject], nodes: [WorkNode], clips: [Clip],
+                      notes: [QuickNote.Record] = []) -> Int {
+        store.reindex(memories: memories, nodes: nodes, clips: clips, notes: notes)
     }
 
     /// Embeds whatever is still missing a vector, a batch at a time.

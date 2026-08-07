@@ -329,7 +329,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         brain.index(
             memories: vault?.objects() ?? [],
             nodes: store.nodes(limit: 2_000),
-            clips: store.clips(limit: 500)
+            clips: store.clips(limit: 500),
+            notes: QuickNote.records(inVaultAt: Vault.defaultRoot())
         )
     }
 
@@ -764,7 +765,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         graphModel = model
         model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }
         model.onPrimeLauncher = { [weak self] text in self?.primeLauncher(with: text) }
-        window.contentViewController = NSHostingController(rootView: GraphView(model: model))
+        window.contentViewController = NSHostingController(rootView: GraphView(
+            model: model,
+            askBrain: { [weak self] question in
+                guard let self else { throw IntelligenceError.noProviderConfigured }
+                return try await self.askBrain(question)
+            },
+            importText: { [weak self] text, title in self?.importBrainText(text, title: title) },
+            importFile: { [weak self] url in self?.importBrainFile(url) },
+            saveNote: { [weak self] text in self?.perform(.writeNote(text: text)) },
+            runIntent: { [weak self] text in self?.primeLauncher(with: text) }))
         window.isReleasedWhenClosed = false
         place(window)
         graphWindow = window
@@ -775,6 +785,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Reads the corpus as what it is on disk: Markdown files the person owns.
+    func askBrain(_ question: String) async throws -> BrainAnswer {
+        guard let brain else { throw IntelligenceError.noProviderConfigured }
+        let result = await brain.search(question, limit: 8)
+        guard !result.hits.isEmpty else {
+            return BrainAnswer(text: result.gap ?? L("The Brain has no evidence for that yet."), sources: [])
+        }
+        let prompt = Retriever.prompt(for: question, hits: result.hits)
+        let answer = try await askModel(prompt.user, system: prompt.system)
+        let sources = result.hits.map { "\($0.passage.title) · \($0.passage.source.kind.label)" }
+        return BrainAnswer(text: answer, sources: Array(sources.prefix(6)))
+    }
+
+    func importBrainFile(_ url: URL) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let text = try? String(contentsOf: url, encoding: .utf8), !text.isEmpty else {
+            report(L("Import failed"), L("The file is not readable text.")); return
+        }
+        importBrainText(text, title: url.deletingPathExtension().lastPathComponent)
+    }
+
+    func importBrainText(_ text: String, title: String) {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? L("Imported evidence") : title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let folder = QuickNote.folder(inVaultAt: Vault.defaultRoot())
+        do {
+            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
+            let path = (folder as NSString).appendingPathComponent(
+                QuickNote.filename(for: "\(cleanTitle) \(text.prefix(80))"))
+            try QuickNote.renderEvidence(title: cleanTitle, text: text).write(
+                toFile: path, atomically: true, encoding: .utf8)
+            refreshBrain(force: true)
+            report(L("Evidence imported"), cleanTitle)
+        } catch {
+            report(L("Import failed"), error.localizedDescription)
+        }
+    }
+
     @objc func openCorpusReader(selecting id: String? = nil) {
         if let window = readerWindow {
             NSApp.activate(ignoringOtherApps: true)
@@ -818,6 +866,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel?.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+    }
+
+    private func createSnippet(from text: String) {
+        guard let store else { return }
+        let keyword = NSTextField(string: ";snippet")
+        keyword.placeholderString = L("Trigger, e.g. ;firma")
+        let title = NSTextField(string: L("New snippet"))
+        title.placeholderString = L("Name")
+        let fields = NSStackView(views: [keyword, title])
+        fields.orientation = .vertical
+        fields.spacing = 8
+        fields.frame = NSRect(x: 0, y: 0, width: 300, height: 62)
+        let alert = NSAlert()
+        alert.messageText = L("Create a snippet")
+        alert.informativeText = L("Choose the trigger. The clipboard text is already loaded.")
+        alert.accessoryView = fields
+        alert.addButton(withTitle: L("Create"))
+        alert.addButton(withTitle: L("Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let trigger = keyword.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = title.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trigger.isEmpty, !name.isEmpty else {
+            report(L("Snippet not created"), L("A trigger and a name are required.")); return
+        }
+        do {
+            try store.addSnippet(keyword: trigger, title: name, body: text)
+            report(L("Snippet created"), trigger)
+        } catch {
+            report(L("Snippet not created"), error.localizedDescription)
+        }
     }
 
     /// Turns today's calendar into people, companies and meetings the graph can answer about.
@@ -1076,6 +1154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return try await self.askModel(prompt)
             },
             perform: { [weak self] action in self?.perform(action) },
+            saveToBrain: { [weak self] canvas in self?.saveCanvas(canvas) },
             learn: { [weak self] before, after in
                 self?.store?.observe(OperatingModel.observeEdit(before: before, after: after))
             }
@@ -1097,6 +1176,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         _ = store
         model.fillAll()
+    }
+
+    private func saveCanvas(_ canvas: BeLauncherCore.Canvas) {
+        let folder = QuickNote.folder(inVaultAt: Vault.defaultRoot())
+        do {
+            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
+            let path = (folder as NSString).appendingPathComponent(
+                QuickNote.filename(for: canvas.title + " " + canvas.brief))
+            try QuickNote.renderEvidence(title: canvas.title, text: canvas.render())
+                .write(toFile: path, atomically: true, encoding: .utf8)
+            refreshBrain(force: true)
+            report(L("Canvas saved"), canvas.title)
+        } catch {
+            report(L("Canvas could not be saved"), error.localizedDescription)
+        }
     }
 
     /// One question to whichever model is available, used by canvases and agents alike.
@@ -1332,6 +1426,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report(L("It could not be saved"), why)
                 return why
             }
+
+        case .createSnippet(let text):
+            createSnippet(from: text)
 
         case .openQuickNoteEditor(let initialText):
             openQuickNoteEditor(initialText: initialText)

@@ -76,6 +76,7 @@ public final class LauncherModel {
         /// No confirmation, unlike a memory: a note is yours, not something the company now
         /// believes. That distinction is what lets this be one keystroke.
         case writeNote(text: String)
+        case createSnippet(text: String)
         /// Opens a multi-line note editor from the launcher.
         case openQuickNoteEditor(initialText: String)
     }
@@ -199,8 +200,7 @@ public final class LauncherModel {
         case .paste(let text):
             perform(.copyToClipboard(text: text, cursorOffset: nil))
         case .saveClipAsSnippet(let text):
-            perform(.copyToClipboard(text: text, cursorOffset: nil))
-            perform(.openSettings)
+            perform(.createSnippet(text: text))
             return true
         case .completeKeyword(let keyword):
             query = keyword
