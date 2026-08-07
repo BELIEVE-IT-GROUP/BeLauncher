@@ -33,6 +33,13 @@ struct IntelligenceTests {
         #expect(try router.provider(for: .personal, available: [local, cloud]).id == "anthropic")
     }
 
+    @Test("a configured fallback follows the preferred provider")
+    func ordersFallbacks() throws {
+        let router = ModelRouter(preferred: "ollama")
+        #expect(try router.providers(for: .personal, available: [cloud, local]).map(\.id)
+                == ["ollama", "anthropic"])
+    }
+
     @Test("a user who wants everything local gets everything local")
     func fullyLocalUser() throws {
         let router = ModelRouter(preferred: "ollama", localOnlyFor: Set(Sensitivity.allCases))
@@ -110,6 +117,9 @@ struct IntelligenceTests {
 
         let anthropic = #"{"content":[{"type":"text","text":"Hola"},{"type":"text","text":" mundo"}]}"#
         #expect(IntelligenceClient.extractText(from: Data(anthropic.utf8)) == "Hola mundo")
+
+        let ollama = #"{"message":{"role":"assistant","content":"Hola local"}}"#
+        #expect(IntelligenceClient.extractText(from: Data(ollama.utf8)) == "Hola local")
 
         let failure = #"{"error":{"message":"rate limited"}}"#
         #expect(IntelligenceClient.extractText(from: Data(failure.utf8))?.contains("rate limited") == true)

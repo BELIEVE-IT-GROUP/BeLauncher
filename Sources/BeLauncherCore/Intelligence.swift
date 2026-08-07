@@ -108,15 +108,30 @@ public struct ModelRouter: Sendable {
         for sensitivity: Sensitivity,
         available: [IntelligenceProvider]
     ) throws -> IntelligenceProvider {
+        guard let first = try providers(for: sensitivity, available: available).first else {
+            throw IntelligenceError.noProviderConfigured
+        }
+        return first
+    }
+
+    /// Orders all usable providers so callers can retry a transiently unavailable local runner.
+    /// The preference remains first; fallback is explicit and never bypasses the privacy rule.
+    public func providers(
+        for sensitivity: Sensitivity,
+        available: [IntelligenceProvider]
+    ) throws -> [IntelligenceProvider] {
         guard !available.isEmpty else { throw IntelligenceError.noProviderConfigured }
 
-        let chosen = available.first { $0.id == preferred } ?? available[0]
-        guard localOnlyFor.contains(sensitivity), !chosen.isPrivate else { return chosen }
+        let ordered = available.sorted { lhs, rhs in
+            if lhs.id == preferred { return true }
+            if rhs.id == preferred { return false }
+            return false
+        }
+        guard localOnlyFor.contains(sensitivity) else { return ordered }
 
-        // The preferred provider would send confidential material off the Mac: fall back to a
-        // local one if there is any, and refuse outright rather than doing it quietly.
-        guard let local = available.first(where: \.isPrivate) else {
-            throw IntelligenceError.blockedBySensitivity(chosen.name)
+        let local = ordered.filter(\.isPrivate)
+        guard !local.isEmpty else {
+            throw IntelligenceError.blockedBySensitivity(ordered[0].name)
         }
         return local
     }
@@ -207,16 +222,22 @@ public struct IntelligenceClient: Sendable {
         } catch {
             throw IntelligenceError.transport(error.localizedDescription)
         }
-        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw IntelligenceError.transport(L("The provider answered HTTP %@.", String(http.statusCode)))
-        }
+        let statusCode = (response as? HTTPURLResponse)?.statusCode
 
         var whole = ""
+        var providerError: String?
         do {
             for try await line in bytes.lines {
-                guard let fragment = Self.fragment(fromSSE: line) else { continue }
-                whole += fragment
-                onFragment(fragment)
+                if let fragment = Self.fragment(fromSSE: line) {
+                    whole += fragment
+                    onFragment(fragment)
+                } else if let data = line.data(using: .utf8),
+                          let text = Self.extractText(from: data), !text.isEmpty {
+                    // Ollama can return newline-delimited JSON even when the endpoint is asked
+                    // for a stream, while OpenAI-compatible servers usually prefix it with data:.
+                    if text.hasPrefix("⚠︎ ") { providerError = text }
+                    else { whole += text; onFragment(text) }
+                }
             }
         } catch {
             // Something already arrived: better a partial answer than losing it to a hiccup.
@@ -224,8 +245,15 @@ public struct IntelligenceClient: Sendable {
             throw IntelligenceError.transport(error.localizedDescription)
         }
 
+        if let statusCode, !(200..<300).contains(statusCode) {
+            throw IntelligenceError.transport(providerError ??
+                L("The provider answered HTTP %@.", String(statusCode)))
+        }
+
         let text = whole.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { throw IntelligenceError.emptyAnswer }
+        guard !text.isEmpty else {
+            throw IntelligenceError.transport(L("%@ returned no text.", provider.name))
+        }
         return text
     }
 
@@ -312,6 +340,18 @@ public struct IntelligenceClient: Sendable {
            let message = choices.first?["message"] as? [String: Any],
            let content = message["content"] as? String {
             return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // Ollama's native newline-delimited stream uses message.content at the root.
+        if let message = root["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        // Some newer OpenAI-compatible responses return content parts instead of one string.
+        if let choices = root["choices"] as? [[String: Any]],
+           let message = choices.first?["message"] as? [String: Any],
+           let parts = message["content"] as? [[String: Any]] {
+            let text = parts.compactMap { $0["text"] as? String }.joined()
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         // Anthropic.
         if let content = root["content"] as? [[String: Any]] {

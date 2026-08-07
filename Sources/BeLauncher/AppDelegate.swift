@@ -1225,7 +1225,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preferred: store.setting("ai_provider"),
             localOnlyFor: store.setting("ai_confidential_local", default: true) ? [.confidential] : []
         )
-        let provider = try router.provider(for: sensitivity, available: available)
+        let providers = try router.providers(for: sensitivity, available: available)
 
         // How this person writes, when the app has watched long enough to be sure.
         let style = OperatingModel.systemPrompt(from: store.traits())
@@ -1242,12 +1242,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                       + "greeting, and no explaining what you are about to do."
                       + (style.isEmpty ? "" : "\n\n" + style))
 
-        return try await IntelligenceClient().stream(
-            IntelligenceRequest(system: system, prompt: prompt, sensitivity: sensitivity,
-                                maxTokens: 900),
-            using: provider, model: models[provider.id],
-            onFragment: onFragment ?? { _ in }
-        )
+        var lastError: Error?
+        for provider in providers {
+            do {
+                return try await IntelligenceClient().stream(
+                    IntelligenceRequest(system: system, prompt: prompt, sensitivity: sensitivity,
+                                        maxTokens: 900),
+                    using: provider, model: models[provider.id],
+                    onFragment: onFragment ?? { _ in }
+                )
+            } catch {
+                lastError = error
+            }
+        }
+        throw lastError ?? IntelligenceError.noProviderConfigured
     }
 
     // MARK: - Welcome

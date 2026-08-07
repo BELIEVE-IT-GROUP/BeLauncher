@@ -364,6 +364,7 @@ extension SpanishStrings {
         "The download could not be opened. It may have been cut off halfway; try again.": "No se pudo abrir la descarga. Puede que se cortara a medias; reintenta.",
         "The download does not contain a BeLauncher app. Nothing was installed.": "La descarga no contiene una app de BeLauncher. No se instaló nada.",
         "The model returned nothing.": "El modelo no devolvió nada.",
+        "%@ returned no text.": "%@ no devolvió texto.",
         "There is no recent meeting to go back to": "No hay ninguna reunión reciente que retomar",
         "WindowServer draws everything you see. Closing it throws you out of the session instantly and you lose whatever you had not saved.": "WindowServer dibuja todo lo que ves. Cerrarlo te saca de la sesión al instante y pierdes lo que no hayas guardado. Suele estar arriba porque el Mac está ocupado, no porque esté colgado.",
         "With nothing in the calendar, there is no “before” to talk about.": "Sin nada en el calendario, no hay un «antes» del que hablar.",
