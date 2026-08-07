@@ -1,4 +1,5 @@
 import AppKit
+import PDFKit
 import SwiftUI
 import BeLauncherCore
 import UserNotifications
@@ -800,7 +801,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func importBrainFile(_ url: URL) {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        guard let text = try? String(contentsOf: url, encoding: .utf8), !text.isEmpty else {
+        let text: String?
+        if url.pathExtension.lowercased() == "pdf" {
+            text = PDFDocument(url: url)?.string
+        } else {
+            text = try? String(contentsOf: url, encoding: .utf8)
+        }
+        guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             report(L("Import failed"), L("The file is not readable text.")); return
         }
         importBrainText(text, title: url.deletingPathExtension().lastPathComponent)
