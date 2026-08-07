@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var corpusRunner: CorpusRunner?
     private var consentWindow: NSWindow?
     private var graphWindow: NSWindow?
+    private var graphModel: GraphModel?
     private var readerWindow: NSWindow?
     private var lastReceipt: MissionReceipt?
     private let calendar = CalendarAccess()
@@ -738,6 +739,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openGraph() {
         guard let store else { return }
         if let window = graphWindow {
+            // The graph can be opened while the corpus pass is still filling the store. Refresh
+            // the retained model when the person returns instead of preserving that first empty
+            // snapshot forever.
+            graphModel?.load()
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
@@ -752,6 +757,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         window.title = L("Your brain")
         let model = GraphModel(store: store, corpus: folder)
+        graphModel = model
         model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }
         model.onPrimeLauncher = { [weak self] text in self?.primeLauncher(with: text) }
         window.contentViewController = NSHostingController(rootView: GraphView(model: model))
