@@ -1,0 +1,26 @@
+Sources/BeLauncher/Permissions.swift
+  s_30bc31f46aebe1::t_7e05fac7067254 29-33
+Sources/BeLauncher/QwenASR.swift
+  s_30bc31f46aebe1::t_aec17eaf6f29d2 106
+  s_30bc31f46aebe1::t_7e05fac7067254 35-36,48,64-68,75,107-110,114,118,120-126,165-167
+  s_30bc31f46aebe1::t_bdf3cd763f8bd9 179-181
+  s_30bc31f46aebe1::t_4ff971269a160b 162
+  s_30bc31f46aebe1::t_354452f937dacc 47
+  s_30bc31f46aebe1::t_42c9e14a50ea74 168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "ced436c10ab4a266f847b8cced0b6041c8f99160",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
