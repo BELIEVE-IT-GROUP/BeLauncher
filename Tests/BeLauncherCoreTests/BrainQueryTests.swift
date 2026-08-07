@@ -199,6 +199,46 @@ struct BrainInLauncherTests {
         })
     }
 
+    @Test("typing brain shows the usable doors, not only the graph window")
+    func brainLaunchpadIsDiscoverable() {
+        let results = SearchEngine.search("brain", in: SearchInput())
+
+        #expect(results.contains { $0.id == "brain-open" })
+        #expect(results.contains { $0.id == "brain-ask" && $0.completion?.isEmpty == false })
+        #expect(results.contains { $0.id == "brain-remember" && $0.completion?.isEmpty == false })
+        #expect(results.contains { $0.id == "brain-prepare" && $0.completion?.isEmpty == false })
+        #expect(results.contains { $0.id == "brain-decide" && $0.completion?.isEmpty == false })
+        #expect(results.contains { $0.id == "brain-act" && $0.completion == "/" })
+        #expect(results.contains { $0.id == "brain-pulse" && $0.completion?.isEmpty == false })
+    }
+
+    @Test("the empty launcher teaches how to use the brain")
+    func emptyLauncherShowsBrainEntrypoints() {
+        let model = LauncherModel(dataSource: { SearchInput() }, perform: { _ in })
+        model.activate()
+
+        #expect(model.results.first?.id == "brain-open")
+        #expect(model.results.contains { $0.id == "brain-ask" })
+        #expect(model.results.contains { $0.id == "brain-remember" })
+        #expect(model.results.contains { $0.id == "brain-prepare" })
+        #expect(model.results.contains { $0.id == "brain-decide" })
+        #expect(model.results.contains { $0.id == "brain-act" })
+        #expect(model.results.contains { $0.id == "brain-pulse" })
+    }
+
+    @Test("pressing Return on a brain primer starts the phrase")
+    func brainPrimerCompletesTheQuery() {
+        let model = LauncherModel(dataSource: { SearchInput() }, perform: { _ in })
+        model.activate()
+        model.query = "brain"
+        model.select(1)
+        let completion = model.selected?.completion
+
+        model.handle(.enter)
+
+        #expect(model.query == completion)
+    }
+
     @Test("an ordinary search is never hijacked by the brain")
     func ordinarySearchUntouched() {
         let input = SearchInput(

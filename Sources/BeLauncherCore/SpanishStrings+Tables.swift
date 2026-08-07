@@ -521,6 +521,84 @@ extension SpanishStrings {
 
         "Search, calculate, convert, or type what you want to do":
             "Busca, calcula, convierte o escribe lo que quieres hacer",
+        "BRAIN / RECENT": "CEREBRO / RECIENTE",
+        "BEBRAIN / RECENT": "BEBRAIN / RECIENTE",
+        "BEBRAIN QUICK ACTIONS": "ACCIONES RÁPIDAS BEBRAIN",
+        "CLIPBOARD HISTORY": "HISTORIAL DEL PORTAPAPELES",
+        "Open your brain": "Ver tu cerebro",
+        "See the graph, recent work and what needs correcting":
+            "Abre el grafo, el trabajo reciente y lo que necesita corrección",
+        "Ask your brain": "Preguntar al cerebro",
+        "Start with a question about decisions, people, projects or tasks":
+            "Empieza con una pregunta sobre decisiones, personas, proyectos o tareas",
+        "Keep something in the brain": "Guardar algo en el cerebro",
+        "Write one sentence. It stays as a proposal until you confirm it":
+            "Escribe una frase. Queda como propuesta hasta que la confirmes",
+        "Get briefed before a meeting": "Prepararte antes de una reunión",
+        "Pulls together decisions, commitments and recent context":
+            "Junta decisiones, compromisos y contexto reciente",
+        "Decide with the brain": "Decidir con el cerebro",
+        "Ask what is still in force before choosing":
+            "Pregunta qué sigue vigente antes de elegir",
+        "Run a mission": "Ejecutar una misión",
+        "Plan, approve, execute, then get a receipt":
+            "Plan, aprobación, ejecución y recibo",
+        "Ask for Pulse": "Pedir Pulso",
+        "See what BeBrain thinks you should be looking at":
+            "Ve lo que BeBrain cree que deberías estar mirando",
+        "what did we decide about ": "qué decidimos sobre ",
+        "remember that ": "recordar que ",
+        "prepare me for ": "prepárame para ",
+        "Start typing this": "Empezar con esto",
+        "Showing the full local graph.": "Mostrando todo el grafo local.",
+        "Showing the last 7 days.": "Mostrando los últimos 7 días.",
+        "Find": "Encontrar",
+        "Anything on your Mac, before you finish typing.":
+            "Cualquier cosa de tu Mac antes de que termines de escribir.",
+        "Ask": "Preguntar",
+        "Ask your own memory, not a generic model.":
+            "Pregúntale a tu propia memoria, no a un modelo genérico.",
+        "Remember": "Recordar",
+        "Save what matters as a commit, not a dump.":
+            "Guarda lo que importa como commit, no como vertedero.",
+        "Prepare": "Preparar",
+        "Arrive with the context already gathered.": "Llega con el contexto ya reunido.",
+        "Decide": "Decidir",
+        "Bring back only what is still in force.": "Trae solo lo que sigue vigente.",
+        "Act": "Actuar",
+        "Run the mission: plan, approval and receipt.":
+            "Ejecuta la misión: plan, aprobación y recibo.",
+        "Pulse": "Pulso",
+        "pulse": "pulso",
+        "The one that asks instead of answering.":
+            "El único que pregunta en vez de responder.",
+        "local graph": "grafo local",
+        "vectors": "vectores",
+        "chunks": "chunks",
+        "The search bar is the surface. Behind it is a local brain that remembers, knows what still stands and acts.":
+            "La barra de búsqueda es la superficie. Detrás hay un cerebro local que recuerda, sabe qué sigue vigente y actúa.",
+        "what do we know about ": "qué sabemos de ",
+        "Recent work": "Trabajo reciente",
+        "last 7 days": "últimos 7 días",
+        "Full graph": "Grafo completo",
+        "Four levels of truth": "Cuatro niveles de verdad",
+        "Evidence": "Evidence",
+        "What happened, as-is.": "Lo que pasó, tal cual.",
+        "Extracted Memory": "Extracted Memory",
+        "Distilled, not confirmed yet.": "Destilado, todavía sin confirmar.",
+        "Committed Memory": "Committed Memory",
+        "What you confirm as true.": "Lo que confirmas como cierto.",
+        "Outcome Memory": "Outcome Memory",
+        "Truth closed by the result.": "La verdad cerrada por el resultado.",
+        "Pick something in the graph": "Elige algo en el grafo",
+        "Every node can be opened, read, marked important, forgotten or corrected. The point is not to admire the graph; it is to keep the brain honest.":
+            "Cada nodo se puede abrir, leer, marcar importante, olvidar o corregir. La idea no es admirar el grafo: es mantener honesto al cerebro.",
+        "BeBrain captures": "BeBrain captura",
+        "Pages you visit": "Páginas que visitas",
+        "Documents you edit": "Documentos que editas",
+        "Code you write": "El código que escribes",
+        "What you copy and paste": "Lo que copias y pegas",
+        "Meetings, if you turn them on": "Reuniones, si las activas",
         "Nothing for “%@”": "Nada para «%@»",
         "Try: **2+2** calculates · **10 km to mi** converts · **f report** finds files · **focus** starts a block of work · **what did we decide about …** asks your brain.":
             "Prueba: **2+2** calcula · **10 km to mi** convierte · **f informe** busca archivos · **enfoque** arranca un bloque de trabajo · **qué decidimos sobre …** pregunta a tu cerebro.",

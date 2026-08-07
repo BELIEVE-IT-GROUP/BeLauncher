@@ -244,7 +244,7 @@ final class CorpusRunner {
         store.setSetting("corpus_merge_questions", questions.joined(separator: "\n"))
 
         Task { @MainActor [weak self] in
-            _ = try? await self?.brain?.embedEverything()
+            _ = try? await self?.brain?.embedEverything(maximumBatches: 2)
         }
     }
 
@@ -402,7 +402,7 @@ final class CorpusRunner {
             _ = store.replacePassages(for: IndexedSource(kind: .note, id: statement.id),
                                       title: statement.text, occurredAt: statement.day, text: cited)
         }
-        _ = try? await brain?.embedEverything()
+        _ = try? await brain?.embedEverything(maximumBatches: 2)
     }
 
     // MARK: - What the person corrected

@@ -112,6 +112,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let model = LauncherModel(
             dataSource: { [weak self] in
                 guard let self, let store = self.store else { return SearchInput() }
+                let needs = LauncherInputNeeds(
+                    query: self.model?.query ?? "",
+                    mode: self.model?.mode ?? .all
+                )
+                let workNodes = needs.needsWorkGraph ? store.nodes(limit: 1_000) : []
+                let workEdges = needs.needsWorkGraph ? store.workEdges(limit: 5_000) : []
                 return SearchInput(
                     applications: self.appIndex.applications,
                     snippets: store.snippets(),
@@ -122,18 +128,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     aliases: store.aliases(),
                     shortcuts: self.shortcuts,
                     systemShortcuts: self.systemShortcuts,
-                    memories: self.vault?.current() ?? [],
-                    pendingCommits: self.vault?.commits(state: .proposed) ?? [],
-                    events: self.calendar.events,
-                    packs: store.availablePacks(),
-                    workNodes: store.nodes(),
-                    workEdges: store.nodes().flatMap { store.edges(from: $0.id) },
-                    traits: store.traits(),
+                    memories: needs.needsMemories ? (self.vault?.current() ?? []) : [],
+                    pendingCommits: needs.needsPendingCommits
+                        ? (self.vault?.commits(state: .proposed) ?? []) : [],
+                    events: needs.needsCalendar ? self.calendar.events : [],
+                    packs: needs.needsPacks ? store.availablePacks() : [],
+                    workNodes: workNodes,
+                    workEdges: workEdges,
+                    traits: needs.needsTraits ? store.traits() : [],
                     // Read only when the query asks for it: listing 400 processes on every
                     // keystroke would make typing anything else noticeably slower.
-                    processes: ProcessList.order(for: self.model?.query ?? "") == nil
-                        ? [] : SystemUtilities.processes(),
-                    workspaces: store.workspaces()
+                    processes: needs.needsProcesses ? SystemUtilities.processes() : [],
+                    workspaces: needs.needsWorkspaces ? store.workspaces() : []
                 )
             },
             fileInfo: { path in
@@ -290,11 +296,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
     }
 
-    /// Builds the searchable brain in the background, after the window is already usable.
+    /// Connects the searchable brain without making the hotkey pay for maintenance work.
     ///
-    /// Deliberately last and deliberately off the launch path: cutting passages is fast but
-    /// embedding them is not, and a launcher that is busy the first ten seconds after login is a
-    /// launcher people stop opening. Nothing here blocks the hot key.
+    /// A real brain can hold tens of gigabytes of derived data. Startup must not count it, rebuild
+    /// it or walk it before the command bar can appear. Explicit rebuilds still live in Settings;
+    /// this path only gives already-indexed passages a tiny, delayed vector catch-up.
     private func startBrain() {
         guard let store else { return }
         try? store.migrateSemanticIndex()
@@ -304,11 +310,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         Task { @MainActor [weak self] in
             guard let self else { return }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
             await brain.detectEngine()
-            self.reindexBrain()
-            // Vectors come after the passages exist, so word search works from the first second
-            // and meaning search fills in behind it.
-            _ = try? await brain.embedEverything()
+            guard self.brain === brain else { return }
+            _ = try? await brain.embedEverything(maximumBatches: 1)
         }
     }
 
@@ -331,7 +336,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !force, let last = lastBrainRefresh, Date().timeIntervalSince(last) < 60 { return }
         lastBrainRefresh = Date()
         reindexBrain()
-        Task { @MainActor [weak self] in _ = try? await self?.brain?.embedEverything() }
+        Task { @MainActor [weak self] in
+            _ = try? await self?.brain?.embedEverything(maximumBatches: force ? 4 : 2)
+        }
     }
 
     /// `open -a BeLauncher --args --query "algo"` opens the window with that text already typed.
@@ -666,11 +673,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 appBeforePanel = front
             }
             model.activate(mode: mode)
-            // Catches up whatever was copied or opened since the last time the window was used.
-            // Throttled inside, so summoning the launcher twice in a row costs nothing.
-            refreshBrain()
             panel.present()
         }
+    }
+
+    func primeLauncher(with text: String) {
+        guard let panel, let model else { return }
+        model.activate(mode: .all)
+        model.query = text
+        panel.present()
     }
 
     @objc private func rescan() { indexApplications() }
@@ -735,13 +746,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // again: corrections would be written where nothing reads them, and nothing would fail.
         let folder = try? CorpusFolder(root: CorpusFolder.defaultRoot())
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 980, height: 720),
+            contentRect: NSRect(x: 0, y: 0, width: 1120, height: 720),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false
         )
         window.title = L("Your brain")
         let model = GraphModel(store: store, corpus: folder)
         model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }
+        model.onPrimeLauncher = { [weak self] text in self?.primeLauncher(with: text) }
         window.contentViewController = NSHostingController(rootView: GraphView(model: model))
         window.isReleasedWhenClosed = false
         place(window)

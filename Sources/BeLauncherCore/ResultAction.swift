@@ -279,6 +279,12 @@ public enum ActionRegistry {
             ]
 
         case .answer:
+            if result.id.hasPrefix("brain-"), let completion = result.completion {
+                return [
+                    ResultAction(id: "start", title: L("Start typing this"), symbol: "text.cursor",
+                                 shortcut: .enter, intent: .completeKeyword(completion)),
+                ]
+            }
             return [
                 ResultAction(id: "copy", title: L("Copy the answer"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .copy(text: result.payload)),

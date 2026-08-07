@@ -203,6 +203,117 @@ struct GraphCorrectionsTests {
 
     // MARK: - La ventana
 
+    @Test("Abrir un nodo sin origen lee dentro del grafo, no abre otra ventana")
+    func openingNodeWithoutSourceReadsInline() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let corpusRoot = (root as NSString).appendingPathComponent("corpus")
+        let folder = try CorpusFolder(root: corpusRoot)
+
+        let node = WorkNode(id: "project:atlas", kind: .project, name: "Atlas", lastSeen: noon,
+                            weight: 4)
+        store.upsertNode(node)
+
+        let model = GraphModel(store: store, corpus: folder, now: noon)
+        await model.waitForLayout()
+        model.selected = node.id
+
+        var opened: String?
+        model.onRead = { opened = $0 }
+        model.open()
+
+        #expect(opened == nil)
+        #expect(model.status?.isEmpty == false)
+        #expect(folder.documents().contains { $0.id == node.id })
+    }
+
+    @Test("Abrir el archivo del cerebro escribe antes de llamar al reader")
+    func openingBrainFileMaterializesBeforeReader() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let corpusRoot = (root as NSString).appendingPathComponent("corpus")
+        let folder = try CorpusFolder(root: corpusRoot)
+
+        let node = WorkNode(id: "project:atlas", kind: .project, name: "Atlas", lastSeen: noon,
+                            weight: 4)
+        store.upsertNode(node)
+
+        let model = GraphModel(store: store, corpus: folder, now: noon)
+        await model.waitForLayout()
+        model.selected = node.id
+
+        var opened: String?
+        model.onRead = { opened = $0 }
+        model.openBrainFile()
+
+        #expect(opened == node.id)
+        #expect(folder.documents().contains { $0.id == node.id })
+
+        let reader = CorpusReaderModel(folder: folder, selecting: node.id)
+        #expect(reader.selectedID == node.id)
+    }
+
+    @Test("Leer aquí también materializa documentos derivados del grafo")
+    func readHereMaterializesDerivedDocuments() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let corpusRoot = (root as NSString).appendingPathComponent("corpus")
+        let folder = try CorpusFolder(root: corpusRoot)
+
+        let node = WorkNode(id: "person:ana", kind: .person, name: "Ana", lastSeen: noon,
+                            weight: 3)
+        store.upsertNode(node)
+
+        let model = GraphModel(store: store, corpus: folder, now: noon)
+        await model.waitForLayout()
+        model.selected = node.id
+        model.readHere()
+
+        #expect(model.status?.isEmpty == false)
+        #expect(folder.documents().contains { $0.id == node.id })
+    }
+
+    @Test("El inspector del grafo enseña evidencia directa, conectada y por nombre")
+    func graphInspectorSurfacesIndexedEvidence() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let corpusRoot = (root as NSString).appendingPathComponent("corpus")
+
+        let project = WorkNode(id: "project:atlas", kind: .project, name: "Atlas",
+                               lastSeen: noon, weight: 4)
+        let meeting = WorkNode(id: "meeting:atlas-weekly", kind: .meeting,
+                               name: "Atlas weekly", detail: "Con Ana", lastSeen: noon,
+                               weight: 2)
+        store.upsertNode(project)
+        store.upsertNode(meeting)
+        store.link(WorkEdge(source: project.id, target: meeting.id, kind: .workedWith, at: noon))
+
+        _ = store.replacePassages(for: IndexedSource(kind: .node, id: project.id),
+                                  title: "Atlas",
+                                  occurredAt: noon,
+                                  text: "Atlas cambió la prioridad del onboarding esta semana.")
+        _ = store.replacePassages(for: IndexedSource(kind: .node, id: meeting.id),
+                                  title: "Atlas weekly",
+                                  occurredAt: noon,
+                                  text: "Ana quedó en revisar el onboarding de Atlas mañana.")
+        _ = store.replacePassages(for: IndexedSource(kind: .note, id: "atlas-note"),
+                                  title: "Nota Atlas",
+                                  occurredAt: noon,
+                                  text: "Atlas necesita una decisión sobre precios antes del viernes.")
+
+        let model = GraphModel(store: store, corpus: try CorpusFolder(root: corpusRoot), now: noon)
+        await model.waitForLayout()
+        let evidence = model.evidence(for: project.id)
+
+        #expect(evidence.contains { $0.passage.source.id == project.id })
+        #expect(evidence.contains { $0.passage.source.id == meeting.id })
+        #expect(evidence.contains { $0.passage.source.id == "atlas-note" })
+    }
+
     @Test("Filtrar no congela la ventana")
     func filteringDoesNotBlockTheWindow() async throws {
         let root = temporaryRoot()

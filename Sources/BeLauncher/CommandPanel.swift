@@ -8,6 +8,8 @@ import BeLauncherCore
 final class CommandPanel: NSPanel {
     private var topEdge: CGFloat = 0
     private var anchoredScreen: NSScreen?
+    private var globalClickMonitor: Any?
+    private var localClickMonitor: Any?
 
     init(model: LauncherModel, openSettings: @escaping () -> Void) {
         super.init(
@@ -22,7 +24,7 @@ final class CommandPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = false            // the SwiftUI layer draws its own, so corners stay clean
         isMovable = false
-        hidesOnDeactivate = false
+        hidesOnDeactivate = true
         animationBehavior = .utilityWindow
         // The panel appears over whatever is on screen. Following the system appearance meant a
         // launcher summoned over a white page rendered light-on-light and could not be read.
@@ -36,6 +38,10 @@ final class CommandPanel: NSPanel {
         NotificationCenter.default.addObserver(
             self, selector: #selector(reanchor),
             name: NSWindow.didResizeNotification, object: self
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(appDidResignActive),
+            name: NSApplication.didResignActiveNotification, object: NSApp
         )
     }
 
@@ -63,15 +69,56 @@ final class CommandPanel: NSPanel {
         reanchor()
         NSApp.activate(ignoringOtherApps: true)
         makeKeyAndOrderFront(nil)
+        installOutsideClickMonitors()
         Sounds.play(.opened)
     }
 
     override func orderOut(_ sender: Any?) {
         let wasVisible = isVisible
+        removeOutsideClickMonitors()
         super.orderOut(sender)
         // Only when it was actually on screen: dismissing something already hidden happens on
         // several paths and should not make a noise each time.
         if wasVisible { Sounds.play(.closed) }
+    }
+
+    private func installOutsideClickMonitors() {
+        guard globalClickMonitor == nil, localClickMonitor == nil else { return }
+        let mask: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] _ in
+            Task { @MainActor in self?.closeIfPointerIsOutside() }
+        }
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
+            self?.closeIfClickIsOutside(event)
+            return event
+        }
+    }
+
+    private func removeOutsideClickMonitors() {
+        if let globalClickMonitor {
+            NSEvent.removeMonitor(globalClickMonitor)
+            self.globalClickMonitor = nil
+        }
+        if let localClickMonitor {
+            NSEvent.removeMonitor(localClickMonitor)
+            self.localClickMonitor = nil
+        }
+    }
+
+    private func closeIfClickIsOutside(_ event: NSEvent) {
+        guard isVisible else { return }
+        if event.window === self { return }
+        closeIfPointerIsOutside()
+    }
+
+    private func closeIfPointerIsOutside() {
+        guard isVisible, !frame.contains(NSEvent.mouseLocation) else { return }
+        orderOut(nil)
+    }
+
+    @objc private func appDidResignActive() {
+        guard isVisible else { return }
+        orderOut(nil)
     }
 
     @objc private func reanchor() {

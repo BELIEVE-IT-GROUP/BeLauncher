@@ -344,7 +344,11 @@ public final class LauncherModel {
             let input = try dataSource()
             let trimmed = query.trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty {
-                results = SearchEngine.recents(input.clips)
+                if mode == .clipboard {
+                    results = SearchEngine.recents(input.clips)
+                } else {
+                    results = SearchEngine.brainLaunchpadResults() + SearchEngine.recents(input.clips)
+                }
                 state = .empty
             } else if mode == .clipboard {
                 results = SearchEngine.search(query, in: SearchInput(clips: input.clips))
@@ -472,6 +476,10 @@ public final class LauncherModel {
     @discardableResult
     public func runSelected() -> Bool {
         guard let result = selected else { return false }
+        if result.id.hasPrefix("brain-"), let completion = result.completion {
+            query = completion
+            return true
+        }
         switch result.kind {
         case .recall:
             perform(.copyToClipboard(text: result.payload, cursorOffset: nil))
