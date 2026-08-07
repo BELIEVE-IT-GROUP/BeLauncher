@@ -84,7 +84,9 @@ struct BrainConversationView: View {
         isAsking = true; error = nil
         Task { @MainActor in
             do { answer = try await ask(value) }
-            catch { self.error = error.localizedDescription }
+            catch {
+                self.error = (error as? IntelligenceError)?.description ?? error.localizedDescription
+            }
             isAsking = false
         }
     }
