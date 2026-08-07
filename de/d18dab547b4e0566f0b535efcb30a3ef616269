@@ -1,0 +1,21 @@
+Sources/BeLauncherCore/Intelligence.swift
+  s_30bc31f46aebe1::t_49d671af015297 293-295
+Tests/BeLauncherCoreTests/IntelligenceTests.swift
+  s_30bc31f46aebe1::t_49d671af015297 80-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "ded18dab547b4e0566f0b535efcb30a3ef616269",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
