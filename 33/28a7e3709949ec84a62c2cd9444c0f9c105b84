@@ -1,0 +1,38 @@
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_cabd3d2132ff3e 65
+Sources/BeLauncher/CallCaptureController.swift
+  s_30bc31f46aebe1::t_e4b8c1d8ae61e7 54
+Sources/BeLauncher/AudioCaptureController.swift
+  s_30bc31f46aebe1::t_e4b8c1d8ae61e7 67
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_e4b8c1d8ae61e7 229-231
+Sources/BeLauncher/ScreenCapture.swift
+  s_30bc31f46aebe1::t_aba1f3947f595e 140
+Sources/BeLauncher/Permissions.swift
+  s_30bc31f46aebe1::t_aba1f3947f595e 4,22-25,30-36,54-55
+  s_30bc31f46aebe1::t_429b3c2a9045f9 56-57
+Sources/BeLauncher/QwenASR.swift
+  s_30bc31f46aebe1::t_aba1f3947f595e 57-65,116-118,120-141,145,147-150
+  s_30bc31f46aebe1::t_e4b8c1d8ae61e7 22,95-97
+Sources/BeLauncher/SettingsView.swift
+  s_30bc31f46aebe1::t_aba1f3947f595e 589
+  s_30bc31f46aebe1::t_110c3733e144c5 670
+  s_30bc31f46aebe1::t_5f1f8ec3f24236 564-566,568-569
+  s_30bc31f46aebe1::t_e4b8c1d8ae61e7 546,567,645
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3328a7e3709949ec84a62c2cd9444c0f9c105b84",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
