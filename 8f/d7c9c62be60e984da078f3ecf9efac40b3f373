@@ -1,0 +1,118 @@
+Sources/BeLauncher/CallReviewView.swift
+  s_30bc31f46aebe1::t_bab0cfa9d765d6 9,13,16-18,42-51
+  s_30bc31f46aebe1::t_e7128e9afe14ac 38
+  s_30bc31f46aebe1::t_4884826759990b 59-83,85-153,155-160,162,166-177,179-181
+  s_30bc31f46aebe1::t_9d7a4b3f838753 1-8,10-12,14-15,19-35,37,39-41,52-58,84,154,161,163-165,178,182-183
+  s_30bc31f46aebe1::t_4510c9d2435eca 36
+Sources/BeLauncherCore/CallAudioSource.swift
+  s_30bc31f46aebe1::t_9f51d7f95d39a6 1-32
+Sources/BeLauncher/AudioCaptureController.swift
+  s_30bc31f46aebe1::t_de4b01ba86cda8 119-129
+  s_30bc31f46aebe1::t_dfe4613e9ddc84 2-16,18-19,21-22,24,26-32,45-48,53,59,61-70,72-96,104,107-118,130-134,136-138,147-173
+  s_30bc31f46aebe1::t_cd66437dd18c41 20,49-52,54-58,60,141-146
+  s_30bc31f46aebe1::t_82a7b2119759df 71,105-106,135,140
+  s_30bc31f46aebe1::t_8bf0a619af39ee 33-44
+  s_30bc31f46aebe1::t_86b5b080ea547e 17,23,25,139
+  s_30bc31f46aebe1::t_427a95973363d9 1,97-103
+Sources/BeLauncher/HotKey.swift
+  s_30bc31f46aebe1::t_cd66437dd18c41 34-38
+  s_30bc31f46aebe1::t_dfe4613e9ddc84 29-33
+  s_30bc31f46aebe1::t_7a3cfa23b001ab 39-42
+Sources/BeLauncherCore/Onboarding.swift
+  s_30bc31f46aebe1::t_3924f1e1c69b4e 19,102-107
+  s_30bc31f46aebe1::t_b4976c91fdcb45 108
+Sources/BeLauncher/Permissions.swift
+  s_30bc31f46aebe1::t_3924f1e1c69b4e 3,11-18
+  s_30bc31f46aebe1::t_f6dd7ef64bb3df 19
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_dfe4613e9ddc84 27-28
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_b3adeecea5a05e 533-535,587-590
+  s_30bc31f46aebe1::t_6c6ed67e33dc19 29,536-539,593-596,600-605
+  s_30bc31f46aebe1::t_82a7b2119759df 393,758
+  s_30bc31f46aebe1::t_55ba3bdc31e7f8 32-33,220-223
+  s_30bc31f46aebe1::t_2f7288a6a0af20 394,759
+  s_30bc31f46aebe1::t_cd66437dd18c41 28,765-767
+  s_30bc31f46aebe1::t_0aa537b3b24da3 225-226,836
+  s_30bc31f46aebe1::t_578b06c4fd22f0 392,757
+  s_30bc31f46aebe1::t_f7b878cd21dfd7 36,227-228,540-544,607-616,618
+  s_30bc31f46aebe1::t_65a9be73290975 619,621-624,634-647
+  s_30bc31f46aebe1::t_8bf0a619af39ee 229
+  s_30bc31f46aebe1::t_2bbfcf213e7319 27,30,34,763-764
+  s_30bc31f46aebe1::t_7a3cfa23b001ab 31,35,768-771
+  s_30bc31f46aebe1::t_e0f1c3ab6bb254 617
+  s_30bc31f46aebe1::t_8d20515f2ed650 1087
+  s_30bc31f46aebe1::t_86b5b080ea547e 217-219,224
+  s_30bc31f46aebe1::t_8f0ef62a5b323b 529-532,545,585-586,591-592,597-599,606
+  s_30bc31f46aebe1::t_bab0cfa9d765d6 625-633
+  s_30bc31f46aebe1::t_33731c2d56b3c0 620
+Sources/BeLauncher/CallCaptureController.swift
+  s_30bc31f46aebe1::t_7a3cfa23b001ab 1-11,14,18-22,33-37,42-58,63,65-74,76-78,81-106,108-109,112-115,118-134
+  s_30bc31f46aebe1::t_9d7a4b3f838753 12,23,32,117
+  s_30bc31f46aebe1::t_ffbf21a6e1cb4b 25,29
+  s_30bc31f46aebe1::t_e0f1c3ab6bb254 60-62
+  s_30bc31f46aebe1::t_86b5b080ea547e 13,24,27,116
+  s_30bc31f46aebe1::t_0aa537b3b24da3 15-16,26,28,31,59,75,79-80
+  s_30bc31f46aebe1::t_094dfdff672016 17,30,38-41
+  s_30bc31f46aebe1::t_4510c9d2435eca 64,110-111
+  s_30bc31f46aebe1::t_8bf0a619af39ee 107
+Sources/BeLauncher/QwenASR.swift
+  s_30bc31f46aebe1::t_4510c9d2435eca 53,98-102
+  s_30bc31f46aebe1::t_6fc25e80cafae3 79-83
+  s_30bc31f46aebe1::t_d4626334cf43b9 1-52,54-78,84-97,103-157
+Sources/BeLauncher/CallAppDetector.swift
+  s_30bc31f46aebe1::t_9f51d7f95d39a6 1-2,4-8,10,13-14,16-20,24-29,32-35,37,39,52,73-74,82-83
+  s_30bc31f46aebe1::t_6dab9459c8c1fc 3,9,11-12,15,21-23,30-31,36,38,40-51,53-68,70-72,75-81
+  s_30bc31f46aebe1::t_9a15f64ab623c9 69
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_0aa537b3b24da3 10,41-47,238
+Sources/BeLauncher/SystemAudioCapture.swift
+  s_30bc31f46aebe1::t_dc240837f6c458 26,31-37,39-41
+  s_30bc31f46aebe1::t_d563aee153a5d7 6-9,68,70
+  s_30bc31f46aebe1::t_b0ed3b1c258933 1-3,5,10-25,27-30,42-67,69,71-82,84-90,92-108
+  s_30bc31f46aebe1::t_bcabfb8b60268d 38
+  s_30bc31f46aebe1::t_751fbbf47c73e8 4,83,91
+Sources/BeLauncher/WelcomeView.swift
+  s_30bc31f46aebe1::t_3924f1e1c69b4e 229-234
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_50179d06fef123 71,97-105
+  s_30bc31f46aebe1::t_f7b878cd21dfd7 56
+  s_30bc31f46aebe1::t_74a503cf99fc89 73-82
+  s_30bc31f46aebe1::t_0a800f9ef5a495 72
+  s_30bc31f46aebe1::t_e0f1c3ab6bb254 55
+  s_30bc31f46aebe1::t_22d178f21ce1b5 66-67
+  s_30bc31f46aebe1::t_2804bf64200d46 49
+  s_30bc31f46aebe1::t_9e3148972d4fa7 38-42,45-48,57-65
+  s_30bc31f46aebe1::t_91897aa0740d3d 85-92
+  s_30bc31f46aebe1::t_6b0f20db8ef2b6 54
+  s_30bc31f46aebe1::t_52e1c17c983f03 44
+  s_30bc31f46aebe1::t_cb94cf2c8bec9c 43
+  s_30bc31f46aebe1::t_012c8ca412548e 37,68-70
+  s_30bc31f46aebe1::t_c4b31f994ab352 50-53
+  s_30bc31f46aebe1::t_e2e56e89807117 93-96
+  s_30bc31f46aebe1::t_bab0cfa9d765d6 83-84
+Sources/BeLauncher/SettingsView.swift
+  s_30bc31f46aebe1::t_301977a128b09f 547,553-554,557-559,561-564,566,569,581-583,585,587-589,596-598,600-603,613-615,620-622,624-632,643
+  s_30bc31f46aebe1::t_9e3148972d4fa7 571
+  s_30bc31f46aebe1::t_0aa537b3b24da3 101,545,604-608
+  s_30bc31f46aebe1::t_a9a0899522a5b8 22,30,46,62,541-544,546,549-552,555-556,560,565,567-568,570,573-580,584,586,590-595,599,616-619,633-642,644
+  s_30bc31f46aebe1::t_6b0f20db8ef2b6 548,609-612,623
+  s_30bc31f46aebe1::t_52e1c17c983f03 572
+  s_30bc31f46aebe1::t_2b55fd87a9d311 645-646
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8fd7c9c62be60e984da078f3ecf9efac40b3f373",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
