@@ -15,7 +15,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.32.8</string>
+	<string>0.32.9</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
@@ -24,10 +24,10 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>BeLauncher usa esto para los comandos de sistema y los flujos: silenciar notificaciones, poner el Mac en reposo, vaciar la papelera, expulsar discos, cambiar a modo oscuro. Solo cuando tú ejecutas uno. No lee ni controla el contenido de tus apps.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>BeLauncher usa el micrófono solo cuando tú inicias una nota de voz, un dictado o una grabación de llamada.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Local-only launcher. No accounts, no telemetry.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>BeLauncher usa el micrófono solo cuando tú inicias una nota de voz, un dictado o una grabación de llamada.</string>
 	<key>NSServices</key>
 	<array>
 		<dict>
