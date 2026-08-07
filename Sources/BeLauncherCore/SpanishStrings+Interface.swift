@@ -62,6 +62,7 @@ extension SpanishStrings {
         "The same capture engine will handle dictation and call recording. Nothing listens until you start it.": "El mismo motor gestionará el dictado y las llamadas. No escucha nada hasta que lo inicias.",
         "Checking local ASR…": "Comprobando ASR local…",
         "Qwen ASR needs an Apple Silicon Mac.": "Qwen ASR necesita un Mac con Apple Silicon.",
+        "Preparing the local voice runtime…": "Preparando el motor de voz local…",
         "Not installed. Apple Speech remains available as a fallback.": "No está instalado. Apple Speech queda disponible como fallback.",
         "Installing the local runtime and downloading model weights…": "Instalando el runtime local y descargando los pesos del modelo…",
         "Ready. Audio stays on this Mac.": "Listo. El audio se queda en este Mac.",

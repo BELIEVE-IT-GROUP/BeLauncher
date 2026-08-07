@@ -64,6 +64,7 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
                 notify(L("Microphone permission is needed for a voice note."))
                 return
             }
+            QwenASRInstaller.shared.prepareInBackground()
             do {
                 let folder = (Vault.defaultRoot() as NSString).appendingPathComponent("recordings")
                 try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)

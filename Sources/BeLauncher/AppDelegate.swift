@@ -226,6 +226,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             source: CallAudioSource(rawValue: store.setting("call_audio_source") ?? "") ?? .automatic)
         callCapture?.onSuggestionChange = { [weak self] in self?.refreshCallSuggestion() }
         refreshCallSuggestion()
+        if Permissions.microphoneGranted {
+            QwenASRInstaller.shared.prepareInBackground()
+        }
         AudioCaptureController.pruneRecordings()
         announceUpdateIfAny()
         installKeyMonitor()

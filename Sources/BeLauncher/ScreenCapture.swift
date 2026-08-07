@@ -137,6 +137,7 @@ enum ScreenCapture {
 
     static func requestScreenRecording() {
         if screenRecordingGranted { return }
+        Permissions.prepareForPermissionPrompt()
         if !CGRequestScreenCaptureAccess() {
             Permissions.openScreenRecordingSettings()
         }

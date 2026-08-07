@@ -19,6 +19,7 @@ final class QwenASRInstaller {
     static let smallModel = "mlx-community/Qwen3-ASR-0.6B-bf16"
     static let largeModel = "mlx-community/Qwen3-ASR-1.7B-bf16"
     static let requiredPython = "3.10–3.13"
+    static let shared = QwenASRInstaller()
 
     private(set) var phase: Phase = .unknown
     var selectedModel = QwenASRInstaller.smallModel
@@ -41,22 +42,27 @@ final class QwenASRInstaller {
 
     func refresh() {
         guard isAvailable else { phase = .unavailable; return }
-        guard Self.systemPython != nil else { phase = .pythonMissing; return }
         phase = FileManager.default.isExecutableFile(atPath: python.path)
             ? .ready(model: selectedModel) : .notInstalled
     }
 
     func install() {
         guard isAvailable, !isInstalling else { return }
-        guard let systemPython = Self.systemPython else { phase = .pythonMissing; return }
         task?.cancel()
         phase = .installing
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-                try await Self.run(systemPython.path, ["-m", "venv", python.deletingLastPathComponent().path])
-                try await Self.run(python.path, ["-m", "pip", "install", "--upgrade", "qwen3-asr-mlx"])
+                // Do not ask the person to find or install Python. uv is a small, isolated
+                // bootstrapper; it downloads Python 3.12 into BeLauncher's support folder and
+                // never changes the user's system Python or shell configuration.
+                let uv = try await Self.ensureUV(at: root)
+                try await Self.run(uv.path, ["python", "install", "3.12"])
+                try await Self.run(uv.path, ["venv", python.deletingLastPathComponent().path,
+                                              "--python", "3.12"])
+                try await Self.run(uv.path, ["pip", "install", "--python", python.path,
+                                              "--upgrade", "qwen3-asr-mlx"])
                 // Download the selected weights now, while the person can see progress in Settings.
                 let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; Qwen3ASR.from_pretrained(sys.argv[1])"
                 try await Self.run(python.path, ["-c", code, selectedModel])
@@ -86,8 +92,9 @@ final class QwenASRInstaller {
         return false
     }
 
-    func openPythonDownload() {
-        NSWorkspace.shared.open(URL(string: "https://www.python.org/downloads/macos/")!)
+    func prepareInBackground() {
+        refresh()
+        if case .notInstalled = phase { install() }
     }
 
     private static func run(_ executable: String, _ arguments: [String]) async throws {
@@ -106,48 +113,41 @@ final class QwenASRInstaller {
         }
     }
 
-    private static var systemPython: URL? {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        let candidates = [
-            "/opt/homebrew/bin/python3",
-            "/usr/local/bin/python3",
-            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3",
-            "\(home)/.pyenv/shims/python3",
-            "\(home)/.local/bin/python3",
-            "/usr/bin/python3",
-        ]
-        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
-            let candidate = URL(fileURLWithPath: path)
-            if compatiblePython(at: candidate) { return candidate }
-        }
-        return nil
-    }
+    private static func ensureUV(at root: URL) async throws -> URL {
+        let destination = root.appendingPathComponent("uv")
+        if FileManager.default.isExecutableFile(atPath: destination.path) { return destination }
 
-    private static func compatiblePython(at url: URL) -> Bool {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = url
-        process.arguments = ["-c", "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')"]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return false
-        }
-        guard process.terminationStatus == 0,
-              let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
-        else { return false }
-        let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ".")
-        guard parts.count == 2, let major = Int(parts[0]), let minor = Int(parts[1]) else { return false }
-        return major == 3 && (10...13).contains(minor)
+        #if arch(arm64)
+        let archiveName = "uv-aarch64-apple-darwin.tar.gz"
+        #else
+        let archiveName = "uv-x86_64-apple-darwin.tar.gz"
+        #endif
+        let url = URL(string: "https://github.com/astral-sh/uv/releases/latest/download/\(archiveName)")!
+        let temporary = root.appendingPathComponent("uv-download-\(UUID().uuidString).tar.gz")
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw Failure.download }
+        try data.write(to: temporary, options: .atomic)
+
+        let unpacked = root.appendingPathComponent("uv-unpacked-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: unpacked, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: unpacked) }
+        try await run("/usr/bin/tar", ["-xzf", temporary.path, "-C", unpacked.path])
+        guard let found = FileManager.default.enumerator(at: unpacked, includingPropertiesForKeys: nil)?
+            .compactMap({ $0 as? URL }).first(where: { $0.lastPathComponent == "uv" })
+        else { throw Failure.download }
+        try FileManager.default.copyItem(at: found, to: destination)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destination.path)
+        return destination
     }
 
     private enum Failure: LocalizedError {
-        case exit(Int32)
+        case exit(Int32), download
         var errorDescription: String? {
-            switch self { case .exit(let code): "Qwen ASR installer exited with code \(code)." }
+            switch self {
+            case .exit(let code): "Qwen ASR installer exited with code \(code)."
+            case .download: "Could not download the local voice runtime."
+            }
         }
     }
 }

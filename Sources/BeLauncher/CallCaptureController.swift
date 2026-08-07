@@ -51,6 +51,7 @@ final class CallCaptureController: NSObject, AVAudioRecorderDelegate {
             guard await Permissions.requestMicrophone() else {
                 notify(L("Microphone permission is needed for a call recording.")); return
             }
+            QwenASRInstaller.shared.prepareInBackground()
             guard SystemAudioCapture.permissionGranted else {
                 SystemAudioCapture.requestPermission()
                 notify(L("Screen Recording permission is needed for call audio.")); return

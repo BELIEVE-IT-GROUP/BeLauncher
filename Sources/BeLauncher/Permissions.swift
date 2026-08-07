@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import AVFoundation
+import AVFAudio
 
 /// BeLauncher asks for exactly one optional permission, and only at the moment it is needed.
 /// Search, snippets, clipboard history and workflows all work without it.
@@ -18,11 +19,21 @@ enum Permissions {
 
     @discardableResult
     static func requestMicrophone() async -> Bool {
+        // A menu-bar agent is not active when its menu item is clicked. TCC can otherwise
+        // complete the request without presenting the native prompt, leaving the app absent
+        // from Privacy > Microphone on some macOS versions.
+        NSApp.activate(ignoringOtherApps: true)
         switch microphoneStatus {
         case .authorized:
             return true
         case .notDetermined:
-            return await AVCaptureDevice.requestAccess(for: .audio)
+            let granted = await withCheckedContinuation { continuation in
+                AVAudioApplication.requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+            if !granted { openMicrophoneSettings() }
+            return granted
         case .denied, .restricted:
             openMicrophoneSettings()
             return false
@@ -38,6 +49,10 @@ enum Permissions {
 
     static func openScreenRecordingSettings() {
         openPrivacyPane("Privacy_ScreenCapture")
+    }
+
+    static func prepareForPermissionPrompt() {
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private static func openPrivacyPane(_ pane: String) {

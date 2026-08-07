@@ -543,7 +543,7 @@ private struct CommandsTab: View {
 @MainActor
 private struct VoiceTab: View {
     @Bindable var model: SettingsModel
-    @State private var qwen = QwenASRInstaller()
+    @State private var qwen = QwenASRInstaller.shared
     @State private var microphoneGranted = Permissions.microphoneGranted
     @State private var screenRecordingGranted = ScreenCapture.screenRecordingGranted
     @StateObject private var callDetector = CallAppDetector()
@@ -561,7 +561,12 @@ private struct VoiceTab: View {
                 }
                 if !microphoneGranted {
                     Button {
-                        Task { microphoneGranted = await Permissions.requestMicrophone() }
+                        Task {
+                            microphoneGranted = await Permissions.requestMicrophone()
+                            if microphoneGranted {
+                                qwen.prepareInBackground()
+                            }
+                        }
                     } label: {
                         Label(Permissions.microphoneStatus == .denied
                               ? L("Open microphone settings") : L("Allow microphone"),
@@ -581,13 +586,7 @@ private struct VoiceTab: View {
                 Text(status)
                     .font(.caption).foregroundStyle(.secondary)
                 HStack {
-                    if case .pythonMissing = qwen.phase {
-                        Button {
-                            qwen.openPythonDownload()
-                        } label: {
-                            Label(L("Install Python 3"), systemImage: "arrow.down.circle")
-                        }
-                    } else if qwen.isInstalling {
+                    if qwen.isInstalling {
                         ProgressView().controlSize(.small)
                         Button { qwen.cancel() } label: {
                             Label(L("Cancel"), systemImage: "xmark")
@@ -643,7 +642,7 @@ private struct VoiceTab: View {
         }
         .formStyle(.grouped)
         .onAppear {
-            qwen.refresh()
+            qwen.prepareInBackground()
             microphoneGranted = Permissions.microphoneGranted
             screenRecordingGranted = ScreenCapture.screenRecordingGranted
             callDetector.start()
@@ -668,7 +667,7 @@ private struct VoiceTab: View {
         switch qwen.phase {
         case .unknown: return L("Checking local ASR…")
         case .unavailable: return L("Qwen ASR needs an Apple Silicon Mac.")
-        case .pythonMissing: return L("Qwen ASR needs Python %@. Install a compatible version, then return here.", QwenASRInstaller.requiredPython)
+        case .pythonMissing: return L("Preparing the local voice runtime…")
         case .notInstalled: return L("Not installed. Apple Speech remains available as a fallback.")
         case .installing: return L("Installing the local runtime and downloading model weights…")
         case .ready: return L("Ready. Audio stays on this Mac.")
