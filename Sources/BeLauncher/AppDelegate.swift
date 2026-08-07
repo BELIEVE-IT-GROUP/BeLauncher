@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var graphWindow: NSWindow?
     private var graphModel: GraphModel?
     private var readerWindow: NSWindow?
+    private var quickNoteWindow: NSWindow?
     private var lastReceipt: MissionReceipt?
     private let calendar = CalendarAccess()
     private var environment: [String: String] = [:]
@@ -142,7 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // Read only when the query asks for it: listing 400 processes on every
                     // keystroke would make typing anything else noticeably slower.
                     processes: needs.needsProcesses ? SystemUtilities.processes() : [],
-                    workspaces: needs.needsWorkspaces ? store.workspaces() : []
+                    workspaces: needs.needsWorkspaces ? store.workspaces() : [],
+                    notes: needs.needsNotes ? QuickNote.records(inVaultAt: Vault.defaultRoot()) : []
                 )
             },
             fileInfo: { path in
@@ -797,6 +799,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
     }
 
+    func openQuickNoteEditor(initialText: String = "") {
+        if let window = quickNoteWindow {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 440),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = L("Quick note")
+        window.contentViewController = NSHostingController(rootView: QuickNoteEditorView(
+            initialText: initialText,
+            save: { [weak self] text in self?.perform(.writeNote(text: text)) }))
+        window.isReleasedWhenClosed = false
+        place(window)
+        quickNoteWindow = window
+        panel?.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
     /// Turns today's calendar into people, companies and meetings the graph can answer about.
     private func captureCalendarIntoGraph() {
         guard store?.setting("graph_enabled", default: false) == true else { return }
@@ -1309,6 +1332,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report(L("It could not be saved"), why)
                 return why
             }
+
+        case .openQuickNoteEditor(let initialText):
+            openQuickNoteEditor(initialText: initialText)
 
         case .saveWorkspace(let name):
             panel?.orderOut(nil)

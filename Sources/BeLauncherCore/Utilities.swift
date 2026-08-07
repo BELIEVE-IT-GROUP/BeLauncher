@@ -85,12 +85,27 @@ public enum StayAwake {
 /// defeat the entire purpose of typing it in one line.
 public enum QuickNote {
 
+    public struct Record: Sendable, Equatable, Identifiable {
+        public let id: String
+        public let title: String
+        public let excerpt: String
+        public let path: String
+    }
+
+    public static let triggers = ["nota", "apunta", "anota", "note", "quick note"]
+
+    public static func isTrigger(_ query: String) -> Bool {
+        let folded = query.trimmingCharacters(in: .whitespaces)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        return triggers.contains(folded)
+    }
+
     public static func text(from query: String) -> String? {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         let folded = trimmed
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
 
-        for trigger in ["nota ", "apunta ", "anota ", "note "] where folded.hasPrefix(trigger) {
+        for trigger in triggers.map({ $0 + " " }) where folded.hasPrefix(trigger) {
             let text = String(trimmed.dropFirst(trigger.count)).trimmingCharacters(in: .whitespaces)
             return text.isEmpty ? nil : text
         }
@@ -123,5 +138,19 @@ public enum QuickNote {
     /// Where notes live: the vault's inbox, whose whole job is being emptied.
     public static func folder(inVaultAt root: String) -> String {
         (root as NSString).appendingPathComponent("inbox")
+    }
+
+    public static func records(inVaultAt root: String) -> [Record] {
+        let folder = folder(inVaultAt: root)
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder) else { return [] }
+        return names.filter { $0.hasSuffix(".md") }.compactMap { name in
+            let path = (folder as NSString).appendingPathComponent(name)
+            guard let raw = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
+            let body = raw.components(separatedBy: "---").dropFirst(2).joined(separator: "---")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let title = body.split(whereSeparator: \.isNewline).first.map(String.init)
+                ?? (name as NSString).deletingPathExtension
+            return Record(id: path, title: title, excerpt: String(body.prefix(180)), path: path)
+        }.sorted { $0.id > $1.id }
     }
 }

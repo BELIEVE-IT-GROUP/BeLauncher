@@ -76,6 +76,8 @@ public final class LauncherModel {
         /// No confirmation, unlike a memory: a note is yours, not something the company now
         /// believes. That distinction is what lets this be one keystroke.
         case writeNote(text: String)
+        /// Opens a multi-line note editor from the launcher.
+        case openQuickNoteEditor(initialText: String)
     }
 
     public private(set) var state: State = .loading
@@ -531,8 +533,20 @@ public final class LauncherModel {
             return true
 
         case .answer:
+            if result.payload.isEmpty, let completion = result.completion {
+                query = completion
+                return true
+            }
+            if result.id == "brain-note" {
+                perform(.openQuickNoteEditor(initialText: ""))
+                return true
+            }
             if result.id == "note" {
                 perform(.writeNote(text: result.payload))
+                return true
+            }
+            if result.id == "new-note" {
+                perform(.openQuickNoteEditor(initialText: result.payload))
                 return true
             }
             // A typed verb carries "<verb id>\u{1F}<text>": the separator is a unit separator so it

@@ -86,7 +86,8 @@ extension LauncherModel.Action {
             return false
         case .moveToTrash, .systemCommand, .runShortcut, .startTimer, .arrangeWindow,
              .remember, .confirmCommit, .discardCommit, .runFlow, .assignAlias, .runMission,
-             .quitProcess, .forceQuit, .stayAwake, .writeNote, .saveWorkspace, .restoreWorkspace:
+             .quitProcess, .forceQuit, .stayAwake, .writeNote, .openQuickNoteEditor,
+             .saveWorkspace, .restoreWorkspace:
             return true
         case .missionCancelled, .cancelAI:
             return false
@@ -124,6 +125,7 @@ extension LauncherModel.Action {
         case .stayAwake(let minutes):
             minutes.map { "Mantener despierto \($0) min" } ?? "Mantener despierto"
         case .writeNote(let text): L("Keep a note: %@", String(text.prefix(40)))
+        case .openQuickNoteEditor(let text): L("Open note editor: %@", String(text.prefix(40)))
         case .saveWorkspace(let name): L("Save the window layout “%@”", name)
         case .restoreWorkspace(let name): L("Place the layout “%@”", name)
         case .openCanvas(_, let brief): L("Open a canvas: %@", String(brief.prefix(40)))

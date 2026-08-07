@@ -129,6 +129,7 @@ public struct SearchInput: Sendable {
     public var workspaces: [Workspace]
     /// What the app has learned about how this person works.
     public var traits: [Trait]
+    public var notes: [QuickNote.Record]
 
     public init(applications: [Application] = [], snippets: [Snippet] = [],
                 workflows: [Workflow] = [], clips: [Clip] = [], flows: [Flow] = [],
@@ -137,7 +138,8 @@ public struct SearchInput: Sendable {
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
                 workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
-                processes: [RunningProcess] = [], workspaces: [Workspace] = []) {
+                processes: [RunningProcess] = [], workspaces: [Workspace] = [],
+                notes: [QuickNote.Record] = []) {
         self.applications = applications
         self.snippets = snippets
         self.workflows = workflows
@@ -156,13 +158,14 @@ public struct SearchInput: Sendable {
         self.traits = traits
         self.processes = processes
         self.workspaces = workspaces
+        self.notes = notes
     }
 }
 
 public enum SearchEngine {
     public static let resultLimit = 8
 
-    public static func brainLaunchpadResults(limit: Int = 7) -> [SearchResult] {
+    public static func brainLaunchpadResults(limit: Int = 8) -> [SearchResult] {
         [
             SearchResult(
                 id: "brain-open", kind: .system, title: L("Open your brain"),
@@ -200,6 +203,11 @@ public enum SearchEngine {
                 completion: "/"
             ),
             SearchResult(
+                id: "brain-note", kind: .answer, title: L("New quick note"),
+                subtitle: L("Write freely and save it to your inbox as Markdown"),
+                score: 100_930, matched: [], payload: ""
+            ),
+            SearchResult(
                 id: "brain-pulse", kind: .answer, title: L("Ask for Pulse"),
                 subtitle: L("See what BeBrain thinks you should be looking at"),
                 score: 100_940, matched: [], payload: "",
@@ -224,11 +232,48 @@ public enum SearchEngine {
             pinned += brainLaunchpadResults()
         }
 
+        if QuickNote.isTrigger(query) {
+            pinned.append(SearchResult(
+                id: "new-note", kind: .answer, title: L("Write a quick note"),
+                subtitle: L("A multiline Markdown note saved in your inbox"),
+                score: 100_100, matched: [], payload: ""
+            ))
+        }
+
+        let foldedQuery = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        if ["notas", "mis notas", "quick notes", "inbox"].contains(foldedQuery) {
+            return input.notes.prefix(limit).enumerated().map { index, note in
+                SearchResult(id: "note-file-\(index)", kind: .file, title: note.title,
+                             subtitle: note.excerpt, score: 99_950 - index,
+                             matched: [], payload: note.path)
+            }
+        }
+
         // A slash is an instruction, not a search. It is unambiguous on purpose: a launcher whose
         // box does both has to be able to tell "research" the word from "/research" the command,
         // and guessing from the words is how an agent fires because somebody typed a noun.
         let commands = input.packs.map(\.command)
         if query.hasPrefix("/") {
+            let slash = query.dropFirst().lowercased()
+            if slash == "nota" || slash == "note" || slash.hasPrefix("nota ") || slash.hasPrefix("note ") {
+                let argument = slash.split(separator: " ", maxSplits: 1).dropFirst().first.map(String.init) ?? ""
+                return [SearchResult(id: "new-note", kind: .answer,
+                                     title: L("Write a quick note"),
+                                     subtitle: L("Open the Markdown note editor"), score: 100_000,
+                                     matched: [], payload: argument, completion: argument.isEmpty ? "/nota " : nil)]
+            }
+            if slash == "recordar" || slash == "remember" {
+                return [SearchResult(id: "slash-remember", kind: .answer,
+                                     title: L("Keep something in the brain"),
+                                     subtitle: L("Write the fact you want to confirm"), score: 100_000,
+                                     matched: [], payload: "", completion: "remember that ")]
+            }
+            if slash == "brain" || slash == "grafo" {
+                return [SearchResult(id: "brain-open", kind: .system,
+                                     title: L("Open your brain"),
+                                     subtitle: L("Graph, reader and recent work"), score: 100_000,
+                                     matched: [], payload: SystemCommand.Kind.openBrain.rawValue)]
+            }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {
                 return [SearchResult(
                     id: "agent-\(command.id)", kind: .agent, title: command.title,

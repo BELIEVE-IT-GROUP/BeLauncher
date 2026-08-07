@@ -546,6 +546,20 @@ extension SpanishStrings {
         "Ask for Pulse": "Pedir Pulso",
         "See what BeBrain thinks you should be looking at":
             "Ve lo que BeBrain cree que deberías estar mirando",
+        "New quick note": "Nueva nota rápida",
+        "Write freely and save it to your inbox as Markdown":
+            "Escribe libremente y guárdala en tu inbox como Markdown",
+        "Write a quick note": "Escribir una nota rápida",
+        "A multiline Markdown note saved in your inbox":
+            "Una nota Markdown con varias líneas guardada en tu inbox",
+        "Open the Markdown note editor": "Abrir el editor de notas Markdown",
+        "Write the fact you want to confirm": "Escribe el dato que quieres confirmar",
+        "Graph, reader and recent work": "Grafo, lector y trabajo reciente",
+        "Quick note": "Nota rápida",
+        "Saved as Markdown in inbox": "Se guarda como Markdown en inbox",
+        "⌘↩ Save": "⌘↩ Guardar",
+        "Save note": "Guardar nota",
+        "Open note editor: %@": "Abrir editor de notas: %@",
         "what did we decide about ": "qué decidimos sobre ",
         "remember that ": "recordar que ",
         "prepare me for ": "prepárame para ",

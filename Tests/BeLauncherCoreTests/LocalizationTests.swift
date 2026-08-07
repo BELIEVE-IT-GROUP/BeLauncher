@@ -302,7 +302,7 @@ struct LocalizationTests {
             // se traducen, deja de funcionar lo que ya sabía escribir.
             "salir", "cerrar sesión", "que no se duerma", "nº de factura", "cerebro", "memoria",
             "grafo", "asunto:",
-            "pantalla", "papelera", "carpeta escritorio", "portapapeles", "nota ",
+            "pantalla", "papelera", "carpeta escritorio", "portapapeles", "nota ", "nota", "/nota ",
             "cpu · memoria", "espacio trabajo · espacios",
             "que consume", "que esta lento", "un abrazo", "con-guiones", "con_guiones_bajos",
             "con espacios",
