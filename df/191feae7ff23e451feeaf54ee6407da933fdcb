@@ -1,0 +1,56 @@
+Sources/BeLauncherCore/LauncherModel.swift
+  s_30bc31f46aebe1::t_6381be5db90e0d 79,203
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_c0f698416aad9b 1157,1181-1193
+  s_30bc31f46aebe1::t_982032b436b9ae 788-825
+  s_30bc31f46aebe1::t_6381be5db90e0d 1430-1432
+  s_30bc31f46aebe1::t_6874c661e9fb98 768-773
+  s_30bc31f46aebe1::t_7f69731b1ba1be 774
+  s_30bc31f46aebe1::t_3e4d22899236a7 332-333
+  s_30bc31f46aebe1::t_5087667bfda9a0 775-777
+  s_30bc31f46aebe1::t_351066352537ef 871-900,1194
+  s_30bc31f46aebe1::t_a4a8e4e3271d97 1195
+Sources/BeLauncherCore/Mission.swift
+  s_30bc31f46aebe1::t_6381be5db90e0d 89,129
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_30bc31f46aebe1::t_97c006a1e4a4d1 585
+  s_30bc31f46aebe1::t_5087667bfda9a0 579-581
+  s_30bc31f46aebe1::t_a5e4d94e30fa05 574
+  s_30bc31f46aebe1::t_a09678770ff718 563-573,575-578
+  s_30bc31f46aebe1::t_351066352537ef 582-584,586-592
+Sources/BeLauncherCore/Indexer.swift
+  s_30bc31f46aebe1::t_3e4d22899236a7 85-99,115-116,120
+Sources/BeLauncherCore/BrainSearch.swift
+  s_30bc31f46aebe1::t_3e4d22899236a7 62-64
+Sources/BeLauncher/BrainConversationView.swift
+  s_30bc31f46aebe1::t_4ca3e56113badc 63
+  s_30bc31f46aebe1::t_6874c661e9fb98 1-12,14,17-31,39-60,67-91
+  s_30bc31f46aebe1::t_7f69731b1ba1be 13,32-38
+  s_30bc31f46aebe1::t_19226e4ccfcc10 64
+  s_30bc31f46aebe1::t_b0fe187ef8ad9c 15-16,61-62,65-66
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_7f69731b1ba1be 736
+  s_30bc31f46aebe1::t_a6a294789a566a 738-739,752-753
+  s_30bc31f46aebe1::t_6874c661e9fb98 735,737
+  s_30bc31f46aebe1::t_93d89c8190dff0 754
+Sources/BeLauncher/CanvasView.swift
+  s_30bc31f46aebe1::t_c0f698416aad9b 23,32,38,121-125,181
+Sources/BeLauncherCore/Utilities.swift
+  s_30bc31f46aebe1::t_3e4d22899236a7 138-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "df191feae7ff23e451feeaf54ee6407da933fdcb",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
