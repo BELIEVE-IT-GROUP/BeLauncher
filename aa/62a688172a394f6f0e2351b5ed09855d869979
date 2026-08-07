@@ -1,0 +1,101 @@
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_b0addde602d8c2 166-188,207-210,223-226,612,614,618
+  s_30bc31f46aebe1::t_b2275a777a4581 165,189-206
+  s_30bc31f46aebe1::t_68462fa36dcf79 613
+  s_30bc31f46aebe1::t_12da6db3414352 615-617
+  s_30bc31f46aebe1::t_9a3760b64852d8 619
+Sources/BeLauncher/CommandView.swift
+  s_30bc31f46aebe1::t_9cc538700c0297 483
+  s_30bc31f46aebe1::t_d667d5d7fee6ea 2,184-191,405-441,443-482,484-486
+  s_30bc31f46aebe1::t_02b5b819041545 291
+  s_30bc31f46aebe1::t_a3ecbc97c37288 442
+  s_30bc31f46aebe1::t_9a4c3ca46406c5 20-23,96,112-131,171-176,316-356,487,915-920,925-928,933-935,937,960
+  s_30bc31f46aebe1::t_5435077a2358fc 74-81,87-95
+  s_30bc31f46aebe1::t_3cecbaad0b0ac8 97
+  s_30bc31f46aebe1::t_43790324d2a0cc 177
+  s_30bc31f46aebe1::t_366cfc6386b5c2 357
+  s_30bc31f46aebe1::t_a16b10c999299e 488-489
+Tests/BeLauncherAppTests/GraphCorrectionsTests.swift
+  s_30bc31f46aebe1::t_3fa38c9fe1468e 279-316
+  s_30bc31f46aebe1::t_960d804a142078 275
+  s_30bc31f46aebe1::t_8ee0795b7b4852 206-207,225-249
+  s_30bc31f46aebe1::t_eedcbef7860695 208-224,250-274,276-278
+Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift
+  s_30bc31f46aebe1::t_9a4c3ca46406c5 124,131-133
+Sources/BeLauncherCore/ResultAction.swift
+  s_30bc31f46aebe1::t_c4545e67e0da4f 282-287
+Sources/BeLauncher/CorpusRunner.swift
+  s_30bc31f46aebe1::t_652952f3eb754a 247,405
+Tests/BeLauncherCoreTests/BrainQueryTests.swift
+  s_30bc31f46aebe1::t_450a36990584dd 202-206,213-222,227-234,236-238,240-241
+  s_30bc31f46aebe1::t_eda6ef19179b77 207-208,235,239
+  s_30bc31f46aebe1::t_dbf19f704eb0ad 209-212,223-226
+Resources/brain.html
+  s_30bc31f46aebe1::t_ca8a7e183ee043 68-74
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_e796e1291381ce 659-662
+  s_30bc31f46aebe1::t_46a7968073a674 1221-1235,1526
+  s_30bc31f46aebe1::t_50022f0d8aac91 20-40,359-391
+  s_30bc31f46aebe1::t_6227f1dd181028 1347,1351
+  s_30bc31f46aebe1::t_c3cbe38e13b959 114
+  s_30bc31f46aebe1::t_2b9eace05249ca 357-358,392-416,658,663-681,849,1008-1011,1266,1340-1346,1348-1349,1352-1353,1356,1360,1366-1389
+  s_30bc31f46aebe1::t_20922aff24e933 1400
+  s_30bc31f46aebe1::t_e36efd43eb23dc 1270-1271,1278-1300
+  s_30bc31f46aebe1::t_e25e8caf6697cd 352-356,1350
+  s_30bc31f46aebe1::t_13a28c9feff03d 1121-1220
+  s_30bc31f46aebe1::t_93cc1b9a9a32bf 1016-1120
+  s_30bc31f46aebe1::t_49778ffc2d18d7 740-749,751,754-755,758
+  s_30bc31f46aebe1::t_c55d4b961c8904 611-630
+  s_30bc31f46aebe1::t_1c8603068c8209 1265,1301-1302,1390,1392-1399,1401-1408,1484-1498,1500-1503,1506-1508,1512-1514,1517-1523,1525
+  s_30bc31f46aebe1::t_60005618d564be 1499,1504-1505,1509-1511,1515-1516
+  s_30bc31f46aebe1::t_707b85c1541422 1303
+  s_30bc31f46aebe1::t_8eb23d1e744fc8 1391
+  s_30bc31f46aebe1::t_def21658fc538f 1524
+  s_30bc31f46aebe1::t_1a626e90ec02f2 1527
+Sources/BeLauncherCore/LauncherModel.swift
+  s_30bc31f46aebe1::t_47750ee8c0f429 347-349,351,479-482
+  s_30bc31f46aebe1::t_9a4c3ca46406c5 350
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_b21eac8df645b3 22,25,27,31-32,34,36-37,43,46,48
+  s_30bc31f46aebe1::t_0cb82c57209b48 21,23,28,45
+Sources/BeLauncher/LauncherInputNeeds.swift
+  s_30bc31f46aebe1::t_a8ae39d7a904f1 20-22,24,29,43,49
+  s_30bc31f46aebe1::t_ddce543c11579c 1-19,23,25-28,30-42,44-48,50-55
+Sources/BeLauncherCore/WorkGraph.swift
+  s_30bc31f46aebe1::t_002bb9c177a300 181-191
+Sources/BeLauncher/CommandPanel.swift
+  s_30bc31f46aebe1::t_326a1ca7dcb31b 11-12,72,78,85-115,121
+  s_30bc31f46aebe1::t_63830c1a815dc5 27,42-45,116-120,122
+  s_30bc31f46aebe1::t_9e5841cc18a4f2 123
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_30bc31f46aebe1::t_9a4c3ca46406c5 526-527
+  s_30bc31f46aebe1::t_9f72861e1e695f 524,528-539,549-552
+  s_30bc31f46aebe1::t_02b5b819041545 525,553-571,573-601
+  s_30bc31f46aebe1::t_b2275a777a4581 540-548
+  s_30bc31f46aebe1::t_e91315f6324209 572
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_6aad3c244d7fab 339-341
+  s_30bc31f46aebe1::t_02b5b819041545 749
+  s_30bc31f46aebe1::t_0fbbba6d57c21e 115-120,131-138,141-142
+  s_30bc31f46aebe1::t_652952f3eb754a 299,301-303,313,315-316
+  s_30bc31f46aebe1::t_386701ba16c72e 680-686,756
+Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift
+  s_30bc31f46aebe1::t_a8ae39d7a904f1 63-76
+  s_30bc31f46aebe1::t_f61c28f366f51c 1-62,77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "aa62a688172a394f6f0e2351b5ed09855d869979",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
