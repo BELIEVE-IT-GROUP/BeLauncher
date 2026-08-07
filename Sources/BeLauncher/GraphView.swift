@@ -17,6 +17,27 @@ import BeLauncherCore
 @Observable
 final class GraphModel {
 
+    struct Evidence: Identifiable, Equatable {
+        enum Route: Equatable {
+            case direct
+            case connected(String)
+            case matched
+
+            var label: String {
+                switch self {
+                case .direct: L("This node")
+                case .connected(let title): L("Connected: %@", title)
+                case .matched: L("Name match")
+                }
+            }
+        }
+
+        let passage: IndexedPassage
+        let route: Route
+
+        var id: String { passage.id }
+    }
+
     /// How far back to look.
     ///
     /// Time is a filter of the first order rather than a nicety. This is a graph of things that
@@ -90,6 +111,7 @@ final class GraphModel {
     /// the reader" with no way to get there, which is the connection between the drawing and the
     /// files it draws.
     var onRead: ((String) -> Void)?
+    var onPrimeLauncher: ((String) -> Void)?
 
     init(store: Store, corpus: CorpusFolder?, now: Date = .now) {
         self.store = store
@@ -327,6 +349,71 @@ final class GraphModel {
     func episode(_ id: String) -> Episode? { episodes[id] }
     func work(_ id: String) -> WorkNode? { workNodes[id] }
     func document(_ id: String) -> CorpusDocument? { documents[id] }
+    func document(named name: String) -> CorpusDocument? {
+        let wanted = Identity.fold(name)
+        return documents.values.first { Identity.fold($0.title) == wanted }
+            ?? documents.values.first { $0.links.contains(name) }
+    }
+    func hasSource(_ id: String) -> Bool { !(workNodes[id]?.target.isEmpty ?? true) }
+    func readableDocument(_ id: String) -> CorpusDocument? { documents[id] ?? documentOrBuild(id) }
+
+    func evidence(for id: String, limit: Int = 10) -> [Evidence] {
+        var seen = Set<String>()
+        var result: [Evidence] = []
+
+        func append(_ passages: [IndexedPassage], route: Evidence.Route) {
+            for passage in passages where result.count < limit {
+                guard seen.insert(passage.id).inserted else { continue }
+                guard !SecretGuard.carriesSecret(passage.title),
+                      !SecretGuard.carriesSecret(passage.text) else { continue }
+                result.append(Evidence(passage: passage, route: route))
+            }
+        }
+
+        append(store.passages(for: IndexedSource(kind: .node, id: id)), route: .direct)
+
+        let connected = store.relatedSources(to: IndexedSource(kind: .node, id: id), limit: 8)
+        for source in connected where result.count < limit {
+            let title = drawing.node(source.id)?.label ?? workNodes[source.id]?.name ?? source.id
+            append(store.passages(for: source), route: .connected(title))
+        }
+
+        if let node = workNodes[id] ?? drawing.node(id).map({
+            WorkNode(id: $0.id, kind: .file, name: $0.label, lastSeen: $0.at)
+        }) {
+            let matches = store.matchingWords(node.name, limit: 12)
+                .compactMap { store.passage(id: $0) }
+                .filter { $0.source.kind != .clip }
+            append(matches, route: .matched)
+        }
+
+        return result
+    }
+
+    @discardableResult
+    func materializeDocument(_ id: String) -> CorpusDocument? {
+        if let document = documents[id] { return document }
+        guard let document = documentOrBuild(id) else { return nil }
+        guard let corpus else { return document }
+        do {
+            _ = try corpus.save(document)
+            let saved = corpus.load(id: document.id, kind: document.kind) ?? document
+            documents[saved.id] = saved
+            return saved
+        } catch {
+            status = L("Could not write the brain file: %@", error.localizedDescription)
+            return document
+        }
+    }
+
+    func readHere() {
+        guard let id = selected else { return }
+        guard let document = materializeDocument(id) else {
+            status = L("There is nothing readable for this node yet.")
+            return
+        }
+        status = L("Reading “%@” here.", document.title)
+    }
 
     /// Everything hanging off the selected node, ready to walk into.
     func neighbours(of id: String) -> [GraphLayout.Placed] {
@@ -521,6 +608,26 @@ final class GraphModel {
         load()
     }
 
+    func showEverything() {
+        span = .everything
+        shapes = Set(GraphLayout.Node.Shape.allCases)
+        floor = 0
+        query = ""
+        status = L("Showing the full local graph.")
+    }
+
+    func showRecent() {
+        span = .week
+        shapes = Set(GraphLayout.Node.Shape.allCases)
+        floor = 0
+        query = ""
+        status = L("Showing the last 7 days.")
+    }
+
+    func primeLauncher(_ phrase: String) {
+        onPrimeLauncher?(phrase)
+    }
+
     private func documentOrBuild(_ id: String) -> CorpusDocument? {
         if let document = documents[id] { return document }
         if let episode = episodes[id] { return CorpusFiles.document(for: episode) }
@@ -548,17 +655,32 @@ final class GraphModel {
     /// Opens whatever is underneath: the file, the page, the app.
     func open() {
         guard let id = selected else { return }
-        if let node = workNodes[id], !node.target.isEmpty {
-            if node.target.hasPrefix("http"), let url = URL(string: node.target) {
-                NSWorkspace.shared.open(url)
-            } else {
-                NSWorkspace.shared.open(URL(fileURLWithPath: node.target))
-            }
-            status = nil
+        if hasSource(id) { openSource(); return }
+        // Nothing outside to open should not throw a second empty-looking window at the person.
+        // The graph is the surface they are using; read it here unless they explicitly ask for the
+        // Markdown file.
+        readHere()
+    }
+
+    func openSource() {
+        guard let id = selected, let node = workNodes[id], !node.target.isEmpty else {
+            status = L("This node has no source to open.")
             return
         }
-        // Nothing outside to open means this lives only in the corpus, which is exactly what the
-        // reader is for.
+        if node.target.hasPrefix("http"), let url = URL(string: node.target) {
+            NSWorkspace.shared.open(url)
+        } else {
+            NSWorkspace.shared.open(URL(fileURLWithPath: node.target))
+        }
+        status = nil
+    }
+
+    func openBrainFile() {
+        guard let id = selected else { return }
+        guard materializeDocument(id) != nil else {
+            status = L("There is nothing readable for this node yet.")
+            return
+        }
         onRead?(id)
         status = nil
     }
@@ -615,22 +737,25 @@ struct GraphView: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            controls
-            Divider().opacity(0.4)
-            HStack(spacing: 0) {
-                canvas
-                if model.selectedNode != nil {
-                    Divider().opacity(0.4)
+        HStack(spacing: 0) {
+            VerbRail(model: model)
+                .frame(width: 236)
+            Divider().opacity(0.35)
+            VStack(spacing: 0) {
+                controls
+                Divider().opacity(0.35)
+                HStack(spacing: 0) {
+                    canvas
+                    Divider().opacity(0.35)
                     Inspector(model: model, read: openReader)
-                        .frame(width: 300)
+                        .frame(width: 320)
                         .transition(.move(edge: .trailing))
                 }
+                Divider().opacity(0.35)
+                footer
             }
-            Divider().opacity(0.4)
-            footer
         }
-        .frame(minWidth: 940, minHeight: 640)
+        .frame(minWidth: 1120, minHeight: 680)
         .background(Backdrop())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: model.selected)
         .sheet(item: $reader) { reader in
@@ -721,6 +846,7 @@ struct GraphView: View {
         .focused($focused)
         .onAppear { focused = true }
         .onKeyPress(.return) { model.open(); return .handled }
+        .onKeyPress("l") { model.readHere(); return .handled }
         .onKeyPress(.space) { model.markImportant(true); return .handled }
         .onKeyPress(.delete) { model.forget(); return .handled }
         .onKeyPress(.escape) { model.selected = nil; model.compared = nil; return .handled }
@@ -879,7 +1005,231 @@ struct GraphView: View {
             model.status = L("No corpus folder is set up yet.")
             return
         }
+        if let selected = model.selected, model.materializeDocument(selected) == nil {
+            model.status = L("There is nothing readable for this node yet.")
+            return
+        }
         reader = CorpusReaderModel(folder: corpus, selecting: model.selected)
+    }
+}
+
+// MARK: - BeBrain rail
+
+private struct BeBrainVerb: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let symbol: String
+    let phrase: String?
+
+    static var all: [BeBrainVerb] {
+        [
+            .init(id: "find", title: L("Find"),
+                  subtitle: L("Anything on your Mac, before you finish typing."),
+                  symbol: "magnifyingglass", phrase: ""),
+            .init(id: "ask", title: L("Ask"),
+                  subtitle: L("Ask your own memory, not a generic model."),
+                  symbol: "text.bubble", phrase: L("what do we know about ")),
+            .init(id: "remember", title: L("Remember"),
+                  subtitle: L("Save what matters as a commit, not a dump."),
+                  symbol: "checkmark.seal", phrase: L("remember that ")),
+            .init(id: "prepare", title: L("Prepare"),
+                  subtitle: L("Arrive with the context already gathered."),
+                  symbol: "person.2", phrase: L("prepare me for ")),
+            .init(id: "decide", title: L("Decide"),
+                  subtitle: L("Bring back only what is still in force."),
+                  symbol: "arrow.triangle.branch", phrase: L("what did we decide about ")),
+            .init(id: "act", title: L("Act"),
+                  subtitle: L("Run the mission: plan, approval and receipt."),
+                  symbol: "bolt.horizontal", phrase: "/"),
+            .init(id: "pulse", title: L("Pulse"),
+                  subtitle: L("The one that asks instead of answering."),
+                  symbol: "waveform.path.ecg", phrase: L("pulse")),
+        ]
+    }
+}
+
+@MainActor
+private struct VerbRail: View {
+    @Bindable var model: GraphModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            railHeader
+            HStack(spacing: 6) {
+                BrainChip(text: L("local graph"))
+                BrainChip(text: "RAG")
+                BrainChip(text: L("vectors"))
+                BrainChip(text: L("chunks"))
+            }
+            VStack(spacing: 6) {
+                ForEach(BeBrainVerb.all) { verb in
+                    Button { run(verb) } label: { VerbRow(verb: verb) }
+                        .buttonStyle(.plain)
+                }
+            }
+            Divider().opacity(0.35)
+            TruthLadder(compact: true)
+            Spacer(minLength: 0)
+            graphCommands
+        }
+        .padding(16)
+        .background(LinearGradient(
+            colors: [Color.white.opacity(0.055), Color.white.opacity(0.025)],
+            startPoint: .top, endPoint: .bottom
+        ))
+    }
+
+    private var railHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                BeLauncherMark(side: 20)
+                Text("BeBrain").font(.system(size: 16, weight: .semibold))
+            }
+            Text(L("The search bar is the surface. Behind it is a local brain that remembers, knows what still stands and acts."))
+                .font(.system(size: 11.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var graphCommands: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Button {
+                model.showRecent()
+            } label: {
+                RailCommand(symbol: "clock.arrow.circlepath", title: L("Recent work"),
+                            value: L("last 7 days"))
+            }
+            .buttonStyle(.plain)
+            Button {
+                model.showEverything()
+            } label: {
+                RailCommand(symbol: "point.3.connected.trianglepath.dotted", title: L("Full graph"),
+                            value: L("%1$@ nodes · %2$@ relations",
+                                     String(model.web.nodes.count), String(model.web.links.count)))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func run(_ verb: BeBrainVerb) {
+        if let phrase = verb.phrase { model.primeLauncher(phrase) }
+    }
+}
+
+private struct VerbRow: View {
+    let verb: BeBrainVerb
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: verb.symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.cyan)
+                .frame(width: 24, height: 24)
+                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verb.title).font(.system(size: 12.5, weight: .semibold))
+                Text(verb.subtitle)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(9)
+        .contentShape(Rectangle())
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.white.opacity(0.055)))
+    }
+}
+
+private struct RailCommand: View {
+    let symbol: String
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.system(size: 11.5, weight: .medium))
+                Text(value).font(.system(size: 10)).foregroundStyle(.tertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .background(.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+}
+
+private struct BrainChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 9.5, weight: .medium))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}
+
+private struct TruthLadder: View {
+    let compact: Bool
+
+    private var levels: [(String, String)] {
+        [
+            (L("Evidence"), L("What happened, as-is.")),
+            (L("Extracted Memory"), L("Distilled, not confirmed yet.")),
+            (L("Committed Memory"), L("What you confirm as true.")),
+            (L("Outcome Memory"), L("Truth closed by the result.")),
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 7 : 9) {
+            Text(L("Four levels of truth"))
+                .font(.system(size: compact ? 10 : 11, weight: .semibold))
+                .foregroundStyle(.tertiary)
+            ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
+                HStack(alignment: .top, spacing: 8) {
+                    Text(String(index + 1))
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.black.opacity(0.65))
+                        .frame(width: 18, height: 18)
+                        .background(Theme.cyan.opacity(0.85), in: Circle())
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(level.0).font(.system(size: compact ? 11 : 12, weight: .semibold))
+                        Text(level.1).font(.system(size: compact ? 9.5 : 10.5)).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(11)
+        .background(.black.opacity(0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(.white.opacity(0.055)))
+    }
+}
+
+private struct CaptureRow: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Circle().fill(Theme.cyan.opacity(0.75)).frame(width: 5, height: 5)
+            Text(text)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
     }
 }
 
@@ -912,12 +1262,42 @@ private struct Inspector: View {
 
                     if let proposal = model.proposal { merge(proposal) }
                     actions(node)
+                    evidence(node.id)
+                    if let document = model.readableDocument(node.id) { reading(document) }
                     if let episode = model.episode(node.id) { contents(episode) }
                     aliases(node.id)
                     neighbours(node.id)
+                } else {
+                    emptyInspector
                 }
             }
             .padding(16)
+        }
+    }
+
+    private var emptyInspector: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L("Pick something in the graph"))
+                    .font(.system(size: 16, weight: .semibold))
+                Text(L("Every node can be opened, read, marked important, forgotten or corrected. The point is not to admire the graph; it is to keep the brain honest."))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            TruthLadder(compact: false)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L("BeBrain captures"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                CaptureRow(text: L("Pages you visit"))
+                CaptureRow(text: L("Documents you edit"))
+                CaptureRow(text: L("Code you write"))
+                CaptureRow(text: L("What you copy and paste"))
+                CaptureRow(text: L("Meetings, if you turn them on"))
+            }
+            .padding(11)
+            .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
@@ -957,17 +1337,72 @@ private struct Inspector: View {
         let pinned = model.document(node.id)?.corrections.pinned == true
         return VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
-                Button(L("Open")) { model.open() }.controlSize(.small)
-                Button("Leer") { read() }.controlSize(.small)
+                if model.hasSource(node.id) {
+                    Button { model.openSource() } label: {
+                        Label(L("Open source"), systemImage: "arrow.up.right.square")
+                    }
+                    .controlSize(.small)
+                }
+                Button { model.readHere() } label: {
+                    Label(L("Read here"), systemImage: "text.alignleft")
+                }
+                .controlSize(.small)
+                Button { read() } label: {
+                    Label(L("Open brain file"), systemImage: "doc.text")
+                }
+                .controlSize(.small)
             }
             HStack(spacing: 7) {
-                Button(pinned ? "Quitar importancia" : "Marcar importante") {
+                Button(pinned ? L("Unmark important") : L("Mark important")) {
                     model.markImportant(!pinned)
                 }
                 .controlSize(.small)
-                Button("Olvidar") { model.forget() }
+                Button(L("Forget")) { model.forget() }
                     .controlSize(.small).tint(Theme.destructive)
             }
+        }
+    }
+
+    private func reading(_ document: CorpusDocument) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text(L("READING"))
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 0)
+                if document.corrections.editedByHand {
+                    Tag(text: L("written by you"), tone: .mine)
+                }
+            }
+            MarkdownBody(text: document.body) { name in
+                if let target = model.document(named: name) {
+                    model.selected = target.id
+                    model.compared = nil
+                    model.proposal = nil
+                } else {
+                    model.status = L("“%@” has no entry of its own yet.", name)
+                }
+            }
+            .font(.system(size: 11.5))
+        }
+        .padding(11)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func evidence(_ id: String) -> some View {
+        let items = model.evidence(for: id)
+        if !items.isEmpty {
+            VStack(alignment: .leading, spacing: 9) {
+                Text(L("EVIDENCE"))
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                ForEach(items.prefix(5)) { item in
+                    EvidenceRow(item: item)
+                }
+            }
+            .padding(11)
+            .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 
@@ -1042,6 +1477,50 @@ private struct Inspector: View {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_ES")
         formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+}
+
+private struct EvidenceRow: View {
+    let item: GraphModel.Evidence
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
+                Tag(text: item.passage.source.kind.label)
+                Text(item.route.label)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Text(stamp(item.passage.occurredAt))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+            Text(item.passage.title)
+                .font(.system(size: 11.5, weight: .semibold))
+                .lineLimit(2)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(item.passage.text)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(4)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 7)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+        .clipped()
+        .background(.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func stamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        formatter.dateFormat = "d MMM, HH:mm"
         return formatter.string(from: date)
     }
 }

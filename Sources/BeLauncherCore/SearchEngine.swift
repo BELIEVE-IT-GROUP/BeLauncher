@@ -162,6 +162,52 @@ public struct SearchInput: Sendable {
 public enum SearchEngine {
     public static let resultLimit = 8
 
+    public static func brainLaunchpadResults(limit: Int = 7) -> [SearchResult] {
+        [
+            SearchResult(
+                id: "brain-open", kind: .system, title: L("Open your brain"),
+                subtitle: L("See the graph, recent work and what needs correcting"),
+                score: 101_000, matched: [], payload: SystemCommand.Kind.openBrain.rawValue
+            ),
+            SearchResult(
+                id: "brain-ask", kind: .answer, title: L("Ask your brain"),
+                subtitle: L("Start with a question about decisions, people, projects or tasks"),
+                score: 100_990, matched: [], payload: "",
+                completion: L("what did we decide about ")
+            ),
+            SearchResult(
+                id: "brain-remember", kind: .answer, title: L("Keep something in the brain"),
+                subtitle: L("Write one sentence. It stays as a proposal until you confirm it"),
+                score: 100_980, matched: [], payload: "",
+                completion: L("remember that ")
+            ),
+            SearchResult(
+                id: "brain-prepare", kind: .answer, title: L("Get briefed before a meeting"),
+                subtitle: L("Pulls together decisions, commitments and recent context"),
+                score: 100_970, matched: [], payload: "",
+                completion: L("prepare me for ")
+            ),
+            SearchResult(
+                id: "brain-decide", kind: .answer, title: L("Decide with the brain"),
+                subtitle: L("Ask what is still in force before choosing"),
+                score: 100_960, matched: [], payload: "",
+                completion: L("what did we decide about ")
+            ),
+            SearchResult(
+                id: "brain-act", kind: .answer, title: L("Run a mission"),
+                subtitle: L("Plan, approve, execute, then get a receipt"),
+                score: 100_950, matched: [], payload: "",
+                completion: "/"
+            ),
+            SearchResult(
+                id: "brain-pulse", kind: .answer, title: L("Ask for Pulse"),
+                subtitle: L("See what BeBrain thinks you should be looking at"),
+                score: 100_940, matched: [], payload: "",
+                completion: L("pulse")
+            ),
+        ].prefix(limit).map { $0 }
+    }
+
     public static func search(
         _ rawQuery: String,
         in input: SearchInput,
@@ -173,6 +219,10 @@ public enum SearchEngine {
         guard !query.isEmpty else { return [] }
 
         var pinned: [SearchResult] = []
+
+        if wantsBrainLaunchpad(query) {
+            pinned += brainLaunchpadResults()
+        }
 
         // A slash is an instruction, not a search. It is unambiguous on purpose: a launcher whose
         // box does both has to be able to tell "research" the word from "/research" the command,
@@ -557,6 +607,14 @@ public enum SearchEngine {
             }
         }
         return Array((pinned + ordered).prefix(limit))
+    }
+
+    private static func wantsBrainLaunchpad(_ query: String) -> Bool {
+        guard BrainQuery.Intent.detect(query) == .none else { return false }
+        let folded = Phrases.fold(query)
+        let words = Set(folded.split(whereSeparator: { !$0.isLetter }).map(String.init))
+        let triggers: Set<String> = ["brain", "cerebro", "memoria", "memory", "recall", "recordar", "remember"]
+        return !words.isDisjoint(with: triggers)
     }
 
     /// Recent clips shown when the window opens with an empty query.

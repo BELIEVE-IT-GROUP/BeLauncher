@@ -1,4 +1,5 @@
 import QuickLookThumbnailing
+import AppKit
 import SwiftUI
 import BeLauncherCore
 
@@ -16,7 +17,10 @@ struct CommandView: View {
             searchField
             if showsBody {
                 Divider().overlay(.white.opacity(0.08))
-                if isCarousel {
+                if isBrainLaunchpadWithClipboard {
+                    emptyLaunchpad
+                        .frame(height: emptyLaunchpadHeight)
+                } else if isCarousel {
                     // Clipboard gets the full width: the cards are the point, and a 430pt column
                     // would fit two and a half of them. The preview keeps its place, just below
                     // rather than beside.
@@ -67,12 +71,28 @@ struct CommandView: View {
         }
         .shadow(color: .black.opacity(0.45), radius: 24, y: 14)
         .padding(Theme.shadowPadding)
-        .onAppear { focus = .search }
-        .onChange(of: model.focusToken) { focus = .search }
-        .onChange(of: model.isActionPanelOpen) { focus = model.isActionPanelOpen ? .actions : .search }
+        .onAppear { focusSearchSoon() }
+        .onChange(of: model.focusToken) { focusSearchSoon() }
+        .onChange(of: model.state) {
+            if !model.isActionPanelOpen { focusSearchSoon() }
+        }
+        .onChange(of: model.isActionPanelOpen) {
+            model.isActionPanelOpen ? focusActionsSoon() : focusSearchSoon()
+        }
         .animation(.easeOut(duration: 0.12), value: model.results)
         .animation(.easeOut(duration: 0.12), value: model.state)
         .animation(.easeOut(duration: 0.1), value: model.isActionPanelOpen)
+    }
+
+    private func focusSearchSoon() {
+        focus = .search
+        DispatchQueue.main.async { focus = .search }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { focus = .search }
+    }
+
+    private func focusActionsSoon() {
+        focus = .actions
+        DispatchQueue.main.async { focus = .actions }
     }
 
     /// Cards only where they beat a list: clipboard history, which is the one thing here you
@@ -87,6 +107,26 @@ struct CommandView: View {
             return false
         }
         return model.results.allSatisfy { $0.kind == .clipboard }
+    }
+
+    private var isBrainLaunchpadWithClipboard: Bool {
+        guard case .empty = model.state,
+              model.mode != .clipboard,
+              model.mission == nil,
+              model.aiState == .idle else { return false }
+        return !brainEntries.isEmpty && !clipEntries.isEmpty
+    }
+
+    private var brainEntries: [(index: Int, result: SearchResult)] {
+        Array(model.results.enumerated()).compactMap { index, result in
+            result.id.hasPrefix("brain-") ? (index, result) : nil
+        }
+    }
+
+    private var clipEntries: [(index: Int, result: SearchResult)] {
+        Array(model.results.enumerated()).compactMap { index, result in
+            result.kind == .clipboard ? (index, result) : nil
+        }
     }
 
     private var showsBody: Bool {
@@ -128,17 +168,27 @@ struct CommandView: View {
         }
     }
 
+    private var emptyLaunchpadHeight: CGFloat {
+        let quickRows = CGFloat(min(brainEntries.count, SearchEngine.resultLimit))
+        let quick = quickRows * (Theme.rowHeight + 2) + 34
+        let carousel = ClipboardCarousel.cardHeight + 54
+        return min(quick + carousel, maximumBodyHeight)
+    }
+
     // MARK: - Search field
 
     private var searchField: some View {
         HStack(spacing: 13) {
             AppIconView(side: 26)
 
-            TextField(L("Search, calculate, convert, or type what you want to do"), text: $model.query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 21, weight: .regular))
-                .focused($focus, equals: .search)
-                .onSubmit { model.handle(.enter) }
+            CommandSearchField(
+                text: $model.query,
+                placeholder: L("Search, calculate, convert, or type what you want to do"),
+                focusSeed: model.focusToken,
+                wantsFocus: !model.isActionPanelOpen,
+                onSubmit: { model.handle(.enter) }
+            )
+            .frame(height: 28)
 
             if !model.query.isEmpty {
                 Button {
@@ -238,7 +288,7 @@ struct CommandView: View {
         VStack(spacing: 2) {
             if case .empty = model.state, !model.results.isEmpty {
                 HStack {
-                    Text(model.mode == .clipboard ? L("CLIPBOARD") : L("RECENT"))
+                    Text(model.mode == .clipboard ? L("CLIPBOARD") : L("BEBRAIN / RECENT"))
                         .font(.system(size: 9.5, weight: .semibold))
                         .tracking(0.8)
                         .foregroundStyle(.tertiary)
@@ -261,6 +311,48 @@ struct CommandView: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
+    }
+
+    private var emptyLaunchpad: some View {
+        ScrollView(.vertical) {
+            VStack(spacing: 0) {
+                sectionHeader(L("BEBRAIN QUICK ACTIONS"))
+                VStack(spacing: 2) {
+                    ForEach(brainEntries, id: \.result.id) { entry in
+                        ResultRow(result: entry.result, selected: entry.index == model.selection)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                model.select(entry.index)
+                                model.runSelected()
+                            }
+                            .onHover { inside in
+                                if inside, !model.isActionPanelOpen { model.select(entry.index) }
+                            }
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+
+                Divider().overlay(.white.opacity(0.07))
+                sectionHeader(L("CLIPBOARD HISTORY"))
+                    .padding(.top, 2)
+                ClipboardCarousel(model: model, entries: clipEntries)
+            }
+        }
+        .scrollIndicators(.never)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 9.5, weight: .semibold))
+                .tracking(0.8)
+                .foregroundStyle(.tertiary)
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Footer
@@ -306,6 +398,91 @@ struct CommandView: View {
         case .loading: L("Loading")
         case .noMatch: L("No results")
         case .failed: L("Error")
+        }
+    }
+}
+
+// MARK: - Search field bridge
+
+private struct CommandSearchField: NSViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let focusSeed: Int
+    let wantsFocus: Bool
+    let onSubmit: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, onSubmit: onSubmit)
+    }
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField()
+        field.delegate = context.coordinator
+        field.isBordered = false
+        field.isBezeled = false
+        field.drawsBackground = false
+        field.focusRingType = .none
+        field.font = .systemFont(ofSize: 21, weight: .regular)
+        field.textColor = .labelColor
+        field.placeholderString = placeholder
+        field.lineBreakMode = .byTruncatingTail
+        field.cell?.usesSingleLineMode = true
+        field.cell?.wraps = false
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        if field.stringValue != text { field.stringValue = text }
+        if field.placeholderString != placeholder { field.placeholderString = placeholder }
+        context.coordinator.text = $text
+        context.coordinator.onSubmit = onSubmit
+        context.coordinator.focus(field, seed: focusSeed, enabled: wantsFocus)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, NSTextFieldDelegate {
+        var text: Binding<String>
+        var onSubmit: () -> Void
+        private var lastFocusSeed: Int?
+
+        init(text: Binding<String>, onSubmit: @escaping () -> Void) {
+            self.text = text
+            self.onSubmit = onSubmit
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField else { return }
+            text.wrappedValue = field.stringValue
+        }
+
+        func control(_ control: NSControl, textView: NSTextView,
+                     doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                onSubmit()
+                return true
+            }
+            return false
+        }
+
+        func focus(_ field: NSTextField, seed: Int, enabled: Bool) {
+            guard enabled else { return }
+            let firstResponder = field.window?.firstResponder
+            let alreadyFocused = firstResponder === field.currentEditor()
+            guard lastFocusSeed != seed || !alreadyFocused else { return }
+            lastFocusSeed = seed
+            requestFocus(field)
+            DispatchQueue.main.async { self.requestFocus(field) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { self.requestFocus(field) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { self.requestFocus(field) }
+        }
+
+        private func requestFocus(_ field: NSTextField) {
+            guard let window = field.window, window.isVisible else { return }
+            window.makeFirstResponder(field)
+            if let editor = field.currentEditor() {
+                (editor as? NSTextView)?.insertionPointColor = NSColor.white
+                editor.selectedRange = NSRange(location: field.stringValue.count, length: 0)
+            }
         }
     }
 }
@@ -735,17 +912,29 @@ private struct QuickAction: View {
 @MainActor
 struct ClipboardCarousel: View {
     @Bindable var model: LauncherModel
+    let entries: [(index: Int, result: SearchResult)]?
+
+    init(model: LauncherModel, entries: [(index: Int, result: SearchResult)]? = nil) {
+        self.model = model
+        self.entries = entries
+    }
 
     static let cardWidth: CGFloat = 168
     static let cardHeight: CGFloat = 152
+
+    private var visibleEntries: [(index: Int, result: SearchResult)] {
+        entries ?? Array(model.results.enumerated()).map { ($0.offset, $0.element) }
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(Array(model.results.enumerated()), id: \.element.id) { index, result in
+                    ForEach(Array(visibleEntries.enumerated()), id: \.element.result.id) { position, entry in
+                        let index = entry.index
+                        let result = entry.result
                         ClipCard(result: result,
-                                 index: index,
+                                 index: position,
                                  selected: index == model.selection)
                             .id(index)
                             .onTapGesture {
@@ -768,6 +957,7 @@ struct ClipboardCarousel: View {
                 .padding(.vertical, 12)
             }
             .onChange(of: model.selection) { _, new in
+                guard visibleEntries.contains(where: { $0.index == new }) else { return }
                 withAnimation(.easeOut(duration: 0.16)) { proxy.scrollTo(new, anchor: .center) }
             }
         }

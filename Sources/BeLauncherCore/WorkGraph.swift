@@ -178,6 +178,17 @@ extension Store {
         }
     }
 
+    public func workEdges(limit: Int = 5_000) -> [WorkEdge] {
+        let rows = (try? database.query(
+            "SELECT * FROM work_edges ORDER BY at DESC LIMIT ?", [.int(Int64(limit))]
+        )) ?? []
+        return rows.compactMap { row in
+            guard let kind = WorkEdge.Kind(rawValue: row.string("kind")) else { return nil }
+            return WorkEdge(source: row.string("source"), target: row.string("target"),
+                            kind: kind, at: Date(timeIntervalSince1970: row.double("at")))
+        }
+    }
+
     public func clearWorkGraph() {
         try? database.execute("DELETE FROM work_nodes")
         try? database.execute("DELETE FROM work_edges")

@@ -121,14 +121,16 @@ struct KeyboardWorkflowTests {
         ])
     }
 
-    @Test("empty query shows recent clipboard items, and Enter copies one back")
+    @Test("empty query keeps brain actions and recent clipboard items")
     func recentClipboard() {
         let recorder = Recorder()
         let model = makeModel(clips: [Clip(id: 1, text: "copied earlier", sourceApp: "Xcode")], recorder: recorder)
         model.activate()
 
         #expect(model.state == .empty)
-        #expect(model.results.map(\.title) == ["copied earlier"])
+        #expect(model.results.first?.id == "brain-open")
+        let clipIndex = try! #require(model.results.firstIndex { $0.title == "copied earlier" })
+        model.select(clipIndex)
         model.handle(.enter)
         #expect(recorder.actions == [.copyToClipboard(text: "copied earlier", cursorOffset: nil), .dismiss])
     }

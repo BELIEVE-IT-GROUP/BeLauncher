@@ -65,6 +65,13 @@ const graph = ForceGraph()(document.getElementById("graph"))
   .linkDirectionalParticleSpeed(0.006)
   .linkDirectionalParticleColor(() => "rgba(158,215,255,0.95)")
   .nodeCanvasObjectMode(() => "replace")
+  .nodePointerAreaPaint((node, color, ctx) => {
+    // Hit target, not visual size. The drawn dots stay precise, but a small node is now clickable
+    // like a real control instead of a six-pixel bullseye.
+    const r = Math.max(12, Math.sqrt(node.weight || 1) * 5.5);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(node.x, node.y, r, 0, Math.PI * 2); ctx.fill();
+  })
   .nodeCanvasObject((node, ctx, globalScale) => {
     const visual = VISUALS[node.type] || VISUALS.thing;
     const r = Math.max(4, Math.sqrt(node.weight || 1) * 2.4);
