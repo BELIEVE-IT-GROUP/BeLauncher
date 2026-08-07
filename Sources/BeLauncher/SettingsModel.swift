@@ -7,6 +7,7 @@ import BeLauncherCore
 final class SettingsModel {
     let store: Store
     var onHotKeyChange: (String) -> Void = { _ in }
+    var onCallAudioSourceChange: (CallAudioSource) -> Void = { _ in }
     var onClipboardToggle: (Bool) -> Void = { _ in } {
         // Whoever sets this is the only thing that can really start or stop the watcher, and it is
         // set after `init`, so the pause read from disk at startup was announced to nobody. Every
@@ -37,6 +38,13 @@ final class SettingsModel {
     var onLanguageChange: () -> Void = {}
 
     var hotkey: String { didSet { store.setSetting("hotkey", hotkey); onHotKeyChange(hotkey) } }
+    var callAudioSource: CallAudioSource {
+        didSet {
+            guard callAudioSource != oldValue else { return }
+            store.setSetting("call_audio_source", callAudioSource.rawValue)
+            onCallAudioSourceChange(callAudioSource)
+        }
+    }
     // Goes through `applyCaptureState` rather than the hook directly: turning the clipboard on
     // while capture is paused used to start the watcher anyway.
     var clipboardEnabled: Bool { didSet { store.setSetting("clipboard_enabled", clipboardEnabled); applyCaptureState() } }
@@ -227,6 +235,7 @@ final class SettingsModel {
         language = Language.resolve(stored: store.setting("ui_language"),
                                     systemPreferred: Locale.preferredLanguages)
         hotkey = store.setting("hotkey") ?? HotKey.Combo.all[0].label
+        callAudioSource = CallAudioSource(rawValue: store.setting("call_audio_source") ?? "") ?? .automatic
         clipboardEnabled = store.setting("clipboard_enabled", default: true)
         retentionDays = store.setting("clipboard_retention_days", default: 30)
         maxItems = store.setting("clipboard_max_items", default: 500)

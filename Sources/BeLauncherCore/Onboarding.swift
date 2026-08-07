@@ -16,6 +16,7 @@ public enum Onboarding {
             case screen
             case calendar
             case notifications
+            case microphone
             case clipboard
             case updates
             case launchAtLogin
@@ -97,6 +98,13 @@ public enum Onboarding {
                   accesses: L("Nothing. It only allows showing a notice."),
                   ifYouSayNo: L("Flows work; timers do not announce themselves."),
                   symbol: "bell", isSystemPermission: true, recommended: false),
+
+            .init(kind: .microphone,
+                  title: L("Voice notes and dictation"),
+                  unlocks: L("Record a voice note or dictate into any app with a global shortcut. Audio stays on this Mac."),
+                  accesses: L("The microphone only while you explicitly record or dictate. There is no background listening."),
+                  ifYouSayNo: L("The launcher and Brain work normally. Voice notes and dictation stay off."),
+                  symbol: "mic", isSystemPermission: true, recommended: false),
 
             .init(kind: .launchAtLogin,
                   title: L("Open at login"),

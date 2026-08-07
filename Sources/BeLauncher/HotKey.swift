@@ -26,6 +26,20 @@ final class HotKey {
         static let screenAction = Combo(keyCode: 49,
                                         carbonModifiers: UInt32(optionKey | shiftKey),
                                         label: "⌥⇧ Espacio")
+
+        /// Starts/stops a voice note without opening the launcher.
+        static let voiceNote = Combo(keyCode: 9,
+                                     carbonModifiers: UInt32(cmdKey | optionKey),
+                                     label: "⌥⌘ V")
+
+        /// Dictates into the app that was active when the shortcut was pressed.
+        static let dictation = Combo(keyCode: 2,
+                                     carbonModifiers: UInt32(cmdKey | optionKey),
+                                     label: "⌥⌘ D")
+
+        static let callRecording = Combo(keyCode: 8,
+                                         carbonModifiers: UInt32(cmdKey | optionKey),
+                                         label: "⌥⌘ C")
     }
 
     private static var handlers: [UInt32: () -> Void] = [:]

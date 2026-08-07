@@ -24,6 +24,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: HotKey?
     private var clipboardHotKey: HotKey?
     private var screenHotKey: HotKey?
+    private var voiceNoteHotKey: HotKey?
+    private var dictationHotKey: HotKey?
+    private var callHotKey: HotKey?
+    private var audioCapture: AudioCaptureController?
+    private var callCapture: CallCaptureController?
+    private var callReviewWindow: NSWindow?
+    private var callReviewModel: CallReviewModel?
+    private var audioItem: NSMenuItem?
+    private var callItem: NSMenuItem?
+    private var callSuggestionItem: NSMenuItem?
     /// Whoever was in front when the launcher was summoned.
     private var appBeforePanel: NSRunningApplication?
     private var clipboard: ClipboardWatcher?
@@ -204,6 +214,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installEditMenu()
         installServices()
         installStatusItem()
+        audioCapture = AudioCaptureController(
+            notify: { [weak self] message in self?.setAudioStatus(message) },
+            onSaved: { [weak self] in self?.refreshBrain(force: true) })
+        callCapture = CallCaptureController(
+            notify: { [weak self] message in self?.setCallStatus(message) },
+            onCompleted: { [weak self] title, transcript in
+                self?.openCallReview(title: title, transcript: transcript)
+            },
+            onSaved: { [weak self] in self?.refreshBrain(force: true) },
+            source: CallAudioSource(rawValue: store.setting("call_audio_source") ?? "") ?? .automatic)
+        callCapture?.onSuggestionChange = { [weak self] in self?.refreshCallSuggestion() }
+        refreshCallSuggestion()
+        AudioCaptureController.pruneRecordings()
         announceUpdateIfAny()
         installKeyMonitor()
         registerHotKey(named: store.setting("hotkey") ?? HotKey.Combo.all[0].label)
@@ -366,6 +389,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKey?.invalidate()
         clipboardHotKey?.invalidate()
         screenHotKey?.invalidate()
+        voiceNoteHotKey?.invalidate()
+        dictationHotKey?.invalidate()
+        callHotKey?.invalidate()
         clipboard?.stop()
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor) }
     }
@@ -500,6 +526,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         open.target = self
         menu.addItem(open)
 
+        let voice = NSMenuItem(title: L("Record voice note"), action: #selector(toggleVoiceNote), keyEquivalent: "")
+        voice.target = self
+        menu.addItem(voice)
+        audioItem = voice
+        let dictate = NSMenuItem(title: L("Dictate to current app"), action: #selector(toggleDictation), keyEquivalent: "")
+        dictate.target = self
+        menu.addItem(dictate)
+        let call = NSMenuItem(title: L("Record call"), action: #selector(toggleCallRecording), keyEquivalent: "")
+        call.target = self
+        menu.addItem(call)
+        callItem = call
+        let suggestion = NSMenuItem(title: "", action: #selector(toggleCallRecording), keyEquivalent: "")
+        suggestion.target = self
+        suggestion.isHidden = true
+        menu.addItem(suggestion)
+        callSuggestionItem = suggestion
+
         // Hidden until there is something to say. An update the person has to go looking for in
         // Settings is not an announcement.
         let update = NSMenuItem(title: "", action: #selector(openSettings), keyEquivalent: "")
@@ -537,6 +580,69 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quit)
         item.menu = menu
         statusItem = item
+    }
+
+    @objc private func toggleVoiceNote() {
+        audioCapture?.toggleVoiceNote()
+    }
+
+    @objc private func toggleDictation() {
+        audioCapture?.toggleDictation()
+    }
+
+    @objc private func toggleCallRecording() {
+        callCapture?.toggle()
+    }
+
+    private func setAudioStatus(_ message: String) {
+        audioItem?.title = audioCapture?.isRecording == true
+            ? L("Stop voice note") : L("Record voice note")
+        statusItem?.button?.toolTip = message
+    }
+
+    private func setCallStatus(_ message: String) {
+        callItem?.title = callCapture?.isRecording == true
+            ? L("Stop call recording") : L("Record call")
+        statusItem?.button?.toolTip = message
+    }
+
+    private func refreshCallSuggestion() {
+        guard let item = callSuggestionItem, let capture = callCapture,
+              !capture.isRecording, let app = capture.suggestedAppName else {
+            callSuggestionItem?.isHidden = true
+            return
+        }
+        item.isHidden = false
+        item.title = capture.likelyInCall
+            ? L("Possible call in %@ — record", app)
+            : L("%@ is open — record call", app)
+    }
+
+    private func openCallReview(title: String, transcript: String) {
+        let review = CallReviewModel(title: title, transcript: transcript) { [weak self] prompt in
+            guard let self else { throw IntelligenceError.noProviderConfigured }
+            return try await self.askModel(prompt, sensitivity: .confidential)
+        } save: { [weak self] title, analysis in
+            guard let self else { return }
+            let inbox = QuickNote.folder(inVaultAt: Vault.defaultRoot())
+            try FileManager.default.createDirectory(atPath: inbox, withIntermediateDirectories: true)
+            let noteTitle = "\(title) - actions"
+            let path = (inbox as NSString).appendingPathComponent(QuickNote.filename(for: noteTitle))
+            try QuickNote.renderEvidence(title: noteTitle, text: analysis)
+                .write(toFile: path, atomically: true, encoding: .utf8)
+            self.refreshBrain(force: true)
+        }
+        callReviewModel = review
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 920, height: 650),
+            styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
+        window.title = title
+        window.contentViewController = NSHostingController(rootView: CallReviewView(model: review))
+        window.isReleasedWhenClosed = false
+        place(window)
+        callReviewWindow = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
     }
 
     @objc private func toggleAwake() {
@@ -648,8 +754,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ⌥C opens straight into clipboard history.
         clipboardHotKey?.invalidate()
         screenHotKey?.invalidate()
+        voiceNoteHotKey?.invalidate()
+        dictationHotKey?.invalidate()
+        callHotKey?.invalidate()
         screenHotKey = HotKey(combo: .screenAction) { [weak self] in
             self?.readScreenAndOffer()
+        }
+        voiceNoteHotKey = HotKey(combo: .voiceNote) { [weak self] in
+            self?.audioCapture?.toggleVoiceNote()
+        }
+        dictationHotKey = HotKey(combo: .dictation) { [weak self] in
+            self?.audioCapture?.toggleDictation()
+        }
+        callHotKey = HotKey(combo: .callRecording) { [weak self] in
+            self?.callCapture?.toggle()
         }
         clipboardHotKey = HotKey(combo: .clipboardHistory) { [weak self] in
             self?.togglePanel(mode: .clipboard)
@@ -715,6 +833,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsModel.calendar = calendar
         settingsModel.onRequestNotifications = { [weak self] in self?.requestNotifications() }
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
+        settingsModel.onCallAudioSourceChange = { [weak self] source in self?.callCapture?.source = source }
         settingsModel.onClipboardToggle = { [weak self] enabled in
             enabled ? self?.clipboard?.start() : self?.clipboard?.stop()
         }
@@ -965,6 +1084,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .accessibility: Permissions.accessibilityGranted
         case .automation: Permissions.automationGranted()
         case .calendar: calendar.isAuthorised
+        case .microphone: Permissions.microphoneGranted
         case .screen: ScreenCapture.screenRecordingGranted
         case .notifications, .clipboard, .updates, .launchAtLogin: true
         }

@@ -19,7 +19,7 @@ struct SettingsView: View {
     /// as "there are four more sections in here". A sidebar shows all seven at once and has room
     /// for a subtitle, which is where most of the "what is this even for" went.
     enum Section: String, CaseIterable, Identifiable {
-        case general, intelligence, clipboard, commands, agents, memory, privacy, content, brain,
+        case general, intelligence, voice, clipboard, commands, agents, memory, privacy, content, brain,
              data
         var id: String { rawValue }
 
@@ -27,6 +27,7 @@ struct SettingsView: View {
             switch self {
             case .general: L("General")
             case .intelligence: L("Intelligence")
+            case .voice: L("Voice and calls")
             case .clipboard: L("Clipboard")
             case .commands: L("What I can type")
             case .agents: L("Errands")
@@ -42,6 +43,7 @@ struct SettingsView: View {
             switch self {
             case .general: L("Shortcut, startup, licence")
             case .intelligence: L("Which model answers, and with whose key")
+            case .voice: L("Voice notes, dictation and calls")
             case .clipboard: L("What gets saved and what does not")
             case .commands: L("Everything the window understands")
             case .agents: L("“/” commands and missions in flight")
@@ -57,6 +59,7 @@ struct SettingsView: View {
             switch self {
             case .general: "gearshape"
             case .intelligence: "sparkles"
+            case .voice: "mic"
             case .clipboard: "doc.on.clipboard"
             case .commands: "command"
             case .agents: "terminal"
@@ -95,6 +98,7 @@ struct SettingsView: View {
                 switch selection {
                 case .general: GeneralTab(model: model)
                 case .intelligence: IntelligenceTab(model: model)
+                case .voice: VoiceTab(model: model)
                 case .clipboard: ClipboardTab(model: model)
                 case .commands: CommandsTab()
                 case .agents: AgentsTab(model: model)
@@ -530,6 +534,112 @@ private struct CommandsTab: View {
             Text(hint)
                 .font(.system(size: 10.5, design: .monospaced))
                 .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - Voice
+
+@MainActor
+private struct VoiceTab: View {
+    @Bindable var model: SettingsModel
+    @State private var qwen = QwenASRInstaller()
+    @State private var microphoneGranted = Permissions.microphoneGranted
+    @StateObject private var callDetector = CallAppDetector()
+
+    var body: some View {
+        Form {
+            Section(L("Voice notes and dictation")) {
+                Label(L("Record from any app with ⌥⌘V. Qwen runs in a separate local process; the launcher stays instant."),
+                      systemImage: "mic")
+                    .font(.caption).foregroundStyle(.secondary)
+                LabeledContent(L("Microphone")) {
+                    Label(microphoneGranted ? L("Ready") : L("Permission needed"),
+                          systemImage: microphoneGranted ? "checkmark.circle.fill" : "exclamationmark.circle")
+                        .foregroundStyle(microphoneGranted ? .green : .orange)
+                }
+                Button {
+                    Task { microphoneGranted = await Permissions.requestMicrophone() }
+                } label: {
+                    Label(L("Allow microphone"), systemImage: "mic.badge.plus")
+                }
+                .disabled(microphoneGranted)
+            }
+
+            Section(L("Qwen3-ASR · MLX")) {
+                Picker(L("Model"), selection: $qwen.selectedModel) {
+                    Text(L("0.6B · Fast")).tag(QwenASRInstaller.smallModel)
+                    Text(L("1.7B · High quality")).tag(QwenASRInstaller.largeModel)
+                }
+                .disabled(qwen.isInstalling)
+
+                Text(status)
+                    .font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    if qwen.isInstalling {
+                        ProgressView().controlSize(.small)
+                        Button { qwen.cancel() } label: {
+                            Label(L("Cancel"), systemImage: "xmark")
+                        }
+                    } else {
+                        Button {
+                            qwen.install()
+                        } label: {
+                            Label(qwen.isReady ? L("Reinstall model") : L("Download Qwen3-ASR"),
+                                  systemImage: qwen.isReady ? "arrow.clockwise" : "arrow.down.circle")
+                        }
+                    }
+                }
+            }
+
+            Section(L("Shortcuts")) {
+                shortcutRow(L("Voice note"), key: "⌥⌘V", symbol: "waveform")
+                shortcutRow(L("Dictation"), key: "⌥⌘D", symbol: "text.cursor")
+                shortcutRow(L("Call recording"), key: "⌥⌘C", symbol: "phone.badge.waveform")
+                Text(L("The same capture engine will handle dictation and call recording. Nothing listens until you start it."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            Section(L("Call audio")) {
+                Picker(L("Capture source"), selection: $model.callAudioSource) {
+                    ForEach(CallAudioSource.allCases) { source in
+                        Text(source.title).tag(source)
+                    }
+                }
+                if model.callAudioSource == .automatic, let app = callDetector.suggestedAppName {
+                    Label(L("Suggested source: %@", app), systemImage: "sparkles")
+                        .font(.caption).foregroundStyle(Theme.accent)
+                }
+                LabeledContent(L("Microphone"), value: microphoneGranted ? L("Ready") : L("Permission needed"))
+                LabeledContent(L("System audio"), value: SystemAudioCapture.permissionGranted ? L("Ready") : L("Permission needed"))
+                Text(L("Call recording needs Screen Recording permission to capture the other participants. Audio is kept as separate local evidence."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear {
+            qwen.refresh()
+            microphoneGranted = Permissions.microphoneGranted
+            callDetector.start()
+        }
+    }
+
+    private func shortcutRow(_ title: String, key: String, symbol: String) -> some View {
+        LabeledContent {
+            Text(key).font(.system(.body, design: .monospaced)).foregroundStyle(.secondary)
+        } label: {
+            Label(title, systemImage: symbol)
+        }
+    }
+
+    private var status: String {
+        switch qwen.phase {
+        case .unknown: return L("Checking local ASR…")
+        case .unavailable: return L("Qwen ASR needs an Apple Silicon Mac.")
+        case .notInstalled: return L("Not installed. Apple Speech remains available as a fallback.")
+        case .installing: return L("Installing the local runtime and downloading model weights…")
+        case .ready: return L("Ready. Audio stays on this Mac.")
+        case .failed(let message): return L("Qwen ASR could not be installed: %@", message)
         }
     }
 }

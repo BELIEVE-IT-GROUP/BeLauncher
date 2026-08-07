@@ -1,11 +1,21 @@
 import AppKit
 import ApplicationServices
+import AVFoundation
 
 /// BeLauncher asks for exactly one optional permission, and only at the moment it is needed.
 /// Search, snippets, clipboard history and workflows all work without it.
 @MainActor
 enum Permissions {
     static var accessibilityGranted: Bool { AXIsProcessTrusted() }
+
+    static var microphoneGranted: Bool {
+        AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
+
+    @discardableResult
+    static func requestMicrophone() async -> Bool {
+        await AVCaptureDevice.requestAccess(for: .audio)
+    }
 
     /// The one the app leaned on hardest and never mentioned.
     ///

@@ -226,6 +226,12 @@ private struct CapabilityCard: View {
         case .notifications:
             Binding(get: { model.notificationsGranted },
                     set: { if $0 { model.requestNotifications() } })
+        case .microphone:
+            Binding(get: { Permissions.microphoneGranted },
+                    set: { wanted in
+                        guard wanted else { return }
+                        Task { @MainActor in _ = await Permissions.requestMicrophone() }
+                    })
         }
     }
 }
