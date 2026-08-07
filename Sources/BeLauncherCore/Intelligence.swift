@@ -289,8 +289,10 @@ public struct IntelligenceClient: Sendable {
         var body: [String: Any] = [
             "model": model,
             "messages": messages,
-            "max_tokens": request.maxTokens,
         ]
+        // GPT-5 rejects the legacy max_tokens name. Keep the old field for local
+        // OpenAI-compatible servers, which still expect it.
+        body[provider.id == "openai" ? "max_completion_tokens" : "max_tokens"] = request.maxTokens
         if streaming { body["stream"] = true }
         if provider.id == "anthropic", !request.system.isEmpty {
             body["system"] = request.system

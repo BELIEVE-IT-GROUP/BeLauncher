@@ -77,6 +77,21 @@ struct IntelligenceTests {
         #expect(request.value(forHTTPHeaderField: "x-api-key") == nil)
     }
 
+    @Test("OpenAI GPT-5 uses the current completion limit parameter")
+    func openAIUsesCompletionTokens() throws {
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                        keyLookup: { _ in "sk-user-own" })
+        let openAI = try #require(IntelligenceProvider.named("openai"))
+        let request = try client.build(
+            IntelligenceRequest(prompt: "Hola", maxTokens: 20),
+            provider: openAI, model: "gpt-5"
+        )
+        let body = try #require(request.httpBody)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["max_completion_tokens"] as? Int == 20)
+        #expect(json["max_tokens"] == nil)
+    }
+
     @Test("a missing key is named, not swallowed")
     func missingKey() {
         let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
