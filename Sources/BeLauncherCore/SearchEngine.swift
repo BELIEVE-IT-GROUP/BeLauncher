@@ -617,8 +617,9 @@ public enum SearchEngine {
         return !words.isDisjoint(with: triggers)
     }
 
-    /// Recent clips shown when the window opens with an empty query.
-    public static func recents(_ clips: [Clip], limit: Int = resultLimit) -> [SearchResult] {
+    /// Recent clips shown when the window opens with an empty query. Unlike typed search, this is
+    /// the clipboard history surface, so it keeps every clip the store retained.
+    public static func recents(_ clips: [Clip], limit: Int = 1_000) -> [SearchResult] {
         clips.prefix(limit).map { clip in
             SearchResult(
                 id: "clip-\(clip.id)", kind: .clipboard, title: preview(clip.text),

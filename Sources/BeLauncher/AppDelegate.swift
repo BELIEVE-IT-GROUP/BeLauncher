@@ -123,7 +123,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     applications: self.appIndex.applications,
                     snippets: store.snippets(),
                     workflows: store.workflows(),
-                    clips: store.clips(limit: 300),
+                    // The empty launchpad is a horizontal history surface: it must be able to
+                    // reach every retained clip. LazyHStack keeps the cards cheap to render.
+                    clips: store.clips(limit: 1_000),
                     flows: store.flows(),
                     applicationUses: store.applicationUses(),
                     aliases: store.aliases(),

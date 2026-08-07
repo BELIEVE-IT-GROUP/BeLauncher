@@ -101,6 +101,12 @@ struct RichClipboardTests {
         #expect(results.first?.recordID == 2)
     }
 
+    @Test("the empty clipboard surface keeps the whole retained history")
+    func recentsDoNotCollapseToSearchLimit() {
+        let clips = (0..<20).map { Clip(id: Int64($0), text: "clip \($0)") }
+        #expect(SearchEngine.recents(clips).count == 20)
+    }
+
     @Test("pinning from the action panel goes through the store")
     func pinAction() {
         var pinned: [(Bool, Int64)] = []

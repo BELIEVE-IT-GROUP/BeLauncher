@@ -929,7 +929,7 @@ struct ClipboardCarousel: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                LazyHStack(spacing: 10) {
                     ForEach(Array(visibleEntries.enumerated()), id: \.element.result.id) { position, entry in
                         let index = entry.index
                         let result = entry.result
