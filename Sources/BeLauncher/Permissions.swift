@@ -1,7 +1,6 @@
 import AppKit
 import ApplicationServices
 import AVFoundation
-import AVFAudio
 
 /// BeLauncher asks for exactly one optional permission, and only at the moment it is needed.
 /// Search, snippets, clipboard history and workflows all work without it.
@@ -27,11 +26,11 @@ enum Permissions {
         case .authorized:
             return true
         case .notDetermined:
-            let granted = await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { granted in
-                    continuation.resume(returning: granted)
-                }
-            }
+            // AVAudioRecorder is the capture API used by notes, dictation and calls. Asking
+            // through AVCaptureDevice keeps the TCC request tied to the actual input device;
+            // AVAudioApplication can report a decision without creating the Microphone row for
+            // a menu-bar agent on some macOS releases.
+            let granted = await AVCaptureDevice.requestAccess(for: .audio)
             if !granted { openMicrophoneSettings() }
             return granted
         case .denied, .restricted:

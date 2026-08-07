@@ -32,6 +32,8 @@ final class QwenASRInstaller {
 
     var python: URL { root.appendingPathComponent(".venv/bin/python3") }
 
+    private var modelMarker: URL { Self.modelMarker(for: selectedModel, root: root) }
+
     var isAvailable: Bool {
         #if arch(arm64)
         return true
@@ -42,7 +44,8 @@ final class QwenASRInstaller {
 
     func refresh() {
         guard isAvailable else { phase = .unavailable; return }
-        phase = FileManager.default.isExecutableFile(atPath: python.path)
+        phase = FileManager.default.isExecutableFile(atPath: python.path) &&
+                FileManager.default.fileExists(atPath: modelMarker.path)
             ? .ready(model: selectedModel) : .notInstalled
     }
 
@@ -58,15 +61,18 @@ final class QwenASRInstaller {
                 // bootstrapper; it downloads Python 3.12 into BeLauncher's support folder and
                 // never changes the user's system Python or shell configuration.
                 let uv = try await Self.ensureUV(at: root)
-                try await Self.run(uv.path, ["python", "install", "3.12"])
-                try await Self.run(uv.path, ["venv", python.deletingLastPathComponent().path,
-                                              "--python", "3.12"])
+                if !FileManager.default.isExecutableFile(atPath: python.path) {
+                    try await Self.run(uv.path, ["python", "install", "3.12"])
+                    try await Self.run(uv.path, ["venv", python.deletingLastPathComponent().path,
+                                                  "--python", "3.12"])
+                }
                 try await Self.run(uv.path, ["pip", "install", "--python", python.path,
                                               "--upgrade", "qwen3-asr-mlx"])
                 // Download the selected weights now, while the person can see progress in Settings.
                 let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; Qwen3ASR.from_pretrained(sys.argv[1])"
                 try await Self.run(python.path, ["-c", code, selectedModel])
                 guard !Task.isCancelled else { return }
+                try Data(selectedModel.utf8).write(to: modelMarker, options: .atomic)
                 phase = .ready(model: selectedModel)
             } catch is CancellationError {
                 phase = .notInstalled
@@ -97,16 +103,27 @@ final class QwenASRInstaller {
         if case .notInstalled = phase { install() }
     }
 
+    nonisolated static func modelMarker(for model: String, root: URL) -> URL {
+        let safe = model.replacingOccurrences(of: "/", with: "-")
+        return root.appendingPathComponent(".model-\(safe).installed")
+    }
+
     private static func run(_ executable: String, _ arguments: [String]) async throws {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
+            let errorPipe = Pipe()
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = arguments
             process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
+            process.standardError = errorPipe
             process.terminationHandler = { process in
-                if process.terminationStatus == 0 { continuation.resume() }
-                else { continuation.resume(throwing: Failure.exit(process.terminationStatus)) }
+                guard process.terminationStatus != 0 else {
+                    continuation.resume(); return
+                }
+                let data = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                let stderr = String(data: data, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                continuation.resume(throwing: Failure.exit(process.terminationStatus, stderr))
             }
             do { try process.run() }
             catch { continuation.resume(throwing: error) }
@@ -142,11 +159,13 @@ final class QwenASRInstaller {
     }
 
     private enum Failure: LocalizedError {
-        case exit(Int32), download
+        case exit(Int32, String), download
         var errorDescription: String? {
             switch self {
-            case .exit(let code): "Qwen ASR installer exited with code \(code)."
-            case .download: "Could not download the local voice runtime."
+            case .exit(let code, let stderr):
+                let detail = stderr.isEmpty ? "" : "\n\(stderr.suffix(2400))"
+                return "Qwen ASR installer exited with code \(code).\(detail)"
+            case .download: return "Could not download the local voice runtime."
             }
         }
     }
@@ -157,7 +176,9 @@ enum QwenASRRuntime {
         let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("BeLauncher/ASR", isDirectory: true)
         let python = root.appendingPathComponent(".venv/bin/python3")
-        guard FileManager.default.isExecutableFile(atPath: python.path) else {
+        guard FileManager.default.isExecutableFile(atPath: python.path),
+              FileManager.default.fileExists(atPath: QwenASRInstaller.modelMarker(for: model, root: root).path)
+        else {
             throw Failure.notInstalled
         }
         let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; print(Qwen3ASR.from_pretrained(sys.argv[2]).transcribe(sys.argv[1]).text)"
