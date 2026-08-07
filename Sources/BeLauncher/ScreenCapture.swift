@@ -136,6 +136,9 @@ enum ScreenCapture {
     }
 
     static func requestScreenRecording() {
-        CGRequestScreenCaptureAccess()
+        if screenRecordingGranted { return }
+        if !CGRequestScreenCaptureAccess() {
+            Permissions.openScreenRecordingSettings()
+        }
     }
 }

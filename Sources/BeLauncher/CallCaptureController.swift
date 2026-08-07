@@ -48,7 +48,7 @@ final class CallCaptureController: NSObject, AVAudioRecorderDelegate {
         guard !isRecording else { return }
         Task { @MainActor [weak self] in
             guard let self else { return }
-            guard await AVCaptureDevice.requestAccess(for: .audio) else {
+            guard await Permissions.requestMicrophone() else {
                 notify(L("Microphone permission is needed for a call recording.")); return
             }
             guard SystemAudioCapture.permissionGranted else {

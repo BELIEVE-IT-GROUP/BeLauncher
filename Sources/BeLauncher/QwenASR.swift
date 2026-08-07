@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 /// Owns the optional MLX runtime outside BeLauncher's process. The launcher must remain a small
 /// menu-bar agent even when a 1.7B model is loaded, so all Python and model memory live here.
@@ -8,6 +9,7 @@ final class QwenASRInstaller {
     enum Phase: Equatable {
         case unknown
         case unavailable
+        case pythonMissing
         case notInstalled
         case installing
         case ready(model: String)
@@ -16,6 +18,7 @@ final class QwenASRInstaller {
 
     static let smallModel = "mlx-community/Qwen3-ASR-0.6B-bf16"
     static let largeModel = "mlx-community/Qwen3-ASR-1.7B-bf16"
+    static let requiredPython = "3.10–3.13"
 
     private(set) var phase: Phase = .unknown
     var selectedModel = QwenASRInstaller.smallModel
@@ -38,19 +41,21 @@ final class QwenASRInstaller {
 
     func refresh() {
         guard isAvailable else { phase = .unavailable; return }
+        guard Self.systemPython != nil else { phase = .pythonMissing; return }
         phase = FileManager.default.isExecutableFile(atPath: python.path)
             ? .ready(model: selectedModel) : .notInstalled
     }
 
     func install() {
         guard isAvailable, !isInstalling else { return }
+        guard let systemPython = Self.systemPython else { phase = .pythonMissing; return }
         task?.cancel()
         phase = .installing
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             do {
                 try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-                try await Self.run(Self.systemPython, ["-m", "venv", python.deletingLastPathComponent().path])
+                try await Self.run(systemPython.path, ["-m", "venv", python.deletingLastPathComponent().path])
                 try await Self.run(python.path, ["-m", "pip", "install", "--upgrade", "qwen3-asr-mlx"])
                 // Download the selected weights now, while the person can see progress in Settings.
                 let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; Qwen3ASR.from_pretrained(sys.argv[1])"
@@ -81,6 +86,10 @@ final class QwenASRInstaller {
         return false
     }
 
+    func openPythonDownload() {
+        NSWorkspace.shared.open(URL(string: "https://www.python.org/downloads/macos/")!)
+    }
+
     private static func run(_ executable: String, _ arguments: [String]) async throws {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
@@ -97,9 +106,42 @@ final class QwenASRInstaller {
         }
     }
 
-    private static var systemPython: String {
-        let candidates = ["/opt/homebrew/bin/python3", "/usr/local/bin/python3", "/usr/bin/python3"]
-        return candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) ?? "/usr/bin/python3"
+    private static var systemPython: URL? {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let candidates = [
+            "/opt/homebrew/bin/python3",
+            "/usr/local/bin/python3",
+            "/Library/Frameworks/Python.framework/Versions/Current/bin/python3",
+            "\(home)/.pyenv/shims/python3",
+            "\(home)/.local/bin/python3",
+            "/usr/bin/python3",
+        ]
+        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
+            let candidate = URL(fileURLWithPath: path)
+            if compatiblePython(at: candidate) { return candidate }
+        }
+        return nil
+    }
+
+    private static func compatiblePython(at url: URL) -> Bool {
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = url
+        process.arguments = ["-c", "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')"]
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return false
+        }
+        guard process.terminationStatus == 0,
+              let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
+        else { return false }
+        let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ".")
+        guard parts.count == 2, let major = Int(parts[0]), let minor = Int(parts[1]) else { return false }
+        return major == 3 && (10...13).contains(minor)
     }
 
     private enum Failure: LocalizedError {

@@ -155,6 +155,7 @@ struct WelcomeView: View {
 private struct CapabilityCard: View {
     let capability: Onboarding.Capability
     let model: SettingsModel
+    @State private var permissionRevision = 0
 
     var body: some View {
         GroupBox {
@@ -190,6 +191,9 @@ private struct CapabilityCard: View {
             }
             .padding(6)
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            permissionRevision += 1
+        }
     }
 
     /// System permissions cannot be switched on from here — macOS has to ask. Flipping the toggle
@@ -204,34 +208,45 @@ private struct CapabilityCard: View {
         case .launchAtLogin:
             Binding(get: { model.launchAtLogin }, set: { model.launchAtLogin = $0 })
         case .accessibility:
-            Binding(get: { Permissions.accessibilityGranted },
-                    set: { if $0 { Permissions.requestAccessibility(
-                        reason: capability.unlocks) } })
+            Binding(get: { _ = permissionRevision; return Permissions.accessibilityGranted },
+                    set: { if $0 {
+                        Permissions.requestAccessibility(reason: capability.unlocks)
+                        refreshPermissionState()
+                    } })
         case .automation:
             // Asking macOS with askUserIfNeeded triggers the real prompt. If the person already
             // said no once, macOS will not ask again, so the pane is opened for them.
-            Binding(get: { Permissions.automationGranted() },
+            Binding(get: { _ = permissionRevision; return Permissions.automationGranted() },
                     set: { wanted in
                         guard wanted else { return }
                         if !Permissions.automationGranted(askUserIfNeeded: true) {
                             Permissions.openAutomationSettings()
                         }
+                        refreshPermissionState()
                     })
         case .screen:
-            Binding(get: { ScreenCapture.screenRecordingGranted },
-                    set: { if $0 { ScreenCapture.requestScreenRecording() } })
+            Binding(get: { _ = permissionRevision; return ScreenCapture.screenRecordingGranted },
+                    set: { if $0 { ScreenCapture.requestScreenRecording(); refreshPermissionState() } })
         case .calendar:
-            Binding(get: { model.calendarGranted },
-                    set: { if $0 { model.requestCalendar() } })
+            Binding(get: { _ = permissionRevision; return model.calendarGranted },
+                    set: { if $0 { model.requestCalendar(); refreshPermissionState() } })
         case .notifications:
-            Binding(get: { model.notificationsGranted },
-                    set: { if $0 { model.requestNotifications() } })
+            Binding(get: { _ = permissionRevision; return model.notificationsGranted },
+                    set: { if $0 { model.requestNotifications(); refreshPermissionState() } })
         case .microphone:
-            Binding(get: { Permissions.microphoneGranted },
+            Binding(get: { _ = permissionRevision; return Permissions.microphoneGranted },
                     set: { wanted in
                         guard wanted else { return }
                         Task { @MainActor in _ = await Permissions.requestMicrophone() }
+                        refreshPermissionState()
                     })
+        }
+    }
+
+    private func refreshPermissionState() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            permissionRevision += 1
         }
     }
 }

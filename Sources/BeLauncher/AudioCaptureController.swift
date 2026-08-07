@@ -60,7 +60,7 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
         self.shouldPaste = shouldPaste
         Task { @MainActor [weak self] in
             guard let self else { return }
-            guard await Self.requestMicrophone() else {
+            guard await Permissions.requestMicrophone() else {
                 notify(L("Microphone permission is needed for a voice note."))
                 return
             }
@@ -149,14 +149,6 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
             } catch {
                 state = .idle
                 notify(L("Voice note could not be transcribed: %@", error.localizedDescription))
-            }
-        }
-    }
-
-    private static func requestMicrophone() async -> Bool {
-        await withCheckedContinuation { continuation in
-            AVCaptureDevice.requestAccess(for: .audio) { granted in
-                continuation.resume(returning: granted)
             }
         }
     }

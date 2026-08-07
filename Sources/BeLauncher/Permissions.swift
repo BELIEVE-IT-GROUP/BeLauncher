@@ -12,9 +12,37 @@ enum Permissions {
         AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     }
 
+    static var microphoneStatus: AVAuthorizationStatus {
+        AVCaptureDevice.authorizationStatus(for: .audio)
+    }
+
     @discardableResult
     static func requestMicrophone() async -> Bool {
-        await AVCaptureDevice.requestAccess(for: .audio)
+        switch microphoneStatus {
+        case .authorized:
+            return true
+        case .notDetermined:
+            return await AVCaptureDevice.requestAccess(for: .audio)
+        case .denied, .restricted:
+            openMicrophoneSettings()
+            return false
+        @unknown default:
+            openMicrophoneSettings()
+            return false
+        }
+    }
+
+    static func openMicrophoneSettings() {
+        openPrivacyPane("Privacy_Microphone")
+    }
+
+    static func openScreenRecordingSettings() {
+        openPrivacyPane("Privacy_ScreenCapture")
+    }
+
+    private static func openPrivacyPane(_ pane: String) {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     /// The one the app leaned on hardest and never mentioned.
