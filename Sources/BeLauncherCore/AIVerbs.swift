@@ -161,11 +161,15 @@ public struct AIVerbRunner: Sendable {
         var lastError: Error?
         for provider in routedProviders {
             do {
+                let modelProvider = BELHTTPModelProvider(descriptor: provider, client: client)
+                let modelRequest = BELModelRequest(system: request.system, prompt: request.prompt,
+                                                   sensitivity: request.sensitivity,
+                                                   maxTokens: request.maxTokens)
                 if let onFragment {
-                    return try await client.stream(request, using: provider, model: models[provider.id],
-                                                   onFragment: onFragment)
+                    return try await modelProvider.stream(modelRequest, model: models[provider.id],
+                                                         onFragment: onFragment).text
                 }
-                return try await client.answer(request, using: provider, model: models[provider.id])
+                return try await modelProvider.generate(modelRequest, model: models[provider.id]).text
             } catch {
                 lastError = error
                 if let healthCache {

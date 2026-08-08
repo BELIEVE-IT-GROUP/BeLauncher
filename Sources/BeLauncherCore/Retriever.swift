@@ -116,6 +116,18 @@ public struct Retriever: Sendable {
                 + hit.passage.source.id.count + 67 + 3) / 4)
     }
 
+    /// Keeps an explicitly selected document inside the same predictable budget as retrieved
+    /// evidence. A selected Markdown file is evidence too; it must not become an unbounded second
+    /// prompt merely because it came from the UI instead of search.
+    public static func boundedText(_ text: String, tokenBudget: Int) -> String {
+        guard tokenBudget > 0 else { return "" }
+        let limit = tokenBudget * 4
+        guard text.count > limit else { return text }
+        let shortened = String(text.prefix(max(1, limit - 1)))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return shortened + "…"
+    }
+
     private static func normalised(_ hit: Retrieved) -> Retrieved {
         let title = IndexedPassage.label(hit.passage.title)
         guard title != hit.passage.title else { return hit }

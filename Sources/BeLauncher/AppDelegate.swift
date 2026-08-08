@@ -1083,6 +1083,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // note or a question that refers to a heading, but that must not turn the visible
         // document context into decoration.
         if result.hits.isEmpty, let usableContext {
+            let document = Retriever.boundedText(usableContext.body,
+                                                  tokenBudget: Retriever.defaultContextTokenBudget)
             let system = """
             Answer only from the selected local document below. If it does not contain the answer,
             say so in one sentence and stop. Do not use outside knowledge or invent details.
@@ -1092,7 +1094,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Question: \(question)
 
             Selected document: \(usableContext.title)
-            \(usableContext.body)
+            \(document)
             """
             let answer = try await askModel(user, system: system)
             return BrainAnswer(
@@ -1111,8 +1113,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let prompt = Retriever.prompt(for: question, hits: context.hits)
         let contextualPrompt: String
         if let usableContext {
+            let remaining = max(400, Retriever.defaultContextTokenBudget - context.estimatedTokens)
+            let document = Retriever.boundedText(usableContext.body, tokenBudget: remaining)
             contextualPrompt = prompt.user + "\n\nCurrent document context (use only to resolve references; cite retrieved passages):\n"
-                + usableContext.body
+                + document
         } else {
             contextualPrompt = prompt.user
         }
@@ -1619,12 +1623,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         var lastError: Error?
         for provider in providers {
             do {
-                return try await IntelligenceClient().stream(
-                    IntelligenceRequest(system: system, prompt: prompt, sensitivity: sensitivity,
-                                        maxTokens: 900),
-                    using: provider, model: models[provider.id],
-                    onFragment: onFragment ?? { _ in }
-                )
+                let client = IntelligenceClient()
+                let modelProvider = BELHTTPModelProvider(descriptor: provider, client: client)
+                let request = BELModelRequest(system: system, prompt: prompt,
+                                              sensitivity: sensitivity, maxTokens: 900)
+                return try await modelProvider.stream(request, model: models[provider.id],
+                                                      onFragment: onFragment ?? { _ in }).text
             } catch {
                 lastError = error
                 await providerHealthCache.record(

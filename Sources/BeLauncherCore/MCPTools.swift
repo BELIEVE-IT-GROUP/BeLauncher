@@ -521,15 +521,18 @@ public enum MCPTools {
               !statement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return reply("The statement is missing.", isError: true)
         }
-        let kind = MemoryObject.Kind(rawValue: arguments["kind"] as? String ?? "") ?? .note
-        let object = MemoryObject(
-            level: .extracted, kind: kind, statement: statement,
-            source: arguments["source"] as? String ?? "Proposed by an assistant",
-            createdAt: date, validFrom: date,
-            entities: arguments["entities"] as? [String] ?? []
-        )
+        var payload = arguments
+        if payload["source"] == nil {
+            payload["source"] = "Proposed by an assistant"
+        }
+        guard JSONSerialization.isValidJSONObject(payload),
+              let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else {
+            return reply("Could not propose it: invalid proposal arguments.", isError: true)
+        }
         do {
-            let commit = try context.vault.propose(object, reason: "Via MCP")
+            let commit = try BELBrainWriteback.propose(json: json, vault: context.vault,
+                                                       reason: "Via MCP", date: date)
             let conflicts = commit.conflicts.isEmpty
                 ? ""
                 : " It would clash with \(commit.conflicts.count) memory/memories in force."

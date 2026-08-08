@@ -35,6 +35,10 @@ public protocol BELLanguageModelProvider: Sendable {
     var capabilities: Set<ModelCapability> { get }
 
     func generate(_ request: BELModelRequest, model: String?) async throws -> BELModelResponse
+
+    /// Returns the same response while exposing fragments to interactive surfaces.
+    func stream(_ request: BELModelRequest, model: String?,
+                onFragment: @escaping @Sendable (String) -> Void) async throws -> BELModelResponse
 }
 
 /// Adapter for every provider that speaks the configured HTTP contract. Keeping this adapter
@@ -64,6 +68,21 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
         )
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.answer(intelligenceRequest, using: descriptor, model: selectedModel)
+        return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
+    }
+
+    public func stream(_ request: BELModelRequest, model: String? = nil,
+                       onFragment: @escaping @Sendable (String) -> Void) async throws
+        -> BELModelResponse {
+        let intelligenceRequest = IntelligenceRequest(
+            system: request.system,
+            prompt: request.prompt,
+            sensitivity: request.sensitivity,
+            maxTokens: request.maxTokens
+        )
+        let selectedModel = model ?? descriptor.defaultModel
+        let text = try await client.stream(intelligenceRequest, using: descriptor,
+                                           model: selectedModel, onFragment: onFragment)
         return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
     }
 }
