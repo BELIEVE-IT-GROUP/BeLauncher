@@ -1,0 +1,32 @@
+Sources/BeLauncher/BELActionRuntime.swift
+  s_30bc31f46aebe1::t_f52930b6ab0485 20
+Sources/BeLauncher/FileActionHandler.swift
+  s_30bc31f46aebe1::t_f52930b6ab0485 1-58
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_c2713e0fe535e4 474-485
+Tests/BeLauncherCoreTests/BELSearchIntegrationTests.swift
+  s_30bc31f46aebe1::t_668b3d25a36c64 34-42
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_fd124b7d3a7001 1794-1801
+  s_30bc31f46aebe1::t_c2713e0fe535e4 1781,1784,2001-2014
+  s_30bc31f46aebe1::t_57e27a1e855c47 2015-2016
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_f52930b6ab0485 22,101-123
+  s_30bc31f46aebe1::t_aeb52718d958b8 124-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "efcb8bfe3ca01ea5a5371d1a41eed02a5062e9d9",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
