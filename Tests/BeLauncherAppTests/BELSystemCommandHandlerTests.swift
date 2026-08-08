@@ -29,4 +29,14 @@ struct BELSystemCommandHandlerTests {
                                               availability: .unavailable)
         #expect(SystemCommandActionHandler(definition: unavailable) == nil)
     }
+
+    @Test("the app runtime cannot bypass the central confirmation gate")
+    func runtimeUsesGate() async throws {
+        let definition = try #require(BELActionCatalog.named("files.empty_trash"))
+        let runtime = BELActionRuntime()
+
+        await #expect(throws: BELActionExecutionError.confirmationRequired) {
+            try await runtime.execute(definition, capabilities: .allGranted)
+        }
+    }
 }

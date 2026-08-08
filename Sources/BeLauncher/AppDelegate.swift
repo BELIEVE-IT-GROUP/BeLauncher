@@ -1931,15 +1931,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Not a system action: it opens a window of ours. Handled before the runner rather
             // than inside it, so the runner keeps meaning "things macOS does".
             if kind == SystemCommand.Kind.openBrain.rawValue { openGraph(); return nil }
-            let failure = SystemCommandRunner.run(kind) { title in
+            let definitionID = BELActionCatalog.all.first {
+                BELActionCatalog.systemCommandKind(for: $0.id) == kind
+            }?.id
+            let definition = definitionID.flatMap(BELActionCatalog.named)
+            let command = SystemCommand.all.first { $0.kind.rawValue == kind }
+            let confirmed = command?.needsConfirmation != true || {
                 let alert = NSAlert()
-                alert.messageText = L("%@?", title)
+                alert.messageText = L("%@?", command?.title ?? kind)
                 alert.informativeText = L("This cannot be undone.")
                 alert.alertStyle = .warning
                 alert.addButton(withTitle: L("Continue"))
                 alert.addButton(withTitle: L("Cancel"))
                 return alert.runModal() == .alertFirstButtonReturn
+            }()
+            guard confirmed else { return nil }
+            // Keep the legacy confirmation UI, then execute through the stable runtime so the
+            // adapter, capability gate and receipt are the same path used by newer surfaces.
+            if let definition, let handler = BELActionRuntime().handler(for: definition),
+               command != nil {
+                Task { @MainActor in
+                    do {
+                        _ = try await BELActionExecutor.execute(definition,
+                                                                capabilities: .allGranted,
+                                                                confirmed: true, handler: handler)
+                    } catch {
+                        self.report(L("The command could not be run"), "\(error)")
+                    }
+                }
+                return nil
             }
+            let failure = SystemCommandRunner.run(kind) { _ in true }
             if let failure { report(L("The command could not be run"), failure) }
             return failure
 
