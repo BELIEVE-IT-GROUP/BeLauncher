@@ -26,6 +26,13 @@ public enum BELActionCatalog {
         all.first { $0.id == id }
     }
 
+    /// Legacy bridge used by N1 adapters while SystemCommand is being migrated.
+    public static func systemCommandKind(for id: String) -> String? {
+        guard let command = SystemCommand.all.first(where: { nativeID(for: $0.kind) == id })
+        else { return nil }
+        return command.kind.rawValue
+    }
+
     /// Converts a stable AI action ID back to the legacy verb ID while the runner is being migrated.
     public static func legacyAIVerbID(for id: String) -> String? {
         guard id.hasPrefix("ai.verb.") else { return nil }
