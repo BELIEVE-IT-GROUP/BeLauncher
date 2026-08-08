@@ -1,0 +1,25 @@
+Tests/BeLauncherCoreTests/ModelRoutingTests.swift
+  s_30bc31f46aebe1::t_c234d62b52e0fd 43
+  s_30bc31f46aebe1::t_f22eb8356329d2 1-42,44-66
+Sources/BeLauncherCore/ModelRouting.swift
+  s_30bc31f46aebe1::t_f22eb8356329d2 1-49,54-82
+  s_30bc31f46aebe1::t_56074ae1aaf10e 50-53
+Sources/BeLauncherCore/MacCapabilityDetector.swift
+  s_30bc31f46aebe1::t_f22eb8356329d2 1-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "7954f7126831a7bc452c8b4cb75faa635d1144ab",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
