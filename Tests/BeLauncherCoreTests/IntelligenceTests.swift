@@ -84,6 +84,33 @@ struct IntelligenceTests {
         #expect(request.value(forHTTPHeaderField: "x-api-key") == nil)
     }
 
+    @Test("the cloud boundary redacts credentials from the actual request body")
+    func cloudBoundaryRedactsCredentials() throws {
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                        keyLookup: { _ in "sk-user-own" })
+        let request = try client.build(
+            IntelligenceRequest(system: "AUTH_TOKEN=sk-ant-api03-12345678901234567890",
+                                 prompt: "Resume esto\nAPI_KEY=sk-proj-12345678901234567890"),
+            provider: cloud, model: "claude-sonnet-5"
+        )
+        let body = try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
+        #expect(body["system"] as? String == "[credential omitted]")
+        #expect((body["messages"] as? [[String: String]])?.last?["content"]
+                == "Resume esto\n[credential omitted]")
+    }
+
+    @Test("local providers keep the original text because it never leaves the Mac")
+    func localKeepsContext() throws {
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) })
+        let request = try client.build(
+            IntelligenceRequest(prompt: "API_KEY=sk-proj-12345678901234567890"),
+            provider: local, model: "llama3.2"
+        )
+        let body = try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
+        let messages = try #require(body["messages"] as? [[String: String]])
+        #expect(messages.last?["content"]?.contains("sk-proj-") == true)
+    }
+
     @Test("OpenAI GPT-5 uses the current completion limit parameter")
     func openAIUsesCompletionTokens() throws {
         let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },

@@ -10,6 +10,8 @@ import Foundation
 /// credential, because silently dropping ordinary text would be worse than useless.
 public enum SecretGuard {
 
+    public static let redactionMark = "[credential omitted]"
+
     /// Prefixes that are credentials by construction, not by guesswork.
     static let tokenPrefixes = [
         "sk_live_", "sk_test_", "rk_live_", "pk_live_",   // Stripe
@@ -62,6 +64,15 @@ public enum SecretGuard {
             if namesASecret(line) { return true }
         }
         return false
+    }
+
+    /// Removes only the lines that contain a credential. Keeping this at the final transport
+    /// boundary prevents a new caller from accidentally sending a secret it forgot to scrub.
+    public static func redacted(_ text: String) -> String {
+        guard carriesSecret(text) else { return text }
+        return text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+            .map { carriesSecret(String($0)) ? redactionMark : String($0) }
+            .joined(separator: "\n")
     }
 
     /// Every run of characters that could be a token on its own.

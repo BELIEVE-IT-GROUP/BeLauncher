@@ -403,26 +403,32 @@ public struct IntelligenceClient: Sendable {
             }
         }
 
+        // This is the last boundary before bytes leave the Mac. Local providers receive the
+        // original text; direct-key providers receive the same request with credential-bearing
+        // lines replaced, regardless of which caller assembled the prompt.
+        let outboundSystem = provider.isPrivate ? request.system : SecretGuard.redacted(request.system)
+        let outboundPrompt = provider.isPrivate ? request.prompt : SecretGuard.redacted(request.prompt)
+
         if provider.id == "gemini" {
             var body: [String: Any] = [
                 "contents": [[
                     "role": "user",
-                    "parts": [["text": request.prompt]],
+                    "parts": [["text": outboundPrompt]],
                 ]],
                 "generationConfig": ["maxOutputTokens": request.maxTokens],
             ]
-            if !request.system.isEmpty {
-                body["systemInstruction"] = ["parts": [["text": request.system]]]
+            if !outboundSystem.isEmpty {
+                body["systemInstruction"] = ["parts": [["text": outboundSystem]]]
             }
             urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
             return urlRequest
         }
 
         var messages: [[String: String]] = []
-        if !request.system.isEmpty, provider.id != "anthropic" {
-            messages.append(["role": "system", "content": request.system])
+        if !outboundSystem.isEmpty, provider.id != "anthropic" {
+            messages.append(["role": "system", "content": outboundSystem])
         }
-        messages.append(["role": "user", "content": request.prompt])
+        messages.append(["role": "user", "content": outboundPrompt])
 
         var body: [String: Any] = [
             "model": model,
@@ -432,8 +438,8 @@ public struct IntelligenceClient: Sendable {
         // OpenAI-compatible servers, which still expect it.
         body[provider.id == "openai" ? "max_completion_tokens" : "max_tokens"] = request.maxTokens
         if streaming { body["stream"] = true }
-        if provider.id == "anthropic", !request.system.isEmpty {
-            body["system"] = request.system
+        if provider.id == "anthropic", !outboundSystem.isEmpty {
+            body["system"] = outboundSystem
         }
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
         return urlRequest
