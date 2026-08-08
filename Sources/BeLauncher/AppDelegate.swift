@@ -2090,7 +2090,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 client: IntelligenceClient(),
                 router: ModelRouter(preferred: store.setting("ai_provider")),
                 providers: configured,
-                models: models
+                models: models,
+                healthCache: providerHealthCache
             )
             do {
                 // Streaming, so the first words land in under a second instead of after the

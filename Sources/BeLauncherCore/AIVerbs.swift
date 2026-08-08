@@ -120,13 +120,16 @@ public struct AIVerbRunner: Sendable {
     /// whole Mac freezing for a minute and ended in "error comunicándonos con el modelo". The app
     /// could already list what was installed; it just never used the answer.
     public let models: [String: String]
+    public let healthCache: BELProviderHealthCache?
 
     public init(client: IntelligenceClient, router: ModelRouter,
-                providers: [IntelligenceProvider], models: [String: String] = [:]) {
+                providers: [IntelligenceProvider], models: [String: String] = [:],
+                healthCache: BELProviderHealthCache? = nil) {
         self.client = client
         self.router = router
         self.providers = providers
         self.models = models
+        self.healthCache = healthCache
     }
 
     /// Said once, in English, because the model reads it and the user never does. It says nothing
@@ -141,25 +144,39 @@ public struct AIVerbRunner: Sendable {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw IntelligenceError.emptyAnswer }
 
-        let provider = try router.provider(for: verb.sensitivity, available: providers)
+        let routedProviders: [IntelligenceProvider]
+        if let healthCache {
+            let health = await healthCache.snapshot(for: providers)
+            routedProviders = try router.providers(for: verb.sensitivity, available: providers,
+                                                   health: health,
+                                                   machine: MacCapabilityDetector.current())
+        } else {
+            routedProviders = try router.providers(for: verb.sensitivity, available: providers)
+        }
         let request = IntelligenceRequest(
             system: AIVerbRunner.systemPrompt,
             prompt: "\(verb.instruction)\n\n---\n\(trimmed)",
             sensitivity: verb.sensitivity
         )
-        if let onFragment {
-            return try await client.stream(request, using: provider, model: models[provider.id],
-                                           onFragment: onFragment)
+        var lastError: Error?
+        for provider in routedProviders {
+            do {
+                if let onFragment {
+                    return try await client.stream(request, using: provider, model: models[provider.id],
+                                                   onFragment: onFragment)
+                }
+                return try await client.answer(request, using: provider, model: models[provider.id])
+            } catch {
+                lastError = error
+                if let healthCache {
+                    await healthCache.record(
+                        BELProviderHealth(state: .offline(error.localizedDescription)),
+                        for: provider.id
+                    )
+                }
+            }
         }
-        return try await client.answer(
-            IntelligenceRequest(
-                system: AIVerbRunner.systemPrompt,
-                prompt: "\(verb.instruction)\n\n---\n\(trimmed)",
-                sensitivity: verb.sensitivity
-            ),
-            using: provider,
-            model: models[provider.id]
-        )
+        throw lastError ?? IntelligenceError.noProviderConfigured
     }
 }
 
