@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var dictationHotKey: HotKey?
     private var callHotKey: HotKey?
     private var audioCapture: AudioCaptureController?
+    private var capturePanel: CaptureStatusPanel?
     private var callCapture: CallCaptureController?
     private var callReviewWindow: NSWindow?
     private var callReviewModel: CallReviewModel?
@@ -260,6 +261,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         audioCapture = AudioCaptureController(
             notify: { [weak self] message in self?.setAudioStatus(message) },
             onSaved: { [weak self] in self?.refreshBrain(force: true) })
+        if let audioCapture {
+            capturePanel = CaptureStatusPanel(
+                controller: audioCapture,
+                openBrain: { [weak self] in self?.openGraph() },
+                newNote: { [weak self] in self?.openQuickNoteEditor() })
+        }
         callCapture = CallCaptureController(
             notify: { [weak self] message in self?.setCallStatus(message) },
             onCompleted: { [weak self] title, transcript in
@@ -723,6 +730,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         audioItem?.title = audioCapture?.isRecording == true
             ? L("Stop voice note") : L("Record voice note")
         statusItem?.button?.toolTip = message
+        capturePanel?.present()
+        if audioCapture?.isRecording != true {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+                guard self?.audioCapture?.isRecording != true else { return }
+                self?.capturePanel?.orderOut(nil)
+            }
+        }
     }
 
     private func setCallStatus(_ message: String) {

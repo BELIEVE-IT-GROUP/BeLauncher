@@ -1433,7 +1433,8 @@ private struct BrainOverview: View {
                                     inboxRow(symbol: item.kind == .evidence ? "waveform" : "note.text",
                                          title: item.title,
                                          detail: item.state == .needsTranscription
-                                            ? L("Needs transcription") : L("Pending review"),
+                                            ? L("Ready to transcribe · click to continue")
+                                            : L("Ready for your review · click to continue"),
                                          tint: item.state == .needsTranscription ? .orange : Theme.accent)
                                 }
                                 .buttonStyle(.plain)
@@ -1577,9 +1578,10 @@ private struct BrainInboxNoteView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 if record.state == .needsTranscription {
-                    Button(L("Retry transcription")) { retryTranscription() }
+                    Button(L("Transcribe now")) { retryTranscription() }
+                        .buttonStyle(.borderedProminent)
                 }
-                Button(L("Mark reviewed")) { markReviewed() }
+                Button(L("Mark as reviewed")) { markReviewed() }
                 Button(L("Open original")) {
                     NSWorkspace.shared.open(URL(fileURLWithPath: record.sourcePath ?? record.path))
                 }

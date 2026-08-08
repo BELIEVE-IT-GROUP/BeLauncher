@@ -1,12 +1,13 @@
 @preconcurrency import AVFoundation
 import AppKit
+import Combine
 import BeLauncherCore
 
 /// Owns the background voice-session lifecycle. The launcher window is deliberately not involved:
 /// a note can start and finish while another app is in front, and the same controller will later
 /// grow a system-audio input for calls.
 @MainActor
-final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
+final class AudioCaptureController: NSObject, AVAudioRecorderDelegate, ObservableObject {
     enum State: Equatable {
         case idle
         case recording(started: Date)
@@ -18,7 +19,21 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
     private var shouldPaste = false
-    private(set) var state: State = .idle
+    @Published private(set) var state: State = .idle
+    @Published private(set) var message = ""
+
+    var stateLabel: String {
+        switch state {
+        case .idle: L("Ready to capture")
+        case .recording: L("Recording")
+        case .transcribing: L("Transcribing")
+        }
+    }
+
+    var recordingStartedAt: Date? {
+        guard case .recording(let started) = state else { return nil }
+        return started
+    }
 
     init(notify: @escaping (String) -> Void, onSaved: @escaping () -> Void = {}) {
         self.notify = notify
@@ -61,7 +76,7 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             guard await Permissions.requestMicrophone() else {
-                notify(L("Microphone permission is needed for a voice note."))
+                announce(L("Microphone permission is needed for a voice note."))
                 return
             }
             do {
@@ -82,9 +97,9 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
                 self.recorder = recorder
                 recordingURL = url
                 state = .recording(started: .now)
-                notify(L("Recording voice note"))
+                announce(L("Recording voice note"))
             } catch {
-                notify(L("Voice note could not start: %@", error.localizedDescription))
+                announce(L("Voice note could not start: %@", error.localizedDescription))
             }
         }
     }
@@ -108,11 +123,11 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
         recordingURL = nil
         guard flag, let url else {
             state = .idle
-            notify(L("Voice note was not saved."))
+            announce(L("Voice note was not saved."))
             return
         }
         state = .transcribing
-        notify(L("Transcribing voice note"))
+        announce(L("Transcribing voice note"))
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
@@ -132,7 +147,7 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
                     }
                 }
                 state = .idle
-                notify(L("Voice note saved in your Brain"))
+                announce(L("Voice note saved in your Brain"))
             } catch {
                 let title = L("Voice note awaiting transcription")
                 let detail = "Audio: \(url.path)\n\n" +
@@ -142,9 +157,14 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
                     onSaved()
                 }
                 state = .idle
-                notify(L("Voice note saved, but transcription needs attention."))
+                announce(L("Voice note saved, but transcription needs attention."))
             }
         }
+    }
+
+    private func announce(_ text: String) {
+        message = text
+        notify(text)
     }
 
     private enum Failure: LocalizedError {
