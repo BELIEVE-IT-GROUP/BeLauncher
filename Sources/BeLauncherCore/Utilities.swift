@@ -227,4 +227,21 @@ public enum QuickNote {
         }
         try raw.write(toFile: record.path, atomically: true, encoding: .utf8)
     }
+
+    /// Updates only the human body while preserving the note's front matter and source metadata.
+    /// Notes stay in the inbox so the Brain can keep their provenance and review state.
+    public static func updateBody(_ record: Record, body: String) throws {
+        let raw = try String(contentsOfFile: record.path, encoding: .utf8)
+        let parts = raw.components(separatedBy: "---")
+        guard parts.count >= 3 else { throw UpdateError.invalidNote }
+        let clean = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updated = parts[0] + "---" + parts[1] + "---\n\n" + clean + "\n"
+        try updated.write(toFile: record.path, atomically: true, encoding: .utf8)
+    }
+
+    public enum UpdateError: LocalizedError {
+        case invalidNote
+
+        public var errorDescription: String? { "The note has invalid Markdown front matter." }
+    }
 }

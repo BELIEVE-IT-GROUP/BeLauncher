@@ -213,6 +213,27 @@ struct QuickNoteTests {
         #expect(FileManager.default.fileExists(atPath: reviewed.path))
     }
 
+    @Test("editar una nota conserva su front matter y cambia solo el Markdown")
+    func bodyEditIsPersistent() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quick-note-edit-\(UUID().uuidString)")
+        let inbox = root.appendingPathComponent("inbox")
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let path = inbox.appendingPathComponent("note.md")
+        try QuickNote.render("texto original", at: Date(timeIntervalSince1970: 0))
+            .write(to: path, atomically: true, encoding: .utf8)
+        let record = try #require(QuickNote.records(inVaultAt: root.path).first)
+        try QuickNote.markReviewed(record)
+        let reviewed = try #require(QuickNote.records(inVaultAt: root.path).first)
+        try QuickNote.updateBody(reviewed, body: "# Texto corregido\n\n- una línea")
+        let raw = try String(contentsOfFile: path.path, encoding: .utf8)
+        #expect(raw.contains("reviewed: true"))
+        #expect(raw.contains("# Texto corregido"))
+        #expect(!raw.contains("texto original"))
+    }
+
     @Test("el inbox conserva procedencia y detecta transcripción pendiente")
     func recordCarriesProvenance() throws {
         let root = FileManager.default.temporaryDirectory

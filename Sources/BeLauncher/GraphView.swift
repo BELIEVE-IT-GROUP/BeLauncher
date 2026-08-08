@@ -777,7 +777,7 @@ final class GraphModel {
 @MainActor
 struct GraphView: View {
     private enum Surface: String, CaseIterable, Identifiable {
-        case overview, graph
+        case overview, notes, graph
         var id: String { rawValue }
     }
 
@@ -807,7 +807,10 @@ struct GraphView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            VerbRail(model: model)
+            VerbRail(model: model,
+                     showOverview: { surface = .overview },
+                     showNotes: { surface = .notes },
+                     showGraph: { surface = .graph })
                 .frame(width: 236)
             Divider().opacity(0.35)
             VStack(spacing: 0) {
@@ -869,6 +872,11 @@ struct GraphView: View {
                                       reader = CorpusReaderModel(folder: corpus, selecting: id)
                                   },
                                   showGraph: { surface = .graph })
+                } else if surface == .notes {
+                    BrainNotesView(
+                        newNote: beginNewNote,
+                        retryTranscription: { retryTranscription($0) },
+                        refresh: reloadInbox)
                 } else {
                     HStack(spacing: 0) {
                         canvas
@@ -965,9 +973,10 @@ private struct BrainReaderSurface: View {
 
             Picker("", selection: $surface) {
                 Text(L("Overview")).tag(Surface.overview)
+                Text(L("My notes")).tag(Surface.notes)
                 Text(L("Graph")).tag(Surface.graph)
             }
-            .pickerStyle(.segmented).labelsHidden().frame(width: 150)
+            .pickerStyle(.segmented).labelsHidden().frame(width: 220)
 
             if surface == .graph {
               Picker("", selection: $model.span) {
@@ -1560,6 +1569,199 @@ private struct BrainOverview: View {
 }
 
 @MainActor
+private struct BrainNotesView: View {
+    let newNote: () -> Void
+    let retryTranscription: (QuickNote.Record) -> Void
+    let refresh: () -> Void
+    @State private var notes: [QuickNote.Record] = []
+    @State private var query = ""
+    @State private var selectedID: String?
+    @State private var draft = ""
+    @State private var editing = false
+    @State private var status: String?
+
+    private var filtered: [QuickNote.Record] {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return notes }
+        return notes.filter {
+            $0.title.localizedCaseInsensitiveContains(needle)
+                || $0.excerpt.localizedCaseInsensitiveContains(needle)
+        }
+    }
+
+    private var selected: QuickNote.Record? {
+        notes.first { $0.id == selectedID }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(L("My notes")).font(.system(size: 18, weight: .semibold))
+                    Text(L("Write, edit and keep your Markdown notes in one place."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(action: newNote) {
+                    Label(L("New note"), systemImage: "note.text.badge.plus")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(20)
+            Divider()
+            HSplitView {
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        TextField(L("Search notes"), text: $query)
+                            .textFieldStyle(.plain)
+                    }
+                    .padding(12)
+                    Divider()
+                    if filtered.isEmpty {
+                        VStack(spacing: 8) {
+                            Spacer()
+                            Image(systemName: "note.text").font(.title2).foregroundStyle(.secondary)
+                            Text(notes.isEmpty ? L("No notes yet") : L("No notes match your search"))
+                                .font(.caption).foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(filtered) { note in noteRow(note) }
+                            }
+                        }
+                    }
+                }
+                .frame(minWidth: 270, idealWidth: 320, maxWidth: 390)
+                noteDetail
+                    .frame(minWidth: 480)
+            }
+        }
+        .onAppear { reload() }
+    }
+
+    private func noteRow(_ note: QuickNote.Record) -> some View {
+        Button {
+            selectedID = note.id
+            draft = body(of: note)
+            editing = false
+            status = nil
+        } label: {
+            HStack(alignment: .top, spacing: 9) {
+                Image(systemName: note.state == .needsTranscription ? "waveform" : "note.text")
+                    .foregroundStyle(note.state == .needsTranscription ? .orange : Theme.cyan)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(note.title).lineLimit(1)
+                    Text(note.state == .needsTranscription
+                         ? L("Ready to transcribe")
+                         : (note.reviewed ? L("Reviewed") : L("Needs review")))
+                        .font(.caption).foregroundStyle(note.state == .needsTranscription ? .orange : .secondary)
+                }
+                Spacer(minLength: 4)
+                if note.reviewed { Image(systemName: "checkmark.circle").foregroundStyle(.secondary) }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(note.id == selectedID ? Theme.accent.opacity(0.16) : .clear)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var noteDetail: some View {
+        if let selected {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selected.title).font(.system(size: 16, weight: .semibold))
+                        Text(L("Markdown note · %@", selected.reviewed ? L("reviewed") : L("in Inbox")))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if selected.state == .needsTranscription {
+                        Button(L("Transcribe now")) { retryTranscription(selected) }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    if editing {
+                        Button(L("Cancel")) { draft = body(of: selected); editing = false }
+                        Button(L("Save")) { save(selected) }.buttonStyle(.borderedProminent)
+                    } else {
+                        Button(L("Edit")) { draft = body(of: selected); editing = true }
+                    }
+                    Button {
+                        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: selected.path)])
+                    } label: { Image(systemName: "folder") }
+                        .buttonStyle(.borderless)
+                        .help(L("Open the Markdown file in Finder"))
+                }
+                .padding(18)
+                Divider()
+                if editing {
+                    TextEditor(text: $draft)
+                        .font(.system(size: 13, design: .monospaced))
+                        .padding(14)
+                } else {
+                    ScrollView {
+                        MarkdownBody(text: body(of: selected), follow: { _ in })
+                            .padding(22)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                if !selected.reviewed {
+                    Divider()
+                    HStack {
+                        Text(L("Review this note when you are done with it."))
+                            .font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Button(L("Mark as reviewed")) {
+                            try? QuickNote.markReviewed(selected)
+                            reload()
+                        }
+                    }
+                    .padding(12)
+                }
+                if let status {
+                    Text(status).font(.caption).foregroundStyle(.secondary).padding(12)
+                }
+            }
+        } else {
+            VStack(spacing: 8) {
+                Spacer()
+                Image(systemName: "note.text").font(.largeTitle).foregroundStyle(.secondary)
+                Text(L("Select a note to read or edit")).font(.system(size: 13)).foregroundStyle(.secondary)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func body(of note: QuickNote.Record) -> String {
+        guard let raw = try? String(contentsOfFile: note.path, encoding: .utf8) else { return note.excerpt }
+        return QuickNote.body(from: raw)
+    }
+
+    private func reload() {
+        notes = QuickNote.records(inVaultAt: Vault.defaultRoot())
+        if selectedID == nil { selectedID = notes.first?.id }
+        if let selected { draft = body(of: selected) }
+        refresh()
+    }
+
+    private func save(_ note: QuickNote.Record) {
+        do {
+            try QuickNote.updateBody(note, body: draft)
+            editing = false
+            status = L("Saved")
+            reload()
+        } catch {
+            status = error.localizedDescription
+        }
+    }
+}
+
+@MainActor
 private struct BrainInboxNoteView: View {
     @Environment(\.dismiss) private var dismiss
     let record: QuickNote.Record
@@ -1781,6 +1983,9 @@ private struct BeBrainVerb: Identifiable {
 @MainActor
 private struct VerbRail: View {
     @Bindable var model: GraphModel
+    let showOverview: () -> Void
+    let showNotes: () -> Void
+    let showGraph: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1791,6 +1996,12 @@ private struct VerbRail: View {
                 BrainChip(text: L("vectors"))
                 BrainChip(text: L("chunks"))
             }
+            VStack(spacing: 3) {
+                navigationButton(L("Overview"), symbol: "square.grid.2x2", action: showOverview)
+                navigationButton(L("My notes"), symbol: "note.text", action: showNotes)
+                navigationButton(L("Graph"), symbol: "circle.grid.cross", action: showGraph)
+            }
+            Divider().opacity(0.35)
             VStack(spacing: 6) {
                 ForEach(BeBrainVerb.all) { verb in
                     Button { run(verb) } label: { VerbRow(verb: verb) }
@@ -1844,6 +2055,19 @@ private struct VerbRail: View {
 
     private func run(_ verb: BeBrainVerb) {
         if let phrase = verb.phrase { model.primeLauncher(phrase) }
+    }
+
+    private func navigationButton(_ title: String, symbol: String,
+                                  action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 12, weight: .medium))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 }
 
