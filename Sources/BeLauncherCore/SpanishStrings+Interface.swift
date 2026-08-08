@@ -67,6 +67,7 @@ extension SpanishStrings {
         "Installing the local runtime and downloading model weights…": "Instalando el runtime local y descargando los pesos del modelo…",
         "Ready. Audio stays on this Mac.": "Listo. El audio se queda en este Mac.",
         "Qwen ASR could not be installed: %@": "Qwen ASR no pudo instalarse: %@",
+        "This audio format could not be prepared for local transcription.": "Este formato de audio no pudo prepararse para la transcripción local.",
         "The local voice setup stopped before finishing. Retry to resume it; your launcher is unaffected.": "La configuración de voz local se detuvo antes de terminar. Reintenta para continuar; el launcher no se ha afectado.",
         "The local voice setup stopped at %@. Retry to continue.": "La configuración de voz local se detuvo en %@. Reintenta para continuar.",
         "The local voice runtime could not be downloaded. Check the connection and retry.": "No se pudo descargar el motor de voz local. Comprueba la conexión y reintenta.",

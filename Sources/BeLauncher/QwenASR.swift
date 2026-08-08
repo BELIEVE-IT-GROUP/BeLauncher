@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+@preconcurrency import AVFoundation
 import CryptoKit
 import BeLauncherCore
 
@@ -590,12 +591,39 @@ enum QwenASRRuntime {
         else {
             throw Failure.notInstalled
         }
+        let wav = try normalizedAudioURL(for: url)
+        defer {
+            if wav != url { try? FileManager.default.removeItem(at: wav) }
+        }
         let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; print(Qwen3ASR.from_pretrained(sys.argv[2]).transcribe(sys.argv[1]).text)"
-        let output = try await run(python.path, ["-c", code, url.path, model],
+        let output = try await run(python.path, ["-c", code, wav.path, model],
                                    environment: QwenASRInstaller.runtimeEnvironment(root: root))
         let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { throw Failure.empty }
         return text
+    }
+
+    /// qwen3-asr-mlx reads PCM WAV directly. AVAudioRecorder writes AAC M4A and the call
+    /// recorder may write CAF, so decode those macOS-native containers before crossing into
+    /// Python. The temporary file is deleted immediately after the subprocess exits.
+    static func normalizedAudioURL(for url: URL) throws -> URL {
+        guard url.pathExtension.lowercased() != "wav" else { return url }
+        let input = try AVAudioFile(forReading: url)
+        let temporary = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-asr-(UUID().uuidString).wav")
+        let output = try AVAudioFile(forWriting: temporary, settings: input.processingFormat.settings)
+        let capacity: AVAudioFrameCount = 8_192
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: input.processingFormat,
+                                             frameCapacity: capacity) else {
+            throw Failure.audioConversion
+        }
+        while input.framePosition < input.length {
+            let remaining = input.length - input.framePosition
+            let frames = AVAudioFrameCount(min(Int64(capacity), remaining))
+            try input.read(into: buffer, frameCount: frames)
+            try output.write(from: buffer)
+        }
+        return temporary
     }
 
     private static func run(_ executable: String, _ arguments: [String],
@@ -607,12 +635,18 @@ enum QwenASRRuntime {
             process.arguments = arguments
             process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
             process.standardOutput = pipe
-            process.standardError = FileHandle.nullDevice
+            process.standardError = pipe
             process.terminationHandler = { process in
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 let output = String(data: data, encoding: .utf8) ?? ""
                 if process.terminationStatus == 0 { continuation.resume(returning: output) }
-                else { continuation.resume(throwing: Failure.exit(process.terminationStatus)) }
+                else {
+                    let detail = output
+                        .replacingOccurrences(of: "\u{001B}", with: "")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    continuation.resume(throwing: Failure.exit(process.terminationStatus,
+                                                               String(detail.suffix(1_200))))
+                }
             }
             do { try process.run() }
             catch { continuation.resume(throwing: error) }
@@ -620,12 +654,16 @@ enum QwenASRRuntime {
     }
 
     private enum Failure: LocalizedError {
-        case notInstalled, empty, exit(Int32)
+        case notInstalled, empty, audioConversion, exit(Int32, String)
         var errorDescription: String? {
             switch self {
-            case .notInstalled: "Qwen ASR is not installed."
-            case .empty: "Qwen ASR returned no text."
-            case .exit(let code): "Qwen ASR exited with code \(code)."
+            case .notInstalled: return "Qwen ASR is not installed."
+            case .empty: return "Qwen ASR returned no text."
+            case .audioConversion:
+                return L("This audio format could not be prepared for local transcription.")
+            case .exit(let code, let detail):
+                let base = "Qwen ASR exited with code \(code)."
+                return detail.isEmpty ? base : base + "\n" + detail
             }
         }
     }

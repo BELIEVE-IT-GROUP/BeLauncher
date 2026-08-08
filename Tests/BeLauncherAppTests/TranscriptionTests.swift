@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+@preconcurrency import AVFoundation
 @testable import BeLauncher
 
 /// La autoprueba que decide si creerle al modelo de voz.
@@ -68,6 +69,34 @@ struct TranscriptionTests {
                 == "/tmp/BeLauncher/ASR/.cache/huggingface")
         #expect(QwenASRInstaller.modelDownloadScript.contains("snapshot_download"))
         #expect(!QwenASRInstaller.modelDownloadScript.contains("from_pretrained"))
+    }
+
+    @Test("Qwen convierte los contenedores de macOS a WAV antes de invocar Python")
+    func qwenNormalizesMacAudio() throws {
+        let source = FileManager.default.temporaryDirectory
+            .appendingPathComponent("voice-\(UUID().uuidString).caf")
+        defer { try? FileManager.default.removeItem(at: source) }
+        let format: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatLinearPCM),
+            AVSampleRateKey: 16_000,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
+        ]
+        let file = try AVAudioFile(forWriting: source, settings: format)
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                                    frameCapacity: 1_600))
+        buffer.frameLength = 1_600
+        try file.write(from: buffer)
+
+        let normalized = try QwenASRRuntime.normalizedAudioURL(for: source)
+        defer { try? FileManager.default.removeItem(at: normalized) }
+        #expect(normalized.pathExtension == "wav")
+        #expect(normalized != source)
+        #expect(FileManager.default.fileExists(atPath: normalized.path))
+        #expect(try AVAudioFile(forReading: normalized).length == 1_600)
     }
 
 
