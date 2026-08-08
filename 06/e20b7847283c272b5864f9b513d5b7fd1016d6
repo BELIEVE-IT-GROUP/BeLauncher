@@ -1,0 +1,51 @@
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_42594a2530c5bd 1629-1630
+  s_30bc31f46aebe1::t_e556a692419d6f 1641-1651
+Sources/BeLauncherCore/Vault.swift
+  s_30bc31f46aebe1::t_7913d509056dba 27,52-74
+Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift
+  s_30bc31f46aebe1::t_28026059c05222 55-59
+  s_30bc31f46aebe1::t_0ccd05680dfd8f 41-54
+Tests/BeLauncherCoreTests/IntelligenceTests.swift
+  s_30bc31f46aebe1::t_42594a2530c5bd 87-95
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_e556a692419d6f 187-192
+Sources/BeLauncher/main.swift
+  s_30bc31f46aebe1::t_e556a692419d6f 298-303
+  s_30bc31f46aebe1::t_86abb79d4b2a56 311
+Sources/BeLauncherCore/AIVerbs.swift
+  s_30bc31f46aebe1::t_42594a2530c5bd 167-168
+  s_30bc31f46aebe1::t_e556a692419d6f 184-199
+Sources/BeLauncherCore/BELBrainWriteback.swift
+  s_30bc31f46aebe1::t_d661b0b0da2169 64-65,87-90,106-107,138-159
+  s_30bc31f46aebe1::t_7913d509056dba 3-35,40-42,49-51,71-73,109-113,119-123,128-137,160-209
+Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift
+  s_30bc31f46aebe1::t_547fc8f00f2fc2 24,36,51-62,75-90
+  s_30bc31f46aebe1::t_a6a175a1b9d7ef 63-74,91
+Sources/BeLauncherCore/Intelligence.swift
+  s_30bc31f46aebe1::t_0ccd05680dfd8f 24-26,34,42,52-53
+  s_30bc31f46aebe1::t_42594a2530c5bd 206-207,210,215,383-385
+Sources/BeLauncherCore/BELLanguageModelProvider.swift
+  s_30bc31f46aebe1::t_42594a2530c5bd 16,19,24,74-75,89-90
+  s_30bc31f46aebe1::t_0ccd05680dfd8f 3-7,62,65,99-124,133-143
+  s_30bc31f46aebe1::t_28026059c05222 144-150,152-153
+Sources/BeLauncherCore/BELFoundationModelsProvider.swift
+  s_30bc31f46aebe1::t_a5e402ccd953be 1-52,54-80
+  s_30bc31f46aebe1::t_b6403cde81decc 53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "06e20b7847283c272b5864f9b513d5b7fd1016d6",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
