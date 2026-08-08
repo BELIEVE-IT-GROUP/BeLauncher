@@ -226,6 +226,22 @@ struct RetrieverTests {
         #expect(selection.hits.first?.passage.source.id == "a")
     }
 
+    @Test("Brain context levels are explicit and do not leak long-term memory into B0")
+    func brainContextLevels() {
+        let passage = IndexedPassage(id: "p", source: IndexedSource(kind: .note, id: "n"),
+                                     title: "Note", ordinal: 0,
+                                     text: "A useful piece of local evidence.",
+                                     occurredAt: .now, hasVector: true)
+        let result = Retriever.Result(
+            hits: [Retrieved(passage: passage, score: 1, route: .both)],
+            usedMeaning: true, usedWords: true)
+        let b0 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b0)
+        let b2 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b2)
+        #expect(b0.hits.isEmpty)
+        #expect(b0.level == .b0)
+        #expect(b2.hits.count == 1)
+    }
+
     @Test("a prompt reports that its evidence was shortened")
     func promptBudgetNotice() {
         let hit = Retrieved(passage: passage("a", String(repeating: "dato ", count: 200)),

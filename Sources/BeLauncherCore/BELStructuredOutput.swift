@@ -95,6 +95,8 @@ public enum BELStructuredOutputError: Error, Equatable, CustomStringConvertible 
     case missingField(String)
     case unknownField(String)
     case wrongType(field: String, expected: BELJSONField.Kind)
+    case unknownTool(String)
+    case invalidToolArguments
 
     public var description: String {
         switch self {
@@ -103,6 +105,8 @@ public enum BELStructuredOutputError: Error, Equatable, CustomStringConvertible 
         case .missingField(let field): "The model omitted required field \(field)."
         case .unknownField(let field): "The model returned unknown field \(field)."
         case .wrongType(let field, let expected): "The model returned the wrong type for \(field); expected \(expected.rawValue)."
+        case .unknownTool(let name): "The model requested an unknown tool \(name)."
+        case .invalidToolArguments: "The model returned invalid tool arguments."
         }
     }
 }
@@ -133,6 +137,51 @@ public enum BELStructuredOutputValidator {
             }
         }
         return value
+    }
+
+    /// Validates a model tool-call envelope before any handler sees its arguments. The tool name is
+    /// checked exactly and the nested argument object is validated with the handler's schema.
+    public static func validateToolCall(_ raw: String, toolName: String,
+                                        arguments schema: BELJSONSchema) throws -> BELJSONValue {
+        let envelope = BELJSONSchema(fields: [
+            BELJSONField("name", .string, required: true),
+            BELJSONField("arguments", .object, required: true),
+        ])
+        let value = try validate(raw, against: envelope)
+        let object = value.objectValue ?? [:]
+        guard case .string(let name) = object["name"], name == toolName else {
+            let name = object["name"].flatMap { value -> String? in
+                if case .string(let name) = value { return name }
+                return nil
+            } ?? ""
+            throw BELStructuredOutputError.unknownTool(name)
+        }
+        guard case .object(let arguments) = object["arguments"] else {
+            throw BELStructuredOutputError.invalidToolArguments
+        }
+        let checked = try validateObject(arguments, against: schema)
+        return .object(checked)
+    }
+
+    private static func validateObject(_ object: [String: BELJSONValue],
+                                       against schema: BELJSONSchema) throws
+        -> [String: BELJSONValue] {
+        let fields = Dictionary(uniqueKeysWithValues: schema.fields.map { ($0.name, $0) })
+        for field in schema.fields where field.required && object[field.name] == nil {
+            throw BELStructuredOutputError.missingField(field.name)
+        }
+        if schema.rejectUnknownFields {
+            for key in object.keys where fields[key] == nil {
+                throw BELStructuredOutputError.unknownField(key)
+            }
+        }
+        for (name, value) in object {
+            guard let field = fields[name] else { continue }
+            guard matches(value, field.kind) else {
+                throw BELStructuredOutputError.wrongType(field: name, expected: field.kind)
+            }
+        }
+        return object
     }
 
     private static func cleaned(_ raw: String) -> String {

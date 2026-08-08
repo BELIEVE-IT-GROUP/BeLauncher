@@ -167,10 +167,23 @@ public struct AIVerbRunner: Sendable {
                                                    maxTokens: request.maxTokens,
                                                    localOnly: router.localOnlyFor.contains(verb.sensitivity))
                 if let onFragment {
-                    return try await modelProvider.stream(modelRequest, model: models[provider.id],
-                                                         onFragment: onFragment).text
+                    let response = try await modelProvider.stream(modelRequest,
+                                                                  model: models[provider.id],
+                                                                  onFragment: onFragment)
+                    if let healthCache {
+                        await healthCache.record(
+                            BELProviderHealth(state: .ready, model: response.model),
+                            for: provider.id)
+                    }
+                    return response.text
                 }
-                return try await modelProvider.generate(modelRequest, model: models[provider.id]).text
+                let response = try await modelProvider.generate(modelRequest,
+                                                                model: models[provider.id])
+                if let healthCache {
+                    await healthCache.record(BELProviderHealth(state: .ready, model: response.model),
+                                             for: provider.id)
+                }
+                return response.text
             } catch {
                 lastError = error
                 if let healthCache {

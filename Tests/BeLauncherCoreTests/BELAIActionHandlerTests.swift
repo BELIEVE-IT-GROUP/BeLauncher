@@ -44,4 +44,28 @@ struct BELAIActionHandlerTests {
                                               availability: .unavailable)
         #expect(BELAIActionHandler(definition: unavailable, runner: runner) == nil)
     }
+
+    @Test("model tool calls are schema checked before the AI verb runs")
+    func toolCallIsValidated() async throws {
+        let definition = try #require(BELActionCatalog.named("ai.verb.summarise"))
+        let provider = IntelligenceProvider(id: "fixture", name: "Fixture", transport: .local,
+                                            endpoint: "http://127.0.0.1/chat/completions",
+                                            defaultModel: "fixture")
+        let response = Data(#"{"choices":[{"message":{"content":"ok"}}]}"#.utf8)
+        let client = IntelligenceClient(transport: { _ in
+            (response, HTTPURLResponse(url: URL(string: "http://fixture")!, statusCode: 200,
+                                       httpVersion: nil, headerFields: nil)!)
+        })
+        let runner = AIVerbRunner(client: client, router: ModelRouter(preferred: "fixture"),
+                                  providers: [provider])
+        let handler = try #require(BELAIActionHandler(definition: definition, runner: runner))
+        let result = try await handler.perform(toolCall: "{\"name\":\"ai.verb.summarise\",\"arguments\":{\"text\":\"hola\"}}")
+        #expect(result.text == "ok")
+        await #expect(throws: BELStructuredOutputError.unknownTool("ai.verb.fix")) {
+            try await handler.perform(toolCall: "{\"name\":\"ai.verb.fix\",\"arguments\":{\"text\":\"hola\"}}")
+        }
+        await #expect(throws: BELStructuredOutputError.wrongType(field: "text", expected: .string)) {
+            try await handler.perform(toolCall: "{\"name\":\"ai.verb.summarise\",\"arguments\":{\"text\":42}}")
+        }
+    }
 }

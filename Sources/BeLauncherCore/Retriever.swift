@@ -17,6 +17,47 @@ import Foundation
 ///    does.
 public struct Retriever: Sendable {
 
+    /// The single Brain context boundary. Retrieval remains the implementation, while callers
+    /// declare how much memory they are allowed to see instead of choosing arbitrary hit counts.
+    public enum BeBrainContextProvider {
+        public struct Selection: Sendable, Equatable {
+            public let level: BELActionDefinition.BrainContextLevel
+            public let hits: [Retrieved]
+            public let estimatedTokens: Int
+            public let gap: String?
+            public let wasTruncated: Bool
+
+            public init(level: BELActionDefinition.BrainContextLevel, hits: [Retrieved],
+                        estimatedTokens: Int, gap: String?, wasTruncated: Bool) {
+                self.level = level
+                self.hits = hits
+                self.estimatedTokens = estimatedTokens
+                self.gap = gap
+                self.wasTruncated = wasTruncated
+            }
+        }
+
+        public static func retrieve(
+            result: Result,
+            level: BELActionDefinition.BrainContextLevel,
+            tokenBudget: Int = Retriever.defaultContextTokenBudget
+        ) -> Selection {
+            let allowed: [Retrieved]
+            switch level {
+            case .b0, .b1:
+                allowed = []
+            case .b2:
+                allowed = Array(result.hits.prefix(4))
+            case .b3:
+                allowed = result.hits
+            }
+            let bounded = Retriever.context(from: allowed, tokenBudget: tokenBudget)
+            return Selection(level: level, hits: bounded.hits,
+                             estimatedTokens: bounded.estimatedTokens,
+                             gap: result.gap, wasTruncated: bounded.wasTruncated)
+        }
+    }
+
     public struct ContextSelection: Sendable, Equatable {
         public let hits: [Retrieved]
         public let estimatedTokens: Int

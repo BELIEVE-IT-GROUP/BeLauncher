@@ -45,7 +45,7 @@ public struct BELFoundationModelsProvider: BELLanguageModelProvider {
         -> BELModelResponse {
         try Task.checkCancellation()
         let session = try session(for: request)
-        var stream = session.streamResponse(
+        let stream = session.streamResponse(
             to: request.prompt,
             options: GenerationOptions(maximumResponseTokens: request.maxTokens)
         )

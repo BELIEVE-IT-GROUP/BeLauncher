@@ -1108,8 +1108,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !result.hits.isEmpty else {
             return BrainAnswer(text: result.gap ?? L("The Brain has no evidence for that yet."), sources: [])
         }
-        let context = Retriever.context(from: result.hits,
-                                        tokenBudget: Retriever.defaultContextTokenBudget)
+        let context = Retriever.BeBrainContextProvider.retrieve(
+            result: result, level: .b3, tokenBudget: Retriever.defaultContextTokenBudget)
         let prompt = Retriever.prompt(for: question, hits: context.hits)
         let contextualPrompt: String
         if let usableContext {
@@ -1628,8 +1628,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let request = BELModelRequest(system: system, prompt: prompt,
                                               sensitivity: sensitivity, maxTokens: 900,
                                               localOnly: router.localOnlyFor.contains(sensitivity))
-                return try await modelProvider.stream(request, model: models[provider.id],
-                                                      onFragment: onFragment ?? { _ in }).text
+                let response = try await modelProvider.stream(request, model: models[provider.id],
+                                                              onFragment: onFragment ?? { _ in })
+                await providerHealthCache.record(
+                    BELProviderHealth(state: .ready, model: response.model), for: provider.id)
+                return response.text
             } catch {
                 lastError = error
                 await providerHealthCache.record(
