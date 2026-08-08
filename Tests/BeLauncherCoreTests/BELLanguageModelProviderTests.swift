@@ -38,6 +38,24 @@ struct BELLanguageModelProviderTests {
         let providers = BELLanguageModelProviderFactory.httpProviders()
         #expect(Set(providers.map(\.providerID))
                 == Set(ModelProviderRegistry.supporting(.chat).map(\.id)))
-        #expect(providers.allSatisfy { $0.capabilities == [.chat] })
+        #expect(providers.first(where: { $0.providerID == "ollama" })?.capabilities
+                == [.chat, .embeddings])
+    }
+
+    @Test("local runtimes share the stable Brain identity")
+    func localCoreFacade() throws {
+        let local = try #require(
+            BELLanguageModelProviderFactory.localCoreProviders().first(where: {
+                $0.backend.descriptor.id == "ollama"
+            }))
+        #expect(local.providerID == BELLocalCore.id)
+        #expect(local.capabilities.contains(.chat))
+        #expect(local.capabilities.contains(.embeddings))
+    }
+
+    @Test("Foundation Models is either a real runtime provider or absent")
+    func foundationModelsHasNoFalsePositive() {
+        let provider = BELLanguageModelProviderFactory.foundationModelsProvider()
+        #expect(provider == nil || provider?.providerID == "apple.foundation.models")
     }
 }

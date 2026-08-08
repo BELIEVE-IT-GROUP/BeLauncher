@@ -24,7 +24,7 @@ public final class Vault {
 
     public init(root: String) throws {
         self.root = root
-        for folder in [objectsFolder, commitsFolder, attachmentsFolder, inboxFolder] {
+        for folder in [objectsFolder, commitsFolder, attachmentsFolder, inboxFolder, auditFolder] {
         try manager.createDirectory(atPath: folder, withIntermediateDirectories: true,
                                         attributes: [.posixPermissions: 0o700])
         }
@@ -49,6 +49,29 @@ public final class Vault {
     var commitsFolder: String { (root as NSString).appendingPathComponent("commits") }
     var attachmentsFolder: String { (root as NSString).appendingPathComponent("attachments") }
     var inboxFolder: String { (root as NSString).appendingPathComponent("inbox") }
+    var auditFolder: String { (root as NSString).appendingPathComponent("audit") }
+
+    /// Records AI control-plane activity without storing prompts, answers or memory contents.
+    /// The audit file is local, append-only in normal operation, and readable as ordinary JSONL.
+    public func recordAIAudit(_ event: BELAIAuditEvent) throws {
+        let url = URL(fileURLWithPath: (auditFolder as NSString)
+            .appendingPathComponent("ai.jsonl"))
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let line = try encoder.encode(event) + Data([0x0A])
+        let previous = (try? Data(contentsOf: url)) ?? Data()
+        try (previous + line).write(to: url, options: .atomic)
+    }
+
+    public func aiAuditEvents() -> [BELAIAuditEvent] {
+        let path = (auditFolder as NSString).appendingPathComponent("ai.jsonl")
+        guard let data = manager.contents(atPath: path) else { return [] }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return data.split(separator: 0x0A).compactMap {
+            try? decoder.decode(BELAIAuditEvent.self, from: Data($0))
+        }
+    }
 
     /// Publishes human-readable evidence through the same durable manifest as memory objects.
     /// Evidence is intentionally still an ordinary Inbox Markdown file; the manifest only makes

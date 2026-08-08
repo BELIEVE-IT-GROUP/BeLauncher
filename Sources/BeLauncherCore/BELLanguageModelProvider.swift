@@ -1,5 +1,10 @@
 import Foundation
 
+/// Stable product identity for whichever local runtime currently serves the Brain.
+public enum BELLocalCore {
+    public static let id = "bebrain.local.core"
+}
+
 /// The model boundary used by Brain actions. The Brain asks for a capability and a typed
 /// response; it never needs to know whether the answer came from Ollama, an OpenAI-compatible
 /// server, or a direct cloud API.
@@ -8,13 +13,15 @@ public struct BELModelRequest: Sendable, Equatable {
     public let prompt: String
     public let sensitivity: Sensitivity
     public let maxTokens: Int
+    public let localOnly: Bool
 
     public init(system: String = "", prompt: String, sensitivity: Sensitivity = .personal,
-                maxTokens: Int = 1024) {
+                maxTokens: Int = 1024, localOnly: Bool = false) {
         self.system = system
         self.prompt = prompt
         self.sensitivity = sensitivity
         self.maxTokens = maxTokens
+        self.localOnly = localOnly
     }
 }
 
@@ -52,10 +59,10 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
     public var providerID: String { descriptor.id }
 
     public init(descriptor: IntelligenceProvider,
-                capabilities: Set<ModelCapability> = [.chat],
+                capabilities: Set<ModelCapability>? = nil,
                 client: IntelligenceClient = IntelligenceClient()) {
         self.descriptor = descriptor
-        self.capabilities = capabilities
+        self.capabilities = capabilities ?? descriptor.capabilities
         self.client = client
     }
 
@@ -64,7 +71,8 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
             system: request.system,
             prompt: request.prompt,
             sensitivity: request.sensitivity,
-            maxTokens: request.maxTokens
+            maxTokens: request.maxTokens,
+            localOnly: request.localOnly
         )
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.answer(intelligenceRequest, using: descriptor, model: selectedModel)
@@ -78,12 +86,39 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
             system: request.system,
             prompt: request.prompt,
             sensitivity: request.sensitivity,
-            maxTokens: request.maxTokens
+            maxTokens: request.maxTokens,
+            localOnly: request.localOnly
         )
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.stream(intelligenceRequest, using: descriptor,
                                            model: selectedModel, onFragment: onFragment)
         return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
+    }
+}
+
+/// Local-core facade. The concrete HTTP runtime remains inspectable for health and diagnostics,
+/// while Brain callers receive one stable identity across Ollama, LM Studio, or a future runtime.
+public struct BELLocalCoreProvider: BELLanguageModelProvider {
+    public let backend: BELHTTPModelProvider
+    public var providerID: String { BELLocalCore.id }
+    public var capabilities: Set<ModelCapability> { backend.capabilities }
+
+    public init(descriptor: IntelligenceProvider,
+                client: IntelligenceClient = IntelligenceClient()) {
+        self.backend = BELHTTPModelProvider(descriptor: descriptor, client: client)
+    }
+
+    public func generate(_ request: BELModelRequest, model: String? = nil) async throws
+        -> BELModelResponse {
+        let response = try await backend.generate(request, model: model)
+        return BELModelResponse(text: response.text, providerID: providerID, model: response.model)
+    }
+
+    public func stream(_ request: BELModelRequest, model: String? = nil,
+                       onFragment: @escaping @Sendable (String) -> Void) async throws
+        -> BELModelResponse {
+        let response = try await backend.stream(request, model: model, onFragment: onFragment)
+        return BELModelResponse(text: response.text, providerID: providerID, model: response.model)
     }
 }
 
@@ -95,7 +130,26 @@ public enum BELLanguageModelProviderFactory {
         client: IntelligenceClient = IntelligenceClient()
     ) -> [BELHTTPModelProvider] {
         IntelligenceProvider.all.map { provider in
-            BELHTTPModelProvider(descriptor: provider, capabilities: [.chat], client: client)
+            BELHTTPModelProvider(descriptor: provider, client: client)
         }
+    }
+
+    public static func localCoreProviders(
+        client: IntelligenceClient = IntelligenceClient()
+    ) -> [BELLocalCoreProvider] {
+        IntelligenceProvider.all.filter(\.isPrivate).map {
+            BELLocalCoreProvider(descriptor: $0, client: client)
+        }
+    }
+
+    /// Apple Intelligence is discovered at runtime and never reported as configured merely
+    /// because the framework exists in the SDK.
+    public static func foundationModelsProvider() -> (any BELLanguageModelProvider)? {
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *), BELFoundationModelsRuntime.isAvailable {
+            return BELFoundationModelsProvider()
+        }
+        #endif
+        return nil
     }
 }

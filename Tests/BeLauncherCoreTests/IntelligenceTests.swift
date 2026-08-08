@@ -84,6 +84,15 @@ struct IntelligenceTests {
         #expect(request.value(forHTTPHeaderField: "x-api-key") == nil)
     }
 
+    @Test("local-only is enforced at the last request boundary")
+    func localOnlyBoundary() {
+        let client = IntelligenceClient(keyLookup: { _ in "user-key" })
+        #expect(throws: IntelligenceError.blockedBySensitivity("Anthropic")) {
+            try client.build(IntelligenceRequest(prompt: "private", localOnly: true),
+                             provider: cloud, model: cloud.defaultModel)
+        }
+    }
+
     @Test("the cloud boundary redacts credentials from the actual request body")
     func cloudBoundaryRedactsCredentials() throws {
         let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },

@@ -295,11 +295,12 @@ if CommandLine.arguments.contains("--diagnose-ai") {
             do {
                 final class FirstToken: @unchecked Sendable { var at: TimeInterval? }
                 let first = FirstToken()
-                let answer = try await IntelligenceClient().stream(
-                    IntelligenceRequest(system: "Eres una herramienta dentro de un launcher.",
-                                        prompt: "Escribe un párrafo sobre el mar.",
-                                        sensitivity: .personal, maxTokens: 400),
-                    using: provider, model: model,
+                let adapter = BELHTTPModelProvider(descriptor: provider)
+                let answer = try await adapter.stream(
+                    BELModelRequest(system: "Eres una herramienta dentro de un launcher.",
+                                    prompt: "Escribe un párrafo sobre el mar.",
+                                    sensitivity: .personal, maxTokens: 400),
+                    model: model,
                     onFragment: { _ in
                         // The number that decides whether this feels instant or broken.
                         if first.at == nil { first.at = Date().timeIntervalSince(asked) }
@@ -307,7 +308,7 @@ if CommandLine.arguments.contains("--diagnose-ai") {
                 )
                 out("   primera palabra en \(String(format: "%.1f", first.at ?? 0))s")
                 out("   completo en \(String(format: "%.1f", Date().timeIntervalSince(asked)))s, "
-                    + "\(answer.count) caracteres")
+                    + "\(answer.text.count) caracteres")
             } catch {
                 out("   FALLÓ tras \(String(format: "%.1f", Date().timeIntervalSince(asked)))s")
                 out("   \(String(describing: error))")

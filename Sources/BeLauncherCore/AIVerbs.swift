@@ -164,7 +164,8 @@ public struct AIVerbRunner: Sendable {
                 let modelProvider = BELHTTPModelProvider(descriptor: provider, client: client)
                 let modelRequest = BELModelRequest(system: request.system, prompt: request.prompt,
                                                    sensitivity: request.sensitivity,
-                                                   maxTokens: request.maxTokens)
+                                                   maxTokens: request.maxTokens,
+                                                   localOnly: router.localOnlyFor.contains(verb.sensitivity))
                 if let onFragment {
                     return try await modelProvider.stream(modelRequest, model: models[provider.id],
                                                          onFragment: onFragment).text
@@ -178,6 +179,22 @@ public struct AIVerbRunner: Sendable {
                         for: provider.id
                     )
                 }
+            }
+        }
+        // Apple Intelligence is a local fallback, not a positive health signal for the HTTP
+        // catalogue. Use it only after configured local/cloud transports have failed.
+        if let foundation = BELLanguageModelProviderFactory.foundationModelsProvider() {
+            do {
+                let modelRequest = BELModelRequest(system: request.system, prompt: request.prompt,
+                                                   sensitivity: request.sensitivity,
+                                                   maxTokens: request.maxTokens, localOnly: true)
+                if let onFragment {
+                    return try await foundation.stream(modelRequest, model: nil,
+                                                       onFragment: onFragment).text
+                }
+                return try await foundation.generate(modelRequest, model: nil).text
+            } catch {
+                lastError = error
             }
         }
         throw lastError ?? IntelligenceError.noProviderConfigured

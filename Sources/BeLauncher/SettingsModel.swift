@@ -184,11 +184,12 @@ final class SettingsModel {
         providerHealth[provider.id] = .configured
         aiStatus = L("Testing %@…", provider.name)
         do {
-            let answer = try await IntelligenceClient().answer(
-                IntelligenceRequest(prompt: L("Reply with one word only: ready"),
-                                    sensitivity: .personal, maxTokens: 256),
-                using: provider, model: modelForProvider(provider)
-            )
+            let adapter = BELHTTPModelProvider(descriptor: provider)
+            let answer = try await adapter.generate(
+                BELModelRequest(prompt: L("Reply with one word only: ready"),
+                                sensitivity: .personal, maxTokens: 256),
+                model: modelForProvider(provider)
+            ).text
             providerHealth[provider.id] = .ready
             providerVerifiedAt[provider.id] = .now
             aiStatus = L("%@ connected: %@", provider.name, String(answer.prefix(40)))

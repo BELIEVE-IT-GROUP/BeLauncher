@@ -1626,7 +1626,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let client = IntelligenceClient()
                 let modelProvider = BELHTTPModelProvider(descriptor: provider, client: client)
                 let request = BELModelRequest(system: system, prompt: prompt,
-                                              sensitivity: sensitivity, maxTokens: 900)
+                                              sensitivity: sensitivity, maxTokens: 900,
+                                              localOnly: router.localOnlyFor.contains(sensitivity))
                 return try await modelProvider.stream(request, model: models[provider.id],
                                                       onFragment: onFragment ?? { _ in }).text
             } catch {
@@ -1635,6 +1636,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     BELProviderHealth(state: .offline(error.localizedDescription)),
                     for: provider.id
                 )
+            }
+        }
+        if let foundation = BELLanguageModelProviderFactory.foundationModelsProvider() {
+            do {
+                let request = BELModelRequest(system: system, prompt: prompt,
+                                              sensitivity: sensitivity, maxTokens: 900,
+                                              localOnly: true)
+                return try await foundation.stream(request, model: nil,
+                                                   onFragment: onFragment ?? { _ in }).text
+            } catch {
+                lastError = error
             }
         }
         throw lastError ?? IntelligenceError.noProviderConfigured

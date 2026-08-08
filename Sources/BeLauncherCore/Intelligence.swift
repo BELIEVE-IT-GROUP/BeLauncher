@@ -21,6 +21,9 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
     public let endpoint: String
     public let modelsEndpoint: String?
     public let defaultModel: String
+    /// Capabilities advertised by the canonical registry. Transport alone is not enough to infer
+    /// whether a local endpoint can chat, embed or transcribe.
+    public let capabilities: Set<ModelCapability>
     /// Keychain account holding the key, empty for local providers.
     public let keychainAccount: String
     /// Everything stays on the Mac with this provider.
@@ -28,7 +31,7 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
 
     public init(id: String, name: String, transport: Transport, endpoint: String,
                 modelsEndpoint: String? = nil, defaultModel: String,
-                keychainAccount: String = "") {
+                keychainAccount: String = "", capabilities: Set<ModelCapability> = [.chat]) {
         self.id = id
         self.name = name
         self.transport = transport
@@ -36,6 +39,7 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
         self.modelsEndpoint = modelsEndpoint
         self.defaultModel = defaultModel
         self.keychainAccount = keychainAccount
+        self.capabilities = capabilities
     }
 
     public static let all: [IntelligenceProvider] = ModelProviderRegistry
@@ -45,7 +49,8 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
                   transport: $0.transport == .local ? .local : .directKey,
                   endpoint: $0.endpoint, modelsEndpoint: $0.modelsEndpoint,
                   defaultModel: $0.defaultModel,
-                  keychainAccount: $0.keychainAccount)
+                  keychainAccount: $0.keychainAccount,
+                  capabilities: $0.capabilities)
         }
 
     public static func named(_ id: String) -> IntelligenceProvider? {
@@ -198,13 +203,16 @@ public struct IntelligenceRequest: Sendable, Equatable {
     public let prompt: String
     public let sensitivity: Sensitivity
     public let maxTokens: Int
+    /// Defense in depth. A caller may require local execution even if a future router changes.
+    public let localOnly: Bool
 
     public init(system: String = "", prompt: String, sensitivity: Sensitivity = .personal,
-                maxTokens: Int = 1024) {
+                maxTokens: Int = 1024, localOnly: Bool = false) {
         self.system = system
         self.prompt = prompt
         self.sensitivity = sensitivity
         self.maxTokens = maxTokens
+        self.localOnly = localOnly
     }
 }
 
@@ -372,6 +380,9 @@ public struct IntelligenceClient: Sendable {
 
     func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String,
                streaming: Bool = false) throws -> URLRequest {
+        guard !request.localOnly || provider.isPrivate else {
+            throw IntelligenceError.blockedBySensitivity(provider.name)
+        }
         let endpoint: String
         if provider.id == "gemini" {
             let operation = streaming ? "streamGenerateContent?alt=sse" : "generateContent"
