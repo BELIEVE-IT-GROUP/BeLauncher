@@ -115,8 +115,10 @@ private struct SourceRow: View {
                 return .available
             }
             return .connected
+        case "browsers":
+            return model.browserSourceAvailable() ? .connected : .available
         case "clipboard":
-            return model.clipboardEnabled ? .connected : .available
+            return model.clipboardHasEvidence() ? .connected : .available
         default:
             return source.state
         }

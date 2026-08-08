@@ -1201,8 +1201,36 @@ final class SettingsModel {
     func sourceHasSuccessfulSync(_ id: String) -> Bool {
         guard sourceEnabled(id),
               let raw = store.setting("source_last_sync_\(id)"),
-              let timestamp = Double(raw), timestamp > 0 else { return false }
-        return (store.setting("source_last_problem_\(id)") ?? "").isEmpty
+              let timestamp = Double(raw), timestamp > 0,
+              (store.setting("source_last_problem_\(id)") ?? "").isEmpty else { return false }
+        switch id {
+        case "apple-mail":
+            return FileManager.default.fileExists(atPath: NSHomeDirectory() + "/Library/Mail/V10")
+        case "messages":
+            return FileManager.default.fileExists(atPath: NSHomeDirectory() + "/Library/Messages/chat.db")
+        case "notes":
+            return FileManager.default.fileExists(atPath: NSHomeDirectory() + "/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite")
+        default:
+            return true
+        }
+    }
+
+    /// The browser connector has no separate schedule record: its evidence is the local history
+    /// database that the next corpus pass will read. Do not show Safari as connected on a Mac
+    /// where no readable browser history exists.
+    func browserSourceAvailable() -> Bool {
+        let home = NSHomeDirectory()
+        let safari = FileManager.default.isReadableFile(atPath: home + "/Library/Safari/History.db")
+        let chromeRoot = home + "/Library/Application Support/Google/Chrome"
+        let chrome = (try? FileManager.default.contentsOfDirectory(atPath: chromeRoot))?.contains {
+            ($0 == "Default" || $0.hasPrefix("Profile ")) &&
+            FileManager.default.isReadableFile(atPath: chromeRoot + "/\($0)/History")
+        } == true
+        return safari || chrome
+    }
+
+    func clipboardHasEvidence() -> Bool {
+        clipboardEnabled && !store.clips(limit: 1).isEmpty
     }
 
     private func brainForReading() -> BrainSearch {
