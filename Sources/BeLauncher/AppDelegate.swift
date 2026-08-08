@@ -68,6 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
     private var license: LicenseIdentity?
+    private let providerHealthCache = BELProviderHealthCache()
 
     /// Public anon key, the same one the landing page ships. Overridable from .env.
     private var anonKey: String {
@@ -1594,7 +1595,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preferred: store.setting("ai_provider"),
             localOnlyFor: store.setting("ai_confidential_local", default: true) ? [.confidential] : []
         )
-        let providers = try router.providers(for: sensitivity, available: available)
+        let health = await providerHealthCache.snapshot(for: available)
+        let providers = try router.providers(for: sensitivity, available: available, health: health,
+                                             machine: MacCapabilityDetector.current())
 
         // How this person writes, when the app has watched long enough to be sure.
         let style = OperatingModel.systemPrompt(from: store.traits())
@@ -1622,6 +1625,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 )
             } catch {
                 lastError = error
+                await providerHealthCache.record(
+                    BELProviderHealth(state: .offline(error.localizedDescription)),
+                    for: provider.id
+                )
             }
         }
         throw lastError ?? IntelligenceError.noProviderConfigured
