@@ -1,0 +1,31 @@
+Sources/BeLauncher/AudioCaptureController.swift
+  s_30bc31f46aebe1::t_c2413d6a29e289 3,10,22-32,79,100,102,126,130,150,160,165-167
+  s_30bc31f46aebe1::t_a52dfdc1fbeb84 33-36,168
+  s_30bc31f46aebe1::t_c3f28dc0c752eb 169
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_cd29c8e0b5f8b8 32,264-269,733-739
+Sources/BeLauncher/CaptureStatusPanel.swift
+  s_30bc31f46aebe1::t_617878af87324d 3,54,73,77,107-110
+  s_30bc31f46aebe1::t_42f99b6c9c76ff 1-2,4-53,55-63,65,67-72,74-76,78-100,106,111
+  s_30bc31f46aebe1::t_a52dfdc1fbeb84 64,66,101-105
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_6cbc12909b2117 1436-1437,1581-1582,1584
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_f51cf8991ccf12 107-112,121-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "eea8a4cf1ab45ca26061d07c7514d461d0ab1f64",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
