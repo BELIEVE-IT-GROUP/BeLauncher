@@ -149,6 +149,35 @@ public enum Capture {
         ))
     }
 
+    /// A mail message is a referenceable work item, not a second mailbox. Its target remains the
+    /// original `.emlx` file so the reader can open the source when the person needs full context.
+    public static func mail(_ message: MailMessage) -> Event {
+        let title = message.subject.isEmpty ? L("Email") : message.subject
+        let detail = [message.sender, message.recipients].filter { !$0.isEmpty }
+            .joined(separator: " · ")
+        return Event(node: WorkNode(
+            id: WorkNode.identifier(kind: .conversation, name: message.messageID),
+            kind: .conversation, name: title, detail: detail,
+            target: message.sourcePath, lastSeen: message.at
+        ))
+    }
+
+    public static func message(_ message: MessageRecord) -> Event {
+        Event(node: WorkNode(
+            id: WorkNode.identifier(kind: .conversation, name: message.messageID),
+            kind: .conversation, name: String(message.text.prefix(90)),
+            detail: message.sender, target: message.sourcePath, lastSeen: message.at
+        ))
+    }
+
+    public static func note(_ note: NoteRecord) -> Event {
+        Event(node: WorkNode(
+            id: WorkNode.identifier(kind: .file, name: note.noteID),
+            kind: .file, name: String(note.text.prefix(90)),
+            detail: L("Apple Note"), target: note.sourcePath, lastSeen: note.at
+        ))
+    }
+
     // MARK: - From the vault
 
     /// Decisions and commitments become nodes so the graph can connect them to the meeting they

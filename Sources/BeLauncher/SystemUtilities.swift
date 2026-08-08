@@ -131,16 +131,9 @@ enum SystemUtilities {
     }
 
     static func write(note text: String, inVaultAt root: String) -> NoteResult {
-        let folder = QuickNote.folder(inVaultAt: root)
         do {
-            try FileManager.default.createDirectory(atPath: folder,
-                                                    withIntermediateDirectories: true)
-        } catch {
-            return .failed(L("The notes folder could not be opened: %@", error.localizedDescription))
-        }
-        let path = (folder as NSString).appendingPathComponent(QuickNote.filename(for: text))
-        do {
-            try QuickNote.render(text).write(toFile: path, atomically: true, encoding: .utf8)
+            let vault = try Vault(root: root)
+            let path = try vault.saveQuickNote(text)
             return .saved(path: path)
         } catch {
             return .failed(L("The note could not be saved: %@", error.localizedDescription))

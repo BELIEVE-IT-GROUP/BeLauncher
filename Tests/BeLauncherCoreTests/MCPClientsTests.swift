@@ -77,6 +77,17 @@ struct MCPSetupTests {
         #expect(MCPSetup.isConnected(data, client: Self.client))
     }
 
+    @Test("una conexión vieja no se presenta como actual")
+    func stalePathIsNotCurrent() throws {
+        let (data, _) = try MCPSetup.merge(into: nil, client: Self.client,
+                                            executablePath: "/old/BeLauncher")
+        #expect(MCPSetup.executablePath(in: data, client: Self.client) == "/old/BeLauncher")
+        #expect(!MCPSetup.isCurrent(data, client: Self.client,
+                                    executablePath: "/Applications/BeLauncher.app/Contents/MacOS/BeLauncher"))
+        #expect(MCPSetup.isCurrent(data, client: Self.client,
+                                   executablePath: "/old/BeLauncher"))
+    }
+
     @Test("cada cliente conocido tiene una ruta bajo la carpeta personal")
     func pathsAreSane() {
         for client in MCPClient.all {

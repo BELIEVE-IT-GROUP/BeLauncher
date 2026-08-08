@@ -86,10 +86,25 @@ public enum StayAwake {
 public enum QuickNote {
 
     public struct Record: Sendable, Equatable, Identifiable {
+        public enum Kind: String, Sendable, Equatable {
+            case note
+            case evidence
+        }
+
+        public enum State: String, Sendable, Equatable {
+            case pending
+            case needsTranscription
+        }
+
         public let id: String
         public let title: String
         public let excerpt: String
         public let path: String
+        public let reviewed: Bool
+        public let kind: Kind
+        public let state: State
+        public let createdAt: Date?
+        public let sourcePath: String?
     }
 
     public static let triggers = ["nota", "apunta", "anota", "note", "quick note"]
@@ -135,14 +150,16 @@ public enum QuickNote {
             """
     }
 
-    public static func renderEvidence(title: String, text: String, at date: Date = .now) -> String {
+    public static func renderEvidence(title: String, text: String, at date: Date = .now,
+                                      sourcePath: String? = nil) -> String {
         let formatter = ISO8601DateFormatter()
+        let source = sourcePath.map { "source_path: \($0.replacingOccurrences(of: "\n", with: " "))\n" } ?? ""
         return """
             ---
             created: \(formatter.string(from: date))
             kind: evidence
             title: \(title.replacingOccurrences(of: "\n", with: " "))
-            ---
+            \(source)---
 
             # \(title)
 
@@ -156,17 +173,58 @@ public enum QuickNote {
         (root as NSString).appendingPathComponent("inbox")
     }
 
+    /// Returns the human text from an Inbox Markdown file without exposing its front matter to a
+    /// reader or to a memory proposal.
+    public static func body(from raw: String) -> String {
+        raw.components(separatedBy: "---").dropFirst(2).joined(separator: "---")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     public static func records(inVaultAt root: String) -> [Record] {
         let folder = folder(inVaultAt: root)
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder) else { return [] }
         return names.filter { $0.hasSuffix(".md") }.compactMap { name in
             let path = (folder as NSString).appendingPathComponent(name)
             guard let raw = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
-            let body = raw.components(separatedBy: "---").dropFirst(2).joined(separator: "---")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let title = body.split(whereSeparator: \.isNewline).first.map(String.init)
+            let reviewed = raw.split(separator: "\n", omittingEmptySubsequences: false)
+                .contains { $0.trimmingCharacters(in: .whitespaces).lowercased() == "reviewed: true" }
+            let frontMatter = raw.components(separatedBy: "---").dropFirst().first ?? ""
+            let body = QuickNote.body(from: raw)
+            let metadata = Dictionary(uniqueKeysWithValues: frontMatter
+                .split(whereSeparator: \.isNewline)
+                .compactMap { line -> (String, String)? in
+                    let parts = line.split(separator: ":", maxSplits: 1).map(String.init)
+                    guard parts.count == 2 else { return nil }
+                    return (parts[0].trimmingCharacters(in: .whitespaces).lowercased(),
+                            parts[1].trimmingCharacters(in: .whitespaces))
+                })
+            let title = metadata["title"] ?? body.split(whereSeparator: \.isNewline).first.map(String.init)
                 ?? (name as NSString).deletingPathExtension
-            return Record(id: path, title: title, excerpt: String(body.prefix(180)), path: path)
+            let kind: Record.Kind = metadata["kind"]?.lowercased() == "evidence" ? .evidence : .note
+            let createdAt = metadata["created"].flatMap { ISO8601DateFormatter().date(from: $0) }
+            let awaitingTranscription = raw.localizedCaseInsensitiveContains("awaiting transcription")
+                || raw.localizedCaseInsensitiveContains("transcription failed")
+            return Record(id: path, title: title, excerpt: String(body.prefix(180)), path: path,
+                          reviewed: reviewed, kind: kind,
+                          state: awaitingTranscription ? .needsTranscription : .pending,
+                          createdAt: createdAt, sourcePath: metadata["source_path"])
         }.sorted { $0.id > $1.id }
+    }
+
+    /// Keeps the note in the inbox and search index while recording that a person has triaged it.
+    /// Moving files between folders would make the note disappear from search and would lose the
+    /// original evidence trail, so review is explicit metadata instead.
+    public static func markReviewed(_ record: Record) throws {
+        var raw = try String(contentsOfFile: record.path, encoding: .utf8)
+        guard !raw.split(separator: "\n", omittingEmptySubsequences: false)
+            .contains(where: { $0.trimmingCharacters(in: .whitespaces).lowercased() == "reviewed: true" }) else {
+            return
+        }
+        if let closing = raw.range(of: "---", options: [], range: raw.index(after: raw.startIndex)..<raw.endIndex) {
+            raw.insert(contentsOf: "\nreviewed: true\n", at: closing.lowerBound)
+        } else {
+            raw = "---\nreviewed: true\n---\n\n" + raw
+        }
+        try raw.write(toFile: record.path, atomically: true, encoding: .utf8)
     }
 }

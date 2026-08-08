@@ -9,15 +9,26 @@ import Foundation
 /// company's memory in your app.
 @MainActor
 public final class Vault {
+    private struct StagedWrite: Codable {
+        let staged: String
+        let destination: String
+        let previous: String?
+    }
+
+    private struct StagingManifest: Codable {
+        let writes: [StagedWrite]
+    }
+
     public let root: String
     private let manager = FileManager.default
 
     public init(root: String) throws {
         self.root = root
-        for folder in [objectsFolder, commitsFolder, attachmentsFolder] {
-            try manager.createDirectory(atPath: folder, withIntermediateDirectories: true,
+        for folder in [objectsFolder, commitsFolder, attachmentsFolder, inboxFolder] {
+        try manager.createDirectory(atPath: folder, withIntermediateDirectories: true,
                                         attributes: [.posixPermissions: 0o700])
         }
+        recoverStaging()
         // The rest of the structure plus a README, so the first time someone opens this folder it
         // explains what goes where instead of showing them two folders called objects and commits.
         try? VaultGuide.scaffold(at: root, manager: manager)
@@ -28,9 +39,45 @@ public final class Vault {
             .appendingPathComponent("BeLauncher/Vault", isDirectory: true).path
     }
 
+    /// Raw recordings are attachments, not a second memory store beside the vault.
+    public static func recordingsRoot() -> URL {
+        URL(fileURLWithPath: defaultRoot()).appendingPathComponent("attachments/recordings",
+                                                                    isDirectory: true)
+    }
+
     var objectsFolder: String { (root as NSString).appendingPathComponent("objects") }
     var commitsFolder: String { (root as NSString).appendingPathComponent("commits") }
     var attachmentsFolder: String { (root as NSString).appendingPathComponent("attachments") }
+    var inboxFolder: String { (root as NSString).appendingPathComponent("inbox") }
+
+    /// Publishes human-readable evidence through the same durable manifest as memory objects.
+    /// Evidence is intentionally still an ordinary Inbox Markdown file; the manifest only makes
+    /// its appearance recoverable if the app exits between staging and publication.
+    @discardableResult
+    public func saveEvidence(title: String, text: String, at date: Date = .now,
+                             sourcePath: String? = nil) throws -> String {
+        let filename = QuickNote.filename(for: "\(title) \(text.prefix(80))", at: date)
+        let destination = (inboxFolder as NSString).appendingPathComponent(filename)
+        try writeFiles([StagedWriteInput(destination: destination,
+                                         data: Data(QuickNote.renderEvidence(title: title,
+                                                                              text: text,
+                                                                              at: date,
+                                                                              sourcePath: sourcePath).utf8),
+                                         previous: manager.fileExists(atPath: destination)
+                                            ? destination : nil)])
+        return destination
+    }
+
+    @discardableResult
+    public func saveQuickNote(_ text: String, at date: Date = .now) throws -> String {
+        let destination = (inboxFolder as NSString)
+            .appendingPathComponent(QuickNote.filename(for: text, at: date))
+        try writeFiles([StagedWriteInput(destination: destination,
+                                         data: Data(QuickNote.render(text, at: date).utf8),
+                                         previous: manager.fileExists(atPath: destination)
+                                            ? destination : nil)])
+        return destination
+    }
 
     // MARK: - Objects
 
@@ -46,10 +93,10 @@ public final class Vault {
         // statement changes it. Without removing the old file the vault would end up with two
         // files claiming the same id, and "what is true now" would depend on directory order.
         let destination = (objectsFolder as NSString).appendingPathComponent(filename(for: object))
-        if let existing = path(forID: object.id), existing != destination {
-            try? manager.removeItem(atPath: existing)
-        }
-        try VaultDocument.render(object).write(toFile: destination, atomically: true, encoding: .utf8)
+        let existing = path(forID: object.id)
+        try writeFiles([StagedWriteInput(destination: destination,
+                                         data: Data(VaultDocument.render(object).utf8),
+                                         previous: existing)])
     }
 
     /// Finds the file holding an object, whatever its statement was when it was written.
@@ -87,6 +134,15 @@ public final class Vault {
         }
     }
 
+    /// Returns the objects that explicitly cite a source or memory. Text similarity is useful for
+    /// discovery, but it is not provenance; backlinks must come from a declared evidence id.
+    public func backlinks(to id: String) -> [MemoryObject] {
+        let candidates = Set([id, "memory:\(id)", "note:\(id)", "conversation:\(id)"])
+        return objects()
+            .filter { !$0.evidence.isEmpty && $0.evidence.contains { candidates.contains($0) } }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     public func delete(id: String) {
         guard let path = path(forID: id) else { return }
         try? manager.removeItem(atPath: path)
@@ -106,7 +162,8 @@ public final class Vault {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        try encoder.encode(commit).write(to: URL(fileURLWithPath: path), options: .atomic)
+        try writeFiles([StagedWriteInput(destination: path,
+                                         data: try encoder.encode(commit), previous: path)])
     }
 
     public func commits(state: MemoryCommit.State? = nil) -> [MemoryCommit] {
@@ -153,19 +210,32 @@ public final class Vault {
         object.level = .committed
         object.supersedes = commit.conflicts
 
+        var files: [StagedWriteInput] = []
         for conflictID in commit.conflicts {
             guard var previous = load(id: conflictID) else { continue }
             previous.status = .superseded
             previous.supersededBy = object.id
             previous.validUntil = date
-            try save(previous)
+            let destination = (objectsFolder as NSString).appendingPathComponent(filename(for: previous))
+            files.append(StagedWriteInput(destination: destination,
+                                          data: Data(VaultDocument.render(previous).utf8),
+                                          previous: self.path(forID: previous.id)))
         }
-        try save(object)
+        let objectPath = (objectsFolder as NSString).appendingPathComponent(filename(for: object))
+        files.append(StagedWriteInput(destination: objectPath,
+                                      data: Data(VaultDocument.render(object).utf8),
+                                      previous: path(forID: object.id)))
 
         var decided = commit
         decided.state = .confirmed
         decided.decidedAt = date
-        try save(decided)
+        let commitPath = (commitsFolder as NSString).appendingPathComponent("\(decided.id).json")
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        files.append(StagedWriteInput(destination: commitPath,
+                                      data: try encoder.encode(decided), previous: commitPath))
+        try writeFiles(files)
         return object
     }
 
@@ -200,6 +270,82 @@ public final class Vault {
         // The share marker is bookkeeping, not a subject.
         let sharedEntity = !TeamBrain.topics(of: existing).isDisjoint(with: TeamBrain.topics(of: incoming))
         return similarity >= (sharedEntity ? 0.4 : 0.7)
+    }
+
+    // MARK: - Durable multi-file publication
+
+    private struct StagedWriteInput {
+        let destination: String
+        let data: Data
+        let previous: String?
+    }
+
+    /// Publishes a set of related files through a manifest. The filesystem cannot atomically
+    /// rename files in different folders as a group; the manifest makes a crash recoverable and
+    /// keeps a confirmed memory from becoming visible without its commit history.
+    private func writeFiles(_ inputs: [StagedWriteInput]) throws {
+        guard !inputs.isEmpty else { return }
+        let staging = (root as NSString).appendingPathComponent(
+            ".beacon-vault-staging-\(UUID().uuidString)")
+        try manager.createDirectory(atPath: staging, withIntermediateDirectories: true,
+                                    attributes: [.posixPermissions: 0o700])
+        var durable = false
+        do {
+            let writes = try inputs.enumerated().map { index, input in
+                let staged = (staging as NSString).appendingPathComponent("\(index).blob")
+                try input.data.write(to: URL(fileURLWithPath: staged), options: .atomic)
+                return StagedWrite(staged: staged, destination: input.destination,
+                                   previous: input.previous)
+            }
+            let manifest = try JSONEncoder().encode(StagingManifest(writes: writes))
+            try manifest.write(to: URL(fileURLWithPath: (staging as NSString)
+                .appendingPathComponent("manifest.json")), options: .atomic)
+            durable = true
+            try publish(writes)
+            try? manager.removeItem(atPath: staging)
+        } catch {
+            if !durable { try? manager.removeItem(atPath: staging) }
+            throw error
+        }
+    }
+
+    private func publish(_ writes: [StagedWrite]) throws {
+        for write in writes {
+            if manager.fileExists(atPath: write.staged) {
+                if manager.fileExists(atPath: write.destination) {
+                    _ = try manager.replaceItemAt(URL(fileURLWithPath: write.destination),
+                                                   withItemAt: URL(fileURLWithPath: write.staged))
+                } else {
+                    let destinationFolder = (write.destination as NSString).deletingLastPathComponent
+                    try manager.createDirectory(atPath: destinationFolder,
+                                                withIntermediateDirectories: true)
+                    try manager.moveItem(atPath: write.staged, toPath: write.destination)
+                }
+            }
+            if let previous = write.previous, previous != write.destination,
+               manager.fileExists(atPath: previous) {
+                try manager.removeItem(atPath: previous)
+            }
+        }
+    }
+
+    private func recoverStaging() {
+        guard let names = try? manager.contentsOfDirectory(atPath: root) else { return }
+        for name in names where name.hasPrefix(".beacon-vault-staging-") {
+            let staging = (root as NSString).appendingPathComponent(name)
+            let manifestPath = (staging as NSString).appendingPathComponent("manifest.json")
+            guard let data = manager.contents(atPath: manifestPath),
+                  let manifest = try? JSONDecoder().decode(StagingManifest.self, from: data) else {
+                try? manager.removeItem(atPath: staging)
+                continue
+            }
+            do {
+                try publish(manifest.writes)
+                try? manager.removeItem(atPath: staging)
+            } catch {
+                // A later launch can retry while preserving the manifest as the commit record.
+            }
+        }
     }
 
 }

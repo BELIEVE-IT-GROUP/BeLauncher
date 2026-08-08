@@ -25,7 +25,9 @@ public enum CallAudioSource: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .zoom: ["us.zoom.xos"]
         case .teams: ["com.microsoft.teams2", "com.microsoft.teams"]
-        case .meet: ["com.google.Chrome", "com.apple.Safari", "company.thebrowser.Browser", "com.brave.Browser"]
+        case .meet: ["com.google.Chrome", "com.apple.Safari", "company.thebrowser.Browser",
+                     "com.brave.Browser", "com.microsoft.edgemac", "org.mozilla.firefox",
+                     "company.thebrowser.Browser.beta", "com.google.Chrome.canary"]
         case .automatic, .system: []
         }
     }

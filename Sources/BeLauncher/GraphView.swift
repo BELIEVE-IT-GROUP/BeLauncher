@@ -93,6 +93,24 @@ final class GraphModel {
     /// the endless canvas all come from it, and every one of those was missing while this app drew
     /// the graph itself.
     private(set) var web = BrainGraphData(nodes: [], links: [])
+
+    /// Only pinned clips enter the review queue. The full chronological history belongs to the
+    /// launcher's clipboard rail; the Brain should surface deliberate saves, not every copy.
+    var pinnedInboxClips: [Clip] {
+        store.clips(limit: 200).filter(\.isPinned)
+    }
+
+    var inboxItems: [InboxItem] {
+        let records = QuickNote.records(inVaultAt: Vault.defaultRoot())
+            .filter { !$0.reviewed }
+            .map(InboxItem.init(record:))
+        let clips = pinnedInboxClips.map(InboxItem.init(clip:))
+        return (records + clips).sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+    }
+
+    func unpinInboxClip(_ clip: Clip) {
+        store.setPinned(false, clip: clip.id)
+    }
     private(set) var counted = 0
     /// Whether a layout is being worked out right now, so the empty canvas is not mistaken for an
     /// empty brain in the moment between a keystroke and its picture.
@@ -105,6 +123,26 @@ final class GraphModel {
     var hovered: String?
     var proposal: MergeProposal?
     var status: String?
+
+    var recentDocuments: [CorpusDocument] {
+        documents.values.sorted { $0.occurredAt > $1.occurredAt }.prefix(8).map { $0 }
+    }
+
+    var recentNodes: [WorkNode] {
+        workNodes.values.sorted { $0.lastSeen > $1.lastSeen }.prefix(8).map { $0 }
+    }
+
+    var nodeCount: Int { workNodes.count + episodes.count }
+    var relationCount: Int { allLinks.count }
+    var documentCount: Int { documents.count }
+
+    /// Pulse reads committed memory, not graph activity. Keeping that distinction here prevents
+    /// a busy graph from masquerading as an urgent decision and lets the Overview show only real
+    /// attention signals.
+    var pulseSignals: [Pulse.Signal] {
+        guard let vault = try? Vault(root: Vault.defaultRoot()) else { return [] }
+        return Pulse.signals(for: vault.objects(), limit: 4)
+    }
 
     /// Opening a node's Markdown. Injected because the reader is a window and the model is not
     /// allowed to know about windows — and because without it the graph told people to "open it in
@@ -226,7 +264,11 @@ final class GraphModel {
     /// Node labels come from clip and conversation titles, which are whole sentences. Handing
     /// those to the graph filled the canvas with overlapping walls of text.
     static func shortLabel(_ label: String) -> String {
-        let flat = label.replacingOccurrences(of: "\n", with: " ")
+        // A legacy source can contain an accidentally enormous title. Bound the input before
+        // Foundation scans, folds or allocates it; truncating only after replacement made one
+        // bad title capable of freezing the entire Brain window.
+        let bounded = String(label.prefix(256))
+        let flat = bounded.replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespaces)
         return flat.count > 34 ? String(flat.prefix(33)) + "…" : flat
     }
@@ -486,10 +528,11 @@ final class GraphModel {
 
         fold(loser, into: winner)
         if let corpus {
-            _ = try? corpus.save(CorpusFiles.document(for: merged, seenAt: winner.lastSeen))
+            var batch = [CorpusFiles.document(for: merged, seenAt: winner.lastSeen)]
             if let document = documents[loser.id] {
-                _ = try? corpus.apply(.mergedInto(merged.id), to: document)
+                batch.append(CorpusFiles.apply(.mergedInto(merged.id), to: document))
             }
+            _ = try? corpus.saveBatch(batch)
         }
         status = L("“%1$@” is now an alias of “%2$@”. %3$@.", loser.name, merged.canonical,
                     proposal.reason.explanation.prefix(1).uppercased() + proposal.reason.explanation.dropFirst())
@@ -525,15 +568,16 @@ final class GraphModel {
         trimmed.aliases.remove(alias)
         let freed = Entity(kind: entity.kind, canonical: alias, weight: 1)
 
-        _ = try? corpus.save(CorpusFiles.document(for: trimmed, seenAt: now))
-        _ = try? corpus.save(CorpusFiles.document(for: freed, seenAt: now))
+        var batch = [CorpusFiles.document(for: trimmed, seenAt: now),
+                     CorpusFiles.document(for: freed, seenAt: now)]
         // The split has to reach the engine too, or tonight's pass folds them straight back
         // together and the correction looks like it never happened.
         let undo = MergeProposal(left: trimmed.canonical, right: alias, reason: .sameName)
         rejected.insert(undo.id)
-        if let document = documents[id] ?? corpus.load(id: id, kind: .entity) {
-            _ = try? corpus.apply(.rejectMerge(undo), to: document)
+        if let document = documents[id] ?? corpus.load(id: id, kind: .entity) ?? documentOrBuild(id) {
+            batch.append(CorpusFiles.apply(.rejectMerge(undo), to: document))
         }
+        _ = try? corpus.saveBatch(batch)
         store.upsertNode(WorkNode(id: WorkNode.identifier(kind: workKind(entity.kind), name: alias),
                                   kind: workKind(entity.kind), name: alias, lastSeen: now))
         status = L("“%@” is a separate thing again.", alias)
@@ -731,14 +775,33 @@ final class GraphModel {
 
 @MainActor
 struct GraphView: View {
+    private enum Surface: String, CaseIterable, Identifiable {
+        case overview, graph
+        var id: String { rawValue }
+    }
+
     @Bindable var model: GraphModel
-    let askBrain: @MainActor (String) async throws -> BrainAnswer
+    @Bindable var coordinator: BrainCommandCoordinator
+    @Bindable var corpusRunner: CorpusRunner
+    let askBrain: @MainActor (String, BrainConversationContext?) async throws -> BrainAnswer
     let importText: @MainActor (String, String) -> Void
     let importFile: @MainActor (URL) -> Void
+    let retryTranscription: @MainActor (QuickNote.Record) -> Void
     let saveNote: @MainActor (String) -> Void
+    let runMission: @MainActor (Mission,
+                                @escaping @Sendable @MainActor (MissionReceipt) -> Void) -> Void
+    let cancelMission: @MainActor (Mission) -> Void
     let runIntent: @MainActor (String) -> Void
+    let openCitation: @MainActor (BrainCitation) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reader: CorpusReaderModel?
+    @State private var mission: Mission?
+    @State private var noteDraft = ""
+    @State private var showingNoteComposer = false
+    @State private var surface: Surface = .overview
+    @State private var inboxRecords = QuickNote.records(inVaultAt: Vault.defaultRoot()).filter { !$0.reviewed }
+    @State private var inboxItems: [InboxItem] = []
+    @State private var inboxRecord: QuickNote.Record?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -749,15 +812,70 @@ struct GraphView: View {
             VStack(spacing: 0) {
                 controls
                 Divider().opacity(0.35)
-                BrainConversationView(ask: askBrain, importText: importText, importFile: importFile,
-                                      saveNote: saveNote, runIntent: runIntent)
+                BrainConversationView(coordinator: coordinator,
+                                      context: {
+                                          guard let document = reader?.selected else { return nil }
+                                          return BrainConversationContext(
+                                              sourceID: document.id,
+                                              title: document.title,
+                                              body: String(document.body.prefix(6_000)))
+                                      },
+                                      ask: askBrain,
+                                      importText: importText, importFile: importFile,
+                                      saveNote: { text in
+                                          noteDraft = text
+                                          showingNoteComposer = true
+                                      },
+                                      newNote: {
+                                          noteDraft = ""
+                                          showingNoteComposer = true
+                                      },
+                                      prepareMission: prepareMission,
+                                      runIntent: runIntent,
+                                      openCitation: openCitation)
                 Divider().opacity(0.35)
-                HStack(spacing: 0) {
-                    canvas
-                    Divider().opacity(0.35)
-                    Inspector(model: model, read: openReader)
-                        .frame(width: 320)
-                        .transition(.move(edge: .trailing))
+                if let reader {
+                    BrainReaderSurface(model: reader) {
+                        self.reader = nil
+                    }
+                } else if surface == .overview {
+                    BrainOverview(model: model,
+                                  corpusRunner: corpusRunner,
+                                  newNote: beginNewNote,
+                                  importFile: importFile,
+                                  runIntent: runIntent,
+                                  inboxItems: inboxItems,
+                                  openInbox: { item in
+                                      if let path = item.sourcePath {
+                                          inboxRecord = inboxRecords.first { $0.path == path }
+                                      }
+                                  },
+                                  rememberClip: { item in
+                                      runIntent("remember this clipboard capture: \(item.excerpt)")
+                                  },
+                                  dismissClip: { item in
+                                      if let id = item.clipID {
+                                          model.unpinInboxClip(Clip(id: id, text: item.excerpt))
+                                      }
+                                      reloadInbox()
+                                  },
+                                  pulseSignals: model.pulseSignals,
+                                  askAboutPulse: { signal in
+                                      runIntent("what should we do about \(signal.headline)")
+                                  },
+                                  openReader: { id in
+                                      guard let corpus = model.corpus else { return }
+                                      reader = CorpusReaderModel(folder: corpus, selecting: id)
+                                  },
+                                  showGraph: { surface = .graph })
+                } else {
+                    HStack(spacing: 0) {
+                        canvas
+                        Divider().opacity(0.35)
+                        Inspector(model: model, read: openReader)
+                            .frame(width: 320)
+                            .transition(.move(edge: .trailing))
+                    }
                 }
                 Divider().opacity(0.35)
                 footer
@@ -766,21 +884,65 @@ struct GraphView: View {
         .frame(minWidth: 1120, minHeight: 680)
         .background(Backdrop())
         .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: model.selected)
-        .sheet(item: $reader) { reader in
-            VStack(spacing: 0) {
-                CorpusReaderView(model: reader)
-                Divider()
-                HStack {
-                    Spacer()
-                    Button(L("Close")) { self.reader = nil }.keyboardShortcut(.escape)
-                }
-                .padding(10)
-            }
-            .frame(width: 900, height: 620)
+        .sheet(item: $mission) { mission in
+            BrainMissionView(mission: mission,
+                             run: { completion in runMission(mission, completion) },
+                             cancel: { cancelMission(mission) })
         }
+        .sheet(isPresented: $showingNoteComposer) {
+            BrainNoteComposer(initialText: noteDraft) { text in
+                saveNote(text)
+                reloadInbox()
+                showingNoteComposer = false
+            }
+        }
+        .sheet(item: $inboxRecord) { record in
+            BrainInboxNoteView(record: record,
+                               proposeMemory: { text in
+                                   runIntent("remember that \(text)")
+                               },
+                               retryTranscription: { retryTranscription(record) },
+                               markReviewed: {
+                                   try? QuickNote.markReviewed(record)
+                                   reloadInbox()
+                                   inboxRecord = nil
+                               })
+        }
+        .onAppear { reloadInbox() }
     }
 
-    // MARK: Controls
+    private func reloadInbox() {
+        inboxRecords = QuickNote.records(inVaultAt: Vault.defaultRoot()).filter { !$0.reviewed }
+        inboxItems = model.inboxItems
+    }
+
+@MainActor
+private struct BrainReaderSurface: View {
+    @Bindable var model: CorpusReaderModel
+    let close: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Button { close() } label: {
+                    Label(L("Back to Brain"), systemImage: "chevron.left")
+                }
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.escape)
+                Text(L("Reading your Brain")).font(.system(size: 13, weight: .semibold))
+                Spacer()
+                Text(L("Markdown you own")).font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            Divider()
+            CorpusReaderView(model: model)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+// MARK: Controls
 
     private var controls: some View {
         HStack(spacing: 14) {
@@ -800,9 +962,16 @@ struct GraphView: View {
 
             Spacer(minLength: 8)
 
-            Picker("", selection: $model.span) {
-                ForEach(GraphModel.Span.allCases) { Text($0.label).tag($0) }
+            Picker("", selection: $surface) {
+                Text(L("Overview")).tag(Surface.overview)
+                Text(L("Graph")).tag(Surface.graph)
             }
+            .pickerStyle(.segmented).labelsHidden().frame(width: 150)
+
+            if surface == .graph {
+              Picker("", selection: $model.span) {
+                ForEach(GraphModel.Span.allCases) { Text($0.label).tag($0) }
+              }
             .pickerStyle(.segmented).labelsHidden().frame(width: 260)
             .help(L("Time is a first-class axis: this is a graph of things that happened."))
 
@@ -825,6 +994,7 @@ struct GraphView: View {
             }
             .padding(.horizontal, 8).padding(.vertical, 5)
             .background(.white.opacity(0.07), in: Capsule())
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
@@ -974,7 +1144,14 @@ struct GraphView: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
-            if let status = model.status {
+            if let run = coordinator.current {
+                Label(L("%@ · %@", run.label, run.source),
+                      systemImage: run.state == .cancelling ? "hourglass" : "bolt.horizontal")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                Button(L("Cancel command")) { coordinator.cancel() }
+                    .buttonStyle(.borderless).font(.system(size: 11))
+                    .disabled(run.state != .running)
+            } else if let status = model.status {
                 Text(status).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(2)
             } else if let note = model.drawing.omittedNote {
                 Label(note, systemImage: "eye.slash")
@@ -1018,6 +1195,546 @@ struct GraphView: View {
             return
         }
         reader = CorpusReaderModel(folder: corpus, selecting: model.selected)
+    }
+
+    private func beginNewNote() {
+        noteDraft = ""
+        showingNoteComposer = true
+    }
+
+    private func prepareMission(_ answer: String) {
+        let brief = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !brief.isEmpty else { return }
+        mission = MissionPlanner.plan("turn this into a proposal \(brief)")
+    }
+}
+
+@MainActor
+private struct BrainOverview: View {
+    private enum InboxFilter: String, CaseIterable, Identifiable {
+        case all, notes, evidence, clipboard
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .all: L("All")
+            case .notes: L("Notes")
+            case .evidence: L("Evidence")
+            case .clipboard: L("Clipboard")
+            }
+        }
+    }
+
+    @Bindable var model: GraphModel
+    @Bindable var corpusRunner: CorpusRunner
+    let newNote: () -> Void
+    let importFile: @MainActor (URL) -> Void
+    let runIntent: @MainActor (String) -> Void
+    let inboxItems: [InboxItem]
+    let openInbox: (InboxItem) -> Void
+    let rememberClip: (InboxItem) -> Void
+    let dismissClip: (InboxItem) -> Void
+    let pulseSignals: [Pulse.Signal]
+    let askAboutPulse: (Pulse.Signal) -> Void
+    let openReader: (String) -> Void
+    let showGraph: () -> Void
+    @State private var inboxFilter: InboxFilter = .all
+    @State private var showingImporter = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 8) {
+                            Text(L("Today in your Brain"))
+                            Text(L("Ready"))
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(Theme.cyan)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 4)
+                                .background(Theme.cyan.opacity(0.12), in: Capsule())
+                        }
+                            .font(.system(size: 24, weight: .semibold))
+                        Text(L("Read, question and turn what matters into action."))
+                            .font(.system(size: 13)).foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button { newNote() } label: {
+                        Label(L("New note"), systemImage: "note.text.badge.plus")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button { showingImporter = true } label: {
+                        Label(L("Import file"), systemImage: "arrow.down.doc")
+                    }
+                    .buttonStyle(.bordered)
+                    Button { runIntent("record a voice note") } label: {
+                        Label(L("Voice note"), systemImage: "waveform")
+                    }
+                    .buttonStyle(.bordered)
+                    Button { runIntent("ask my Brain") } label: {
+                        Label(L("Ask Brain"), systemImage: "bubble.left.and.text.bubble.right")
+                    }
+                    .buttonStyle(.bordered)
+                    Spacer()
+                    Text(L("Everything stays on this Mac"))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .controlSize(.small)
+
+                HStack(spacing: 10) {
+                    stat(L("Nodes"), value: model.nodeCount, symbol: "circle.grid.2x2")
+                    stat(L("Relations"), value: model.relationCount, symbol: "arrow.triangle.branch")
+                    stat(L("Notes"), value: model.documentCount, symbol: "doc.text")
+                }
+
+                section(title: L("Capture status"), symbol: "arrow.triangle.2.circlepath") {
+                    HStack(alignment: .top, spacing: 9) {
+                        Image(systemName: captureSymbol)
+                            .foregroundStyle(corpusRunner.phase == .failed ? .orange : Theme.cyan)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(captureTitle).font(.system(size: 12, weight: .medium))
+                            Text(captureDetail).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                section(title: L("Knowledge sources"), symbol: "square.stack.3d.up") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(KnowledgeSourceCatalog.current) { source in
+                            HStack(alignment: .top, spacing: 9) {
+                                Image(systemName: source.symbol)
+                                    .frame(width: 18)
+                                    .foregroundStyle(source.state == .planned ? .secondary : Theme.cyan)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(source.title).font(.system(size: 12, weight: .medium))
+                                        Text(sourceState(source.state))
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundStyle(source.state == .planned ? .secondary : Theme.cyan)
+                                    }
+                                    Text(source.scope).font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                section(title: L("Needs attention"), symbol: "waveform.path.ecg") {
+                    if pulseSignals.isEmpty {
+                        Text(L("Nothing needs attention right now."))
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(pulseSignals) { signal in
+                            HStack(alignment: .top, spacing: 9) {
+                                Image(systemName: pulseSymbol(signal.kind))
+                                    .foregroundStyle(signal.weight >= 90 ? Theme.accent : Theme.cyan)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(signal.headline).font(.system(size: 12, weight: .medium))
+                                    Text(signal.detail).font(.caption).foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                                Spacer(minLength: 6)
+                                Button(L("Ask Brain")) { askAboutPulse(signal) }
+                                    .buttonStyle(.borderless).font(.caption)
+                            }
+                        }
+                    }
+                }
+
+                HStack(alignment: .top, spacing: 16) {
+                    section(title: L("Recent knowledge"), symbol: "clock") {
+                        if model.recentDocuments.isEmpty {
+                            Text(L("Your Brain has no readable notes yet."))
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                        } else {
+                            ForEach(model.recentDocuments) { document in
+                                Button { openReader(document.id) } label: {
+                                    HStack(spacing: 9) {
+                                        Image(systemName: "doc.text").foregroundStyle(Theme.accent)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(document.title).lineLimit(1)
+                                            Text("\(document.kind.label) · \(stamp(document.occurredAt))")
+                                                .font(.caption).foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right").font(.caption)
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    section(title: L("Recent activity"), symbol: "waveform.path.ecg") {
+                        if model.recentNodes.isEmpty {
+                            Text(L("The graph will appear here as the Brain learns."))
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                        } else {
+                            ForEach(model.recentNodes) { node in
+                                Button {
+                                    model.selected = node.id
+                                    showGraph()
+                                } label: {
+                                    HStack(spacing: 9) {
+                                        Image(systemName: node.kind.symbol).foregroundStyle(Theme.cyan)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(node.name).lineLimit(1)
+                                            Text(node.kind.label).font(.caption).foregroundStyle(.secondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "arrow.up.right").font(.caption)
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
+                section(title: L("Inbox"), symbol: "tray") {
+                    Picker(L("Inbox filter"), selection: $inboxFilter) {
+                        ForEach(InboxFilter.allCases) { filter in
+                            Text(filter.label).tag(filter)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+
+                    if filteredInboxItems.isEmpty {
+                        Text(L("Nothing is waiting for review."))
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                    } else {
+                        ForEach(filteredInboxItems.prefix(10)) { item in
+                            if item.kind == .clipboard {
+                                HStack(spacing: 9) {
+                                    inboxRow(symbol: "paperclip", title: item.title,
+                                             detail: item.excerpt, tint: Theme.cyan)
+                                    Button { rememberClip(item) } label: {
+                                        Image(systemName: "brain.head.profile")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help(L("Remember in Brain"))
+                                    Button { dismissClip(item) } label: {
+                                        Image(systemName: "pin.slash")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help(L("Remove from Inbox"))
+                                }
+                            } else {
+                                Button { openInbox(item) } label: {
+                                    inboxRow(symbol: item.kind == .evidence ? "waveform" : "note.text",
+                                         title: item.title,
+                                         detail: item.state == .needsTranscription
+                                            ? L("Needs transcription") : L("Pending review"),
+                                         tint: item.state == .needsTranscription ? .orange : Theme.accent)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+
+                Button { showGraph() } label: {
+                    Label(L("Explore the full graph"), systemImage: "circle.grid.cross")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .fileImporter(isPresented: $showingImporter,
+                      allowedContentTypes: [.item, .text, .plainText, .pdf, .data]) { result in
+            if case .success(let url) = result { importFile(url) }
+        }
+    }
+
+    private func stat(_ title: String, value: Int, symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Image(systemName: symbol).foregroundStyle(Theme.accent)
+            Text(String(value)).font(.system(size: 22, weight: .semibold))
+            Text(title).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func section<Content: View>(title: String, symbol: String,
+                                        @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Label(title, systemImage: symbol).font(.system(size: 12, weight: .semibold))
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func stamp(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    private func pulseSymbol(_ kind: Pulse.Signal.Kind) -> String {
+        switch kind {
+        case .contradiction: "exclamationmark.triangle"
+        case .overdue: "clock.badge.exclamationmark"
+        case .stale: "clock"
+        case .unsupported: "questionmark.circle"
+        case .ownerless: "person.crop.circle.badge.questionmark"
+        case .gap: "arrow.triangle.branch"
+        }
+    }
+
+    private func sourceState(_ state: KnowledgeSource.State) -> String {
+        switch state {
+        case .connected: return L("Connected")
+        case .available: return L("Available")
+        case .manual: return L("Manual")
+        case .planned: return L("Planned")
+        }
+    }
+
+    private func inboxRow(symbol: String, title: String, detail: String, tint: Color) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol).foregroundStyle(tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).lineLimit(1)
+                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+            Spacer()
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+        }
+    }
+
+    private var filteredInboxItems: [InboxItem] {
+        switch inboxFilter {
+        case .all: inboxItems
+        case .notes: inboxItems.filter { $0.kind == .note }
+        case .evidence: inboxItems.filter { $0.kind == .evidence }
+        case .clipboard: inboxItems.filter { $0.kind == .clipboard }
+        }
+    }
+
+    private var captureTitle: String {
+        switch corpusRunner.phase {
+        case .idle: L("Capture is not running")
+        case .waiting: L("Capture is waiting")
+        case .gathering: L("Capture is reading sources")
+        case .assembling: L("Capture is assembling the Brain")
+        case .writing: L("Capture is writing")
+        case .completed: L("Capture completed")
+        case .paused: L("Capture is paused")
+        case .deferred: L("Capture is deferred")
+        case .failed: L("Capture needs attention")
+        }
+    }
+
+    private var captureDetail: String {
+        if corpusRunner.lastWritten > 0 {
+            return L("%@ fragments in the last pass", String(corpusRunner.lastWritten))
+        }
+        return L("Nothing has been written by the background pass yet.")
+    }
+
+    private var captureSymbol: String {
+        switch corpusRunner.phase {
+        case .failed: "exclamationmark.triangle"
+        case .paused: "pause.circle"
+        case .completed: "checkmark.circle"
+        default: "arrow.triangle.2.circlepath"
+        }
+    }
+}
+
+@MainActor
+private struct BrainInboxNoteView: View {
+    @Environment(\.dismiss) private var dismiss
+    let record: QuickNote.Record
+    let proposeMemory: (String) -> Void
+    let retryTranscription: () -> Void
+    let markReviewed: () -> Void
+    @State private var text = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Label(L("Inbox"), systemImage: "tray.full").font(.headline)
+                Spacer()
+                Button(L("Propose memory")) {
+                    proposeMemory(QuickNote.body(from: text))
+                }
+                .buttonStyle(.borderedProminent)
+                if record.state == .needsTranscription {
+                    Button(L("Retry transcription")) { retryTranscription() }
+                }
+                Button(L("Mark reviewed")) { markReviewed() }
+                Button(L("Open original")) {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: record.sourcePath ?? record.path))
+                }
+                Button(L("Close")) { dismiss() }
+            }
+            .padding(16)
+            Divider()
+            ScrollView {
+                MarkdownBody(text: QuickNote.body(from: text), follow: { _ in })
+                    .padding(24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(width: 700, height: 520)
+        .onAppear { text = (try? String(contentsOfFile: record.path, encoding: .utf8)) ?? record.excerpt }
+    }
+}
+
+@MainActor
+private struct BrainMissionView: View {
+    @Environment(\.dismiss) private var dismiss
+    let mission: Mission
+    let run: (@escaping @Sendable @MainActor (MissionReceipt) -> Void) -> Void
+    let cancel: () -> Void
+    @State private var isRunning = false
+    @State private var receipt: MissionReceipt?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "bolt.horizontal.circle").foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(receipt == nil ? L("Mission plan") : L("Mission receipt"))
+                        .font(.headline)
+                    Text(receipt == nil
+                         ? L("Review what the Brain is about to prepare.")
+                         : L("This is what actually happened."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(20)
+            Divider()
+            if let receipt {
+                ScrollView {
+                    Text(receipt.render())
+                        .font(.system(size: 12, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                }
+            } else {
+                ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(mission.intent).font(.system(size: 15, weight: .semibold))
+                    ForEach(Array(mission.steps.enumerated()), id: \.element.id) { index, step in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text(String(index + 1)).font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary).frame(width: 20)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(step.title).font(.system(size: 12.5, weight: .medium))
+                                Text(step.action.receiptLine).font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            Divider()
+            HStack {
+                Text(receipt == nil
+                     ? (isRunning ? L("Running…") : L("Nothing runs until you choose Run."))
+                     : L("The receipt is saved in your Brain and can be searched later."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if receipt != nil {
+                    Button(L("Close")) { dismiss() }
+                } else {
+                    Button(L("Cancel")) {
+                        if isRunning {
+                            cancel()
+                            isRunning = false
+                        } else {
+                            dismiss()
+                        }
+                    }
+                    Button(L("Run mission")) {
+                        isRunning = true
+                        run { result in
+                            receipt = result
+                            isRunning = false
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isRunning)
+                }
+            }
+            .padding(14)
+        }
+        .frame(width: 560, height: 420)
+    }
+}
+
+@MainActor
+private struct BrainNoteComposer: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var text: String
+    let save: (String) -> Void
+
+    init(initialText: String, save: @escaping (String) -> Void) {
+        _text = State(initialValue: initialText)
+        self.save = save
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "note.text").foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("New Brain note")).font(.headline)
+                    Text(L("Edit before saving it to your inbox.")).font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(20)
+            Divider()
+            TextEditor(text: $text)
+                .font(.system(size: 15))
+                .scrollContentBackground(.hidden)
+                .padding(16)
+            Divider()
+            HStack {
+                Text(L("Saved as Markdown in inbox")).font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(L("Cancel")) { dismiss() }
+                Button(L("Save note")) { commit() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(14)
+        }
+        .frame(width: 620, height: 460)
+    }
+
+    private func commit() {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        save(value)
+        dismiss()
     }
 }
 

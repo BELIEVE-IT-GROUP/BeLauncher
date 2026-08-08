@@ -1,5 +1,18 @@
 import Foundation
+import IOKit.ps
 import BeLauncherCore
+
+struct CorpusRunRecord: Codable, Identifiable, Equatable, Sendable {
+    let id: String
+    let startedAt: Date
+    let finishedAt: Date
+    let source: String?
+    let phase: String
+    let written: Int
+    let problem: String?
+
+    var duration: TimeInterval { max(0, finishedAt.timeIntervalSince(startedAt)) }
+}
 
 /// The part that actually runs.
 ///
@@ -19,7 +32,12 @@ import BeLauncherCore
 /// 3. **Capture is off until somebody says otherwise.** `graph_enabled` has shipped `false` since
 ///    the beginning and the runner does not quietly change that; it is asked for, once, in words.
 @MainActor
+@Observable
 final class CorpusRunner {
+
+    enum Phase: String, Equatable {
+        case idle, waiting, gathering, assembling, writing, completed, paused, deferred, failed
+    }
 
     private let store: Store
     private weak var brain: BrainSearch?
@@ -27,6 +45,16 @@ final class CorpusRunner {
     private let ask: (String, String) async throws -> String
 
     private var loop: Task<Void, Never>?
+    private(set) var phase: Phase = .idle
+    private(set) var isRunning = false
+    private(set) var lastRun: Date?
+    private(set) var lastWritten = 0
+    private(set) var lastProblem: String?
+    private(set) var lastDeferral: BackgroundRunPolicy.Reason?
+    private(set) var runHistory: [CorpusRunRecord] = []
+    private var checkpoint: IngestionCheckpoint?
+    private var currentRunID = UUID().uuidString
+    private var currentRunSource = "corpus"
 
     /// How often the corpus is rebuilt.
     ///
@@ -47,12 +75,24 @@ final class CorpusRunner {
         self.store = store
         self.brain = brain
         self.ask = ask
+        if let raw = store.setting("corpus_checkpoint"),
+           let data = raw.data(using: .utf8),
+           let saved = try? JSONDecoder().decode(IngestionCheckpoint.self, from: data),
+           !saved.completed {
+            checkpoint = saved
+        }
+        if let raw = store.setting("corpus_run_history"),
+           let data = raw.data(using: .utf8),
+           let saved = try? JSONDecoder().decode([CorpusRunRecord].self, from: data) {
+            runHistory = saved
+        }
     }
 
     // MARK: - Schedule
 
     func start() {
         guard loop == nil else { return }
+        setPhase(.waiting)
         loop = Task { [weak self] in
             try? await Task.sleep(for: CorpusRunner.warmUp)
             while !Task.isCancelled {
@@ -65,6 +105,7 @@ final class CorpusRunner {
     func stop() {
         loop?.cancel()
         loop = nil
+        setPhase(.idle)
     }
 
     /// Whether the person has agreed to any of this. Everything is gated behind it.
@@ -74,27 +115,110 @@ final class CorpusRunner {
 
     // MARK: - One pass
 
-    func runOnce(now: Date = .now) async {
-        guard isCapturing else { return }
+    /// Runs the normal bounded pass, or only one connector when a person asks for an immediate
+    /// refresh from Settings. The latter is important: "sync Mail" must not unexpectedly wake up
+    /// every browser and conversation database on the Mac.
+    func runOnce(source: String? = nil, now: Date = .now) async {
+        guard !isRunning else { return }
+        guard isCapturing else {
+            setPhase(.paused)
+            persistIngestionProgress(phase: .paused, source: source ?? currentRunSource)
+            return
+        }
+        if source == nil {
+            let thermal = BackgroundRunPolicy.ThermalState(
+                rawValue: ProcessInfo.processInfo.thermalState.rawValue) ?? .nominal
+            let power = Self.powerSource()
+            switch BackgroundRunPolicy.decide(
+                lowPowerMode: ProcessInfo.processInfo.isLowPowerModeEnabled,
+                thermalState: thermal,
+                onBattery: power.onBattery,
+                batteryFraction: power.fraction
+            ) {
+            case .allowed:
+                lastDeferral = nil
+            case .deferred(let reason):
+                lastDeferral = reason
+                store.setSetting("corpus_last_deferral", reason.rawValue)
+                setPhase(.deferred)
+                persistIngestionProgress(phase: .deferred, source: source ?? "corpus")
+                return
+            }
+        }
 
-        let since = now.addingTimeInterval(-CorpusRunner.window)
+        isRunning = true
+        defer { isRunning = false }
+        let startedAt = Date.now
+        lastWritten = 0
+        lastProblem = nil
+
+        let runSource = source ?? "corpus"
+        // A restart replays the same bounded overlap. The writes are replacements, so this is
+        // idempotent and avoids losing the tail of a pass that was interrupted mid-write.
+        let resumable = checkpoint.flatMap {
+            $0.canResume(source: runSource) ? $0 : nil
+        }
+        currentRunID = resumable?.id ?? UUID().uuidString
+        currentRunSource = runSource
+        setPhase(.gathering, source: runSource)
+        let replayFloor = now.addingTimeInterval(-7 * 24 * 60 * 60)
+        let since = max(resumable?.windowStart ?? now.addingTimeInterval(-CorpusRunner.window),
+                        replayFloor)
+        persistIngestionProgress(phase: .gathering, source: runSource)
+        persistCheckpoint(source: runSource, phase: .gathering, windowStart: since)
         let excludedApps = store.excludedFromCapture()
         let excludedDomains = store.excludedDomains()
+        let mailEnabled = (source == nil || source == "apple-mail") &&
+            sourceMayRun("apple-mail", requested: source) &&
+            store.setting("source_enabled_apple-mail", default: true)
+        let messagesEnabled = (source == nil || source == "messages") &&
+            sourceMayRun("messages", requested: source) &&
+            store.setting("source_enabled_messages", default: true)
+        let notesEnabled = (source == nil || source == "notes") &&
+            sourceMayRun("notes", requested: source) &&
+            store.setting("source_enabled_notes", default: true)
 
         // Everything expensive off it: copying browser databases and walking session logs are both
         // file-system bound, and on the main actor they would be felt as a stuck launcher.
         let gathered = await Task.detached(priority: .utility) {
-            let history = BrowserHistory.read(since: since, excludedDomains: excludedDomains,
-                                              excludedApps: excludedApps)
-            let exchanges = Self.conversations(since: since)
-            return (history, exchanges)
+            let history = source == nil
+                ? BrowserHistory.read(since: since, excludedDomains: excludedDomains,
+                                      excludedApps: excludedApps)
+                : BrowserHistory.Reading(visits: [], problems: [])
+            let exchanges = source == nil ? Self.conversations(since: since) : []
+            let mail = mailEnabled ? LocalMailConnector.read(since: since)
+                                   : LocalMailConnector.Reading(messages: [], problem: nil)
+            let messages = messagesEnabled
+                ? LocalMessagesConnector.read(since: since)
+                : LocalMessagesConnector.Reading(messages: [], problem: nil)
+            let notes = notesEnabled
+                ? LocalNotesConnector.read(since: since)
+                : LocalNotesConnector.Reading(notes: [], problem: nil)
+            return (history, exchanges, mail, messages, notes)
         }.value
 
-        let transcripts = await transcribePending(since: since)
+        recordSource("apple-mail", enabled: mailEnabled, count: gathered.2.messages.count,
+                     problem: gathered.2.problem)
+        recordSource("messages", enabled: messagesEnabled, count: gathered.3.messages.count,
+                     problem: gathered.3.problem)
+        recordSource("notes", enabled: notesEnabled, count: gathered.4.notes.count,
+                     problem: gathered.4.problem)
+
+        let transcripts = source == nil ? await transcribePending(since: since) : []
         await refreshCorrections()
 
+        setPhase(.assembling, source: runSource)
+        persistIngestionProgress(phase: .assembling, source: runSource,
+                                 completedItems: gathered.0.visits.count + gathered.1.count
+                                    + gathered.2.messages.count + gathered.3.messages.count
+                                    + gathered.4.notes.count)
+        persistCheckpoint(source: runSource, phase: .assembling, windowStart: since)
+
         let input = assemblyInput(now: now, visits: gathered.0.visits,
-                                  exchanges: gathered.1, transcripts: transcripts)
+                                  exchanges: gathered.1, mails: gathered.2.messages,
+                                  messages: gathered.3.messages,
+                                  notes: gathered.4.notes,
+                                  transcripts: transcripts)
 
         // The assembly is pure and the biggest single cost in the pass, so it runs off the main
         // actor too. Nothing it touches is shared.
@@ -104,15 +228,134 @@ final class CorpusRunner {
 
         // Re-read rather than trusting the state captured at the top: a pass takes seconds and
         // somebody who hits pause during one means it, including for the work already done.
-        guard isCapturing, !corpus.isPaused else { return }
+        guard isCapturing, !corpus.isPaused else {
+            persistIngestionProgress(phase: .paused, source: runSource)
+            recordRun(source: source, startedAt: startedAt, phase: Phase.paused.rawValue,
+                      written: 0, problem: nil)
+            return
+        }
 
+        setPhase(.writing, source: runSource)
+        persistIngestionProgress(phase: .writing, source: runSource,
+                                 totalItems: corpus.items.count)
+        persistCheckpoint(source: runSource, phase: .writing, windowStart: since)
         await write(corpus)
-        if !gathered.0.problems.isEmpty {
-            store.setSetting("corpus_last_problem", gathered.0.problems.joined(separator: "\n"))
+        let problems = gathered.0.problems
+            + [gathered.2.problem, gathered.3.problem, gathered.4.problem].compactMap { $0 }
+        if !problems.isEmpty {
+            store.setSetting("corpus_last_problem", problems.joined(separator: "\n"))
         }
         store.setSetting("corpus_last_run", String(now.timeIntervalSince1970))
+        lastRun = now
+        lastProblem = problems.first
+        setPhase(lastProblem == nil ? .completed : .failed)
+        persistIngestionProgress(phase: lastProblem == nil ? .completed : .failed,
+                                 source: runSource, completedItems: corpus.items.count,
+                                 totalItems: corpus.items.count,
+                                 writtenPassages: lastWritten, problem: lastProblem)
+        persistCheckpoint(source: runSource, phase: .completed, windowStart: since,
+                          completed: lastProblem == nil)
+        recordRun(source: source, startedAt: startedAt,
+                  phase: phase.rawValue, written: lastWritten, problem: lastProblem)
 
         await distillIfDue(now: now)
+    }
+
+    /// Reads power state once per scheduled pass. A missing power source is treated as unknown,
+    /// never as an empty battery, so desktops and Macs with unusual UPS hardware keep working.
+    private static func powerSource() -> (onBattery: Bool, fraction: Double?) {
+        let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        guard let listed = IOPSCopyPowerSourcesList(info)?.takeUnretainedValue()
+                as? [CFTypeRef],
+              let source = listed.first,
+              let raw = IOPSGetPowerSourceDescription(info, source)?.takeUnretainedValue()
+                as? [String: Any],
+              let state = raw[kIOPSPowerSourceStateKey] as? String else {
+            return (false, nil)
+        }
+        let onBattery = state == kIOPSBatteryPowerValue
+        let current = raw[kIOPSCurrentCapacityKey] as? Int
+        let maximum = raw[kIOPSMaxCapacityKey] as? Int
+        let fraction: Double? = if let current, let maximum, maximum > 0 {
+            Double(current) / Double(maximum)
+        } else { nil }
+        return (onBattery, fraction)
+    }
+
+    private func recordRun(source: String?, startedAt: Date, phase: String,
+                           written: Int, problem: String?) {
+        let record = CorpusRunRecord(id: UUID().uuidString, startedAt: startedAt,
+                                     finishedAt: .now, source: source, phase: phase,
+                                     written: written, problem: problem)
+        runHistory = Array(([record] + runHistory).prefix(20))
+        guard let data = try? JSONEncoder().encode(runHistory),
+              let raw = String(data: data, encoding: .utf8) else { return }
+        store.setSetting("corpus_run_history", raw)
+    }
+
+    private func recordSource(_ id: String, enabled: Bool, count: Int, problem: String? = nil) {
+        guard enabled else { return }
+        store.setSetting("source_last_sync_\(id)", String(Date.now.timeIntervalSince1970))
+        store.setSetting("source_last_count_\(id)", String(count))
+        if let problem {
+            let attempts = (Int(store.setting("source_retry_count_\(id)") ?? "0") ?? 0) + 1
+            let delay = min(24 * 60 * 60, 30 * 60 * pow(2, Double(attempts - 1)))
+            store.setSetting("source_retry_count_\(id)", String(attempts))
+            store.setSetting("source_retry_after_\(id)",
+                             String(Date.now.addingTimeInterval(delay).timeIntervalSince1970))
+            store.setSetting("source_last_problem_\(id)", problem)
+        } else {
+            store.setSetting("source_retry_count_\(id)", "0")
+            store.setSetting("source_retry_after_\(id)", "")
+            store.setSetting("source_last_problem_\(id)", "")
+        }
+    }
+
+    /// Scheduled passes back off after a connector failure. An explicit Sync button is a user's
+    /// instruction to try now, so it bypasses the timer while still respecting the source toggle.
+    private func sourceMayRun(_ id: String, requested: String?) -> Bool {
+        guard requested == nil else { return true }
+        guard let raw = store.setting("source_retry_after_\(id)"), let retryAfter = Double(raw),
+              retryAfter > Date.now.timeIntervalSince1970 else { return true }
+        return false
+    }
+
+    private func setPhase(_ phase: Phase, source: String? = nil) {
+        self.phase = phase
+        store.setSetting("corpus_run_phase", phase.rawValue)
+        if let source { store.setSetting("corpus_run_source", source) }
+        if phase == .failed, let lastProblem {
+            store.setSetting("corpus_last_problem", lastProblem)
+        }
+    }
+
+    private func persistIngestionProgress(
+        phase: IngestionProgress.Phase,
+        source: String,
+        completedItems: Int = 0,
+        totalItems: Int = 0,
+        writtenPassages: Int = 0,
+        problem: String? = nil
+    ) {
+        let progress = IngestionProgress(runID: currentRunID, source: source, phase: phase,
+                                         completedItems: completedItems, totalItems: totalItems,
+                                         writtenPassages: writtenPassages, problem: problem)
+        guard let data = try? JSONEncoder().encode(progress),
+              let raw = String(data: data, encoding: .utf8) else { return }
+        store.setSetting("corpus_ingestion_progress", raw)
+    }
+
+    private func persistCheckpoint(source: String = "corpus",
+                                   phase: IngestionCheckpoint.Phase,
+                                   windowStart: Date, completed: Bool = false) {
+        let existing = checkpoint?.canResume(source: source) == true ? checkpoint : nil
+        let saved = IngestionCheckpoint(id: existing?.id ?? UUID().uuidString,
+                                        source: source, windowStart: windowStart, phase: phase,
+                                        completed: completed)
+        checkpoint = completed ? nil : saved
+        guard let data = try? JSONEncoder().encode(saved),
+              let raw = String(data: data, encoding: .utf8) else { return }
+        store.setSetting("corpus_checkpoint", raw)
     }
 
     /// Everything the assembly is told, gathered in one place so it can be read at a glance.
@@ -129,12 +372,22 @@ final class CorpusRunner {
     /// privacy gate again: there is one place that answers what the builder is allowed to see.
     func assemblyInput(now: Date, visits: [BrowserVisit],
                        exchanges: [Conversations.Exchange],
+                       mails: [MailMessage] = [],
+                       messages: [MessageRecord] = [],
+                       notes: [NoteRecord] = [],
                        transcripts: [Transcript]) -> CorpusBuilder.Input {
         let since = now.addingTimeInterval(-CorpusRunner.window)
+        let mailNodes = mails.filter(MailRelevance.isWorthIndexing).map(Capture.mail).map(\.node)
+        let messageNodes = messages.filter { $0.text.count >= 40 }
+            .map(Capture.message).map(\.node)
+        let noteNodes = notes.filter { $0.text.count >= 40 && !SecretGuard.carriesSecret($0.text) }
+            .map(Capture.note).map(\.node)
         return CorpusBuilder.Input(
-            nodes: store.nodes(limit: 2_000).filter { $0.lastSeen >= since },
+            nodes: store.nodes(limit: 2_000).filter { $0.lastSeen >= since } + mailNodes + messageNodes + noteNodes,
             clips: store.clips(limit: 500).filter { $0.createdAt >= since },
-            exchanges: exchanges, visits: visits, transcripts: transcripts,
+            exchanges: exchanges, visits: visits, mails: mails, messages: messages,
+            notes: notes,
+            transcripts: transcripts,
             forgotten: store.forgottenPeriods(),
             privacy: store.privacyState,
             excludedApps: store.excludedFromCapture(), excludedDomains: store.excludedDomains(),
@@ -156,11 +409,22 @@ final class CorpusRunner {
         for (index, item) in corpus.items.enumerated() {
             written += store.replacePassages(for: item.source, title: item.title,
                                              occurredAt: item.occurredAt, text: item.text).count
-            if index % 8 == 7 { await Task.yield() }
+            if index % 8 == 7 {
+                persistIngestionProgress(phase: .writing, source: currentRunSource,
+                                         completedItems: index + 1,
+                                         totalItems: corpus.items.count,
+                                         writtenPassages: written)
+                await Task.yield()
+            }
         }
         // Kept so Ajustes can say how much of the brain came from watching rather than from typing.
         // A capture that is on and producing nothing looks identical to one that is off.
+        lastWritten = written
         store.setSetting("corpus_last_passages", String(written))
+        persistIngestionProgress(phase: .writing, source: currentRunSource,
+                                 completedItems: corpus.items.count,
+                                 totalItems: corpus.items.count,
+                                 writtenPassages: written)
 
         // Entities become graph nodes so the existing graph view and the retriever's hop can reach
         // them. Nothing here invents edges: an entity that only appeared once is still a node, and
@@ -320,6 +584,8 @@ final class CorpusRunner {
         let audio = ["m4a", "mp3", "wav", "aiff", "caf", "mp4", "mov"]
         var done = Set((store.setting("transcribed_files") ?? "").split(separator: "\n").map(String.init))
         var result: [Transcript] = []
+        let retryAfter = Double(store.setting("transcription_retry_after") ?? "") ?? 0
+        guard retryAfter <= Date.now.timeIntervalSince1970 else { return [] }
 
         for entry in entries.sorted() where audio.contains((entry as NSString).pathExtension.lowercased()) {
             let path = (folder as NSString).appendingPathComponent(entry)
@@ -330,13 +596,20 @@ final class CorpusRunner {
             guard isCapturing else { break }
 
             do {
-                result.append(try await Transcription.transcribe(
-                    fileAt: URL(fileURLWithPath: path), spokenLanguage: language))
+                result.append(try await VoiceProvider.transcribe(
+                    fileAt: URL(fileURLWithPath: path), title: entry,
+                    spokenLanguage: language))
                 done.insert(path)
+                store.setSetting("transcription_retry_count", "0")
+                store.setSetting("transcription_retry_after", "")
             } catch {
-                // Remembered as done even when it failed, so a file the model cannot handle is not
-                // retried every half hour forever. The reason is kept where settings can show it.
-                done.insert(path)
+                // A failure is not completion. Keep it eligible for a later pass, but back off so
+                // an unavailable speech asset cannot make every scheduled run do the same work.
+                let attempts = (Int(store.setting("transcription_retry_count") ?? "0") ?? 0) + 1
+                let delay = min(24 * 60 * 60, 30 * 60 * pow(2, Double(attempts - 1)))
+                store.setSetting("transcription_retry_count", String(attempts))
+                store.setSetting("transcription_retry_after",
+                                 String(Date.now.addingTimeInterval(delay).timeIntervalSince1970))
                 store.setSetting("transcription_last_problem",
                                  entry + ": " + error.localizedDescription)
             }
@@ -363,7 +636,9 @@ final class CorpusRunner {
 
         let last = Double(store.setting("distilled_day") ?? "") ?? 0
         guard last < yesterday.timeIntervalSince1970 else { return }
-        guard calendar.component(.hour, from: now) >= 3 else { return }
+        guard BackgroundRunPolicy.isOvernight(hour: calendar.component(.hour, from: now)) else {
+            return
+        }
 
         let day = Privacy.Period(from: yesterday, to: calendar.startOfDay(for: now))
         let input = CorpusBuilder.Input(

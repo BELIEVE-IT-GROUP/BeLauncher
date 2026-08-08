@@ -55,16 +55,18 @@ public final class Database {
     // `nonisolated(unsafe)` so `deinit` can close it; it is only ever touched on the main actor.
     private nonisolated(unsafe) var handle: OpaquePointer?
 
-    public init(path: String) throws {
+    /// Opens the file without creating it or changing its journal mode when a caller is doing
+    /// diagnostics/benchmarking. The normal app path keeps the existing read-write WAL behavior.
+    public init(path: String, readOnly: Bool = false) throws {
         var db: OpaquePointer?
-        let flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
+        let flags = readOnly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
         guard sqlite3_open_v2(path, &db, flags, nil) == SQLITE_OK, let db else {
             let message = db.map { String(cString: sqlite3_errmsg($0)) } ?? "unknown error"
             if let db { sqlite3_close_v2(db) }
             throw DatabaseError.open(message)
         }
         handle = db
-        try execute("PRAGMA journal_mode = WAL")
+        if !readOnly { try execute("PRAGMA journal_mode = WAL") }
         try execute("PRAGMA busy_timeout = 3000")
     }
 

@@ -16,6 +16,15 @@ struct GraphCorrectionsTests {
 
     private let noon = Date(timeIntervalSince1970: 1_785_240_000)
 
+    @Test("Una etiqueta heredada enorme no bloquea ni infla el grafo")
+    func shortLabelBoundsLegacyTitles() {
+        let legacyTitle = String(repeating: "titulo legado ", count: 100_000)
+        let label = GraphModel.shortLabel(legacyTitle)
+
+        #expect(label.count <= 34)
+        #expect(!label.contains("\n"))
+    }
+
     private func temporaryRoot() -> String {
         NSTemporaryDirectory() + "belauncher-graph-" + UUID().uuidString
     }

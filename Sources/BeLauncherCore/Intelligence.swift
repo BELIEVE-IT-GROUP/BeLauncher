@@ -35,23 +35,14 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
         self.keychainAccount = keychainAccount
     }
 
-    public static let all: [IntelligenceProvider] = [
-        .init(id: "ollama", name: "Ollama (local)", transport: .local,
-              endpoint: "http://127.0.0.1:11434/v1/chat/completions",
-              defaultModel: "llama3.2"),
-        .init(id: "lmstudio", name: "LM Studio (local)", transport: .local,
-              endpoint: "http://127.0.0.1:1234/v1/chat/completions",
-              defaultModel: "local-model"),
-        .init(id: "anthropic", name: "Anthropic", transport: .directKey,
-              endpoint: "https://api.anthropic.com/v1/messages",
-              defaultModel: "claude-sonnet-5", keychainAccount: "anthropic_api_key"),
-        .init(id: "openai", name: "OpenAI", transport: .directKey,
-              endpoint: "https://api.openai.com/v1/chat/completions",
-              defaultModel: "gpt-5", keychainAccount: "openai_api_key"),
-        .init(id: "gemini", name: "Google Gemini", transport: .directKey,
-              endpoint: "https://generativelanguage.googleapis.com/v1beta/models",
-              defaultModel: "gemini-2.5-pro", keychainAccount: "gemini_api_key"),
-    ]
+    public static let all: [IntelligenceProvider] = ModelProviderRegistry
+        .supporting(.chat)
+        .map {
+            .init(id: $0.id, name: $0.name,
+                  transport: $0.transport == .local ? .local : .directKey,
+                  endpoint: $0.endpoint, defaultModel: $0.defaultModel,
+                  keychainAccount: $0.keychainAccount)
+        }
 
     public static func named(_ id: String) -> IntelligenceProvider? {
         all.first { $0.id == id }

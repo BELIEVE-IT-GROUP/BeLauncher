@@ -19,11 +19,10 @@ if CommandLine.arguments.contains("--mcp") {
             let store = try? Store(path: Store.defaultPath())
             var brain: BrainSearch?
             if let store {
-                try? store.migrateSemanticIndex()
                 let search = BrainSearch(store: store)
-                // Without this the server starts with no engine and every answer carries the
-                // "solo por palabras" warning. Correct, but needlessly worse.
-                await search.detectEngine()
+                // MCP must become ready before probing Ollama or LM Studio. Model discovery is
+                // lazy on the first semantic query; a local runner that is asleep cannot block
+                // the assistant's initialize handshake or make the stdio server look dead.
                 brain = search
             }
             guard let store else {
@@ -88,7 +87,7 @@ if CommandLine.arguments.contains("--diagnose-brain") {
                   let vault = try? Vault(root: Vault.defaultRoot()) else {
                 out("No pude abrir la base ni el vault."); exit(1)
             }
-            try? store.migrateSemanticIndex()
+            try? store.migrateSemanticIndex(repairOversizedTitles: false)
             let brain = BrainSearch(store: store)
 
             out("1. ¿Hay un modelo de embeddings?")

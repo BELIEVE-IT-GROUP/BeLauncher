@@ -58,7 +58,7 @@ public enum MCPProbe {
 
         let canary = MCPHealth.Canary.make()
         let store = try? Store(path: Store.defaultPath())
-        try? store?.migrateSemanticIndex()
+        try? store?.migrateSemanticIndex(repairOversizedTitles: false)
         let planted = plant(canary, in: store)
         defer { store?.removePassages(for: canarySource) }
 

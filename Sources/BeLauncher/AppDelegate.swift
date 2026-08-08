@@ -6,6 +6,7 @@ import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var launchStartedAt = Date()
     private var store: Store?
     private var model: LauncherModel?
     private var panel: CommandPanel?
@@ -36,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var callSuggestionItem: NSMenuItem?
     /// Whoever was in front when the launcher was summoned.
     private var appBeforePanel: NSRunningApplication?
+    private var applicationActivityObserver: NSObjectProtocol?
     private var clipboard: ClipboardWatcher?
     private var settingsWindow: NSWindow?
     private var settingsModel: SettingsModel?
@@ -52,8 +54,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var graphWindow: NSWindow?
     private var graphModel: GraphModel?
     private var readerWindow: NSWindow?
+    private var readerModel: CorpusReaderModel?
     private var quickNoteWindow: NSWindow?
     private var lastReceipt: MissionReceipt?
+    private var missionTasks: [String: Task<Void, Error>] = [:]
+    private let commandCoordinator = BrainCommandCoordinator()
     private let calendar = CalendarAccess()
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
@@ -74,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        launchStartedAt = .now
         environment = Env.load(paths: [
             (Store.defaultPath() as NSString).deletingLastPathComponent + "/.env",
             FileManager.default.currentDirectoryPath + "/.env",
@@ -194,6 +200,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             recordUse: { [weak self] kind, id in self?.store?.recordUse(kind: kind, id: id) },
             perform: { [weak self] action in self?.perform(action) }
         )
+        model.onMissionDraftChanged = { [weak self] draft in
+            guard let store = self?.store else { return }
+            if let draft {
+                store.saveActionDraft(ActionDraftSnapshot(mission: draft))
+            } else {
+                store.clearActionDrafts()
+            }
+        }
+        if let draft = store.actionDrafts().first {
+            model.restoreMissionDraft(draft.mission)
+        }
         self.model = model
 
         let panel = CommandPanel(model: model, openSettings: { [weak self] in self?.openSettings() })
@@ -233,6 +250,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         announceUpdateIfAny()
         installKeyMonitor()
         registerHotKey(named: store.setting("hotkey") ?? HotKey.Combo.all[0].label)
+        recordLauncherReady(store: store)
+        if CommandLine.arguments.contains("--benchmark-startup") {
+            let value = store.setting("startup_launcher_ready_ms") ?? "?"
+            FileHandle.standardOutput.write(Data("launcher-ready-ms=\(value)\n".utf8))
+            exit(0)
+        }
 
         Sounds.enabled = store.setting("sounds_enabled", default: true)
         Sounds.chromeEnabled = store.setting("sounds_chrome", default: false)
@@ -241,13 +264,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         clipboard = watcher
         if store.setting("clipboard_enabled", default: true) { watcher.start() }
 
+        installApplicationActivityCapture()
         indexApplications()
         captureCalendarIntoGraph()
         startBrain()
         startCorpus(store: store)
+        // Developer/runtime inspection only. The normal menu-bar launch remains unchanged, but
+        // a deterministic entry point lets visual QA inspect the same Brain window without
+        // relying on Accessibility to discover a status-item menu.
+        if CommandLine.arguments.contains("--open-brain") {
+            DispatchQueue.main.async { [weak self] in self?.openGraph() }
+        }
         openWithLaunchQueryIfAny()
         showWelcomeOnFirstRun()
         offerBrainSetupIfNeeded()
+    }
+
+    /// Records the first usable boundary only. It intentionally runs before Brain, corpus and
+    /// model startup so a large vault cannot hide a slow launcher behind one aggregate number.
+    private func recordLauncherReady(store: Store) {
+        let milliseconds = Int(Date().timeIntervalSince(launchStartedAt) * 1_000)
+        store.setSetting("startup_launcher_ready_ms", String(max(0, milliseconds)))
     }
 
     // MARK: - Operational memory
@@ -267,6 +304,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         corpusRunner = runner
         runner.start()
         askAboutCaptureIfNeeded()
+    }
+
+    private func syncCorpusSource(_ source: String) {
+        Task { @MainActor [weak self] in
+            await self?.corpusRunner?.runOnce(source: source)
+        }
+    }
+
+    private func reviewInterruptedAction(_ id: String) {
+        guard let store, let snapshot = store.actionRuns(limit: 100).first(where: { $0.id == id }),
+              let mission = snapshot.missionForReview() else { return }
+        model?.restoreMissionDraft(mission)
+        panel?.present()
     }
 
     /// Asks, once, whether the brain may watch what happens on this Mac.
@@ -335,7 +385,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// this path only gives already-indexed passages a tiny, delayed vector catch-up.
     private func startBrain() {
         guard let store else { return }
-        try? store.migrateSemanticIndex()
+        // Schema creation is cheap; repairing legacy titles is a full-table maintenance sweep.
+        // Never put that sweep in the command bar's startup path.
+        try? store.migrateSemanticIndex(repairOversizedTitles: false)
         let brain = BrainSearch(store: store)
         self.brain = brain
         model?.brain = brain
@@ -396,6 +448,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dictationHotKey?.invalidate()
         callHotKey?.invalidate()
         clipboard?.stop()
+        if let observer = applicationActivityObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+        }
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor) }
     }
 
@@ -466,6 +521,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             calendar.refresh()
             model?.isIndexing = false
         }
+    }
+
+    /// Records only the frontmost app changing. This is the low-risk global context source: it
+    /// needs no Accessibility permission and never reads a window, document or keystroke. The
+    /// relevance pass later decides whether repeated activity is worth indexing.
+    private func installApplicationActivityCapture() {
+        guard applicationActivityObserver == nil else { return }
+        applicationActivityObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let self,
+                  let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication,
+                  app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+                  let bundle = app.bundleIdentifier,
+                  let path = app.bundleURL?.path else { return }
+            Task { @MainActor in
+                self.rememberApplicationActivity(name: app.localizedName ?? bundle,
+                                                  bundleIdentifier: bundle, path: path)
+            }
+        }
+    }
+
+    private func rememberApplicationActivity(name: String, bundleIdentifier: String, path: String) {
+        guard let store,
+              store.setting("graph_enabled", default: false),
+              store.privacyState.isCapturing(),
+              !store.excludedFromCapture().contains(bundleIdentifier.lowercased()) else { return }
+        remember(Capture.application(named: name, path: path))
     }
 
     /// Puts BeLauncher in the right-click → Servicios menu of every app.
@@ -627,12 +712,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return try await self.askModel(prompt, sensitivity: .confidential)
         } save: { [weak self] title, analysis in
             guard let self else { return }
-            let inbox = QuickNote.folder(inVaultAt: Vault.defaultRoot())
-            try FileManager.default.createDirectory(atPath: inbox, withIntermediateDirectories: true)
             let noteTitle = "\(title) - actions"
-            let path = (inbox as NSString).appendingPathComponent(QuickNote.filename(for: noteTitle))
-            try QuickNote.renderEvidence(title: noteTitle, text: analysis)
-                .write(toFile: path, atomically: true, encoding: .utf8)
+            let vault = try Vault(root: Vault.defaultRoot())
+            _ = try vault.saveEvidence(title: noteTitle, text: analysis)
             self.refreshBrain(force: true)
         }
         callReviewModel = review
@@ -837,6 +919,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsModel.onRequestNotifications = { [weak self] in self?.requestNotifications() }
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
         settingsModel.onCallAudioSourceChange = { [weak self] source in self?.callCapture?.source = source }
+        settingsModel.onSourceSync = { [weak self] source in self?.syncCorpusSource(source) }
+        settingsModel.onReviewInterrupted = { [weak self] id in self?.reviewInterruptedAction(id) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
             enabled ? self?.clipboard?.start() : self?.clipboard?.stop()
         }
@@ -865,7 +949,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// and every hour it can forget were unreachable — the feature was written, tested and
     /// invisible. An audit found it with one grep.
     @objc func openGraph() {
-        guard let store else { return }
+        guard let store, let corpusRunner else { return }
         if let window = graphWindow {
             // The graph can be opened while the corpus pass is still filling the store. Refresh
             // the retained model when the person returns instead of preserving that first empty
@@ -890,34 +974,103 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.onPrimeLauncher = { [weak self] text in self?.primeLauncher(with: text) }
         window.contentViewController = NSHostingController(rootView: GraphView(
             model: model,
-            askBrain: { [weak self] question in
+            coordinator: commandCoordinator,
+            corpusRunner: corpusRunner,
+            askBrain: { [weak self] question, context in
                 guard let self else { throw IntelligenceError.noProviderConfigured }
-                return try await self.askBrain(question)
+                return try await self.askBrain(question, context: context)
             },
             importText: { [weak self] text, title in self?.importBrainText(text, title: title) },
             importFile: { [weak self] url in self?.importBrainFile(url) },
+            retryTranscription: { [weak self] record in self?.retryTranscription(record) },
             saveNote: { [weak self] text in self?.perform(.writeNote(text: text)) },
-            runIntent: { [weak self] text in self?.primeLauncher(with: text) }))
+            runMission: { [weak self] mission, completion in
+                self?.runMission(mission, completion: completion)
+            },
+            cancelMission: { [weak self] mission in self?.cancelMission(mission.id) },
+            runIntent: { [weak self] text in self?.primeLauncher(with: text) },
+            openCitation: { [weak self] citation in self?.openBrainCitation(citation) }))
         window.isReleasedWhenClosed = false
         place(window)
         graphWindow = window
 
         panel?.orderOut(nil)
+        if CommandLine.arguments.contains("--open-brain") {
+            // A deterministic QA launch must be visible even when the process was started by
+            // `open` behind another app. Normal menu-bar launches keep the accessory policy.
+            NSApp.setActivationPolicy(.regular)
+        }
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
     }
 
     /// Reads the corpus as what it is on disk: Markdown files the person owns.
-    func askBrain(_ question: String) async throws -> BrainAnswer {
+    func askBrain(_ question: String, context: BrainConversationContext? = nil) async throws -> BrainAnswer {
         guard let brain else { throw IntelligenceError.noProviderConfigured }
         let result = await brain.search(question, limit: 8)
+        let usableContext = context.flatMap { value in
+            value.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : value
+        }
+
+        // A selected document is a first-class source. Semantic retrieval may miss a short
+        // note or a question that refers to a heading, but that must not turn the visible
+        // document context into decoration.
+        if result.hits.isEmpty, let usableContext {
+            let system = """
+            Answer only from the selected local document below. If it does not contain the answer,
+            say so in one sentence and stop. Do not use outside knowledge or invent details.
+            Write in the same language as the question. Be direct.
+            """
+            let user = """
+            Question: \(question)
+
+            Selected document: \(usableContext.title)
+            \(usableContext.body)
+            """
+            let answer = try await askModel(user, system: system)
+            return BrainAnswer(
+                text: answer,
+                sources: [BrainCitation(sourceID: usableContext.sourceID,
+                                         title: usableContext.title,
+                                         kind: L("Markdown you own"),
+                                         canOpen: true)])
+        }
+
         guard !result.hits.isEmpty else {
             return BrainAnswer(text: result.gap ?? L("The Brain has no evidence for that yet."), sources: [])
         }
         let prompt = Retriever.prompt(for: question, hits: result.hits)
-        let answer = try await askModel(prompt.user, system: prompt.system)
-        let sources = result.hits.map { "\($0.passage.title) · \($0.passage.source.kind.label)" }
-        return BrainAnswer(text: answer, sources: Array(sources.prefix(6)))
+        let contextualPrompt: String
+        if let usableContext {
+            contextualPrompt = prompt.user + "\n\nCurrent document context (use only to resolve references; cite retrieved passages):\n"
+                + usableContext.body
+        } else {
+            contextualPrompt = prompt.user
+        }
+        let answer = try await askModel(contextualPrompt, system: prompt.system)
+        let documents = (try? CorpusFolder(root: CorpusFolder.defaultRoot()))?.documents() ?? []
+        var sources = result.hits.prefix(6).map { hit in
+            BrainCitation(sourceID: hit.passage.source.id,
+                          title: hit.passage.title,
+                          kind: hit.passage.source.kind.label,
+                          canOpen: documents.contains { $0.id == hit.passage.source.id })
+        }
+        if let usableContext, !sources.contains(where: { $0.sourceID == usableContext.sourceID }) {
+            sources.insert(BrainCitation(sourceID: usableContext.sourceID,
+                                         title: usableContext.title,
+                                         kind: L("Markdown you own"),
+                                         canOpen: true), at: 0)
+        }
+        return BrainAnswer(text: answer, sources: Array(sources))
+    }
+
+    /// Opens only evidence that has a real local document. A live Mail or Messages citation
+    /// remains visible, but cannot send the person into an empty reader.
+    private func openBrainCitation(_ citation: BrainCitation) {
+        guard let corpus = try? CorpusFolder(root: CorpusFolder.defaultRoot()),
+              corpus.documents().contains(where: { $0.id == citation.sourceID }) else { return }
+        openCorpusReader(selecting: citation.sourceID)
     }
 
     func importBrainFile(_ url: URL) {
@@ -932,19 +1085,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             report(L("Import failed"), L("The file is not readable text.")); return
         }
-        importBrainText(text, title: url.deletingPathExtension().lastPathComponent)
+        importBrainText(text, title: url.deletingPathExtension().lastPathComponent,
+                        sourcePath: url.path)
     }
 
-    func importBrainText(_ text: String, title: String) {
+    func importBrainText(_ text: String, title: String, sourcePath: String? = nil) {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? L("Imported evidence") : title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let folder = QuickNote.folder(inVaultAt: Vault.defaultRoot())
         do {
-            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
-            let path = (folder as NSString).appendingPathComponent(
-                QuickNote.filename(for: "\(cleanTitle) \(text.prefix(80))"))
-            try QuickNote.renderEvidence(title: cleanTitle, text: text).write(
-                toFile: path, atomically: true, encoding: .utf8)
+            let vault = try Vault(root: Vault.defaultRoot())
+            _ = try vault.saveEvidence(title: cleanTitle, text: text, sourcePath: sourcePath)
             refreshBrain(force: true)
             report(L("Evidence imported"), cleanTitle)
         } catch {
@@ -952,8 +1102,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @MainActor
+    private func retryTranscription(_ record: QuickNote.Record) {
+        guard record.state == .needsTranscription,
+              let path = record.sourcePath,
+              FileManager.default.fileExists(atPath: path) else {
+            report(L("Retry unavailable"), L("The original audio is no longer at its saved path."))
+            return
+        }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let transcript = try await VoiceProvider.transcribe(
+                    fileAt: URL(fileURLWithPath: path), title: record.title)
+                let vault = try Vault(root: Vault.defaultRoot())
+                _ = try vault.saveEvidence(title: transcript.title,
+                                           text: "Audio: \(path)\n\n\(transcript.text)",
+                                           at: transcript.at, sourcePath: path)
+                try? QuickNote.markReviewed(record)
+                refreshBrain(force: true)
+                report(L("Transcription saved"), record.title)
+            } catch {
+                report(L("Retry failed"), error.localizedDescription)
+            }
+        }
+    }
+
     @objc func openCorpusReader(selecting id: String? = nil) {
         if let window = readerWindow {
+            // Reusing the window must also reuse the user's current selection. Previously a
+            // second node click only brought the old reader forward, which looked like an empty
+            // or disconnected Brain even though the selected document existed.
+            if let id, let readerModel {
+                readerModel.reload()
+                readerModel.select(id)
+            }
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
@@ -965,8 +1148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered, defer: false
         )
         window.title = L("Your corpus")
-        window.contentViewController = NSHostingController(
-            rootView: CorpusReaderView(model: CorpusReaderModel(folder: folder, selecting: id)))
+        let model = CorpusReaderModel(folder: folder, selecting: id)
+        readerModel = model
+        window.contentViewController = NSHostingController(rootView: CorpusReaderView(model: model))
         window.isReleasedWhenClosed = false
         place(window)
         readerWindow = window
@@ -1309,13 +1493,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func saveCanvas(_ canvas: BeLauncherCore.Canvas) {
-        let folder = QuickNote.folder(inVaultAt: Vault.defaultRoot())
         do {
-            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
-            let path = (folder as NSString).appendingPathComponent(
-                QuickNote.filename(for: canvas.title + " " + canvas.brief))
-            try QuickNote.renderEvidence(title: canvas.title, text: canvas.render())
-                .write(toFile: path, atomically: true, encoding: .utf8)
+            let vault = try Vault(root: Vault.defaultRoot())
+            _ = try vault.saveEvidence(title: canvas.title, text: canvas.render())
             refreshBrain(force: true)
             report(L("Canvas saved"), canvas.title)
         } catch {
@@ -1559,6 +1739,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch SystemUtilities.write(note: text, inVaultAt: Vault.defaultRoot()) {
             case .saved(let path):
                 store?.observe(OperatingModel.observeWriting(text))
+                refreshBrain(force: true)
                 report(L("Note saved"), (path as NSString).lastPathComponent)
             case .failed(let why):
                 report(L("It could not be saved"), why)
@@ -1717,29 +1898,88 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Walks an approved mission and writes a receipt of what actually happened. The receipt is
     /// assembled from the steps that ran, never from a model's account of its own work.
-    private func runMission(_ mission: Mission) {
+    private func runMission(_ mission: Mission,
+                            completion: @escaping @Sendable @MainActor (MissionReceipt) -> Void = { _ in }) {
         var executed = mission
-        Task { @MainActor in
-            for index in executed.steps.indices {
-                let step = executed.steps[index]
-                if let failure = perform(step.action) {
-                    executed.steps[index].outcome = .failed
-                    executed.steps[index].detail = failure
-                    executed.state = .failed
-                    executed.failure = failure
-                    break
+        store?.saveActionRun(ActionRunSnapshot(mission: executed))
+        commandCoordinator.begin(id: mission.id, label: mission.intent, source: L("Brain"))
+        let task = Task { @MainActor in
+            do {
+                for index in executed.steps.indices {
+                    try Task.checkCancellation()
+                    let step = executed.steps[index]
+                    if let failure = perform(step.action) {
+                        executed.steps[index].outcome = .failed
+                        executed.steps[index].detail = failure
+                        executed.state = .failed
+                        executed.failure = failure
+                        break
+                    }
+                    executed.steps[index].outcome = .done
+                    store?.saveActionRun(ActionRunSnapshot(mission: executed))
+                    try await Task.sleep(for: .milliseconds(150))
                 }
-                executed.steps[index].outcome = .done
-                try? await Task.sleep(for: .milliseconds(150))
+                // Do not turn a failed step into a successful mission after the loop breaks. The
+                // receipt is the user's trust boundary, so its state must reflect the first real
+                // failure rather than the loop's normal completion path.
+                if executed.state != .failed {
+                    executed.state = .done
+                }
+            } catch is CancellationError {
+                executed.state = .cancelled
+                executed.failure = L("Cancelled before all steps finished.")
             }
-            executed.state = .done
             executed.finishedAt = .now
 
             let receipt = MissionReceipt.of(executed, requestedBy: NSFullUserName())
+            store?.saveActionRun(ActionRunSnapshot(mission: executed, receipt: receipt.render()))
             lastReceipt = receipt
+            persistMissionReceipt(receipt)
+            persistMissionOutcome(receipt)
+            completion(receipt)
+            commandCoordinator.finish(cancelled: executed.state == .cancelled,
+                                      failed: executed.state == .failed)
             if !receipt.changed.isEmpty {
                 report(L("Mission finished"), receipt.render())
             }
+            missionTasks[mission.id] = nil
+        }
+        missionTasks[mission.id] = task
+        commandCoordinator.setCancelAction { [weak self] in
+            self?.missionTasks[mission.id]?.cancel()
+        }
+    }
+
+    /// A receipt is outcome evidence, not transient UI. Keeping it as ordinary Markdown makes it
+    /// searchable by the Brain and reviewable in the same Inbox as notes and call evidence.
+    private func persistMissionReceipt(_ receipt: MissionReceipt) {
+        do {
+            let title = L("Mission result: %@", receipt.intent)
+            let vault = try Vault(root: Vault.defaultRoot())
+            _ = try vault.saveEvidence(title: title, text: receipt.render())
+        } catch {
+            report(L("Mission result could not be saved"), error.localizedDescription)
+        }
+    }
+
+    /// Closes the mission as an Outcome Memory as well as a human-readable receipt. The receipt
+    /// is evidence of the steps; this object is the durable answer to "what happened?" and keeps
+    /// the mission link explicit so the graph can walk back to its action run.
+    private func persistMissionOutcome(_ receipt: MissionReceipt) {
+        do {
+            let vault = try Vault(root: Vault.defaultRoot())
+            try vault.save(receipt.outcomeMemory())
+            refreshBrain(force: true)
+        } catch {
+            report(L("Mission outcome could not be saved"), error.localizedDescription)
+        }
+    }
+
+    private func cancelMission(_ id: String) {
+        if commandCoordinator.current?.id == id {
+            commandCoordinator.cancel()
+        } else {
+            missionTasks[id]?.cancel()
         }
     }
 
@@ -1961,13 +2201,13 @@ private struct CaptureConsentView: View {
     private var sources: [Source] {
         [
             Source(symbol: "doc.text", title: "Archivos y apps",
-                   detail: L("What you opened and how long you stayed. The name, never the contents.")),
+                   detail: L("App activity metadata and files opened through BeLauncher. It does not read window or file contents yet.")),
             Source(symbol: "safari", title: L("Browser history"),
                    detail: L("The titles of the pages you read, from Safari and Chrome.")),
             Source(symbol: "bubble.left.and.bubble.right", title: L("Conversations with the AI"),
                    detail: L("What you asked in your own sessions, which are already in your folder.")),
             Source(symbol: "calendar", title: L("Meetings and clipboard"),
-                   detail: L("Who you met and what you copied while you worked.")),
+                   detail: L("Meeting context after Calendar permission, plus what you copy while capture is enabled.")),
         ]
     }
 

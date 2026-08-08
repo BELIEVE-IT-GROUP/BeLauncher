@@ -182,10 +182,64 @@ struct QuickNoteTests {
         #expect(text.hasPrefix("---"))
         #expect(text.contains("kind: nota"))
         #expect(text.contains("una idea"))
+        #expect(QuickNote.body(from: text) == "una idea")
     }
 
     @Test("las notas caen en el inbox, que es la carpeta que se vacía")
     func landsInTheInbox() {
         #expect(QuickNote.folder(inVaultAt: "/x/Vault") == "/x/Vault/inbox")
+    }
+
+    @Test("revisar una nota queda registrado sin sacarla del inbox")
+    func reviewIsPersistent() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quick-note-review-\(UUID().uuidString)")
+        let inbox = root.appendingPathComponent("inbox")
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let path = inbox.appendingPathComponent("2026-08-07 1200 revisar.md")
+        try QuickNote.render("revisar el acuerdo", at: Date(timeIntervalSince1970: 0))
+            .write(to: path, atomically: true, encoding: .utf8)
+        guard let record = QuickNote.records(inVaultAt: root.path).first else {
+            Issue.record("la nota de prueba no apareció en el inbox")
+            return
+        }
+
+        #expect(record.reviewed == false)
+        try QuickNote.markReviewed(record)
+        let reviewed = try #require(QuickNote.records(inVaultAt: root.path).first)
+        #expect(reviewed.reviewed)
+        #expect(FileManager.default.fileExists(atPath: reviewed.path))
+    }
+
+    @Test("el inbox conserva procedencia y detecta transcripción pendiente")
+    func recordCarriesProvenance() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quick-note-provenance-\(UUID().uuidString)")
+        let inbox = root.appendingPathComponent("inbox")
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let path = inbox.appendingPathComponent("call.md")
+        try QuickNote.renderEvidence(title: "Call", text: "Voice note awaiting transcription",
+                                     at: Date(timeIntervalSince1970: 0), sourcePath: "/tmp/call.m4a")
+            .write(to: path, atomically: true, encoding: .utf8)
+        let record = try #require(QuickNote.records(inVaultAt: root.path).first)
+        #expect(record.kind == .evidence)
+        #expect(record.state == .needsTranscription)
+        #expect(record.createdAt == Date(timeIntervalSince1970: 0))
+        let item = InboxItem(record: record)
+        #expect(item.kind == .evidence)
+        #expect(item.sourcePath == "/tmp/call.m4a")
+    }
+
+    @Test("solo un clip fijado se convierte en candidato del Brain")
+    func pinnedClipIsReviewable() {
+        let clip = Clip(text: "decisión importante", sourceApp: "Mail", isPinned: true)
+        let item = InboxItem(clip: clip)
+        #expect(item.kind == .clipboard)
+        #expect(item.clipID == clip.id)
+        #expect(item.sourceApp == "Mail")
     }
 }

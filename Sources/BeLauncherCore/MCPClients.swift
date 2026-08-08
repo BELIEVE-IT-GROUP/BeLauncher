@@ -106,6 +106,23 @@ public enum MCPSetup {
               let servers = root[client.serversKey] as? [String: Any] else { return false }
         return servers[serverName] != nil
     }
+
+    /// Returns the executable currently recorded for BeLauncher, if the entry has the expected
+    /// shape. Keeping this separate from `isConnected` preserves the useful distinction between
+    /// intent (the server key exists) and a route that can actually launch this installation.
+    public static func executablePath(in data: Data?, client: MCPClient) -> String? {
+        guard let data, !data.isEmpty,
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let servers = root[client.serversKey] as? [String: Any],
+              let entry = servers[serverName] as? [String: Any],
+              let command = entry["command"] as? String, !command.isEmpty else { return nil }
+        return command
+    }
+
+    public static func isCurrent(_ data: Data?, client: MCPClient,
+                                 executablePath: String) -> Bool {
+        self.executablePath(in: data, client: client) == executablePath
+    }
 }
 
 public enum MCPSetupError: Error, Equatable, CustomStringConvertible {

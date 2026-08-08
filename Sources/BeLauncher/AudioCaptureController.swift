@@ -31,7 +31,7 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
     }
 
     static func pruneRecordings(olderThan age: TimeInterval = 30 * 24 * 60 * 60) {
-        let folder = URL(fileURLWithPath: Vault.defaultRoot()).appendingPathComponent("recordings")
+        let folder = Vault.recordingsRoot()
         guard let entries = try? FileManager.default.contentsOfDirectory(
             at: folder, includingPropertiesForKeys: [.contentModificationDateKey], options: [.skipsHiddenFiles])
         else { return }
@@ -66,9 +66,9 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
             }
             QwenASRInstaller.shared.prepareInBackground()
             do {
-                let folder = (Vault.defaultRoot() as NSString).appendingPathComponent("recordings")
-                try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: true)
-                let url = URL(fileURLWithPath: folder)
+                let folder = Vault.recordingsRoot()
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let url = folder
                     .appendingPathComponent("voice-\(Int(Date().timeIntervalSince1970)).m4a")
                 let settings: [String: Any] = [
                     AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -117,26 +117,13 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
-                let transcript: Transcript
-                do {
-                    let text = try await QwenASRRuntime.transcribe(
-                        fileAt: url, model: QwenASRInstaller.smallModel)
-                    transcript = Transcript(at: .now, title: "Voice note", text: text,
-                                           sourcePath: url.path)
-                } catch {
-                    // Apple Speech remains the zero-download fallback for machines where Qwen has
-                    // not been installed yet or is unavailable on the current macOS.
-                    transcript = try await Transcription.transcribe(fileAt: url, title: "Voice note")
-                }
-                let title = transcript.title + " " + transcript.at.formatted(.iso8601)
-                let inbox = QuickNote.folder(inVaultAt: Vault.defaultRoot())
-                try FileManager.default.createDirectory(atPath: inbox, withIntermediateDirectories: true)
-                let markdown = QuickNote.renderEvidence(
+                let transcript = try await VoiceProvider.transcribe(fileAt: url, title: "Voice note")
+                let vault = try Vault(root: Vault.defaultRoot())
+                _ = try vault.saveEvidence(
                     title: transcript.title,
-                    text: "Audio: \(url.path)\n\n\(transcript.text)", at: transcript.at
-                )
-                let path = (inbox as NSString).appendingPathComponent(QuickNote.filename(for: title))
-                try markdown.write(toFile: path, atomically: true, encoding: .utf8)
+                    text: "Audio: \(url.path)\n\n\(transcript.text)",
+                    at: transcript.at,
+                    sourcePath: url.path)
                 onSaved()
                 if paste {
                     NSPasteboard.general.clearContents()
@@ -148,8 +135,15 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate {
                 state = .idle
                 notify(L("Voice note saved in your Brain"))
             } catch {
+                let title = L("Voice note awaiting transcription")
+                let detail = "Audio: \(url.path)\n\n" +
+                    L("Transcription failed: %@", error.localizedDescription)
+                if let vault = try? Vault(root: Vault.defaultRoot()) {
+                    _ = try? vault.saveEvidence(title: title, text: detail, sourcePath: url.path)
+                    onSaved()
+                }
                 state = .idle
-                notify(L("Voice note could not be transcribed: %@", error.localizedDescription))
+                notify(L("Voice note saved, but transcription needs attention."))
             }
         }
     }

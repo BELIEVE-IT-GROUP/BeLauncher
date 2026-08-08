@@ -16,6 +16,8 @@ import BeLauncherCore
 struct BrainStatusView: View {
     @Bindable var model: SettingsModel
     let installer: ModelInstaller
+    @State private var health = CapabilityHealth()
+    @State private var selectedRun: ActionRunSnapshot?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -42,6 +44,81 @@ struct BrainStatusView: View {
                 Text(model.brainIsLocal ? PrivacyCopy.Brain.localLine : PrivacyCopy.Brain.remoteLine)
                     .font(.system(size: 11)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                Label(model.corpusStatusLine, systemImage: model.corpusPhase == "failed"
+                      ? "exclamationmark.triangle" : "arrow.triangle.2.circlepath")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(model.corpusPhase == "failed" ? .orange : .secondary)
+                if let progress = model.ingestionProgress,
+                   progress.phase == .writing,
+                   let fraction = progress.fraction {
+                    ProgressView(value: fraction)
+                        .progressViewStyle(.linear)
+                    Text(L("%@ of %@ items · %@ passages",
+                           String(progress.completedItems), String(progress.totalItems),
+                           String(progress.writtenPassages)))
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                }
+                if let run = model.corpusRunHistory.first {
+                    Text(L("Last run: %@ · %@ passages · %@ s",
+                           model.corpusSourceLabel(run.source), String(run.written),
+                           String(format: "%.1f", run.duration)))
+                        .font(.system(size: 10.5, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .textSelection(.enabled)
+                }
+                if !model.interruptedActionRuns.isEmpty {
+                    Label(L("%@ action(s) were interrupted and need your review.",
+                            String(model.interruptedActionRuns.count)),
+                          systemImage: "exclamationmark.arrow.circlepath")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.orange)
+                    ForEach(model.interruptedActionRuns.prefix(3)) { run in
+                        HStack(spacing: 7) {
+                            Text(run.intent).font(.system(size: 10.5))
+                                .lineLimit(1).truncationMode(.tail)
+                            Spacer(minLength: 4)
+                            Button(run.mission == nil ? L("Unavailable") : L("Review")) {
+                                model.reviewInterrupted(run.id)
+                            }
+                            .buttonStyle(.link).font(.system(size: 10.5))
+                            .disabled(run.mission == nil)
+                        }
+                    }
+                }
+                if !model.actionRuns.isEmpty {
+                    RecentMissionList(runs: model.recentActionRuns) { selectedRun = $0 }
+                        .padding(.top, 2)
+                }
+                if model.corpusHasCheckpoint {
+                    Label(L("A previous capture will resume safely."),
+                          systemImage: "arrow.clockwise.circle")
+                        .font(.system(size: 10.5)).foregroundStyle(Theme.cyan)
+                }
+                if let milliseconds = model.startupReadyMS {
+                    Label(L("Launcher ready in %@ ms", String(milliseconds)),
+                          systemImage: "speedometer")
+                        .font(.system(size: 10.5)).foregroundStyle(.secondary)
+                }
+                HStack(spacing: 8) {
+                    Label(health.fullDiskAccess.isReady
+                          ? L("Deep local sources ready")
+                          : L("Full Disk Access needed for Mail, Messages and Notes"),
+                          systemImage: health.fullDiskAccess.isReady ? "lock.open" : "lock")
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(health.fullDiskAccess.isReady ? Color.secondary : Color.orange)
+                    if !health.fullDiskAccess.isReady {
+                        Button(L("Open settings")) {
+                            health.openFullDiskAccessSettings()
+                        }
+                        .buttonStyle(.link).font(.system(size: 10.5))
+                    }
+                }
+                if let problem = model.corpusLastProblem, model.corpusPhase == "failed" {
+                    Text(problem).font(.system(size: 10.5)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
 
                 // Only when there is something to solve. Showing an installer to somebody who
                 // already installed it is noise.
@@ -81,6 +158,121 @@ struct BrainStatusView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: model.brainRebuilding)
+        .sheet(isPresented: Binding(get: { selectedRun != nil },
+                                    set: { if !$0 { selectedRun = nil } })) {
+            if let selectedRun {
+                MissionRunDetail(run: selectedRun) {
+                    model.reviewInterrupted(selectedRun.id)
+                    self.selectedRun = nil
+                }
+            }
+        }
+    }
+}
+
+@MainActor
+private struct RecentMissionList: View {
+    let runs: [ActionRunSnapshot]
+    let select: (ActionRunSnapshot) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(L("Recent missions"), systemImage: "clock.arrow.circlepath")
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundStyle(.secondary)
+            ForEach(Array(runs.enumerated()), id: \.offset) { _, run in
+                let statusColor: Color = {
+                    switch run.state {
+                    case .completed: return .green
+                    case .failed, .interrupted: return .orange
+                    default: return .secondary
+                    }
+                }()
+                Button { select(run) } label: {
+                    HStack(spacing: 7) {
+                        Circle().fill(statusColor).frame(width: 6, height: 6)
+                        Text(run.intent).font(.system(size: 10.5))
+                            .lineLimit(1).truncationMode(.tail)
+                        Spacer(minLength: 4)
+                        Text(run.state.label)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(run.state == .completed ? Color.secondary : Color.orange)
+                        Text(run.updatedAt, style: .relative)
+                            .font(.system(size: 9.5, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .help(L("Open mission details"))
+            }
+        }
+    }
+}
+
+@MainActor
+private struct MissionRunDetail: View {
+    let run: ActionRunSnapshot
+    let review: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(run.intent).font(.system(size: 15, weight: .semibold))
+                    Text(run.state.label).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(run.updatedAt, style: .relative)
+                    .font(.caption.monospaced()).foregroundStyle(.tertiary)
+            }
+            Divider()
+            if !run.steps.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("Steps")).font(.caption.weight(.semibold))
+                    ForEach(Array(run.steps.enumerated()), id: \.offset) { _, step in
+                        HStack(alignment: .top, spacing: 7) {
+                            Text(step.outcome == "done" ? "✓" : step.outcome == "failed" ? "✗" : "·")
+                                .foregroundStyle(step.outcome == "failed" ? Color.orange : Color.secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(step.title).font(.system(size: 11.5))
+                                if !step.detail.isEmpty {
+                                    Text(step.detail).font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if let receipt = run.receipt, !receipt.isEmpty {
+                Text(L("Receipt")).font(.caption.weight(.semibold))
+                ScrollView {
+                    Text(receipt).font(.system(size: 11, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 180)
+                .padding(9)
+                .background(.black.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+            } else if let failure = run.failure, !failure.isEmpty {
+                Text(failure).font(.system(size: 11)).foregroundStyle(.orange)
+                    .textSelection(.enabled)
+            } else {
+                Text(L("This run has not produced a receipt yet."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            HStack {
+                Spacer()
+                if run.state == .interrupted, run.mission != nil {
+                    Button(L("Review and approve again"), action: review)
+                        .buttonStyle(.borderedProminent)
+                }
+                Button(L("Close")) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(18)
+        .frame(minWidth: 430, minHeight: 260)
     }
 }
 

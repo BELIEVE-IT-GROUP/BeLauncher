@@ -19,7 +19,7 @@ struct SettingsView: View {
     /// as "there are four more sections in here". A sidebar shows all seven at once and has room
     /// for a subtitle, which is where most of the "what is this even for" went.
     enum Section: String, CaseIterable, Identifiable {
-        case general, intelligence, voice, clipboard, commands, agents, memory, privacy, content, brain,
+        case general, intelligence, voice, clipboard, commands, agents, memory, sources, privacy, content, brain,
              data
         var id: String { rawValue }
 
@@ -32,6 +32,7 @@ struct SettingsView: View {
             case .commands: L("What I can type")
             case .agents: L("Errands")
             case .memory: L("What it watches")
+            case .sources: L("Sources")
             case .privacy: L("Privacy")
             case .content: L("My shortcuts")
             case .brain: L("My brain")
@@ -48,6 +49,7 @@ struct SettingsView: View {
             case .commands: L("Everything the window understands")
             case .agents: L("“/” commands and missions in flight")
             case .memory: L("History, working memory and what it learned")
+            case .sources: L("What the Brain can read and keep")
             case .privacy: L("Pause, exclude, forget")
             case .content: L("Snippets, flows, aliases, secrets")
             case .brain: L("Where your notes live and who can read them")
@@ -64,6 +66,7 @@ struct SettingsView: View {
             case .commands: "command"
             case .agents: "terminal"
             case .memory: "eye"
+            case .sources: "square.stack.3d.up"
             case .privacy: "hand.raised"
             case .content: "text.quote"
             case .brain: "brain"
@@ -103,6 +106,7 @@ struct SettingsView: View {
                 case .commands: CommandsTab()
                 case .agents: AgentsTab(model: model)
                 case .memory: MemoryTab(model: model)
+                case .sources: SourcesTab(model: model)
                 case .privacy: PrivacyView(model: model)
                 case .content: ContentTab(model: model)
                 case .brain: BrainTab(model: model)
@@ -312,9 +316,12 @@ private struct IntelligenceTab: View {
                             draftKeys[provider.id] = nil
                         }
                         .controlSize(.small)
-                        if !(model.providerKeys[provider.id] ?? "").isEmpty {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green).font(.system(size: 11))
+                        if let state = model.providerState(provider.id) {
+                            Image(systemName: state == .ready
+                                  ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                .foregroundStyle(state == .ready ? .green : .orange)
+                                .font(.system(size: 11))
+                                .help(state == .ready ? L("Ready") : L("Needs setup"))
                         }
                     }
                 }
@@ -544,8 +551,7 @@ private struct CommandsTab: View {
 private struct VoiceTab: View {
     @Bindable var model: SettingsModel
     @State private var qwen = QwenASRInstaller.shared
-    @State private var microphoneGranted = Permissions.microphoneGranted
-    @State private var screenRecordingGranted = ScreenCapture.screenRecordingGranted
+    @State private var health = CapabilityHealth()
     @StateObject private var callDetector = CallAppDetector()
 
     var body: some View {
@@ -555,15 +561,14 @@ private struct VoiceTab: View {
                       systemImage: "mic")
                     .font(.caption).foregroundStyle(.secondary)
                 LabeledContent(L("Microphone")) {
-                    Label(microphoneGranted ? L("Ready") : L("Permission needed"),
-                          systemImage: microphoneGranted ? "checkmark.circle.fill" : "exclamationmark.circle")
-                        .foregroundStyle(microphoneGranted ? .green : .orange)
+                    Label(health.microphone.isReady ? L("Ready") : L("Permission needed"),
+                          systemImage: health.microphone.isReady ? "checkmark.circle.fill" : "exclamationmark.circle")
+                        .foregroundStyle(health.microphone.isReady ? .green : .orange)
                 }
-                if !microphoneGranted {
+                if !health.microphone.isReady {
                     Button {
                         Task {
-                            microphoneGranted = await Permissions.requestMicrophone()
-                            if microphoneGranted {
+                            if await health.requestMicrophone() {
                                 qwen.prepareInBackground()
                             }
                         }
@@ -595,8 +600,12 @@ private struct VoiceTab: View {
                         Button {
                             qwen.install()
                         } label: {
-                            Label(qwen.isReady ? L("Reinstall model") : L("Download Qwen3-ASR"),
-                                  systemImage: qwen.isReady ? "arrow.clockwise" : "arrow.down.circle")
+                            let retrying: Bool = {
+                                if case .failed = qwen.phase { return true }
+                                return false
+                            }()
+                            Label(retrying ? L("Retry") : (qwen.isReady ? L("Reinstall model") : L("Download Qwen3-ASR")),
+                                  systemImage: retrying ? "arrow.clockwise" : (qwen.isReady ? "arrow.clockwise" : "arrow.down.circle"))
                         }
                     }
                 }
@@ -620,15 +629,14 @@ private struct VoiceTab: View {
                     Label(L("Suggested source: %@", app), systemImage: "sparkles")
                         .font(.caption).foregroundStyle(Theme.accent)
                 }
-                LabeledContent(L("Microphone"), value: microphoneGranted ? L("Ready") : L("Permission needed"))
+                LabeledContent(L("Microphone"), value: health.microphone.isReady ? L("Ready") : L("Permission needed"))
                 LabeledContent(L("System audio")) {
                     HStack(spacing: 8) {
-                        Text(screenRecordingGranted ? L("Ready") : L("Permission needed"))
-                            .foregroundStyle(screenRecordingGranted ? .green : .orange)
-                        if !screenRecordingGranted {
+                        Text(health.screenRecording.isReady ? L("Ready") : L("Permission needed"))
+                            .foregroundStyle(health.screenRecording.isReady ? .green : .orange)
+                        if !health.screenRecording.isReady {
                             Button {
-                                ScreenCapture.requestScreenRecording()
-                                screenRecordingGranted = ScreenCapture.screenRecordingGranted
+                                health.requestScreenRecording()
                             } label: {
                                 Label(L("Open settings"), systemImage: "gearshape")
                             }
@@ -643,13 +651,11 @@ private struct VoiceTab: View {
         .formStyle(.grouped)
         .onAppear {
             qwen.prepareInBackground()
-            microphoneGranted = Permissions.microphoneGranted
-            screenRecordingGranted = ScreenCapture.screenRecordingGranted
+            health.refresh()
             callDetector.start()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            microphoneGranted = Permissions.microphoneGranted
-            screenRecordingGranted = ScreenCapture.screenRecordingGranted
+            health.refresh()
             qwen.refresh()
             callDetector.refresh()
         }

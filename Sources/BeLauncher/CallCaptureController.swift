@@ -61,8 +61,8 @@ final class CallCaptureController: NSObject, AVAudioRecorderDelegate {
                 let selectedSource = source == .automatic
                     ? (detector.likelyInCall ? (detector.suggestedSource ?? .system) : .system)
                     : source
-                let folder = URL(fileURLWithPath: Vault.defaultRoot())
-                    .appendingPathComponent("recordings/call-\(Int(Date().timeIntervalSince1970))")
+                let folder = Vault.recordingsRoot()
+                    .appendingPathComponent("call-\(Int(Date().timeIntervalSince1970))")
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 let mic = folder.appendingPathComponent("microphone.m4a")
                 let system = folder.appendingPathComponent("system.caf")
@@ -110,22 +110,26 @@ final class CallCaptureController: NSObject, AVAudioRecorderDelegate {
                 async let theirs = Self.transcribe(url: output, title: "Other participants")
                 let body = "Audio (microphone): \(mic.path)\nAudio (system): \(output.path)\n\nYou:\n\(try await yours)\n\nOther participants:\n\(try await theirs)"
                 let title = "Call \(Date().formatted(.iso8601))"
-                let inbox = QuickNote.folder(inVaultAt: Vault.defaultRoot())
-                try FileManager.default.createDirectory(atPath: inbox, withIntermediateDirectories: true)
-                let path = (inbox as NSString).appendingPathComponent(QuickNote.filename(for: title))
-                try QuickNote.renderEvidence(title: title, text: body).write(toFile: path, atomically: true, encoding: .utf8)
+                let vault = try Vault(root: Vault.defaultRoot())
+                _ = try vault.saveEvidence(title: title, text: body, sourcePath: mic.path)
                 onSaved()
                 onCompleted(title, body)
                 state = .idle; notify(L("Call saved in your Brain"))
             } catch {
+                let title = L("Call awaiting transcription")
+                let detail = "Audio (microphone): \(mic.path)\nAudio (system): \(output.path)\n\n" +
+                    L("Transcription failed: %@", error.localizedDescription)
+                if let vault = try? Vault(root: Vault.defaultRoot()) {
+                    _ = try? vault.saveEvidence(title: title, text: detail, sourcePath: mic.path)
+                    onSaved()
+                }
                 state = .idle; notify(L("Call could not be transcribed: %@", error.localizedDescription))
             }
         }
     }
 
     private static func transcribe(url: URL, title: String) async throws -> String {
-        do { return try await QwenASRRuntime.transcribe(fileAt: url, model: QwenASRInstaller.smallModel) }
-        catch { return try await Transcription.transcribe(fileAt: url, title: title).text }
+        try await VoiceProvider.transcribe(fileAt: url, title: title).text
     }
 
     private enum Failure: LocalizedError {

@@ -724,7 +724,11 @@ public enum SearchEngine {
             }
             // Folders are few and behave like app names, so a subsequence is fine. Bookmarks are
             // tens of thousands, and a scattered match there is noise that buries the real answer.
-            if shortcut.source != .folder, !Fuzzy.containsRun(needle: needle, hay: shortcut.foldedTitle) {
+            // A one-character query is contiguous by definition. Avoid scanning every bookmark
+            // title twice on the worst launcher path; longer bookmark queries still use the
+            // contiguous-run guard so scattered letters do not drown real results.
+            if shortcut.source != .folder, needle.count > 1,
+               !Fuzzy.containsRun(needle: needle, hay: shortcut.foldedTitle) {
                 return nil
             }
             guard let score = Fuzzy.score(needle: needle, hay: shortcut.foldedTitle) else { return nil }
@@ -734,8 +738,16 @@ public enum SearchEngine {
         var rated: [(index: Int, score: Int)] = []
         let parallelThreshold = 2_000
 
+        // Only the best `keep` entries can survive the final ranking. Trimming each worker's
+        // local list before merging avoids sorting every bookmark on a one-letter query.
+        func best(_ values: [(index: Int, score: Int)]) -> [(index: Int, score: Int)] {
+            values.sorted { lhs, rhs in
+                lhs.score != rhs.score ? lhs.score > rhs.score : lhs.index < rhs.index
+            }.prefix(keep).map { $0 }
+        }
+
         if shortcuts.count < parallelThreshold {
-            rated = (0..<shortcuts.count).compactMap(rate)
+            rated = best((0..<shortcuts.count).compactMap(rate))
         } else {
             let chunkCount = min(ProcessInfo.processInfo.activeProcessorCount, 12)
             let chunkSize = (shortcuts.count + chunkCount - 1) / chunkCount
@@ -745,14 +757,16 @@ public enum SearchEngine {
                 DispatchQueue.concurrentPerform(iterations: chunkCount) { chunk in
                     let start = chunk * chunkSize
                     guard start < shortcuts.count else { return }
-                    slots[chunk] = (start..<min(start + chunkSize, shortcuts.count)).compactMap(rate)
+                    slots[chunk] = best((start..<min(start + chunkSize, shortcuts.count)).compactMap(rate))
                 }
             }
             rated = partial.flatMap { $0 }
         }
 
         return rated
-            .sorted { $0.score > $1.score }
+            .sorted { lhs, rhs in
+                lhs.score != rhs.score ? lhs.score > rhs.score : lhs.index < rhs.index
+            }
             .prefix(keep)
             .map { entry in
                 let shortcut = shortcuts[entry.index]

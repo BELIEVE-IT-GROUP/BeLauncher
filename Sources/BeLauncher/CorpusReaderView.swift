@@ -252,7 +252,7 @@ struct CorpusReaderView: View {
                     .textSelection(.enabled)
                 Spacer(minLength: 8)
                 if model.isEditing {
-                    Button("Descartar") { model.cancelEditing() }.controlSize(.small)
+                    Button(L("Discard changes")) { model.cancelEditing() }.controlSize(.small)
                     Button(L("Save")) { model.save() }
                         .buttonStyle(.borderedProminent).controlSize(.small)
                         .keyboardShortcut("s", modifiers: .command)
@@ -277,7 +277,7 @@ struct CorpusReaderView: View {
                     // La marca que importa: mientras esté, la máquina no toca este archivo.
                     Tag(text: L("written by you"), tone: .mine)
                 }
-                if document.corrections.pinned { Tag(text: "importante", tone: .mine) }
+                if document.corrections.pinned { Tag(text: L("Important"), tone: .mine) }
                 if document.corrections.hidden { Tag(text: L("outside the graph"), tone: .muted) }
             }
         }

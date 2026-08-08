@@ -19,6 +19,7 @@ import BeLauncherCore
 @Observable
 final class ModelInstaller {
     private(set) var phase: ModelInstall.Phase = .idle
+    private(set) var installProgress = InstallProgressStore.load(providerID: "ollama")
 
     private var task: Task<Void, Never>?
 
@@ -37,7 +38,8 @@ final class ModelInstaller {
     ]
     private static let homebrewPaths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
     private static let ollamaAppPath = "/Applications/Ollama.app"
-    private static let ollamaBaseURL = "http://127.0.0.1:11434"
+    private static let ollamaBaseURL =
+        ModelProviderRegistry.named("ollama")?.managementEndpoint ?? "http://127.0.0.1:11434"
 
     // MARK: - Who gets to write the phase
 
@@ -49,6 +51,18 @@ final class ModelInstaller {
     private func set(_ phase: ModelInstall.Phase, ticket: Int) {
         guard ticket == generation else { return }
         self.phase = phase
+    }
+
+    private func persist(_ phase: InstallProgressSnapshot.Phase,
+                         step: String? = nil, model: String? = ModelInstall.modelName,
+                         completedBytes: Int64 = 0, totalBytes: Int64 = 0,
+                         message: String? = nil) {
+        let snapshot = InstallProgressSnapshot(providerID: "ollama", model: model,
+                                               phase: phase, step: step,
+                                               completedBytes: completedBytes,
+                                               totalBytes: totalBytes, message: message)
+        installProgress = snapshot
+        try? InstallProgressStore.save(snapshot)
     }
 
     /// Starts an operation: cancels whatever was running, takes the newest ticket, and paints the
@@ -71,8 +85,13 @@ final class ModelInstaller {
         // download that the person started from another screen.
         guard !phase.isOperating else { return }
         let ticket = newTicket()
+        persist(.checking, step: L("checking the local server"), model: nil)
         set(.checking, ticket: ticket)
-        set(await Self.inspect(), ticket: ticket)
+        let result = await Self.inspect()
+        set(result, ticket: ticket)
+        if case .ready(let model) = result {
+            persist(.ready, model: model)
+        }
     }
 
     var hasHomebrew: Bool {
@@ -109,15 +128,21 @@ final class ModelInstaller {
     func installWithHomebrew() {
         guard let brew = Self.brewPath() else { return }
         begin(.installingOllama) { [weak self] ticket in
+            self?.persist(.installing, step: L("install Ollama"), model: nil)
             let outcome = await Self.run(brew, ["install", "ollama"])
             guard let self, !Task.isCancelled else { return }
             switch outcome {
             case .exited(0):
-                self.set(await Self.inspect(), ticket: ticket)
+                let result = await Self.inspect()
+                self.set(result, ticket: ticket)
+                if case .ready(let model) = result { self.persist(.ready, model: model) }
             case .exited(let code):
+                self.persist(.failed, step: L("install Ollama"), model: nil,
+                             message: String(code))
                 self.set(.failed(L("Homebrew could not install Ollama (code %@). Try from ollama.com.",
                                    String(code))), ticket: ticket)
             case .couldNotStart(let reason):
+                self.persist(.failed, step: L("install Ollama"), model: nil, message: reason)
                 self.set(.failed(L("Homebrew could not be run: %@", reason)), ticket: ticket)
             }
         }
@@ -131,6 +156,7 @@ final class ModelInstaller {
     func startOllama() {
         let method = Self.startMethod()
         begin(.startingOllama) { [weak self] ticket in
+            self?.persist(.installing, step: L("start Ollama"), model: nil)
             await Self.start(method)
             guard let self else { return }
             // Ollama takes a moment to bind its port; poll briefly rather than declare failure on
@@ -138,13 +164,17 @@ final class ModelInstaller {
             for _ in 0..<12 {
                 if Task.isCancelled { return }
                 if await Self.isOllamaRunning() {
-                    self.set(await Self.inspect(), ticket: ticket)
+                    let result = await Self.inspect()
+                    self.set(result, ticket: ticket)
+                    if case .ready(let model) = result { self.persist(.ready, model: model) }
                     return
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
             guard !Task.isCancelled else { return }
             self.set(.failed(ModelInstall.startFailure(for: method)), ticket: ticket)
+            self.persist(.failed, step: L("start Ollama"), model: nil,
+                         message: ModelInstall.startFailure(for: method))
         }
     }
 
@@ -189,6 +219,7 @@ final class ModelInstaller {
         task = nil
         _ = newTicket()
         phase = .cancelled
+        persist(.cancelled, step: L("download model"))
     }
 
     /// Downloads `bge-m3` through Ollama's own streaming pull endpoint, which is what lets this
@@ -200,27 +231,36 @@ final class ModelInstaller {
         guard let freeBytes = Self.freeDiskSpace() else {
             _ = newTicket()
             phase = .failed(L("I could not check the free space on disk."))
+            persist(.failed, step: L("check free disk space"),
+                    message: L("I could not check the free space on disk."))
             return
         }
-        guard ModelInstall.hasEnoughDiskSpace(freeBytes: freeBytes) else {
+        guard case .enough = InstallDiagnostics.disk(requiredBytes: ModelInstall.requiredDiskBytes,
+                                                     freeBytes: freeBytes) else {
             _ = newTicket()
             phase = .insufficientSpace(freeBytes: freeBytes)
+            persist(.failed, step: L("check free disk space"),
+                    message: ModelInstall.spaceMessage(freeBytes: freeBytes))
             return
         }
 
         begin(.downloading(ModelInstall.PullProgress())) { [weak self] ticket in
             guard let self else { return }
+            self.persist(.downloading, step: L("download model"))
             do {
                 try await self.pull(ticket: ticket)
                 guard !Task.isCancelled else { return }
                 self.set(await Self.inspect(), ticket: ticket)
+                self.persist(.ready)
             } catch is CancellationError {
                 // `cancelDownload` already said what happened, and it holds a newer ticket.
             } catch let failure as ModelInstall.PullFailure {
                 self.set(.failed(failure.description), ticket: ticket)
+                self.persist(.failed, step: L("download model"), message: failure.description)
             } catch {
                 let failure = ModelInstall.PullFailure.classify(error.localizedDescription)
                 self.set(.failed(failure.description), ticket: ticket)
+                self.persist(.failed, step: L("download model"), message: failure.description)
             }
         }
     }
@@ -249,6 +289,10 @@ final class ModelInstaller {
             }
             progress.absorb(parsed)
             set(.downloading(progress), ticket: ticket)
+            persist(.downloading, step: L("download model"),
+                    completedBytes: progress.completedBytes,
+                    totalBytes: max(progress.knownTotalBytes,
+                                    ModelInstall.expectedModelBytes))
         }
     }
 

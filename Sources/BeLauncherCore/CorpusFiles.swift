@@ -613,6 +613,16 @@ public enum CorpusFiles {
 /// whether two entities are the same thing, the folder is right.
 @MainActor
 public final class CorpusFolder {
+    private struct StagedWrite: Codable {
+        let staged: String
+        let destination: String
+        let previous: String?
+    }
+
+    private struct StagingManifest: Codable {
+        let writes: [StagedWrite]
+    }
+
     public let root: String
     private let manager: FileManager
 
@@ -624,6 +634,7 @@ public final class CorpusFolder {
                                         withIntermediateDirectories: true,
                                         attributes: [.posixPermissions: 0o700])
         }
+        recoverStaging()
         // A filename on disk, not interface copy: it keeps the name it was created with.
         let readme = (root as NSString).appendingPathComponent("LÉEME — corpus.md")
         if !manager.fileExists(atPath: readme) {
@@ -643,10 +654,21 @@ public final class CorpusFolder {
     /// the title would leave two files claiming the same id, with "what is true" depending on the
     /// order the directory happened to be listed in.
     public func existingPath(for id: String, kind: CorpusDocument.Kind) -> String? {
+        paths(for: id, kind: kind).first
+    }
+
+    /// More than one file can briefly exist after a crash while a title is changing. Newest
+    /// first makes recovery deterministic and lets the next successful save remove the stale one.
+    private func paths(for id: String, kind: CorpusDocument.Kind) -> [String] {
         let suffix = "-" + CorpusFiles.handle(for: id) + ".md"
-        guard let names = try? manager.contentsOfDirectory(atPath: folder(kind)) else { return nil }
-        guard let name = names.first(where: { $0.hasSuffix(suffix) }) else { return nil }
-        return (folder(kind) as NSString).appendingPathComponent(name)
+        guard let names = try? manager.contentsOfDirectory(atPath: folder(kind)) else { return [] }
+        return names.filter { $0.hasSuffix(suffix) }.map {
+            (folder(kind) as NSString).appendingPathComponent($0)
+        }.sorted { lhs, rhs in
+            let left = (try? manager.attributesOfItem(atPath: lhs)[.modificationDate] as? Date) ?? .distantPast
+            let right = (try? manager.attributesOfItem(atPath: rhs)[.modificationDate] as? Date) ?? .distantPast
+            return left > right
+        }
     }
 
     /// Writes a deduced document, respecting whatever the person did to it.
@@ -659,9 +681,53 @@ public final class CorpusFolder {
 
         let destination = (folder(document.kind) as NSString)
             .appendingPathComponent(CorpusFiles.filename(for: document))
-        if let current, current != destination { try? manager.removeItem(atPath: current) }
         try contents.write(toFile: destination, atomically: true, encoding: .utf8)
+        if let current, current != destination { try? manager.removeItem(atPath: current) }
         return decision
+    }
+
+    /// Publishes several derived documents as one recoverable operation. The filesystem cannot
+    /// atomically rename files in different directories as a group, so the manifest is the commit
+    /// record: after a crash, the next CorpusFolder init finishes the staged writes before anyone
+    /// reads the corpus.
+    @discardableResult
+    public func saveBatch(_ documents: [CorpusDocument]) throws -> [CorpusFiles.Write] {
+        guard !documents.isEmpty else { return [] }
+        let stagedRoot = (root as NSString).appendingPathComponent(".beacon-staging-\(UUID().uuidString)")
+        try manager.createDirectory(atPath: stagedRoot, withIntermediateDirectories: true,
+                                    attributes: [.posixPermissions: 0o700])
+
+        var decisions: [CorpusFiles.Write] = []
+        var writes: [StagedWrite] = []
+        var manifestDurable = false
+        do {
+            for document in documents {
+                let current = existingPath(for: document.id, kind: document.kind)
+                let existing = current.flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
+                let decision = CorpusFiles.write(document, over: existing)
+                decisions.append(decision)
+                guard case .write(let contents) = decision else { continue }
+
+                let destination = (folder(document.kind) as NSString)
+                    .appendingPathComponent(CorpusFiles.filename(for: document))
+                let staged = (stagedRoot as NSString).appendingPathComponent("\(writes.count).md")
+                try contents.write(toFile: staged, atomically: true, encoding: .utf8)
+                writes.append(StagedWrite(staged: staged, destination: destination, previous: current))
+            }
+            let manifest = StagingManifest(writes: writes)
+            let data = try JSONEncoder().encode(manifest)
+            let manifestPath = (stagedRoot as NSString).appendingPathComponent("manifest.json")
+            try data.write(to: URL(fileURLWithPath: manifestPath), options: .atomic)
+            manifestDurable = true
+            try publish(writes)
+            try? manager.removeItem(atPath: stagedRoot)
+            return decisions
+        } catch {
+            // The manifest only becomes durable after every staged file is complete. If anything
+            // failed before that point, removing the private directory leaves the old corpus intact.
+            if !manifestDurable { try? manager.removeItem(atPath: stagedRoot) }
+            throw error
+        }
     }
 
     /// Writes what a person typed. The one path that is allowed to replace a hand-edited file,
@@ -687,8 +753,45 @@ public final class CorpusFolder {
         let current = existingPath(for: document.id, kind: document.kind)
         let destination = (folder(document.kind) as NSString)
             .appendingPathComponent(CorpusFiles.filename(for: document))
-        if let current, current != destination { try? manager.removeItem(atPath: current) }
         try CorpusFiles.render(document).write(toFile: destination, atomically: true, encoding: .utf8)
+        if let current, current != destination { try? manager.removeItem(atPath: current) }
+    }
+
+    private func publish(_ writes: [StagedWrite]) throws {
+        for write in writes {
+            if write.destination == write.previous, manager.fileExists(atPath: write.destination) {
+                _ = try manager.replaceItemAt(URL(fileURLWithPath: write.destination),
+                                               withItemAt: URL(fileURLWithPath: write.staged))
+            } else {
+                if manager.fileExists(atPath: write.destination) {
+                    try manager.removeItem(atPath: write.destination)
+                }
+                try manager.moveItem(atPath: write.staged, toPath: write.destination)
+            }
+            if let previous = write.previous, previous != write.destination {
+                try manager.removeItem(atPath: previous)
+            }
+        }
+    }
+
+    private func recoverStaging() {
+        guard let names = try? manager.contentsOfDirectory(atPath: root) else { return }
+        for name in names where name.hasPrefix(".beacon-staging-") {
+            let staging = (root as NSString).appendingPathComponent(name)
+            let manifestPath = (staging as NSString).appendingPathComponent("manifest.json")
+            guard let data = manager.contents(atPath: manifestPath),
+                  let manifest = try? JSONDecoder().decode(StagingManifest.self, from: data) else {
+                try? manager.removeItem(atPath: staging)
+                continue
+            }
+            do {
+                try publish(manifest.writes)
+                try? manager.removeItem(atPath: staging)
+            } catch {
+                // Leave the manifest for the next launch; deleting it would turn a recoverable
+                // interruption into silent data loss.
+            }
+        }
     }
 
     public func load(id: String, kind: CorpusDocument.Kind) -> CorpusDocument? {
@@ -699,17 +802,24 @@ public final class CorpusFolder {
 
     public func documents(kind: CorpusDocument.Kind? = nil) -> [CorpusDocument] {
         let kinds = kind.map { [$0] } ?? CorpusDocument.Kind.allCases
-        var result: [CorpusDocument] = []
+        var result: [String: CorpusDocument] = [:]
         for kind in kinds {
             guard let names = try? manager.contentsOfDirectory(atPath: folder(kind)) else { continue }
-            for name in names where name.hasSuffix(".md") {
-                let path = (folder(kind) as NSString).appendingPathComponent(name)
+            let paths = names.filter { $0.hasSuffix(".md") }.map {
+                (folder(kind) as NSString).appendingPathComponent($0)
+            }.sorted { lhs, rhs in
+                let left = (try? manager.attributesOfItem(atPath: lhs)[.modificationDate] as? Date) ?? .distantPast
+                let right = (try? manager.attributesOfItem(atPath: rhs)[.modificationDate] as? Date) ?? .distantPast
+                return left > right
+            }
+            for path in paths {
                 guard let text = try? String(contentsOfFile: path, encoding: .utf8),
                       let document = CorpusFiles.parse(text) else { continue }
-                result.append(document)
+                let key = kind.rawValue + ":" + document.id
+                if result[key] == nil { result[key] = document }
             }
         }
-        return result.sorted { $0.occurredAt > $1.occurredAt }
+        return result.values.sorted { $0.occurredAt > $1.occurredAt }
     }
 
     public func delete(_ document: CorpusDocument) {

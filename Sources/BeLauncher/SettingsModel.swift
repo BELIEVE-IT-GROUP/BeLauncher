@@ -8,6 +8,8 @@ final class SettingsModel {
     let store: Store
     var onHotKeyChange: (String) -> Void = { _ in }
     var onCallAudioSourceChange: (CallAudioSource) -> Void = { _ in }
+    var onSourceSync: (String) -> Void = { _ in }
+    var onReviewInterrupted: (String) -> Void = { _ in }
     var onClipboardToggle: (Bool) -> Void = { _ in } {
         // Whoever sets this is the only thing that can really start or stop the watcher, and it is
         // set after `init`, so the pause read from disk at startup was announced to nobody. Every
@@ -813,6 +815,15 @@ final class SettingsModel {
     var localInstallations: [LocalModels.Installation] = []
     var localScanned = false
 
+    func providerState(_ id: String) -> ModelProviderDescriptor.State? {
+        guard let descriptor = ModelProviderRegistry.named(id) else { return nil }
+        let localIDs = Set(localInstallations.map(\.providerID))
+        let configuredKeys = Set(providerKeys.compactMap { key, value in
+            value.isEmpty ? nil : ModelProviderRegistry.named(key)?.keychainAccount
+        })
+        return descriptor.state(localProviderIDs: localIDs, configuredKeyAccounts: configuredKeys)
+    }
+
     func scanLocalModels() {
         Task { @MainActor in
             localInstallations = await LocalModels.installed()
@@ -977,7 +988,8 @@ final class SettingsModel {
     func refreshMCPConnections() {
         mcpConnections = Dictionary(uniqueKeysWithValues: MCPClient.all.map { client in
             let data = FileManager.default.contents(atPath: client.absoluteConfigPath())
-            return (client.id, MCPSetup.isConnected(data, client: client))
+            return (client.id, MCPSetup.isCurrent(data, client: client,
+                                                  executablePath: mcpExecutablePath))
         })
     }
 
@@ -1058,12 +1070,90 @@ final class SettingsModel {
     var brainReadout: BrainSetupCopy.IndexReadout?
     var brainRebuilding = false
     var brainStatus: String?
+    var corpusPhase = "idle"
+    var corpusRunSource = "corpus"
+    var corpusLastRun: Date?
+    var corpusLastWritten = 0
+    var corpusLastProblem: String?
+    var corpusHasCheckpoint = false
+    var corpusRunHistory: [CorpusRunRecord] = []
+    var ingestionProgress: IngestionProgress?
+    var actionRuns: [ActionRunSnapshot] = []
+    var interruptedActionRuns: [ActionRunSnapshot] = []
+    var recentActionRuns: [ActionRunSnapshot] { Array(actionRuns.prefix(6)) }
+    var startupReadyMS: Int?
+
+    var corpusStatusLine: String {
+        let written = L("%@ passages written", String(corpusLastWritten))
+        let scope: String? = corpusRunSource == "corpus" || corpusRunSource.isEmpty
+            ? nil : corpusSourceLabel(corpusRunSource)
+        switch corpusPhase {
+        case "waiting": return L("Capture is waiting for its next background pass.")
+        case "gathering":
+            return scope.map { L("Capture is reading %@…", $0) }
+                ?? L("Capture is reading permitted sources…")
+        case "assembling":
+            return scope.map { L("Capture is assembling %@ into the Brain…", $0) }
+                ?? L("Capture is assembling the Brain…")
+        case "writing":
+            return scope.map { L("Capture is writing %@: %@.", $0, written) }
+                ?? L("Capture is writing %@.", written)
+        case "completed": return L("Last capture completed: %@.", written)
+        case "paused": return L("Capture is paused. Nothing is being read.")
+        case "deferred": return L("Background capture is deferred while the Mac is conserving resources.")
+        case "failed": return L("Last capture needs attention.")
+        default: return L("Capture has not run yet.")
+        }
+    }
     /// Set when the numbers could not be read at all. Distinct from "there is nothing indexed":
     /// one of them is an empty brain and the other is a broken panel, and showing zeros for the
     /// second is how somebody concludes their notes disappeared.
     var brainError: String?
     var brainCards: [PrivacyCopy.Brain.Card] = []
     var brainIsLocal = true
+
+    func sourceEnabled(_ id: String) -> Bool {
+        store.setting("source_enabled_\(id)", default: true)
+    }
+
+    func setSourceEnabled(_ id: String, _ enabled: Bool) {
+        store.setSetting("source_enabled_\(id)", enabled ? "true" : "false")
+    }
+
+    func syncSource(_ id: String) {
+        guard ["apple-mail", "messages", "notes"].contains(id), sourceEnabled(id) else { return }
+        onSourceSync(id)
+    }
+
+    func corpusSourceLabel(_ id: String?) -> String {
+        switch id {
+        case "apple-mail": return L("Apple Mail")
+        case "messages": return L("Apple Messages")
+        case "notes": return L("Apple Notes")
+        default: return L("All sources")
+        }
+    }
+
+    func reviewInterrupted(_ id: String) {
+        onReviewInterrupted(id)
+    }
+
+    func sourceStatusLine(_ id: String) -> String? {
+        guard sourceEnabled(id) else { return L("Paused by you") }
+        guard let raw = store.setting("source_last_sync_\(id)"),
+              let timestamp = Double(raw), timestamp > 0 else { return L("Not read yet") }
+        let count = store.setting("source_last_count_\(id)") ?? "0"
+        if let problem = store.setting("source_last_problem_\(id)"), !problem.isEmpty {
+            if let retry = Double(store.setting("source_retry_after_\(id)") ?? ""),
+               retry > Date.now.timeIntervalSince1970 {
+                let date = Date(timeIntervalSince1970: retry)
+                return L("Retry after %@ · needs attention", date.formatted(date: .omitted, time: .shortened))
+            }
+            return L("Last read: %@ items · needs attention", count)
+        }
+        let date = Date(timeIntervalSince1970: timestamp)
+        return L("Last read: %@ items · %@", count, date.formatted(date: .abbreviated, time: .shortened))
+    }
 
     private func brainForReading() -> BrainSearch {
         if let brain { return brain }
@@ -1075,6 +1165,24 @@ final class SettingsModel {
     func refreshBrainState() {
         brainError = nil
         brainReadout = nil
+        corpusPhase = store.setting("corpus_run_phase") ?? "idle"
+        corpusRunSource = store.setting("corpus_run_source") ?? "corpus"
+        corpusLastRun = store.setting("corpus_last_run").flatMap { Date(timeIntervalSince1970: Double($0) ?? 0) }
+        corpusLastWritten = Int(store.setting("corpus_last_passages") ?? "0") ?? 0
+        corpusLastProblem = store.setting("corpus_last_problem")
+        corpusRunHistory = store.setting("corpus_run_history")
+            .flatMap { $0.data(using: .utf8) }
+            .flatMap { try? JSONDecoder().decode([CorpusRunRecord].self, from: $0) } ?? []
+        ingestionProgress = store.setting("corpus_ingestion_progress")
+            .flatMap { $0.data(using: .utf8) }
+            .flatMap { try? JSONDecoder().decode(IngestionProgress.self, from: $0) }
+        actionRuns = store.actionRuns(limit: 50)
+        interruptedActionRuns = actionRuns.filter { $0.state == .interrupted }
+        corpusHasCheckpoint = store.setting("corpus_checkpoint")
+            .flatMap { $0.data(using: .utf8) }
+            .flatMap { try? JSONDecoder().decode(IngestionCheckpoint.self, from: $0) }
+            .map { !$0.completed } ?? false
+        startupReadyMS = store.setting("startup_launcher_ready_ms").flatMap(Int.init)
         Task { @MainActor in
             let brain = self.brainForReading()
             // Only when nobody detected one yet: re-detecting on every visit would shell out to

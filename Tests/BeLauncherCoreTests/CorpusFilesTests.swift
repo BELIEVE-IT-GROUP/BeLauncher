@@ -341,4 +341,36 @@ struct CorpusFolderTests {
 
         #expect(folder.documents(kind: .episode).count == 1)
     }
+
+    @Test("a crash between renamed corpus files does not make duplicate documents visible")
+    func duplicateIDsAreRecoveredDeterministically() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let folder = try CorpusFolder(root: root)
+        let original = CorpusFiles.document(for: episode())
+        try folder.save(original)
+
+        var replacement = original
+        replacement.title = "A newer title"
+        let duplicate = (folder.folder(.episode) as NSString)
+            .appendingPathComponent(CorpusFiles.filename(for: replacement))
+        try CorpusFiles.render(replacement).write(toFile: duplicate, atomically: true, encoding: .utf8)
+
+        #expect(folder.documents(kind: .episode).count == 1)
+        #expect(folder.load(id: original.id, kind: .episode)?.title == "A newer title")
+    }
+
+    @Test("a batch correction publishes every document and remains readable")
+    func batchSave() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let folder = try CorpusFolder(root: root)
+        let first = CorpusFiles.document(for: episode())
+        let entity = CorpusFiles.document(for: Entity(kind: .project, canonical: "Beacon"))
+
+        let decisions = try folder.saveBatch([first, entity])
+        #expect(decisions.count == 2)
+        #expect(folder.load(id: first.id, kind: .episode)?.title == first.title)
+        #expect(folder.load(id: entity.id, kind: .entity)?.title == "Beacon")
+    }
 }

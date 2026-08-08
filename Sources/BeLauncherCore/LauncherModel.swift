@@ -29,7 +29,7 @@ public final class LauncherModel {
         case clipboard
     }
 
-    public enum Action: Equatable, Sendable {
+    public enum Action: Equatable, Sendable, Codable {
         case launchApplication(path: String)
         case copyToClipboard(text: String, cursorOffset: Int?)
         case openURL(URL)
@@ -79,6 +79,104 @@ public final class LauncherModel {
         case createSnippet(text: String)
         /// Opens a multi-line note editor from the launcher.
         case openQuickNoteEditor(initialText: String)
+
+    private enum ActionCodingKey: String, CodingKey {
+        case kind, path, text, cursorOffset, url, name, minutes, label, seconds, steps
+        case command, target, source, id, suggestion, mission, template, brief, argument, pid
+    }
+
+    private enum ActionKind: String, Codable {
+        case launchApplication, copyToClipboard, openURL, openFile, revealInFinder
+        case runShortcut, startTimer, wait, runFlow, openWith, quickLook, moveToTrash
+        case openSettings, systemCommand, arrangeWindow, remember, confirmCommit, discardCommit
+        case runVerb, assignAlias, runMission, missionCancelled, dismiss, cancelAI, openCanvas
+        case runAgent, quitProcess, forceQuit, stayAwake, saveWorkspace, restoreWorkspace
+        case writeNote, createSnippet, openQuickNoteEditor
+    }
+
+    public init(from decoder: Decoder) throws {
+        let box = try decoder.container(keyedBy: ActionCodingKey.self)
+        let kind = try box.decode(ActionKind.self, forKey: .kind)
+        switch kind {
+        case .launchApplication: self = .launchApplication(path: try box.decode(String.self, forKey: .path))
+        case .copyToClipboard: self = .copyToClipboard(text: try box.decode(String.self, forKey: .text),
+                                                        cursorOffset: try box.decodeIfPresent(Int.self, forKey: .cursorOffset))
+        case .openURL: self = .openURL(try box.decode(URL.self, forKey: .url))
+        case .openFile: self = .openFile(path: try box.decode(String.self, forKey: .path))
+        case .revealInFinder: self = .revealInFinder(path: try box.decode(String.self, forKey: .path))
+        case .runShortcut: self = .runShortcut(name: try box.decode(String.self, forKey: .name))
+        case .startTimer: self = .startTimer(minutes: try box.decode(Int.self, forKey: .minutes), label: try box.decode(String.self, forKey: .label))
+        case .wait: self = .wait(seconds: try box.decode(Double.self, forKey: .seconds))
+        case .runFlow: self = .runFlow(steps: try box.decode([Action].self, forKey: .steps))
+        case .openWith: self = .openWith(path: try box.decode(String.self, forKey: .path))
+        case .quickLook: self = .quickLook(path: try box.decode(String.self, forKey: .path))
+        case .moveToTrash: self = .moveToTrash(path: try box.decode(String.self, forKey: .path))
+        case .openSettings: self = .openSettings
+        case .systemCommand: self = .systemCommand(try box.decode(String.self, forKey: .command))
+        case .arrangeWindow: self = .arrangeWindow(try box.decode(String.self, forKey: .command))
+        case .remember: self = .remember(text: try box.decode(String.self, forKey: .text), source: try box.decode(String.self, forKey: .source))
+        case .confirmCommit: self = .confirmCommit(try box.decode(String.self, forKey: .id))
+        case .discardCommit: self = .discardCommit(try box.decode(String.self, forKey: .id))
+        case .runVerb: self = .runVerb(id: try box.decode(String.self, forKey: .id), text: try box.decode(String.self, forKey: .text))
+        case .assignAlias: self = .assignAlias(target: try box.decode(String.self, forKey: .target), suggestion: try box.decode(String.self, forKey: .suggestion))
+        case .runMission: self = .runMission(try box.decode(Mission.self, forKey: .mission))
+        case .missionCancelled: self = .missionCancelled(try box.decode(Mission.self, forKey: .mission))
+        case .dismiss: self = .dismiss
+        case .cancelAI: self = .cancelAI
+        case .openCanvas: self = .openCanvas(template: try box.decode(String.self, forKey: .template), brief: try box.decode(String.self, forKey: .brief))
+        case .runAgent: self = .runAgent(id: try box.decode(String.self, forKey: .id), argument: try box.decode(String.self, forKey: .argument))
+        case .quitProcess: self = .quitProcess(pid: try box.decode(String.self, forKey: .pid))
+        case .forceQuit: self = .forceQuit(pid: try box.decode(String.self, forKey: .pid))
+        case .stayAwake: self = .stayAwake(minutes: try box.decodeIfPresent(Int.self, forKey: .minutes))
+        case .saveWorkspace: self = .saveWorkspace(name: try box.decode(String.self, forKey: .name))
+        case .restoreWorkspace: self = .restoreWorkspace(name: try box.decode(String.self, forKey: .name))
+        case .writeNote: self = .writeNote(text: try box.decode(String.self, forKey: .text))
+        case .createSnippet: self = .createSnippet(text: try box.decode(String.self, forKey: .text))
+        case .openQuickNoteEditor: self = .openQuickNoteEditor(initialText: try box.decode(String.self, forKey: .text))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var box = encoder.container(keyedBy: ActionCodingKey.self)
+        func kind(_ value: ActionKind) throws { try box.encode(value, forKey: .kind) }
+        switch self {
+        case .launchApplication(let path): try kind(.launchApplication); try box.encode(path, forKey: .path)
+        case .copyToClipboard(let text, let offset): try kind(.copyToClipboard); try box.encode(text, forKey: .text); try box.encodeIfPresent(offset, forKey: .cursorOffset)
+        case .openURL(let url): try kind(.openURL); try box.encode(url, forKey: .url)
+        case .openFile(let path): try kind(.openFile); try box.encode(path, forKey: .path)
+        case .revealInFinder(let path): try kind(.revealInFinder); try box.encode(path, forKey: .path)
+        case .runShortcut(let name): try kind(.runShortcut); try box.encode(name, forKey: .name)
+        case .startTimer(let minutes, let label): try kind(.startTimer); try box.encode(minutes, forKey: .minutes); try box.encode(label, forKey: .label)
+        case .wait(let seconds): try kind(.wait); try box.encode(seconds, forKey: .seconds)
+        case .runFlow(let steps): try kind(.runFlow); try box.encode(steps, forKey: .steps)
+        case .openWith(let path): try kind(.openWith); try box.encode(path, forKey: .path)
+        case .quickLook(let path): try kind(.quickLook); try box.encode(path, forKey: .path)
+        case .moveToTrash(let path): try kind(.moveToTrash); try box.encode(path, forKey: .path)
+        case .openSettings: try kind(.openSettings)
+        case .systemCommand(let command): try kind(.systemCommand); try box.encode(command, forKey: .command)
+        case .arrangeWindow(let command): try kind(.arrangeWindow); try box.encode(command, forKey: .command)
+        case .remember(let text, let source): try kind(.remember); try box.encode(text, forKey: .text); try box.encode(source, forKey: .source)
+        case .confirmCommit(let id): try kind(.confirmCommit); try box.encode(id, forKey: .id)
+        case .discardCommit(let id): try kind(.discardCommit); try box.encode(id, forKey: .id)
+        case .runVerb(let id, let text): try kind(.runVerb); try box.encode(id, forKey: .id); try box.encode(text, forKey: .text)
+        case .assignAlias(let target, let suggestion): try kind(.assignAlias); try box.encode(target, forKey: .target); try box.encode(suggestion, forKey: .suggestion)
+        case .runMission(let mission): try kind(.runMission); try box.encode(mission, forKey: .mission)
+        case .missionCancelled(let mission): try kind(.missionCancelled); try box.encode(mission, forKey: .mission)
+        case .dismiss: try kind(.dismiss)
+        case .cancelAI: try kind(.cancelAI)
+        case .openCanvas(let template, let brief): try kind(.openCanvas); try box.encode(template, forKey: .template); try box.encode(brief, forKey: .brief)
+        case .runAgent(let id, let argument): try kind(.runAgent); try box.encode(id, forKey: .id); try box.encode(argument, forKey: .argument)
+        case .quitProcess(let pid): try kind(.quitProcess); try box.encode(pid, forKey: .pid)
+        case .forceQuit(let pid): try kind(.forceQuit); try box.encode(pid, forKey: .pid)
+        case .stayAwake(let minutes): try kind(.stayAwake); try box.encodeIfPresent(minutes, forKey: .minutes)
+        case .saveWorkspace(let name): try kind(.saveWorkspace); try box.encode(name, forKey: .name)
+        case .restoreWorkspace(let name): try kind(.restoreWorkspace); try box.encode(name, forKey: .name)
+        case .writeNote(let text): try kind(.writeNote); try box.encode(text, forKey: .text)
+        case .createSnippet(let text): try kind(.createSnippet); try box.encode(text, forKey: .text)
+        case .openQuickNoteEditor(let text): try kind(.openQuickNoteEditor); try box.encode(text, forKey: .text)
+        }
+    }
+
     }
 
     public private(set) var state: State = .loading
@@ -103,11 +201,20 @@ public final class LauncherModel {
     /// The mission waiting for approval, if any. Shown as a plan the user reads before anything
     /// runs; there is no path that starts a mission without this step.
     public private(set) var mission: Mission?
+    private var missionIsRestoredDraft = false
+    /// Set by the app layer so a plan survives closing the command window before approval.
+    public var onMissionDraftChanged: (@MainActor (Mission?) -> Void)?
+
+    public func restoreMissionDraft(_ draft: Mission) {
+        mission = draft
+        missionIsRestoredDraft = true
+    }
 
     public func approveMission() {
         guard var current = mission else { return }
         current.state = .running
         mission = current
+        onMissionDraftChanged?(nil)
         perform(.runMission(current))
         mission = nil
     }
@@ -116,6 +223,7 @@ public final class LauncherModel {
         guard var current = mission else { return }
         current.state = .cancelled
         mission = nil
+        onMissionDraftChanged?(nil)
         perform(.missionCancelled(current))
     }
 
@@ -324,7 +432,12 @@ public final class LauncherModel {
     public func activate(mode: Mode = .all) {
         self.mode = mode
         aiState = .idle
-        mission = nil
+        if missionIsRestoredDraft {
+            missionIsRestoredDraft = false
+        } else {
+            onMissionDraftChanged?(nil)
+            mission = nil
+        }
         closeActionPanel()
         query = ""
         selection = 0
@@ -530,6 +643,7 @@ public final class LauncherModel {
         case .mission:
             guard let planned = MissionPlanner.plan(result.payload) else { return false }
             mission = planned
+            onMissionDraftChanged?(planned)
             return true
 
         case .answer:

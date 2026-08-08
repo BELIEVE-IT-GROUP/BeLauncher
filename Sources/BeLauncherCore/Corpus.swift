@@ -108,6 +108,67 @@ public struct BrowserVisit: Sendable, Equatable {
     }
 }
 
+/// A bounded, read-only slice of an Apple Mail message. The original `.emlx` path remains the
+/// source of truth; the Brain keeps only this evidence slice when it clears the relevance gates.
+public struct MailMessage: Sendable, Equatable {
+    public let at: Date
+    public let subject: String
+    public let sender: String
+    public let recipients: String
+    public let excerpt: String
+    public let sourcePath: String
+    public let messageID: String
+    public let isFlagged: Bool
+    public let isSent: Bool
+
+    public init(at: Date, subject: String, sender: String, recipients: String,
+                excerpt: String, sourcePath: String, messageID: String,
+                isFlagged: Bool = false, isSent: Bool = false) {
+        self.at = at
+        self.subject = subject
+        self.sender = sender
+        self.recipients = recipients
+        self.excerpt = excerpt
+        self.sourcePath = sourcePath
+        self.messageID = messageID
+        self.isFlagged = isFlagged
+        self.isSent = isSent
+    }
+}
+
+public struct MessageRecord: Sendable, Equatable {
+    public let at: Date
+    public let text: String
+    public let sender: String
+    public let sourcePath: String
+    public let messageID: String
+    public let isFromMe: Bool
+
+    public init(at: Date, text: String, sender: String, sourcePath: String,
+                messageID: String, isFromMe: Bool = false) {
+        self.at = at
+        self.text = text
+        self.sender = sender
+        self.sourcePath = sourcePath
+        self.messageID = messageID
+        self.isFromMe = isFromMe
+    }
+}
+
+public struct NoteRecord: Sendable, Equatable {
+    public let at: Date
+    public let text: String
+    public let sourcePath: String
+    public let noteID: String
+
+    public init(at: Date, text: String, sourcePath: String, noteID: String) {
+        self.at = at
+        self.text = text
+        self.sourcePath = sourcePath
+        self.noteID = noteID
+    }
+}
+
 /// Words that were said out loud, once something turned them into text.
 public struct Transcript: Sendable, Equatable {
     public let at: Date
@@ -135,6 +196,9 @@ public enum CorpusBuilder {
         public var clips: [Clip]
         public var exchanges: [Conversations.Exchange]
         public var visits: [BrowserVisit]
+        public var mails: [MailMessage]
+        public var messages: [MessageRecord]
+        public var notes: [NoteRecord]
         public var transcripts: [Transcript]
         /// Stretches of time the person asked to forget. Nothing from inside them comes back.
         public var forgotten: [Privacy.Period]
@@ -150,6 +214,9 @@ public enum CorpusBuilder {
 
         public init(nodes: [WorkNode] = [], clips: [Clip] = [],
                     exchanges: [Conversations.Exchange] = [], visits: [BrowserVisit] = [],
+                    mails: [MailMessage] = [],
+                    messages: [MessageRecord] = [],
+                    notes: [NoteRecord] = [],
                     transcripts: [Transcript] = [], forgotten: [Privacy.Period] = [],
                     privacy: Privacy.State = Privacy.State(),
                     excludedApps: Set<String> = [], excludedDomains: Set<String> = [],
@@ -159,6 +226,9 @@ public enum CorpusBuilder {
             self.clips = clips
             self.exchanges = exchanges
             self.visits = visits
+            self.mails = mails
+            self.messages = messages
+            self.notes = notes
             self.transcripts = transcripts
             self.forgotten = forgotten
             self.privacy = privacy
@@ -195,6 +265,9 @@ public enum CorpusBuilder {
         var items = considered.filter(\.isIndexed).map { item(for: $0.episode) }
         items += Conversations.items(from: allowedExchanges(input))
             .filter { !SecretGuard.carriesSecret($0.text) }
+        items += allowedMails(input).map(item(for:))
+        items += allowedMessages(input).map(item(for:))
+        items += allowedNotes(input).map(item(for:))
         // The assistant's answer and the transcript both go through the guard, not just the
         // question and the clip. An assistant printing a key inside a curl command is the normal
         // case, not the rare one, and a measured probe confirmed both walked straight in.
@@ -281,6 +354,24 @@ public enum CorpusBuilder {
             guard !title.isEmpty else { return nil }
             return Episode.Signal(at: visit.at, kind: .file, subject: visit.subject, title: title)
         }
+    }
+
+    public static func allowedMails(_ input: Input) -> [MailMessage] {
+        input.mails.filter { mail in
+            MailRelevance.isWorthIndexing(mail)
+                && !SecretGuard.carriesSecret(mail.subject)
+                && !SecretGuard.carriesSecret(mail.excerpt)
+        }
+    }
+
+    public static func allowedMessages(_ input: Input) -> [MessageRecord] {
+        input.messages.filter { message in
+            message.text.count >= 40 && !SecretGuard.carriesSecret(message.text)
+        }
+    }
+
+    public static func allowedNotes(_ input: Input) -> [NoteRecord] {
+        input.notes.filter { $0.text.count >= 40 && !SecretGuard.carriesSecret($0.text) }
     }
 
     public static func signals(fromTranscripts transcripts: [Transcript]) -> [Episode.Signal] {
@@ -574,5 +665,55 @@ public enum CorpusBuilder {
             text: transcript.title + "\n\n" + transcript.text,
             occurredAt: transcript.at
         )
+    }
+
+    public static func item(for mail: MailMessage) -> Indexer.Item {
+        let people = [mail.sender, mail.recipients].filter { !$0.isEmpty }.joined(separator: "\n")
+        let text = [mail.subject, people, mail.excerpt]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        return Indexer.Item(
+            source: IndexedSource(kind: .conversation,
+                                  id: "mail:" + Semantic.digest(mail.messageID).prefix(16)),
+            title: mail.subject,
+            text: text,
+            occurredAt: mail.at
+        )
+    }
+
+    public static func item(for message: MessageRecord) -> Indexer.Item {
+        Indexer.Item(
+            source: IndexedSource(kind: .conversation,
+                                  id: "message:" + Semantic.digest(message.messageID).prefix(16)),
+            title: String(message.text.prefix(90)).replacingOccurrences(of: "\n", with: " "),
+            text: [message.sender, message.text].filter { !$0.isEmpty }.joined(separator: "\n\n"),
+            occurredAt: message.at
+        )
+    }
+
+    public static func item(for note: NoteRecord) -> Indexer.Item {
+        Indexer.Item(
+            source: IndexedSource(kind: .note, id: "apple-note:" + note.noteID),
+            title: String(note.text.prefix(90)).replacingOccurrences(of: "\n", with: " "),
+            text: note.text,
+            occurredAt: note.at
+        )
+    }
+}
+
+public enum MailRelevance {
+    private static let workCues = [
+        "action", "follow up", "follow-up", "deadline", "proposal", "decision", "contract",
+        "invoice", "meeting", "reunion", ["pro", "puesta"].joined(), "decision", "contrato", "factura",
+        "pendiente", "aprobacion", "approve"
+    ]
+
+    /// Mail is evidence, not a firehose. Flagged and sent messages are deliberate; other messages
+    /// enter only when their subject carries a clear work signal. The original file remains outside
+    /// the Brain and can be re-evaluated if this policy changes.
+    public static func isWorthIndexing(_ mail: MailMessage) -> Bool {
+        if mail.isFlagged || mail.isSent { return true }
+        let subject = mail.subject.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        return workCues.contains { subject.contains($0) }
     }
 }

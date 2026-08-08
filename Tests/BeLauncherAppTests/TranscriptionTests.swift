@@ -96,3 +96,41 @@ struct TranscriptionTests {
         #expect(Transcription.unsupportedReason.contains("without sending the audio off the Mac"))
     }
 }
+
+@Suite("Voice provider routing")
+struct VoiceProviderTests {
+    @Test("the native fallback remains available without Qwen")
+    func fallbackOrder() {
+        #expect(VoiceProvider.providerOrder(qwenReady: false) == [.appleSpeech])
+        #expect(VoiceProvider.providerOrder(qwenReady: true) == [.qwen, .appleSpeech])
+    }
+
+    @Test("provider failure remains actionable and local")
+    func failureIsReadable() {
+        let error = VoiceProvider.Failure.allProviders(["qwen: unavailable", "speech: no model"])
+        #expect(error.localizedDescription.contains("No local transcription provider"))
+    }
+}
+
+@Suite("Qwen install diagnostics")
+struct QwenInstallDiagnosticsTests {
+    @Test("exit 2 keeps the actionable subprocess detail")
+    func exitTwoIsNotJustACode() {
+        let message = QwenASRInstaller.userFacingMessage(
+            step: "download the model", code: 2,
+            stderr: "RuntimeError: model files are incomplete")
+
+        #expect(message.contains("Retry"))
+        #expect(message.contains("model files are incomplete"))
+        #expect(!message.contains("error 2"))
+    }
+
+    @Test("long subprocess output is bounded")
+    func outputIsBounded() {
+        let detail = String(repeating: "x", count: 4_000)
+        let message = QwenASRInstaller.userFacingMessage(step: "prepare Python", code: 1,
+                                                          stderr: detail)
+        #expect(message.count < 1_100)
+        #expect(message.hasSuffix(String(repeating: "x", count: 900)))
+    }
+}

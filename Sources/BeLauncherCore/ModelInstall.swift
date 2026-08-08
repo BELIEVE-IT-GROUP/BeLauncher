@@ -372,9 +372,9 @@ public enum ModelInstall {
             case .noDiskSpace:
                 L("There is not enough room on the disk to finish the download.")
             case .network:
-                L("No internet connection. Check the network and try again.")
+                InstallDiagnostics.networkMessage(for: .offline)
             case .serverDown:
-                L("Ollama is not answering. Start it and try again.")
+                InstallDiagnostics.networkMessage(for: .serverUnavailable, providerName: "Ollama")
             case .modelNotFound(let model):
                 L("Ollama answered, but it cannot find the model “%@”. Update Ollama: older versions do not know this one.", model)
             case .other(let raw):

@@ -15,7 +15,7 @@ struct FlowEditor: View {
 
     var body: some View {
         if model.flows.isEmpty {
-            Text("No flows yet. A flow chains steps under one keyword.")
+            Text(L("No flows yet. A flow chains steps under one keyword."))
                 .font(.caption).foregroundStyle(.secondary)
         }
 
@@ -28,7 +28,7 @@ struct FlowEditor: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button(editing == flow.id ? "Done" : "Edit steps") {
+                    Button(editing == flow.id ? L("Done") : L("Edit steps")) {
                         editing = editing == flow.id ? nil : flow.id
                     }
                     .controlSize(.small)
@@ -76,9 +76,9 @@ struct FlowEditor: View {
         Divider()
 
         VStack(alignment: .leading, spacing: 6) {
-            TextField("Keyword", text: $newKeyword)
-            TextField("Name", text: $newTitle, prompt: Text("Modo enfoque"))
-            stepBuilder(label: "Create with first step") { step in
+            TextField(L("Keyword"), text: $newKeyword)
+            TextField(L("Name"), text: $newTitle, prompt: Text(L("Focus mode")))
+            stepBuilder(label: L("Create with first step")) { step in
                 if model.addFlow(keyword: newKeyword, title: newTitle, steps: [step]) {
                     newKeyword = ""; newTitle = ""
                 }
@@ -86,9 +86,7 @@ struct FlowEditor: View {
             if let error = model.flowError {
                 Text(error).font(.caption).foregroundStyle(.orange)
             }
-            Text("Steps run in order. “Run shortcut” calls a shortcut you already made in the "
-                 + "Shortcuts app — that is how a flow silences notifications or sets a Focus. "
-                 + "BeLauncher never runs scripts of its own.")
+            Text(L("Steps run in order. “Run shortcut” calls a shortcut you already made in the Shortcuts app — that is how a flow silences notifications or sets a Focus. BeLauncher never runs scripts of its own."))
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -106,14 +104,14 @@ struct FlowEditor: View {
 
             var label: String {
                 switch self {
-                case .openApp: "Open app"
-                case .openURL: "Open URL"
-                case .openFile: "Open file"
-                case .copyText: "Copy text"
-                case .runSnippet: "Paste snippet"
-                case .runShortcut: "Run shortcut"
-                case .timer: "Start timer"
-                case .wait: "Wait"
+                case .openApp: L("Open app")
+                case .openURL: L("Open URL")
+                case .openFile: L("Open file")
+                case .copyText: L("Copy text")
+                case .runSnippet: L("Paste snippet")
+                case .runShortcut: L("Run shortcut")
+                case .timer: L("Start timer")
+                case .wait: L("Wait")
                 }
             }
 
@@ -122,11 +120,11 @@ struct FlowEditor: View {
                 case .openApp: "/Applications/Notion.app"
                 case .openURL: "https://…"
                 case .openFile: "/Users/…/notes.md"
-                case .copyText: "text to copy"
-                case .runSnippet: "snippet keyword"
-                case .runShortcut: "Shortcut name"
-                case .timer: "label"
-                case .wait: "seconds"
+                case .copyText: L("text to copy")
+                case .runSnippet: L("snippet keyword")
+                case .runShortcut: L("Shortcut name")
+                case .timer: L("label")
+                case .wait: L("seconds")
                 }
             }
         }
@@ -156,12 +154,12 @@ struct FlowEditor: View {
             .frame(width: 130)
 
             if draft.kind == .openApp {
-                Button("Choose…") { chooseApplication() }
+                Button(L("Choose…")) { chooseApplication() }
                     .controlSize(.small)
             }
             if draft.kind == .runShortcut, !model.shortcutNames.isEmpty {
                 Picker("", selection: $draft.text) {
-                    Text("Pick…").tag("")
+                    Text(L("Pick…")).tag("")
                     ForEach(model.shortcutNames, id: \.self) { Text($0).tag($0) }
                 }
                 .labelsHidden()
@@ -169,7 +167,7 @@ struct FlowEditor: View {
             }
             TextField(draft.kind.placeholder, text: $draft.text)
             if draft.kind == .timer {
-                Stepper("\(draft.minutes) min", value: $draft.minutes, in: 1...240, step: 5)
+                Stepper(L("%@ min", String(draft.minutes)), value: $draft.minutes, in: 1...240, step: 5)
                     .fixedSize()
             }
             Button(label) {
@@ -186,7 +184,7 @@ struct FlowEditor: View {
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowedContentTypes = [.application]
         panel.allowsMultipleSelection = false
-        panel.message = "Pick the app this step should open."
+        panel.message = L("Pick the app this step should open.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         draft.text = url.path
     }

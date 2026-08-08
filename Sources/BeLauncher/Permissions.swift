@@ -1,6 +1,7 @@
 import AppKit
 import ApplicationServices
 import AVFoundation
+import AVFAudio
 
 /// BeLauncher asks for exactly one optional permission, and only at the moment it is needed.
 /// Search, snippets, clipboard history and workflows all work without it.
@@ -9,11 +10,21 @@ enum Permissions {
     static var accessibilityGranted: Bool { AXIsProcessTrusted() }
 
     static var microphoneGranted: Bool {
-        AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        microphoneStatus == .authorized
     }
 
     static var microphoneStatus: AVAuthorizationStatus {
-        AVCaptureDevice.authorizationStatus(for: .audio)
+        // On macOS 14+, AVAudioApplication is the permission authority for audio I/O. The
+        // AVCaptureDevice status can remain `.notDetermined` for a menu-bar agent even after the
+        // system has decided, which made Settings show a dead toggle and omitted the app from the
+        // Microphone list. Keep the old return type so existing UI and capability checks remain
+        // stable while using the correct source of truth.
+        switch AVAudioApplication.shared.recordPermission {
+        case .granted: return .authorized
+        case .denied: return .denied
+        case .undetermined: return .notDetermined
+        @unknown default: return .restricted
+        }
     }
 
     @discardableResult
@@ -26,11 +37,13 @@ enum Permissions {
         case .authorized:
             return true
         case .notDetermined:
-            // AVAudioRecorder is the capture API used by notes, dictation and calls. Asking
-            // through AVCaptureDevice keeps the TCC request tied to the actual input device;
-            // AVAudioApplication can report a decision without creating the Microphone row for
-            // a menu-bar agent on some macOS releases.
-            let granted = await AVCaptureDevice.requestAccess(for: .audio)
+            // This is the macOS 14+ request API for app-level audio input. It is the call that
+            // registers a menu-bar agent in Privacy & Security > Microphone.
+            let granted = await withCheckedContinuation { continuation in
+                AVAudioApplication.requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
             if !granted { openMicrophoneSettings() }
             return granted
         case .denied, .restricted:
@@ -48,6 +61,28 @@ enum Permissions {
 
     static func openScreenRecordingSettings() {
         openPrivacyPane("Privacy_ScreenCapture")
+    }
+
+    /// There is no prompt API for Full Disk Access. We can only probe a protected local source
+    /// and take the person to the exact System Settings pane when the probe fails.
+    static var fullDiskAccessLikely: Bool {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let paths = [
+            "\(home)/Library/Mail/V10/MailData/Envelope Index",
+            "\(home)/Library/Messages/chat.db",
+            "\(home)/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite",
+        ]
+        let existing = paths.filter { FileManager.default.fileExists(atPath: $0) }
+        guard !existing.isEmpty else { return false }
+        return existing.contains { path in
+            guard let handle = try? FileHandle(forReadingFrom: URL(fileURLWithPath: path)) else { return false }
+            defer { try? handle.close() }
+            return (try? handle.read(upToCount: 1)) != nil
+        }
+    }
+
+    static func openFullDiskAccessSettings() {
+        openPrivacyPane("Privacy_AllFiles")
     }
 
     static func prepareForPermissionPrompt() {

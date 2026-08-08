@@ -6,9 +6,9 @@ import Foundation
 /// The trust model is the feature, not a wrapper around it. Every mission has a plan you can read
 /// before it runs, a receipt of what it actually did, and an undo where undoing is possible. An
 /// agent that acts on your Mac without those three is a demo, not a product.
-public struct Mission: Sendable, Equatable, Identifiable {
+public struct Mission: Sendable, Equatable, Identifiable, Codable {
 
-    public enum State: String, Sendable, Equatable {
+    public enum State: String, Sendable, Equatable, Codable {
         case planning
         /// Waiting for the person to approve the plan.
         case awaitingApproval
@@ -48,8 +48,8 @@ public struct Mission: Sendable, Equatable, Identifiable {
     }
 }
 
-public struct PlannedStep: Sendable, Equatable, Identifiable {
-    public enum Outcome: String, Sendable, Equatable {
+public struct PlannedStep: Sendable, Equatable, Identifiable, Codable {
+    public enum Outcome: String, Sendable, Equatable, Codable {
         case pending
         case done
         case skipped
@@ -205,6 +205,23 @@ public struct MissionReceipt: Sendable, Equatable {
             text += ["", "Se puede deshacer:"] + undoable.map { "- \($0)" }
         }
         return text.joined(separator: "\n")
+    }
+
+    /// Turns the execution receipt into the fourth level of truth. The stable mission link makes
+    /// reruns idempotent in the Vault and lets the reader walk from result back to evidence.
+    public func outcomeMemory() -> MemoryObject {
+        MemoryObject(
+            id: "outcome-\(missionID)",
+            level: .outcome,
+            kind: .learning,
+            statement: L("Mission outcome: %@", intent),
+            body: render(),
+            source: "mission:\(missionID)",
+            owner: requestedBy,
+            createdAt: finishedAt,
+            validFrom: finishedAt,
+            evidence: ["mission:\(missionID)"]
+        )
     }
 }
 

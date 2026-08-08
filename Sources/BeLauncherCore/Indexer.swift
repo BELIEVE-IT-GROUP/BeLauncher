@@ -114,6 +114,10 @@ extension Store {
     @discardableResult
     public func reindex(memories: [MemoryObject], nodes: [WorkNode], clips: [Clip],
                         notes: [QuickNote.Record] = []) -> Int {
+        // Reindex is also used by importers and diagnostics, not only by BrainSearch. Keeping the
+        // migration here prevents a first indexing pass from disappearing into swallowed SQLite
+        // errors when a caller has not started the search service yet.
+        try? migrateSemanticIndex(repairOversizedTitles: false)
         let items = Indexer.items(memories: memories)
             + Indexer.items(nodes: nodes)
             + Indexer.items(clips: clips)

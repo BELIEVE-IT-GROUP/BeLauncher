@@ -32,19 +32,48 @@ final class CallAppDetector: ObservableObject {
     }
 
     func refresh() {
-        guard let app = NSWorkspace.shared.frontmostApplication else {
-            update(source: nil, name: nil, active: false); return
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        let known = NSWorkspace.shared.runningApplications.filter { app in
+            let id = app.bundleIdentifier ?? ""
+            return CallAudioSource.zoom.bundleIdentifiers.contains(id)
+                || CallAudioSource.teams.bundleIdentifiers.contains(id)
+                || CallAudioSource.meet.bundleIdentifiers.contains(id)
         }
+        var candidates = [frontmost].compactMap { $0 }
+        for app in known where !candidates.contains(where: { $0.processIdentifier == app.processIdentifier }) {
+            candidates.append(app)
+        }
+
+        // The call window can remain visible while another app is briefly frontmost. Inspect all
+        // known conferencing processes, but keep the frontmost app as the non-recording suggestion
+        // when no active call window is identifiable.
+        var fallback: (CallAudioSource, String)?
+        for app in candidates {
+            guard let source = source(for: app) else { continue }
+            let name = app.localizedName ?? source.title
+            if windowLooksLikeCall(app.processIdentifier, source: source) {
+                update(source: source, name: name, active: true)
+                return
+            }
+            if app.processIdentifier == frontmost?.processIdentifier {
+                fallback = (source, name)
+            }
+        }
+        if let fallback {
+            update(source: fallback.0, name: fallback.1, active: false)
+        } else {
+            update(source: nil, name: nil, active: false)
+        }
+    }
+
+    private func source(for app: NSRunningApplication) -> CallAudioSource? {
         let bundleID = app.bundleIdentifier ?? ""
-        let source: CallAudioSource?
-        if CallAudioSource.zoom.bundleIdentifiers.contains(bundleID) { source = .zoom }
-        else if CallAudioSource.teams.bundleIdentifiers.contains(bundleID) { source = .teams }
-        else if CallAudioSource.meet.bundleIdentifiers.contains(bundleID) {
-            source = browserLooksLikeCall(app.processIdentifier) ? .meet : nil
-        } else { source = nil }
-        let name = source == nil ? nil : (app.localizedName ?? source?.title)
-        let active = source != nil && windowLooksLikeCall(app.processIdentifier, source: source!)
-        update(source: source, name: name, active: active)
+        if CallAudioSource.zoom.bundleIdentifiers.contains(bundleID) { return .zoom }
+        if CallAudioSource.teams.bundleIdentifiers.contains(bundleID) { return .teams }
+        if CallAudioSource.meet.bundleIdentifiers.contains(bundleID) {
+            return browserLooksLikeCall(app.processIdentifier) ? .meet : nil
+        }
+        return nil
     }
 
     private func update(source: CallAudioSource?, name: String?, active: Bool) {

@@ -40,6 +40,26 @@ struct VaultTests {
         #expect(parsed.owner == "Jorge")
     }
 
+    @Test("evidence and quick notes use the vault's durable publication path")
+    func evidenceUsesInbox() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-evidence-\(UUID().uuidString)").path
+        let vault = try Vault(root: root)
+        let date = Date(timeIntervalSince1970: 7_000_000)
+        let evidencePath = try vault.saveEvidence(title: "Imported call",
+                                                   text: "The source was a local audio file.",
+                                                   at: date)
+        let notePath = try vault.saveQuickNote("Follow up with the client", at: date)
+        #expect(evidencePath.hasPrefix((root as NSString).appendingPathComponent("inbox")))
+        #expect(notePath.hasPrefix((root as NSString).appendingPathComponent("inbox")))
+        #expect(FileManager.default.fileExists(atPath: evidencePath))
+        #expect(FileManager.default.fileExists(atPath: notePath))
+        #expect((try String(contentsOfFile: evidencePath)).contains("Imported call"))
+        #expect((try String(contentsOfFile: notePath)).contains("Follow up with the client"))
+        #expect((try FileManager.default.contentsOfDirectory(atPath: root))
+            .filter { $0.hasPrefix(".beacon-vault-staging-") }.isEmpty)
+    }
+
     @Test("quotes and accents in a statement do not corrupt the file")
     func awkwardCharacters() {
         let object = MemoryObject(level: .committed, kind: .policy,
@@ -74,6 +94,43 @@ struct VaultTests {
         let current = vault.current(at: now)
         #expect(current.map(\.statement) == ["Precio enterprise: 2000"],
                 "an interpretation is not a decision, and an expired decision is not current")
+    }
+
+    @Test("an outcome memory keeps the mission link and is indexed as brain context")
+    func outcomeMemoryIsRecoverable() throws {
+        let vault = try vault()
+        let finished = Date(timeIntervalSince1970: 4_000_000)
+        let receipt = MissionReceipt(
+            missionID: "mission-42", intent: "prepare client brief", requestedBy: "Jorge",
+            startedAt: finished.addingTimeInterval(-60), finishedAt: finished,
+            lines: ["✓ Saved the brief"], changed: ["Saved the brief"], undoable: []
+        )
+        let outcome = receipt.outcomeMemory()
+
+        try vault.save(outcome)
+        let loaded = try #require(vault.load(id: outcome.id))
+        #expect(loaded.level == .outcome)
+        #expect(loaded.source == "mission:mission-42")
+        #expect(loaded.evidence == ["mission:mission-42"])
+
+        let item = try #require(Indexer.items(memories: [loaded]).first)
+        #expect(item.source == IndexedSource(kind: .memory, id: outcome.id))
+        #expect(item.text.contains("Saved the brief"))
+    }
+
+    @Test("backlinks follow declared evidence instead of guessing from similar words")
+    func explicitBacklinks() throws {
+        let vault = try vault()
+        let source = MemoryObject(id: "call-7", level: .evidence, kind: .note,
+                                  statement: "Client call transcript")
+        let extracted = MemoryObject(level: .extracted, kind: .learning,
+                                     statement: "The client wants a smaller scope",
+                                     evidence: ["note:call-7"])
+        let unrelated = MemoryObject(level: .extracted, kind: .learning,
+                                     statement: "The client wants a smaller scope")
+        try [source, extracted, unrelated].forEach(vault.save)
+
+        #expect(vault.backlinks(to: "call-7").map(\.id) == [extracted.id])
     }
 
     // MARK: - Commits
@@ -243,6 +300,31 @@ struct VaultTests {
         }
         let reopened = try Vault(root: root)
         #expect(reopened.current().map(\.statement) == ["Persistente"])
+    }
+
+    @Test("a durable vault manifest finishes a write after an interrupted launch")
+    func recoversStagedWrite() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-recovery-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let first = try Vault(root: root)
+        let object = MemoryObject(level: .committed, kind: .decision,
+                                  statement: "Recovered decision")
+        let staging = (root as NSString).appendingPathComponent(".beacon-vault-staging-test")
+        let destination = (first.objectsFolder as NSString).appendingPathComponent("recovered.md")
+        let staged = (staging as NSString).appendingPathComponent("0.blob")
+        try FileManager.default.createDirectory(atPath: staging, withIntermediateDirectories: true)
+        try VaultDocument.render(object).write(toFile: staged, atomically: true, encoding: .utf8)
+        let manifest: [String: Any] = [
+            "writes": [["staged": staged, "destination": destination, "previous": NSNull()]]
+        ]
+        try JSONSerialization.data(withJSONObject: manifest)
+            .write(to: URL(fileURLWithPath: (staging as NSString).appendingPathComponent("manifest.json")),
+                   options: .atomic)
+
+        let reopened = try Vault(root: root)
+        #expect(reopened.load(id: object.id)?.statement == "Recovered decision")
+        #expect(!FileManager.default.fileExists(atPath: staging))
     }
 }
 

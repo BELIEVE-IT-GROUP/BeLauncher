@@ -17,6 +17,7 @@ public final class Store {
         }
         database = try Database(path: path)
         try migrate()
+        _ = markInterruptedActionRuns()
     }
 
     public static func defaultPath() -> String {
@@ -155,6 +156,15 @@ public final class Store {
                 id TEXT PRIMARY KEY,
                 intent TEXT NOT NULL,
                 state TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                createdAt REAL NOT NULL,
+                updatedAt REAL NOT NULL
+            )
+            """)
+        try database.execute("""
+            CREATE TABLE IF NOT EXISTS action_drafts (
+                id TEXT PRIMARY KEY,
+                intent TEXT NOT NULL,
                 payload TEXT NOT NULL,
                 createdAt REAL NOT NULL,
                 updatedAt REAL NOT NULL

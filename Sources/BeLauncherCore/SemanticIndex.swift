@@ -136,7 +136,7 @@ extension Store {
     /// Set up separately from the main migration so the index can be dropped and rebuilt without
     /// touching anything else. It is derived data — every passage in here exists somewhere else,
     /// which is what makes deleting it safe and re-indexing from scratch a supported operation.
-    public func migrateSemanticIndex() throws {
+    public func migrateSemanticIndex(repairOversizedTitles: Bool = true) throws {
         try database.execute("""
             CREATE TABLE IF NOT EXISTS passages (
                 id TEXT PRIMARY KEY,
@@ -190,7 +190,11 @@ extension Store {
             END
             """)
 
-        trimOversizedTitles()
+        // Title repair is a one-time maintenance sweep over every passage. It belongs to an
+        // explicit maintenance path, never to launcher startup or a normal reindex.
+        if repairOversizedTitles {
+            trimOversizedTitles()
+        }
     }
 
     /// Cuts titles that were written before there was a cap on them.

@@ -107,6 +107,11 @@ public final class BrainSearch {
     // MARK: - Asking
 
     public func search(_ query: String, limit: Int = 8) async -> Retriever.Result {
+        // Keep startup cheap for MCP and the launcher. The first actual question may discover a
+        // local embedding model, while an unavailable runner still degrades to word search.
+        if engine == nil {
+            await detectEngine()
+        }
         var vector: [Float] = []
         if let engine {
             // A query that fails to embed degrades to word search rather than to an error: the

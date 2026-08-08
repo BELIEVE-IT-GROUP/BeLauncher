@@ -13,6 +13,7 @@ struct WelcomeView: View {
     let onFinish: () -> Void
 
     @State private var step = 0
+    @State private var health = CapabilityHealth()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,7 +95,7 @@ struct WelcomeView: View {
                     .font(.system(size: 12)).foregroundStyle(.secondary)
 
                 ForEach(Onboarding.capabilities) { capability in
-                    CapabilityCard(capability: capability, model: model)
+                    CapabilityCard(capability: capability, model: model, health: health)
                 }
             }
             .padding(24)
@@ -155,6 +156,7 @@ struct WelcomeView: View {
 private struct CapabilityCard: View {
     let capability: Onboarding.Capability
     let model: SettingsModel
+    let health: CapabilityHealth
     @State private var permissionRevision = 0
 
     var body: some View {
@@ -193,6 +195,7 @@ private struct CapabilityCard: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             permissionRevision += 1
+            health.refresh()
         }
     }
 
@@ -208,25 +211,23 @@ private struct CapabilityCard: View {
         case .launchAtLogin:
             Binding(get: { model.launchAtLogin }, set: { model.launchAtLogin = $0 })
         case .accessibility:
-            Binding(get: { _ = permissionRevision; return Permissions.accessibilityGranted },
+            Binding(get: { _ = permissionRevision; return health.accessibility.isReady },
                     set: { if $0 {
-                        Permissions.requestAccessibility(reason: capability.unlocks)
+                        health.requestAccessibility(reason: capability.unlocks)
                         refreshPermissionState()
                     } })
         case .automation:
             // Asking macOS with askUserIfNeeded triggers the real prompt. If the person already
             // said no once, macOS will not ask again, so the pane is opened for them.
-            Binding(get: { _ = permissionRevision; return Permissions.automationGranted() },
+            Binding(get: { _ = permissionRevision; return health.automation.isReady },
                     set: { wanted in
                         guard wanted else { return }
-                        if !Permissions.automationGranted(askUserIfNeeded: true) {
-                            Permissions.openAutomationSettings()
-                        }
+                        health.requestAutomation()
                         refreshPermissionState()
                     })
         case .screen:
-            Binding(get: { _ = permissionRevision; return ScreenCapture.screenRecordingGranted },
-                    set: { if $0 { ScreenCapture.requestScreenRecording(); refreshPermissionState() } })
+            Binding(get: { _ = permissionRevision; return health.screenRecording.isReady },
+                    set: { if $0 { health.requestScreenRecording(); refreshPermissionState() } })
         case .calendar:
             Binding(get: { _ = permissionRevision; return model.calendarGranted },
                     set: { if $0 { model.requestCalendar(); refreshPermissionState() } })
@@ -234,10 +235,10 @@ private struct CapabilityCard: View {
             Binding(get: { _ = permissionRevision; return model.notificationsGranted },
                     set: { if $0 { model.requestNotifications(); refreshPermissionState() } })
         case .microphone:
-            Binding(get: { _ = permissionRevision; return Permissions.microphoneGranted },
+            Binding(get: { _ = permissionRevision; return health.microphone.isReady },
                     set: { wanted in
                         guard wanted else { return }
-                        Task { @MainActor in _ = await Permissions.requestMicrophone() }
+                        Task { @MainActor in _ = await health.requestMicrophone() }
                         refreshPermissionState()
                     })
         }

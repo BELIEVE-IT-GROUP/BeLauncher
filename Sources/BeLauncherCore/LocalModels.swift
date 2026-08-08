@@ -22,11 +22,16 @@ public enum LocalModels {
         }
     }
 
-    /// Where each local provider lists what it has loaded.
-    static let catalogues: [(providerID: String, name: String, url: String)] = [
-        ("ollama", "Ollama", "http://127.0.0.1:11434/api/tags"),
-        ("lmstudio", "LM Studio", "http://127.0.0.1:1234/v1/models"),
-    ]
+    /// Where each local provider lists what it has loaded. This is derived from the canonical
+    /// registry so adding a local runner does not require a second catalogue in the app target.
+    static var catalogues: [(providerID: String, name: String, url: String)] {
+        ModelProviderRegistry.all
+            .filter { $0.isPrivate }
+            .compactMap { descriptor in
+                guard let url = descriptor.modelsEndpoint else { return nil }
+                return (descriptor.id, descriptor.name, url)
+            }
+    }
 
     /// Ollama answers `{"models":[{"name":"llama3.2:latest",...}]}`, LM Studio answers the OpenAI
     /// shape `{"data":[{"id":"..."}]}`. Both are read here so a new local runner is one line.
