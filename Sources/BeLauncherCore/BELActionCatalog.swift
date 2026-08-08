@@ -19,7 +19,7 @@ public enum BELActionCatalog {
     /// The definitions that have a corresponding runtime today. The legacy registries remain the
     /// execution layer until N1 migrates them behind a handler protocol.
     public static var all: [BELActionDefinition] {
-        nativeSystem + aiVerbs
+        nativeSystem + nativeFiles + aiVerbs
     }
 
     public static func named(_ id: String) -> BELActionDefinition? {
@@ -96,6 +96,31 @@ public enum BELActionCatalog {
                 adapter: .model,
                 availability: .implemented)
         }
+    }
+
+    private static var nativeFiles: [BELActionDefinition] {
+        [
+            BELActionDefinition(id: "files.open", kind: .native,
+                                titleKey: "Open file", aliases: ["open file", "abrir archivo"],
+                                arguments: [.init("path", .path)], output: .path,
+                                requiredCapabilities: [.files], risk: .r0,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
+            BELActionDefinition(id: "files.reveal", kind: .native,
+                                titleKey: "Show in Finder",
+                                aliases: ["reveal file", "mostrar archivo", "reveal"],
+                                arguments: [.init("path", .path)], output: .path,
+                                requiredCapabilities: [.files], risk: .r0,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
+            BELActionDefinition(id: "files.move_to_trash", kind: .native,
+                                titleKey: "Move file to Trash",
+                                aliases: ["trash file", "mover archivo a la papelera"],
+                                arguments: [.init("path", .path)], output: .path,
+                                requiredCapabilities: [.files], risk: .r2,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
+        ]
     }
 
     private static func nativeID(for kind: SystemCommand.Kind) -> String {

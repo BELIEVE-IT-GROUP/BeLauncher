@@ -1778,10 +1778,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             store?.observe(OperatingModel.observeFilename((path as NSString).lastPathComponent))
             note(signature: Autopilot.signature(forApplication: path),
                  label: L("Open %@", (path as NSString).lastPathComponent))
-            NSWorkspace.shared.open(URL(fileURLWithPath: path))
+            executeStableFileAction(id: "files.open", path: path, confirmed: true)
 
         case .revealInFinder(let path):
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+            executeStableFileAction(id: "files.reveal", path: path, confirmed: true)
 
         case .openWith(let path):
             openWithPicker(path: path)
@@ -1791,10 +1791,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
 
         case .moveToTrash(let path):
-            do {
-                try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
-            } catch {
-                report(L("It could not be moved to the trash"), error.localizedDescription)
+            let alert = NSAlert()
+            alert.messageText = L("Move %@ to the trash?", (path as NSString).lastPathComponent)
+            alert.informativeText = L("This cannot be undone.")
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: L("Move to Trash"))
+            alert.addButton(withTitle: L("Cancel"))
+            if alert.runModal() == .alertFirstButtonReturn {
+                executeStableFileAction(id: "files.move_to_trash", path: path, confirmed: true)
             }
 
         case .openSettings:
@@ -1992,6 +1996,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         return nil
+    }
+
+    private func executeStableFileAction(id: String, path: String, confirmed: Bool) {
+        guard let definition = BELActionCatalog.named(id),
+              let input = try? JSONEncoder().encode(BELPathActionInput(path: path)) else { return }
+        Task { @MainActor in
+            do {
+                _ = try await BELActionRuntime().execute(definition, input: input,
+                                                         capabilities: .allGranted,
+                                                         confirmed: confirmed)
+            } catch BELActionExecutionError.confirmationRequired {
+                report(L("Confirmation required"), L("This action cannot be undone."))
+            } catch {
+                report(L("The file action could not be completed"), "\(error)")
+            }
+        }
     }
 
     /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole

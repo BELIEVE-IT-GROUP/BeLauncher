@@ -471,6 +471,18 @@ public enum SearchEngine {
                         subtitle: command.needsConfirmation ? L("Asks you first") : L("System command"),
                         score: 100_120 + match.confidence, matched: [], payload: rawKind,
                         actionID: definition.id))
+                } else if definition.kind == .native,
+                          ["files.open", "files.reveal", "files.move_to_trash"].contains(definition.id),
+                          !match.argument.isEmpty {
+                    let path = (match.argument as NSString).expandingTildeInPath
+                    let name = (path as NSString).lastPathComponent
+                    pinned.append(SearchResult(
+                        id: "bel-(definition.id)", kind: .file,
+                        title: definition.titleKey == "Move file to Trash"
+                            ? L("Move %@ to the trash", name) : name,
+                        subtitle: definition.titleKey,
+                        score: 100_120 + match.confidence, matched: [], payload: path,
+                        actionID: definition.id))
                 } else if definition.kind == .ai,
                           let legacyID = BELActionCatalog.legacyAIVerbID(for: definition.id),
                           let verb = AIVerb.named(legacyID) {

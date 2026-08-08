@@ -31,4 +31,13 @@ struct BELSearchIntegrationTests {
         #expect(brainResults.count == 1)
         #expect(brainResults.first?.id == "brain-open")
     }
+
+    @Test("file verbs resolve to stable actions with a path argument")
+    func fileActionsCarryTheirPath() {
+        let result = SearchEngine.search("open file /tmp/brief.md", in: SearchInput())
+            .first { $0.actionID == "files.open" }
+
+        #expect(result?.kind == .file)
+        #expect(result?.payload == "/tmp/brief.md")
+    }
 }
