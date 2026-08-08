@@ -1,0 +1,30 @@
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_eaf66b6aded1cf 42-52
+Sources/BeLauncher/ShortcutActionHandler.swift
+  s_30bc31f46aebe1::t_08a4a1d4e07703 1-60
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_08a4a1d4e07703 1973-1993
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_cbc626b222ad6e 23-28
+Sources/BeLauncher/BELActionRuntime.swift
+  s_30bc31f46aebe1::t_08a4a1d4e07703 21
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_08a4a1d4e07703 22,126-134
+  s_30bc31f46aebe1::t_7d8b40f71bb275 135-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b9e9ccd70047ebe78468d833da0eefde19f595c7",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
