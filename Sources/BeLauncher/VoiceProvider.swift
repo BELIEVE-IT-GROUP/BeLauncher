@@ -20,8 +20,12 @@ enum VoiceProvider {
             do {
                 switch provider {
                 case .qwen:
+                    guard let model = QwenASRRuntime.readyModel else {
+                        failures.append("qwen: model is no longer installed")
+                        continue
+                    }
                     let text = try await QwenASRRuntime.transcribe(
-                        fileAt: url, model: QwenASRInstaller.smallModel)
+                        fileAt: url, model: model)
                     let recorded = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.creationDate]
                         as? Date ?? .now
                     return Transcript(at: recorded, title: title, text: text,

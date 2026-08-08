@@ -43,6 +43,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsModel: SettingsModel?
     private var keyMonitor: Any?
     private var appIndex = AppIndex()
+    /// One snapshot per short typing session. Re-reading 1,000 clipboard rows, including their
+    /// payloads, for every keystroke is visible on an 8 GB Mac even though the SQL itself is fast.
+    private var launcherInputCache: (key: String, input: SearchInput, expires: Date)?
     private var shortcuts: [BeLauncherCore.Shortcut] = []
     private var systemShortcuts: [String] = []
     private var vault: Vault?
@@ -118,7 +121,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         store.seedIfEmpty()
         store.ensureQuickCommands()
-        store.purgeSecrets()
         finishLaunch(store: store)
     }
 
@@ -135,9 +137,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     query: self.model?.query ?? "",
                     mode: self.model?.mode ?? .all
                 )
+                let cacheKey = [
+                    needs.mode == .clipboard ? "clipboard" : "all",
+                    needs.needsPacks ? "packs" : "",
+                    needs.needsNotes ? "notes" : "",
+                    needs.needsProcesses ? "processes" : "",
+                    needs.needsWorkspaces ? "workspaces" : "",
+                    needs.needsWorkGraph ? "graph" : "",
+                    needs.needsMemories ? "memories" : "",
+                    needs.needsCalendar ? "calendar" : "",
+                    needs.needsTraits ? "traits" : ""
+                ].joined(separator: "|")
+                if let cached = self.launcherInputCache,
+                   cached.key == cacheKey, cached.expires > .now {
+                    return cached.input
+                }
                 let workNodes = needs.needsWorkGraph ? store.nodes(limit: 1_000) : []
                 let workEdges = needs.needsWorkGraph ? store.workEdges(limit: 5_000) : []
-                return SearchInput(
+                let input = SearchInput(
                     applications: self.appIndex.applications,
                     snippets: store.snippets(),
                     workflows: store.workflows(),
@@ -163,6 +180,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     workspaces: needs.needsWorkspaces ? store.workspaces() : [],
                     notes: needs.needsNotes ? QuickNote.records(inVaultAt: Vault.defaultRoot()) : []
                 )
+                self.launcherInputCache = (cacheKey, input, Date.now.addingTimeInterval(2))
+                return input
             },
             fileInfo: { path in
                 guard let attributes = try? FileManager.default.attributesOfItem(atPath: path) else { return [] }
@@ -178,9 +197,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return items
             },
             onLaunch: { [weak self] path in self?.store?.recordLaunch(path: path) },
-            onPin: { [weak self] pinned, id in self?.store?.setPinned(pinned, clip: id) },
+            onPin: { [weak self] pinned, id in
+                self?.store?.setPinned(pinned, clip: id)
+                self?.launcherInputCache = nil
+            },
             onDelete: { [weak self] kind, id in
                 guard let store = self?.store else { return }
+                self?.launcherInputCache = nil
                 switch kind {
                 case .clipboard: store.deleteClip(id: id)
                 case .snippet: store.deleteSnippet(id: id)
@@ -197,7 +220,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     now: .now
                 )
             },
-            recordUse: { [weak self] kind, id in self?.store?.recordUse(kind: kind, id: id) },
+            recordUse: { [weak self] kind, id in
+                self?.store?.recordUse(kind: kind, id: id)
+                self?.launcherInputCache = nil
+            },
             perform: { [weak self] action in self?.perform(action) }
         )
         model.onMissionDraftChanged = { [weak self] draft in
@@ -269,6 +295,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         captureCalendarIntoGraph()
         startBrain()
         startCorpus(store: store)
+        scheduleBoundedMaintenance(store: store)
         // Developer/runtime inspection only. The normal menu-bar launch remains unchanged, but
         // a deterministic entry point lets visual QA inspect the same Brain window without
         // relying on Accessibility to discover a status-item menu.
@@ -285,6 +312,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func recordLauncherReady(store: Store) {
         let milliseconds = Int(Date().timeIntervalSince(launchStartedAt) * 1_000)
         store.setSetting("startup_launcher_ready_ms", String(max(0, milliseconds)))
+    }
+
+    private func scheduleBoundedMaintenance(store: Store) {
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled else { return }
+            _ = store.purgeSecrets(limit: 500)
+        }
     }
 
     // MARK: - Operational memory
@@ -488,7 +523,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let store else { return }
         store.seedIfEmpty()
         store.ensureQuickCommands()
-        store.purgeSecrets()
         finishLaunch(store: store)
     }
 
@@ -883,6 +917,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 appBeforePanel = front
             }
             model.activate(mode: mode)
+            launcherInputCache = nil
             panel.present()
         }
     }

@@ -108,6 +108,8 @@ final class SettingsModel {
     }
     var providerKeys: [String: String] = [:]
     var aiStatus: String?
+    /// Last real provider discovery result. Missing means unchecked, never ready.
+    var providerHealth: [String: IntelligenceProbeState] = [:]
 
     var configuredProviders: [IntelligenceProvider] {
         IntelligenceProvider.all.filter { provider in
@@ -132,6 +134,7 @@ final class SettingsModel {
                 try Keychain.set(trimmed, for: provider.keychainAccount)
             }
             providerKeys[provider.id] = trimmed
+            providerHealth[provider.id] = .needsSetup
             aiStatus = trimmed.isEmpty
                 ? L("%@ key deleted.", provider.name)
                 : L("%@ key saved to the Keychain.", provider.name)
@@ -160,12 +163,28 @@ final class SettingsModel {
                                         sensitivity: .personal, maxTokens: 20),
                     using: provider
                 )
+                providerHealth[provider.id] = .ready
                 aiStatus = "\(provider.name) responde: \(answer.prefix(40))"
             } catch let error as IntelligenceError {
+                if let provider = try? router.provider(for: .personal, available: available) {
+                    providerHealth[provider.id] = .offline(error.description)
+                }
                 aiStatus = error.description
             } catch {
                 aiStatus = error.localizedDescription
             }
+        }
+    }
+
+    /// Checks configured providers through their discovery endpoint. A saved key or a selected
+    /// local model is not enough to paint a green status in Settings.
+    func refreshProviderHealth() async {
+        let providers = IntelligenceProvider.all.filter { provider in
+            provider.isPrivate || !(providerKeys[provider.id] ?? "").isEmpty
+        }
+        for provider in providers {
+            providerHealth[provider.id] = await IntelligenceProvider.probe(
+                provider, key: providerKeys[provider.id])
         }
     }
 
@@ -202,6 +221,7 @@ final class SettingsModel {
     func removeAlias(_ alias: String) {
         store.removeAlias(alias)
         reload()
+        Task { @MainActor in await refreshProviderHealth() }
     }
 
     // MARK: - MCP
@@ -797,11 +817,13 @@ final class SettingsModel {
     var onRequestNotifications: (() -> Void)?
 
     func requestCalendar() {
+        Task { @MainActor in await requestCalendarAndRefresh() }
+    }
+
+    func requestCalendarAndRefresh() async {
         guard let calendar else { return }
-        Task { @MainActor in
-            await calendar.requestAccessIfNeeded()
-            calendar.refresh()
-        }
+        await calendar.requestAccessIfNeeded()
+        calendar.refresh()
     }
 
     func requestNotifications() {
@@ -817,11 +839,19 @@ final class SettingsModel {
 
     func providerState(_ id: String) -> ModelProviderDescriptor.State? {
         guard let descriptor = ModelProviderRegistry.named(id) else { return nil }
-        let localIDs = Set(localInstallations.map(\.providerID))
+        if let health = providerHealth[id] {
+            switch health {
+            case .ready: return .ready
+            case .needsSetup: return .needsSetup
+            case .offline: return .offline
+            }
+        }
         let configuredKeys = Set(providerKeys.compactMap { key, value in
             value.isEmpty ? nil : ModelProviderRegistry.named(key)?.keychainAccount
         })
-        return descriptor.state(localProviderIDs: localIDs, configuredKeyAccounts: configuredKeys)
+        // Before a probe, configuration is deliberately inconclusive.
+        if descriptor.isPrivate { return .offline }
+        return configuredKeys.contains(descriptor.keychainAccount) ? .needsSetup : .needsSetup
     }
 
     func scanLocalModels() {
@@ -1122,8 +1152,19 @@ final class SettingsModel {
 
     func syncSource(_ id: String) {
         guard ["apple-mail", "messages", "notes"].contains(id), sourceEnabled(id) else { return }
+        sourceRefreshRevision &+= 1
         onSourceSync(id)
+        // CorpusRunner records the result on its worker. Refresh the row while that run settles,
+        // so a successful or failed read is visible without reopening Settings.
+        Task { @MainActor in
+            for _ in 0..<12 {
+                try? await Task.sleep(for: .milliseconds(500))
+                sourceRefreshRevision &+= 1
+            }
+        }
     }
+
+    var sourceRefreshRevision = 0
 
     func corpusSourceLabel(_ id: String?) -> String {
         switch id {
@@ -1153,6 +1194,15 @@ final class SettingsModel {
         }
         let date = Date(timeIntervalSince1970: timestamp)
         return L("Last read: %@ items · %@", count, date.formatted(date: .abbreviated, time: .shortened))
+    }
+
+    /// A catalog entry is not proof that this Mac has actually read the source. The source
+    /// center uses this to keep its green state tied to a completed, error-free sync.
+    func sourceHasSuccessfulSync(_ id: String) -> Bool {
+        guard sourceEnabled(id),
+              let raw = store.setting("source_last_sync_\(id)"),
+              let timestamp = Double(raw), timestamp > 0 else { return false }
+        return (store.setting("source_last_problem_\(id)") ?? "").isEmpty
     }
 
     private func brainForReading() -> BrainSearch {

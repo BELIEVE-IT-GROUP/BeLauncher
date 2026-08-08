@@ -24,7 +24,12 @@ final class QwenASRInstaller {
     static let shared = QwenASRInstaller()
 
     private(set) var phase: Phase = .unknown
-    var selectedModel = QwenASRInstaller.smallModel
+    var selectedModel = QwenASRInstaller.smallModel {
+        didSet {
+            guard oldValue != selectedModel else { return }
+            refresh()
+        }
+    }
     private(set) var installProgress = InstallProgressStore.load(providerID: "qwen-asr")
     private var task: Task<Void, Never>?
 
@@ -42,6 +47,15 @@ final class QwenASRInstaller {
     }
 
     var python: URL { root.appendingPathComponent(".venv/bin/python3") }
+
+    struct InstallationState: Equatable {
+        let pythonPresent: Bool
+        let enginePresent: Bool
+        let modelPresent: Bool
+
+        var isReady: Bool { pythonPresent && enginePresent && modelPresent }
+        var canResume: Bool { pythonPresent || enginePresent || modelPresent }
+    }
 
     private var modelMarker: URL { Self.modelMarker(for: selectedModel, root: root) }
     private var stateURL: URL { root.appendingPathComponent("install-state.json") }
@@ -64,8 +78,8 @@ final class QwenASRInstaller {
 
     func refresh() {
         guard isAvailable else { phase = .unavailable; return }
-        if FileManager.default.isExecutableFile(atPath: python.path) &&
-            FileManager.default.fileExists(atPath: modelMarker.path) {
+        let state = Self.inspect(root: root, model: selectedModel)
+        if state.isReady {
             phase = .ready(model: selectedModel)
             persist(.ready)
             return
@@ -75,9 +89,9 @@ final class QwenASRInstaller {
             phase = .failed(message)
             persist(.failed, message: message)
         } else {
-            // An interrupted `installing` record is intentionally treated as not installed: the
-            // next background preparation resumes the idempotent uv/pip/model steps.
-            phase = .notInstalled
+            // An interrupted install is resumable, not ready. `install()` reuses valid artifacts
+            // and lets uv/Hugging Face continue from their own caches.
+            phase = state.pythonPresent ? .notInstalled : .pythonMissing
         }
     }
 
@@ -115,14 +129,19 @@ final class QwenASRInstaller {
                     try await Self.run(uv.path, ["venv", python.deletingLastPathComponent().path,
                                                   "--python", "3.12"], step: L("create the local environment"))
                 }
-                self.persist(.installing, step: L("install the voice engine"))
-                try await Self.run(uv.path, ["pip", "install", "--python", python.path,
-                                              "--upgrade", "qwen3-asr-mlx"], step: L("install the voice engine"))
+                if !Self.inspect(root: self.root, model: self.selectedModel).enginePresent {
+                    self.persist(.installing, step: L("install the voice engine"))
+                    try await Self.run(uv.path, ["pip", "install", "--python", python.path,
+                                                  "--upgrade", "qwen3-asr-mlx"], step: L("install the voice engine"))
+                }
                 // Download the selected weights now, while the person can see progress in Settings.
                 self.persist(.downloading, step: L("download the model"))
                 let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; Qwen3ASR.from_pretrained(sys.argv[1])"
                 try await Self.run(python.path, ["-c", code, selectedModel], step: L("download the model"))
                 guard !Task.isCancelled else { return }
+                guard Self.inspect(root: self.root, model: self.selectedModel).isReady else {
+                    throw Failure.modelIncomplete
+                }
                 try Data(selectedModel.utf8).write(to: modelMarker, options: .atomic)
                 self.writeRecord(.init(model: self.selectedModel, status: .ready,
                                        message: nil, updatedAt: .now))
@@ -161,9 +180,14 @@ final class QwenASRInstaller {
         return false
     }
 
+    var canResume: Bool {
+        Self.inspect(root: root, model: selectedModel).canResume
+    }
+
     func prepareInBackground() {
         refresh()
         if case .notInstalled = phase { install() }
+        if case .pythonMissing = phase { install() }
     }
 
     private func readRecord() -> InstallRecord? {
@@ -180,6 +204,57 @@ final class QwenASRInstaller {
         }
     }
 
+    /// The marker is only a convenience written by BeLauncher. It is never trusted on its own:
+    /// the model must be present in the Hugging Face cache as a real snapshot with configuration
+    /// and weights. This also recognises models downloaded before BeLauncher created its marker.
+    nonisolated static func inspect(root: URL, model: String,
+                                    modelCacheRoots: [URL]? = nil) -> InstallationState {
+        let fm = FileManager.default
+        let pythonPresent = fm.isExecutableFile(
+            atPath: root.appendingPathComponent(".venv/bin/python3").path)
+        let enginePresent = pythonPresent && engineInstalled(root: root)
+        let roots = modelCacheRoots ?? cacheRoots(for: root)
+        let modelPresent = roots.contains { modelSnapshotExists(model: model, cacheRoot: $0) }
+        return InstallationState(pythonPresent: pythonPresent, enginePresent: enginePresent,
+                                  modelPresent: modelPresent)
+    }
+
+    private nonisolated static func engineInstalled(root: URL) -> Bool {
+        let sitePackages = root.appendingPathComponent(".venv/lib")
+        guard let items = FileManager.default.enumerator(
+            at: sitePackages, includingPropertiesForKeys: [.isDirectoryKey]) else { return false }
+        return items.compactMap { $0 as? URL }.contains {
+            $0.lastPathComponent == "qwen3_asr_mlx" &&
+            (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        }
+    }
+
+    private nonisolated static func cacheRoots(for root: URL) -> [URL] {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        return [
+            root.appendingPathComponent(".cache/huggingface/hub"),
+            home.appendingPathComponent(".cache/huggingface/hub"),
+            home.appendingPathComponent("Library/Caches/huggingface/hub"),
+        ]
+    }
+
+    private nonisolated static func modelSnapshotExists(model: String, cacheRoot: URL) -> Bool {
+        let cacheName = "models--" + model.replacingOccurrences(of: "/", with: "--")
+        let snapshots = cacheRoot.appendingPathComponent(cacheName).appendingPathComponent("snapshots")
+        guard let versions = try? FileManager.default.contentsOfDirectory(
+            at: snapshots, includingPropertiesForKeys: [.isDirectoryKey]) else { return false }
+        return versions.contains { snapshot in
+            guard (try? snapshot.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true,
+                  FileManager.default.fileExists(atPath: snapshot.appendingPathComponent("config.json").path)
+            else { return false }
+            return (try? FileManager.default.contentsOfDirectory(at: snapshot,
+                                                                  includingPropertiesForKeys: nil))?.contains {
+                $0.pathExtension == "safetensors" ||
+                $0.lastPathComponent.hasSuffix(".safetensors.index.json")
+            } == true
+        }
+    }
+
     private nonisolated static func userFacingMessage(for error: Error) -> String {
         if let failure = error as? Failure {
             switch failure {
@@ -187,6 +262,8 @@ final class QwenASRInstaller {
                 return userFacingMessage(step: step, code: code, stderr: stderr)
             case .download:
                 return InstallDiagnostics.networkMessage(for: .offline)
+            case .modelIncomplete:
+                return L("The local voice setup stopped before finishing. Retry to resume it; your launcher is unaffected.")
             }
         }
         return L("The local voice setup stopped. Retry to continue.")
@@ -341,7 +418,7 @@ final class QwenASRInstaller {
     }
 
     private enum Failure: LocalizedError {
-        case exit(String, Int32, String), download
+        case exit(String, Int32, String), download, modelIncomplete
         var stepName: String {
             if case .exit(let step, _, _) = self { return step }
             return L("download")
@@ -352,6 +429,8 @@ final class QwenASRInstaller {
                 let detail = stderr.isEmpty ? "" : "\n\(stderr.suffix(2400))"
                 return L("Could not %@ (code %@).", step, String(code)) + detail
             case .download: return "Could not download the local voice runtime."
+            case .modelIncomplete:
+                return L("The local voice setup stopped before finishing. Retry to resume it; your launcher is unaffected.")
             }
         }
     }
@@ -359,21 +438,22 @@ final class QwenASRInstaller {
 
 enum QwenASRRuntime {
     static var isReady: Bool {
+        readyModel != nil
+    }
+
+    static var readyModel: String? {
         let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("BeLauncher/ASR", isDirectory: true)
-        let python = root.appendingPathComponent(".venv/bin/python3")
-        return FileManager.default.isExecutableFile(atPath: python.path)
-            && FileManager.default.fileExists(
-                atPath: QwenASRInstaller.modelMarker(for: QwenASRInstaller.smallModel,
-                                                      root: root).path)
+        return [QwenASRInstaller.smallModel, QwenASRInstaller.largeModel].first {
+            QwenASRInstaller.inspect(root: root, model: $0).isReady
+        }
     }
 
     static func transcribe(fileAt url: URL, model: String) async throws -> String {
         let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("BeLauncher/ASR", isDirectory: true)
         let python = root.appendingPathComponent(".venv/bin/python3")
-        guard FileManager.default.isExecutableFile(atPath: python.path),
-              FileManager.default.fileExists(atPath: QwenASRInstaller.modelMarker(for: model, root: root).path)
+        guard QwenASRInstaller.inspect(root: root, model: model).isReady
         else {
             throw Failure.notInstalled
         }

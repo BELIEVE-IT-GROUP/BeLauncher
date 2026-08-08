@@ -75,6 +75,30 @@ struct SecretGuardTests {
         #expect(store.purgeSecrets() == 1)
         #expect(store.clips().map(\.text) == ["texto normal"])
     }
+
+    @Test("launch maintenance purges a bounded recent batch")
+    @MainActor
+    func boundedPurgeDoesNotWalkTheWholeHistory() throws {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-bounded-purge-\(UUID().uuidString)")
+            .appendingPathComponent("s.sqlite3").path
+        let store = try Store(path: path)
+        try store.database.execute(
+            "INSERT INTO clips (text, digest, source_app, created_at) VALUES (?, ?, '', ?)",
+            [.text(token("sk_", "live_0000EXAMPLEEXAMPLEEXAMPLE0000")), .text("old-secret"), .double(1)]
+        )
+        try store.database.execute(
+            "INSERT INTO clips (text, digest, source_app, created_at) VALUES (?, ?, '', ?)",
+            [.text("newer one"), .text("newer-1"), .double(2)]
+        )
+        try store.database.execute(
+            "INSERT INTO clips (text, digest, source_app, created_at) VALUES (?, ?, '', ?)",
+            [.text("newer two"), .text("newer-2"), .double(3)]
+        )
+
+        #expect(store.purgeSecrets(limit: 2) == 0)
+        #expect(store.clips(limit: 10).contains { $0.text.contains("EXAMPLE") })
+    }
 }
 
 @Suite("Un token, envuelto como venga")

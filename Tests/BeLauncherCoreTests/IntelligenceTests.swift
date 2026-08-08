@@ -147,6 +147,59 @@ struct IntelligenceTests {
     }
 }
 
+@Suite("Provider connectivity is evidence based")
+struct IntelligenceProbeTests {
+
+    private let ollama = IntelligenceProvider.named("ollama")!
+    private let openAI = IntelligenceProvider.named("openai")!
+
+    private func response(_ status: Int = 200) -> HTTPURLResponse {
+        HTTPURLResponse(url: URL(string: "http://localhost")!, statusCode: status,
+                        httpVersion: nil, headerFields: nil)!
+    }
+
+    @Test("a local runner is ready only when its model catalogue is non-empty")
+    func localCatalogueIsRequired() async {
+        let empty = await IntelligenceProvider.probe(ollama, transport: { _ in
+            (Data(#"{"models":[]}"#.utf8), HTTPURLResponse(url: URL(string: "http://localhost")!,
+                                                              statusCode: 200, httpVersion: nil,
+                                                              headerFields: nil)!)
+        })
+        #expect(empty == .offline("The local provider is running but returned no models."))
+
+        let ready = await IntelligenceProvider.probe(ollama, transport: { _ in
+            (Data(#"{"models":[{"name":"qwen2.5"}]}"#.utf8), HTTPURLResponse(url: URL(string: "http://localhost")!,
+                                                                                 statusCode: 200,
+                                                                                 httpVersion: nil,
+                                                                                 headerFields: nil)!)
+        })
+        #expect(ready == .ready)
+    }
+
+    @Test("a cloud key is not a probe and an unauthorized response is offline")
+    func cloudNeedsRealResponse() async {
+        let missing = await IntelligenceProvider.probe(openAI, transport: { _ in
+            (Data(), self.response())
+        })
+        #expect(missing == .needsSetup)
+
+        let unauthorized = await IntelligenceProvider.probe(openAI, key: "stale",
+            transport: { request in
+                #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer stale")
+                return (Data(), self.response(401))
+            })
+        #expect(unauthorized == .offline("Provider answered HTTP 401."))
+    }
+
+    @Test("transport failures are visible instead of becoming ready")
+    func transportFailure() async {
+        struct Offline: Error {}
+        let result = await IntelligenceProvider.probe(openAI, key: "key",
+            transport: { _ in throw Offline() })
+        #expect(result != .ready)
+    }
+}
+
 /// Streaming, which is the difference between 28 seconds of spinner and 28 seconds of watching an
 /// answer arrive — and between a long answer finishing and a long answer timing out.
 @Suite("Reading an answer as it arrives")

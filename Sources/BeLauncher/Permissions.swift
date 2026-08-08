@@ -7,6 +7,8 @@ import AVFAudio
 /// Search, snippets, clipboard history and workflows all work without it.
 @MainActor
 enum Permissions {
+    private static var microphoneRequest: Task<Bool, Never>?
+
     static var accessibilityGranted: Bool { AXIsProcessTrusted() }
 
     static var microphoneGranted: Bool {
@@ -14,45 +16,68 @@ enum Permissions {
     }
 
     static var microphoneStatus: AVAuthorizationStatus {
-        // On macOS 14+, AVAudioApplication is the permission authority for audio I/O. The
-        // AVCaptureDevice status can remain `.notDetermined` for a menu-bar agent even after the
-        // system has decided, which made Settings show a dead toggle and omitted the app from the
-        // Microphone list. Keep the old return type so existing UI and capability checks remain
-        // stable while using the correct source of truth.
-        switch AVAudioApplication.shared.recordPermission {
-        case .granted: return .authorized
-        case .denied: return .denied
-        case .undetermined: return .notDetermined
-        @unknown default: return .restricted
-        }
+        // AVAudioApplication is the macOS 14+ authority for AVAudioRecorder. Keep the
+        // AVCaptureDevice status as a compatibility signal: older TCC decisions and capture
+        // clients can expose one status before the other, especially for an LSUIElement app.
+        let audio = AVAudioApplication.shared.recordPermission
+        let capture = AVCaptureDevice.authorizationStatus(for: .audio)
+        if audio == .granted || capture == .authorized { return .authorized }
+        if audio == .denied || capture == .denied { return .denied }
+        if capture == .restricted { return .restricted }
+        return .notDetermined
     }
 
     @discardableResult
     static func requestMicrophone() async -> Bool {
-        // A menu-bar agent is not active when its menu item is clicked. TCC can otherwise
-        // complete the request without presenting the native prompt, leaving the app absent
-        // from Privacy > Microphone on some macOS versions.
+        if let microphoneRequest {
+            return await microphoneRequest.value
+        }
+        let request = Task { @MainActor in
+            await requestMicrophoneOnce()
+        }
+        microphoneRequest = request
+        let granted = await request.value
+        microphoneRequest = nil
+        return granted
+    }
+
+    private static func requestMicrophoneOnce() async -> Bool {
+        // A menu-bar agent is not an active application when its menu item is clicked. Give TCC
+        // a real foreground application during the request; otherwise macOS can complete the
+        // callback without presenting the prompt and without registering the bundle in Privacy
+        // > Microphone. Restore the accessory policy after the prompt is dismissed.
+        let wasAccessory = NSApp.activationPolicy() == .accessory
+        if wasAccessory { _ = NSApp.setActivationPolicy(.regular) }
+        defer {
+            if wasAccessory { _ = NSApp.setActivationPolicy(.accessory) }
+        }
         NSApp.activate(ignoringOtherApps: true)
-        switch microphoneStatus {
-        case .authorized:
-            return true
-        case .notDetermined:
-            // This is the macOS 14+ request API for app-level audio input. It is the call that
-            // registers a menu-bar agent in Privacy & Security > Microphone.
+        if microphoneStatus == .authorized { return true }
+
+        // Request through AVAudioApplication first because voice notes use AVAudioRecorder.
+        // AVCaptureDevice is the fallback for Macs/TCC databases where the capture permission
+        // is still undetermined even though the app is already present in the microphone pane.
+        if AVAudioApplication.shared.recordPermission == .undetermined {
             let granted = await withCheckedContinuation { continuation in
                 AVAudioApplication.requestRecordPermission { granted in
                     continuation.resume(returning: granted)
                 }
             }
-            if !granted { openMicrophoneSettings() }
-            return granted
-        case .denied, .restricted:
-            openMicrophoneSettings()
-            return false
-        @unknown default:
-            openMicrophoneSettings()
-            return false
+            if granted { return true }
         }
+
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+            let granted = await withCheckedContinuation { continuation in
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+            if granted { return true }
+        }
+
+        let granted = microphoneStatus == .authorized
+        if !granted { openMicrophoneSettings() }
+        return granted
     }
 
     static func openMicrophoneSettings() {

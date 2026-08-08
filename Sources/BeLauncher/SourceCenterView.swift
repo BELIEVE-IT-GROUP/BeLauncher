@@ -50,6 +50,7 @@ private struct SourceRow: View {
     @State private var enabled = true
 
     var body: some View {
+        let _ = model.sourceRefreshRevision
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: source.symbol).foregroundStyle(source.state == .planned ? .secondary : Theme.accent)
                 .frame(width: 18)
@@ -68,6 +69,7 @@ private struct SourceRow: View {
             action
         }
         .padding(.vertical, 3)
+        .id(model.sourceRefreshRevision)
         .onAppear { enabled = model.sourceEnabled(source.id) }
     }
 
@@ -98,14 +100,30 @@ private struct SourceRow: View {
         case "planned", "whatsapp", "mail-and-chats":
             Text(L("Coming later")).font(.caption).foregroundStyle(.secondary)
         default:
-            Image(systemName: source.state == .connected ? "checkmark.circle.fill" : "info.circle")
+            Image(systemName: effectiveState == .connected ? "checkmark.circle.fill" : "info.circle")
                 .foregroundStyle(stateColor)
                 .help(source.scope)
         }
     }
 
+    private var effectiveState: KnowledgeSource.State {
+        switch source.id {
+        case "calendar":
+            return model.calendarGranted ? .connected : .available
+        case "notes", "messages", "apple-mail":
+            guard health.fullDiskAccess.isReady, model.sourceHasSuccessfulSync(source.id) else {
+                return .available
+            }
+            return .connected
+        case "clipboard":
+            return model.clipboardEnabled ? .connected : .available
+        default:
+            return source.state
+        }
+    }
+
     private var stateLabel: String {
-        switch source.state {
+        switch effectiveState {
         case .connected: L("Connected")
         case .available: L("Available")
         case .manual: L("Manual")
@@ -114,7 +132,7 @@ private struct SourceRow: View {
     }
 
     private var stateColor: Color {
-        switch source.state {
+        switch effectiveState {
         case .connected: .green
         case .available: .orange
         case .manual: .secondary

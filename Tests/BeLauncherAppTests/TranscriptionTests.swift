@@ -133,4 +133,97 @@ struct QwenInstallDiagnosticsTests {
         #expect(message.count < 1_100)
         #expect(message.hasSuffix(String(repeating: "x", count: 900)))
     }
+
+    @Test("detecta el snapshot real del modelo pequeño aunque falte el marcador")
+    func detectsSmallModelFromHuggingFaceCache() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        try fixture.makePythonAndEngine()
+        try fixture.makeSnapshot()
+
+        let state = QwenASRInstaller.inspect(root: fixture.root,
+                                              model: fixture.model,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(state == .init(pythonPresent: true, enginePresent: true, modelPresent: true))
+    }
+
+    @Test("el modelo grande se detecta de forma independiente del pequeño")
+    func detectsLargeModelIndependently() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.largeModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        try fixture.makePythonAndEngine()
+        try fixture.makeSnapshot()
+
+        let large = QwenASRInstaller.inspect(root: fixture.root, model: QwenASRInstaller.largeModel,
+                                              modelCacheRoots: [fixture.cache])
+        let small = QwenASRInstaller.inspect(root: fixture.root, model: QwenASRInstaller.smallModel,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(large.isReady)
+        #expect(!small.modelPresent)
+    }
+
+    @Test("una descarga interrumpida es reanudable y no se reporta como lista")
+    func interruptedInstallIsResumable() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        try fixture.makePythonOnly()
+        let state = QwenASRInstaller.inspect(root: fixture.root, model: fixture.model,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(!state.isReady)
+        #expect(state.canResume)
+        #expect(!state.modelPresent)
+    }
+
+    @Test("un marcador viejo o un snapshot sin pesos no pueden fingir que está listo")
+    func markerAndIncompleteSnapshotAreRejected() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        try fixture.makePythonAndEngine()
+        try Data(fixture.model.utf8).write(to: QwenASRInstaller.modelMarker(for: fixture.model,
+                                                                             root: fixture.root))
+        try fixture.makeSnapshot(includeWeights: false)
+
+        let state = QwenASRInstaller.inspect(root: fixture.root, model: fixture.model,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(!state.isReady)
+        #expect(!state.modelPresent)
+    }
+
+    private struct QwenFixture {
+        let root: URL
+        let cache: URL
+        let model: String
+
+        init(model: String) throws {
+            self.root = FileManager.default.temporaryDirectory
+                .appendingPathComponent("qwen-fixture-\(UUID().uuidString)")
+            self.cache = root.appendingPathComponent("huggingface/hub")
+            self.model = model
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        }
+
+        func makePythonOnly() throws {
+            let python = root.appendingPathComponent(".venv/bin/python3")
+            try FileManager.default.createDirectory(at: python.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+            FileManager.default.createFile(atPath: python.path, contents: Data("python".utf8))
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: python.path)
+        }
+
+        func makePythonAndEngine() throws {
+            try makePythonOnly()
+            let package = root.appendingPathComponent(".venv/lib/python3.12/site-packages/qwen3_asr_mlx")
+            try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+        }
+
+        func makeSnapshot(includeWeights: Bool = true) throws {
+            let cacheName = "models--" + model.replacingOccurrences(of: "/", with: "--")
+            let snapshot = cache.appendingPathComponent("\(cacheName)/snapshots/test")
+            try FileManager.default.createDirectory(at: snapshot, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: snapshot.appendingPathComponent("config.json"))
+            if includeWeights {
+                try Data("weights".utf8).write(to: snapshot.appendingPathComponent("model.safetensors"))
+            }
+        }
+    }
 }

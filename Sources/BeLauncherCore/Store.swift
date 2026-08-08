@@ -418,7 +418,16 @@ public final class Store {
     /// launch: a key already in the history is exactly the problem worth fixing.
     @discardableResult
     public func purgeSecrets() -> Int {
-        let offenders = clips(limit: 100_000).filter { SecretGuard.carriesSecret($0.text) }
+        return purgeSecrets(limit: 100_000)
+    }
+
+    /// Bounded maintenance pass for the launch path. A large clipboard history must not be
+    /// materialised just to clean old entries; callers that run during normal use take a small
+    /// recent batch and can continue on a later pass.
+    @discardableResult
+    public func purgeSecrets(limit: Int) -> Int {
+        guard limit > 0 else { return 0 }
+        let offenders = clips(limit: limit).filter { SecretGuard.carriesSecret($0.text) }
         for clip in offenders { deleteClip(id: clip.id) }
         return offenders.count
     }

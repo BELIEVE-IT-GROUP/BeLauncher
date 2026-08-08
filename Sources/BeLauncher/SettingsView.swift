@@ -382,6 +382,7 @@ private struct IntelligenceTab: View {
             }
         }
         .formStyle(.grouped)
+        .task { await model.refreshProviderHealth() }
     }
 }
 
@@ -659,6 +660,11 @@ private struct VoiceTab: View {
             qwen.refresh()
             callDetector.refresh()
         }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(
+            for: NSWorkspace.didActivateApplicationNotification)) { _ in
+                // System Settings can activate without activating this LSUIElement app.
+                health.refresh()
+            }
     }
 
     private func shortcutRow(_ title: String, key: String, symbol: String) -> some View {

@@ -60,7 +60,6 @@ struct BrainSetupView: View {
             .padding(.bottom, 28)
         }
         .frame(minWidth: 420, minHeight: 460)
-        .task { await installer.check() }
     }
 
     private var isDone: Bool {

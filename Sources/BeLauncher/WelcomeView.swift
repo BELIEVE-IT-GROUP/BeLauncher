@@ -197,6 +197,13 @@ private struct CapabilityCard: View {
             permissionRevision += 1
             health.refresh()
         }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(
+            for: NSWorkspace.didActivateApplicationNotification)) { _ in
+                // Returning from Privacy & Security does not always make a menu-bar app active.
+                // Refresh on workspace activation as well so the check reflects TCC immediately.
+                permissionRevision += 1
+                health.refresh()
+            }
     }
 
     /// System permissions cannot be switched on from here — macOS has to ask. Flipping the toggle
@@ -230,7 +237,12 @@ private struct CapabilityCard: View {
                     set: { if $0 { health.requestScreenRecording(); refreshPermissionState() } })
         case .calendar:
             Binding(get: { _ = permissionRevision; return model.calendarGranted },
-                    set: { if $0 { model.requestCalendar(); refreshPermissionState() } })
+                    set: { if $0 {
+                        Task { @MainActor in
+                            await model.requestCalendarAndRefresh()
+                            refreshPermissionState()
+                        }
+                    } })
         case .notifications:
             Binding(get: { _ = permissionRevision; return model.notificationsGranted },
                     set: { if $0 { model.requestNotifications(); refreshPermissionState() } })
@@ -238,16 +250,18 @@ private struct CapabilityCard: View {
             Binding(get: { _ = permissionRevision; return health.microphone.isReady },
                     set: { wanted in
                         guard wanted else { return }
-                        Task { @MainActor in _ = await health.requestMicrophone() }
-                        refreshPermissionState()
+                        // Refresh only after TCC has answered. Refreshing immediately used to
+                        // leave the toggle visually off after the user accepted the native prompt.
+                        Task { @MainActor in
+                            _ = await health.requestMicrophone()
+                            permissionRevision += 1
+                        }
                     })
         }
     }
 
     private func refreshPermissionState() {
-        Task { @MainActor in
-            try? await Task.sleep(for: .seconds(1))
-            permissionRevision += 1
-        }
+        health.refresh()
+        permissionRevision += 1
     }
 }

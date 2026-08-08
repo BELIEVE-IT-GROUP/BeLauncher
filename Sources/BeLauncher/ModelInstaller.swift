@@ -250,8 +250,18 @@ final class ModelInstaller {
             do {
                 try await self.pull(ticket: ticket)
                 guard !Task.isCancelled else { return }
-                self.set(await Self.inspect(), ticket: ticket)
-                self.persist(.ready)
+                let result = await Self.inspectUntilReady()
+                guard !Task.isCancelled else { return }
+                self.set(result, ticket: ticket)
+                if case .ready(let model) = result {
+                    self.persist(.ready, model: model)
+                } else {
+                    let message = L("The download finished, but Ollama has not reported %@ yet. Try checking again.",
+                                    ModelInstall.modelName)
+                    self.set(.failed(message), ticket: ticket)
+                    self.persist(.failed, step: L("verify downloaded model"), model: nil,
+                                 message: message)
+                }
             } catch is CancellationError {
                 // `cancelDownload` already said what happened, and it holds a newer ticket.
             } catch let failure as ModelInstall.PullFailure {
@@ -367,6 +377,15 @@ final class ModelInstaller {
         request.timeoutInterval = 1.5
         guard let (data, _) = try? await URLSession.shared.data(for: request) else { return false }
         return LocalModels.models(in: data).contains { $0.hasPrefix(ModelInstall.modelName) }
+    }
+
+    private static func inspectUntilReady() async -> ModelInstall.Phase {
+        for attempt in 0..<6 {
+            let result = await inspect()
+            if case .ready = result { return result }
+            if attempt < 5 { try? await Task.sleep(for: .milliseconds(500)) }
+        }
+        return await inspect()
     }
 
     private static func freeDiskSpace() -> Int64? {

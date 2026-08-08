@@ -19,6 +19,7 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
     public let name: String
     public let transport: Transport
     public let endpoint: String
+    public let modelsEndpoint: String?
     public let defaultModel: String
     /// Keychain account holding the key, empty for local providers.
     public let keychainAccount: String
@@ -26,11 +27,13 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
     public var isPrivate: Bool { transport == .local }
 
     public init(id: String, name: String, transport: Transport, endpoint: String,
-                defaultModel: String, keychainAccount: String = "") {
+                modelsEndpoint: String? = nil, defaultModel: String,
+                keychainAccount: String = "") {
         self.id = id
         self.name = name
         self.transport = transport
         self.endpoint = endpoint
+        self.modelsEndpoint = modelsEndpoint
         self.defaultModel = defaultModel
         self.keychainAccount = keychainAccount
     }
@@ -40,12 +43,70 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
         .map {
             .init(id: $0.id, name: $0.name,
                   transport: $0.transport == .local ? .local : .directKey,
-                  endpoint: $0.endpoint, defaultModel: $0.defaultModel,
+                  endpoint: $0.endpoint, modelsEndpoint: $0.modelsEndpoint,
+                  defaultModel: $0.defaultModel,
                   keychainAccount: $0.keychainAccount)
         }
 
     public static func named(_ id: String) -> IntelligenceProvider? {
         all.first { $0.id == id }
+    }
+}
+
+/// A provider is not healthy merely because its key is in Keychain or its app is installed.
+public enum IntelligenceProbeState: Sendable, Equatable {
+    case ready
+    case needsSetup
+    case offline(String)
+}
+
+public extension IntelligenceProvider {
+    /// Performs a real, non-generative discovery request. Local providers must return models;
+    /// cloud providers must accept the user's credential and return a successful HTTP status.
+    static func probe(_ provider: IntelligenceProvider, key: String? = nil,
+                      transport: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse)
+                      = { try await URLSession.shared.data(for: $0) }) async -> IntelligenceProbeState {
+        guard let url = URL(string: provider.modelsEndpoint ??
+                              provider.endpoint.replacingOccurrences(of: "/chat/completions",
+                                                                      with: "/models")) else {
+            return .offline(L("Invalid provider endpoint."))
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 3
+        if provider.transport == .directKey {
+            guard let key, !key.isEmpty else { return .needsSetup }
+            if provider.id == "anthropic" {
+                request.setValue(key, forHTTPHeaderField: "x-api-key")
+                request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            } else {
+                request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+            }
+        }
+        do {
+            let (data, response) = try await transport(request)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 200
+            guard (200..<300).contains(status) else {
+                return .offline(L("Provider answered HTTP %@.", String(status)))
+            }
+            if provider.transport == .local {
+                guard hasModels(data) else {
+                    return .offline(L("The local provider is running but returned no models."))
+                }
+            }
+            return .ready
+        } catch {
+            return .offline(error.localizedDescription)
+        }
+    }
+
+    private static func hasModels(_ data: Data) -> Bool {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return false
+        }
+        if let models = object["models"] as? [[String: Any]] { return !models.isEmpty }
+        if let models = object["data"] as? [[String: Any]] { return !models.isEmpty }
+        return false
     }
 }
 
