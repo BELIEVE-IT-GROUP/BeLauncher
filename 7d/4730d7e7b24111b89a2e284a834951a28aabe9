@@ -1,0 +1,25 @@
+Sources/BeLauncher/SystemCommandActionHandler.swift
+  s_30bc31f46aebe1::t_45725fb9777f54 1
+  s_30bc31f46aebe1::t_0b578bd1727a9d 2-25,27-32
+  s_30bc31f46aebe1::t_188c98c6e524f4 26
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_0b578bd1727a9d 1-32
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_0b578bd1727a9d 29-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "7d4730d7e7b24111b89a2e284a834951a28aabe9",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
