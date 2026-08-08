@@ -1,0 +1,33 @@
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_38c8e20adb1eb0 1-43,45-120
+  s_30bc31f46aebe1::t_a86b8dbe84d7ff 44
+Tests/BeLauncherCoreTests/BELActionCatalogTests.swift
+  s_30bc31f46aebe1::t_9c4fd0dfb68ea2 28-29,34
+  s_30bc31f46aebe1::t_666265a6a3f378 1-27,30-33,35-65
+Sources/BeLauncherCore/BELActionDefinition.swift
+  s_c95fefffce3b55::t_8ed32e7be39830 1-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5d36f84f56cff92e8b4f9e177c6b1156030fa8d3",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    },
+    "s_c95fefffce3b55": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ba8cca64-5f0f-4c52-8336-03977cc961bf",
+        "model": "unknown"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
