@@ -18,7 +18,9 @@ public enum BELActionResolver {
                                definitions: [BELActionDefinition] = BELActionCatalog.all)
     -> BELActionMatch? {
         let folded = Phrases.fold(query)
-        guard folded.count >= 2 else { return nil }
+        // Two characters are enough for ordinary search, but not enough to infer an action.
+        // Keeping this gate here prevents "sa" from becoming "salir" or another side effect.
+        guard folded.count >= 3 else { return nil }
 
         let exact = definitions.filter { definition in
             definition.id == folded || definition.aliases.map(Phrases.fold).contains(folded)

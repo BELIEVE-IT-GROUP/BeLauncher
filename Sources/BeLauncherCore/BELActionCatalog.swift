@@ -87,7 +87,7 @@ public enum BELActionCatalog {
                 id: "ai.verb.\(verb.id)",
                 kind: .ai,
                 titleKey: "ai.verb.\(verb.id)",
-                aliases: [verb.id, verb.title],
+                aliases: verb.triggers + [verb.id, verb.title],
                 arguments: [.init("text", .text)],
                 output: .text,
                 brainContextLevel: .b0,

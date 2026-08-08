@@ -83,11 +83,14 @@ public struct SearchResult: Sendable, Identifiable, Equatable {
     /// A file the result can be *shown* as. Carried on the result rather than resolved later so a
     /// grid of clipboard cards can render every thumbnail, not only the selected one.
     public let previewPath: String
+    /// Stable BEL identity, when this result came from the shared action catalogue.
+    public let actionID: String?
 
     public init(id: String, kind: ResultKind, title: String, subtitle: String,
                 score: Int, matched: [Int], payload: String, recordID: Int64 = 0,
-                completion: String? = nil, previewPath: String = "") {
+                completion: String? = nil, previewPath: String = "", actionID: String? = nil) {
         self.previewPath = previewPath
+        self.actionID = actionID
         self.id = id
         self.kind = kind
         self.title = title
@@ -170,7 +173,8 @@ public enum SearchEngine {
             SearchResult(
                 id: "brain-open", kind: .system, title: L("Open your brain"),
                 subtitle: L("See the graph, recent work and what needs correcting"),
-                score: 101_000, matched: [], payload: SystemCommand.Kind.openBrain.rawValue
+                score: 101_000, matched: [], payload: SystemCommand.Kind.openBrain.rawValue,
+                actionID: "brain.open"
             ),
             SearchResult(
                 id: "brain-ask", kind: .answer, title: L("Ask your brain"),
@@ -272,7 +276,8 @@ public enum SearchEngine {
                 return [SearchResult(id: "brain-open", kind: .system,
                                      title: L("Open your brain"),
                                      subtitle: L("Graph, reader and recent work"), score: 100_000,
-                                     matched: [], payload: SystemCommand.Kind.openBrain.rawValue)]
+                                     matched: [], payload: SystemCommand.Kind.openBrain.rawValue,
+                                     actionID: "brain.open")]
             }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {
                 return [SearchResult(
@@ -436,21 +441,6 @@ public enum SearchEngine {
             // Typing what you want is the whole point of a launcher. "traducir esto", "resume",
             // "corrige" now surface directly instead of hiding behind select-then-⌘K, which is a
             // ritual nobody guesses and everybody has to be told.
-            if let (verb, argument) = AIVerb.typed(query) {
-                let source = argument.isEmpty
-                    ? (input.clips.first(where: { $0.kind == .text })?.text ?? "")
-                    : argument
-                if !source.isEmpty {
-                    pinned.append(SearchResult(
-                        id: "verb-\(verb.id)", kind: .answer, title: verb.title,
-                        subtitle: argument.isEmpty
-                            ? L("on the last thing you copied · %@", preview(source))
-                            : preview(source),
-                        score: 99_000, matched: [], payload: verb.id + "\u{1F}" + source
-                    ))
-                }
-            }
-
             // Not a question: it might still be something the app knows how to carry out. But a
             // mission is our inference, and anything the user built themselves outranks it — if
             // they named a flow "enfoque", "enfoque" means their flow, full stop.
@@ -459,11 +449,45 @@ public enum SearchEngine {
                 + input.workflows.map(\.keyword)
                 + input.snippets.map(\.keyword)
                 + input.systemShortcuts.map { $0.lowercased() }
+                + input.shortcuts.map { Phrases.fold($0.title) }
                 + Array(input.aliases.keys)
             )
             let folded = query.lowercased().trimmingCharacters(in: .whitespaces)
             let collides = userOwned.contains(folded)
                 || input.systemShortcuts.contains { $0.caseInsensitiveCompare(folded) == .orderedSame }
+
+            // One catalogue resolves both native and AI actions. The payload keeps the existing
+            // execution format until LauncherModel is fully migrated; actionID is the stable
+            // identity used by new UI, receipts and later App Intents.
+            if !collides, let match = BELActionResolver.resolve(query),
+               let definition = BELActionCatalog.named(match.actionID),
+               definition.availability == .implemented,
+               !pinned.contains(where: { $0.actionID == definition.id }) {
+                if definition.kind == .native,
+                   let rawKind = BELActionCatalog.systemCommandKind(for: definition.id),
+                   let command = SystemCommand.all.first(where: { $0.kind.rawValue == rawKind }) {
+                    pinned.append(SearchResult(
+                        id: "bel-\(definition.id)", kind: .system, title: command.title,
+                        subtitle: command.needsConfirmation ? L("Asks you first") : L("System command"),
+                        score: 100_120 + match.confidence, matched: [], payload: rawKind,
+                        actionID: definition.id))
+                } else if definition.kind == .ai,
+                          let legacyID = BELActionCatalog.legacyAIVerbID(for: definition.id),
+                          let verb = AIVerb.named(legacyID) {
+                    let source = match.argument.isEmpty
+                        ? (input.clips.first(where: { $0.kind == .text })?.text ?? "")
+                        : match.argument
+                    if !source.isEmpty {
+                        pinned.append(SearchResult(
+                            id: "verb-\(legacyID)", kind: .answer, title: verb.title,
+                            subtitle: match.argument.isEmpty
+                                ? L("on the last thing you copied · %@", preview(source))
+                                : preview(source),
+                            score: 99_100 + match.confidence, matched: [],
+                            payload: legacyID + "\u{1F}" + source, actionID: definition.id))
+                    }
+                }
+            }
 
             // The missions that turn notes into memory work on what you just copied. Planning
             // them without it produced steps that were guaranteed to do nothing.

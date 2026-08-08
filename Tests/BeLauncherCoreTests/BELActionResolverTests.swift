@@ -26,5 +26,6 @@ struct BELActionResolverTests {
     func safeUnknowns() {
         #expect(BELActionResolver.resolve("xyzzy does something") == nil)
         #expect(BELActionResolver.resolve("s") == nil)
+        #expect(BELActionResolver.resolve("sa") == nil)
     }
 }
