@@ -1624,7 +1624,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for provider in providers {
             do {
                 let client = IntelligenceClient()
-                let modelProvider = BELHTTPModelProvider(descriptor: provider, client: client)
+                let modelProvider = BELLanguageModelProviderFactory.provider(
+                    for: provider, client: client)
                 let request = BELModelRequest(system: system, prompt: prompt,
                                               sensitivity: sensitivity, maxTokens: 900,
                                               localOnly: router.localOnlyFor.contains(sensitivity))

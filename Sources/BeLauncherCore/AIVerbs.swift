@@ -161,7 +161,8 @@ public struct AIVerbRunner: Sendable {
         var lastError: Error?
         for provider in routedProviders {
             do {
-                let modelProvider = BELHTTPModelProvider(descriptor: provider, client: client)
+                let modelProvider = BELLanguageModelProviderFactory.provider(
+                    for: provider, client: client)
                 let modelRequest = BELModelRequest(system: request.system, prompt: request.prompt,
                                                    sensitivity: request.sensitivity,
                                                    maxTokens: request.maxTokens,

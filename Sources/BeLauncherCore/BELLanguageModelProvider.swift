@@ -142,6 +142,18 @@ public enum BELLanguageModelProviderFactory {
         }
     }
 
+    /// Builds the runtime boundary used by callers. Local transports intentionally collapse to
+    /// the stable Brain identity; cloud transports retain their provider identity for receipts,
+    /// routing and diagnostics.
+    public static func provider(for descriptor: IntelligenceProvider,
+                               client: IntelligenceClient = IntelligenceClient())
+        -> any BELLanguageModelProvider {
+        if descriptor.isPrivate {
+            return BELLocalCoreProvider(descriptor: descriptor, client: client)
+        }
+        return BELHTTPModelProvider(descriptor: descriptor, client: client)
+    }
+
     /// Apple Intelligence is discovered at runtime and never reported as configured merely
     /// because the framework exists in the SDK.
     public static func foundationModelsProvider() -> (any BELLanguageModelProvider)? {
