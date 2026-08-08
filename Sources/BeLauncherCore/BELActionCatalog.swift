@@ -19,7 +19,7 @@ public enum BELActionCatalog {
     /// The definitions that have a corresponding runtime today. The legacy registries remain the
     /// execution layer until N1 migrates them behind a handler protocol.
     public static var all: [BELActionDefinition] {
-        nativeSystem + nativeFiles + aiVerbs
+        nativeSystem + nativeFiles + nativeShortcuts + aiVerbs
     }
 
     public static func named(_ id: String) -> BELActionDefinition? {
@@ -121,6 +121,17 @@ public enum BELActionCatalog {
                                 routePolicy: .deterministic, adapter: .publicAPI,
                                 availability: .implemented),
         ]
+    }
+
+    private static var nativeShortcuts: [BELActionDefinition] {
+        [BELActionDefinition(
+            id: "shortcuts.run", kind: .native, titleKey: "Run shortcut",
+            aliases: ["run shortcut", L("Run shortcut")],
+            arguments: [.init("name", .text)], output: .text,
+            requiredCapabilities: [.shortcuts], risk: .r2,
+            routePolicy: .deterministic, adapter: .shortcut,
+            availability: .implemented
+        )]
     }
 
     private static func nativeID(for kind: SystemCommand.Kind) -> String {

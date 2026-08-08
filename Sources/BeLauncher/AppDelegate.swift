@@ -1970,7 +1970,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return failure
 
         case .runShortcut(let name):
-            Shortcuts.run(named: name)
+            let alert = NSAlert()
+            alert.messageText = L("Run shortcut %@?", name)
+            alert.informativeText = L("This shortcut can change settings or control other apps.")
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: L("Run"))
+            alert.addButton(withTitle: L("Cancel"))
+            if alert.runModal() == .alertFirstButtonReturn {
+                guard let definition = BELActionCatalog.named("shortcuts.run"),
+                      let input = try? JSONEncoder().encode(BELShortcutActionInput(name: name)) else {
+                    return L("The shortcut action is unavailable.")
+                }
+                Task { @MainActor in
+                    do {
+                        _ = try await BELActionRuntime().execute(definition, input: input,
+                                                                 capabilities: .allGranted,
+                                                                 confirmed: true)
+                    } catch {
+                        report(L("The shortcut could not be run"), "\(error)")
+                    }
+                }
+            }
 
         case .startTimer(let minutes, let label):
             Timers.schedule(minutes: minutes, label: label)

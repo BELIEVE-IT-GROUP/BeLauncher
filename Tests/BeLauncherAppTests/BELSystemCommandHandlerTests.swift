@@ -39,4 +39,15 @@ struct BELSystemCommandHandlerTests {
             try await runtime.execute(definition, capabilities: .allGranted)
         }
     }
+
+    @Test("user shortcuts are stable actions and require confirmation")
+    func shortcutActionUsesGate() async throws {
+        let definition = try #require(BELActionCatalog.named("shortcuts.run"))
+        let input = try JSONEncoder().encode(BELShortcutActionInput(name: "Focus"))
+        let runtime = BELActionRuntime()
+
+        await #expect(throws: BELActionExecutionError.confirmationRequired) {
+            try await runtime.execute(definition, input: input, capabilities: .allGranted)
+        }
+    }
 }
