@@ -37,7 +37,10 @@ public extension ModelRouter {
 
         let candidates = available.compactMap { provider -> BELProviderRoute? in
             if localOnly, !provider.isPrivate { return nil }
-            let status = health[provider.id] ?? BELProviderHealth(state: .ready)
+            // A missing snapshot is not proof that generation works. Callers that need a route
+            // must obtain one through BELProviderHealthCache first; an unobserved provider may be
+            // considered configured, but never healthy by default.
+            let status = health[provider.id] ?? BELProviderHealth(state: .configured)
             if case .offline = status.state { return nil }
 
             var score = 0
