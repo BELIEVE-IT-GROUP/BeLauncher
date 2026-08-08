@@ -12,6 +12,14 @@ import Foundation
 /// midió la sonda en este Mac — la buena, que puntuó 1,0, y la basura real que puntuó ~0,3.
 @Suite("La autoprueba de la transcripción")
 struct TranscriptionTests {
+    @Test("Qwen disk check reads macOS NSNumber filesystem attributes")
+    func qwenReadsFreeDiskSpace() {
+        let freeBytes = QwenASRInstaller.freeDiskSpace(
+            at: FileManager.default.homeDirectoryForCurrentUser.path)
+        #expect(freeBytes != nil)
+        #expect(freeBytes ?? 0 > 0)
+    }
+
 
     private let spanish = "el modelo de voz funciona sin conexion a internet"
     /// Lo que devolvió de verdad el transcriptor con el modelo ausente.

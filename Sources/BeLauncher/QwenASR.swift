@@ -97,8 +97,7 @@ final class QwenASRInstaller {
 
     func install() {
         guard isAvailable, !isInstalling else { return }
-        let freeBytes = (try? FileManager.default.attributesOfFileSystem(
-            forPath: root.path)[.systemFreeSize] as? Int64) ?? nil
+        let freeBytes = Self.freeDiskSpace(at: root.path)
         guard case .enough = InstallDiagnostics.disk(requiredBytes: Self.requiredDiskBytes,
                                                      freeBytes: freeBytes) else {
             let message = freeBytes.map {
@@ -160,6 +159,17 @@ final class QwenASRInstaller {
                 self.persist(.failed, message: message)
             }
         }
+    }
+
+    /// `attributesOfFileSystem` bridges numeric values as `NSNumber` on macOS. Do not cast the
+    /// bridged object directly to `Int64`: that returns nil on a real Mac and turns a healthy
+    /// volume into the misleading "could not check" installer error.
+    nonisolated static func freeDiskSpace(at path: String) -> Int64? {
+        guard let value = try? FileManager.default.attributesOfFileSystem(forPath: path)[.systemFreeSize]
+        else { return nil }
+        if let value = value as? Int64 { return value }
+        if let value = value as? NSNumber { return value.int64Value }
+        return nil
     }
 
     func cancel() {

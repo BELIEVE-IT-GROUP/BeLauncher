@@ -54,21 +54,24 @@ enum Permissions {
         NSApp.activate(ignoringOtherApps: true)
         if microphoneStatus == .authorized { return true }
 
-        // Request through AVAudioApplication first because voice notes use AVAudioRecorder.
-        // AVCaptureDevice is the fallback for Macs/TCC databases where the capture permission
-        // is still undetermined even though the app is already present in the microphone pane.
-        if AVAudioApplication.shared.recordPermission == .undetermined {
+        // Ask the capture authority first. This is the path that makes a menu-bar agent appear
+        // in Privacy & Security > Microphone on current macOS releases. AVAudioApplication and
+        // AVCaptureDevice share the underlying TCC decision, but asking only the former can
+        // complete without registering an LSUIElement client in the pane.
+        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
             let granted = await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { granted in
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
                     continuation.resume(returning: granted)
                 }
             }
             if granted { return true }
         }
 
-        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+        // Keep the AVAudioApplication request for recorder clients and for systems where the
+        // capture authority was already decided independently.
+        if AVAudioApplication.shared.recordPermission == .undetermined {
             let granted = await withCheckedContinuation { continuation in
-                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                AVAudioApplication.requestRecordPermission { granted in
                     continuation.resume(returning: granted)
                 }
             }
