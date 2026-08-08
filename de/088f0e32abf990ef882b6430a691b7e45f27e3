@@ -1,0 +1,22 @@
+Sources/BeLauncherCore/MacCapabilityDetector.swift
+  s_30bc31f46aebe1::t_6498e9cd5f7388 2-6,65,86,88-89,92-142,144-155
+  s_30bc31f46aebe1::t_8520bca8f95cb2 143
+Package.swift
+  s_30bc31f46aebe1::t_6498e9cd5f7388 10-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "de088f0e32abf990ef882b6430a691b7e45f27e3",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
