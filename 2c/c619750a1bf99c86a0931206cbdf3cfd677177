@@ -1,0 +1,25 @@
+Sources/BeLauncherCore/SecretGuard.swift
+  s_30bc31f46aebe1::t_402ce9bdbeb94f 13-14,69-75
+  s_30bc31f46aebe1::t_5a1a108213686f 76-77
+Tests/BeLauncherCoreTests/IntelligenceTests.swift
+  s_30bc31f46aebe1::t_402ce9bdbeb94f 87-98,100-113
+  s_30bc31f46aebe1::t_3254610b05c717 99
+Sources/BeLauncherCore/Intelligence.swift
+  s_30bc31f46aebe1::t_402ce9bdbeb94f 406-411,416,420-421,428-429,431,441-442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "2cc619750a1bf99c86a0931206cbdf3cfd677177",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
