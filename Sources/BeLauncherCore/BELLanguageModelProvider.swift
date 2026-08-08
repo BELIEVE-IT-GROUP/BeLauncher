@@ -123,9 +123,9 @@ public struct BELLocalCoreProvider: BELLanguageModelProvider {
 }
 
 public enum BELLanguageModelProviderFactory {
-    /// Returns only providers present in the canonical chat catalogue. The factory does not
-    /// invent Apple Foundation Models availability; that backend must be added once the target
-    /// SDK exposes a runtime-checkable implementation.
+    /// Returns only providers present in the canonical chat catalogue. Apple Foundation Models
+    /// is intentionally separate because it has no endpoint or user key: its runtime availability
+    /// is checked below rather than inferred from the SDK or from Settings configuration.
     public static func httpProviders(
         client: IntelligenceClient = IntelligenceClient()
     ) -> [BELHTTPModelProvider] {

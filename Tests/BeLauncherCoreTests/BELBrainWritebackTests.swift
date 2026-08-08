@@ -82,10 +82,10 @@ struct BELBrainWritebackTests {
         _ = store.recordClip(text: "private", sourceApp: "Test", at: at)
         let period = Privacy.Period(from: at.addingTimeInterval(-1), to: at.addingTimeInterval(1))
 
-        let preview = BELBrainWriteback.previewForget(period, store: store, vault: vault, date: at)
+        let preview = try BELBrainWriteback.previewForget(period, store: store, vault: vault, date: at)
         #expect(preview.clips == 1)
         #expect(store.clips().count == 1)
-        _ = BELBrainWriteback.confirmForget(period, store: store, vault: vault, date: at)
+        _ = try BELBrainWriteback.confirmForget(period, store: store, vault: vault, date: at)
         #expect(store.clips().isEmpty)
         #expect(vault.aiAuditEvents().map(\.action) == [.forgetPreviewed, .forgetConfirmed])
     }

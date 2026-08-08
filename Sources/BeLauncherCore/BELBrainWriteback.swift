@@ -107,7 +107,7 @@ public enum BELBrainWriteback {
                                   createdAt: date, validFrom: date,
                                   entities: entities)
         let commit = try vault.propose(memory, reason: reason)
-        try? vault.recordAIAudit(BELAIAuditEvent(
+        try vault.recordAIAudit(BELAIAuditEvent(
             action: .proposalRecorded, result: "proposal recorded", providerID: providerID,
             model: model, sensitivity: sensitivity, reference: commit.id, at: date))
         return commit
@@ -117,7 +117,7 @@ public enum BELBrainWriteback {
     public static func confirm(commitID: String, in vault: Vault, date: Date = .now) throws
         -> MemoryObject {
         let object = try vault.confirm(commitID: commitID, at: date)
-        try? vault.recordAIAudit(BELAIAuditEvent(
+        try vault.recordAIAudit(BELAIAuditEvent(
             action: .proposalConfirmed, result: "proposal confirmed", reference: commitID,
             at: date))
         return object
@@ -125,7 +125,7 @@ public enum BELBrainWriteback {
 
     public static func discard(commitID: String, in vault: Vault, date: Date = .now) throws {
         try vault.discard(commitID: commitID, at: date)
-        try? vault.recordAIAudit(BELAIAuditEvent(
+        try vault.recordAIAudit(BELAIAuditEvent(
             action: .proposalDiscarded, result: "proposal discarded", reference: commitID,
             at: date))
     }
@@ -175,7 +175,7 @@ public enum BELBrainWriteback {
         let sourcePath: String?
         if case .string(let value) = object["sourcePath"] { sourcePath = value } else { sourcePath = nil }
         let path = try vault.saveEvidence(title: title, text: text, at: date, sourcePath: sourcePath)
-        try? vault.recordAIAudit(BELAIAuditEvent(action: .evidenceSaved,
+        try vault.recordAIAudit(BELAIAuditEvent(action: .evidenceSaved,
                                                   result: "evidence saved", reference: path,
                                                   at: date))
         return path
@@ -184,10 +184,10 @@ public enum BELBrainWriteback {
     @discardableResult
     public static func previewForget(_ period: Privacy.Period, store: Store,
                                      vault: Vault? = nil, date: Date = .now)
-        -> Privacy.Forgetting {
+        throws -> Privacy.Forgetting {
         let result = store.whatWouldBeForgotten(period)
         if let vault {
-            try? vault.recordAIAudit(BELAIAuditEvent(
+            try vault.recordAIAudit(BELAIAuditEvent(
                 action: .forgetPreviewed, result: "forget preview: \(result.total) records",
                 reference: String(date.timeIntervalSince1970), at: date))
         }
@@ -199,10 +199,10 @@ public enum BELBrainWriteback {
     @discardableResult
     public static func confirmForget(_ period: Privacy.Period, store: Store,
                                      vault: Vault? = nil, date: Date = .now)
-        -> Privacy.Forgetting {
+        throws -> Privacy.Forgetting {
         let result = store.forget(period)
         if let vault {
-            try? vault.recordAIAudit(BELAIAuditEvent(
+            try vault.recordAIAudit(BELAIAuditEvent(
                 action: .forgetConfirmed, result: "forget confirmed: \(result.total) records",
                 reference: String(date.timeIntervalSince1970), at: date))
         }
