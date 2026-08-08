@@ -68,6 +68,7 @@ final class GraphModel {
     }
 
     private let store: Store
+    var sourceStore: Store { store }
     let corpus: CorpusFolder?
     private let now: Date
 
@@ -1306,16 +1307,17 @@ private struct BrainOverview: View {
                 section(title: L("Knowledge sources"), symbol: "square.stack.3d.up") {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(KnowledgeSourceCatalog.current) { source in
+                            let state = LocalSourceHealth.state(for: source, store: model.sourceStore)
                             HStack(alignment: .top, spacing: 9) {
                                 Image(systemName: source.symbol)
                                     .frame(width: 18)
-                                    .foregroundStyle(source.state == .planned ? .secondary : Theme.cyan)
+                                    .foregroundStyle(state == .planned ? .secondary : Theme.cyan)
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 6) {
                                         Text(source.title).font(.system(size: 12, weight: .medium))
-                                        Text(sourceState(source.state))
+                                        Text(sourceState(state))
                                             .font(.system(size: 10, weight: .medium))
-                                            .foregroundStyle(source.state == .planned ? .secondary : Theme.cyan)
+                                            .foregroundStyle(state == .planned ? .secondary : Theme.cyan)
                                     }
                                     Text(source.scope).font(.caption).foregroundStyle(.secondary)
                                 }

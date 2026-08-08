@@ -13,6 +13,7 @@ public struct Episode: Sendable, Equatable, Identifiable {
 
     /// One thing that happened, flattened from wherever it came from.
     public struct Signal: Sendable, Equatable {
+        public static let titleLimit = 240
         public enum Kind: String, Sendable, Equatable, CaseIterable {
             case file
             case application
@@ -39,7 +40,7 @@ public struct Episode: Sendable, Equatable, Identifiable {
             self.at = at
             self.kind = kind
             self.subject = subject
-            self.title = title
+            self.title = IndexedPassage.label(String(title.prefix(Self.titleLimit)))
         }
     }
 

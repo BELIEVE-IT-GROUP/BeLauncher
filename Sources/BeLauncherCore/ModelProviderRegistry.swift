@@ -62,12 +62,14 @@ public enum ModelProviderRegistry {
               defaultModel: "local-model", capabilities: [.chat, .embeddings]),
         .init(id: "anthropic", name: "Anthropic", transport: .directKey,
               endpoint: "https://api.anthropic.com/v1/messages",
+              modelsEndpoint: "https://api.anthropic.com/v1/models",
               defaultModel: "claude-sonnet-5", keychainAccount: "anthropic_api_key"),
         .init(id: "openai", name: "OpenAI", transport: .directKey,
               endpoint: "https://api.openai.com/v1/chat/completions",
               defaultModel: "gpt-5", keychainAccount: "openai_api_key"),
         .init(id: "gemini", name: "Google Gemini", transport: .directKey,
               endpoint: "https://generativelanguage.googleapis.com/v1beta/models",
+              modelsEndpoint: "https://generativelanguage.googleapis.com/v1beta/models",
               defaultModel: "gemini-2.5-pro", keychainAccount: "gemini_api_key"),
     ]
 

@@ -36,7 +36,13 @@ enum LocalNotesConnector {
         sqlite3_bind_int64(statement, 2, Int64(limit))
 
         var result: [NoteRecord] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
+        while true {
+            let status = sqlite3_step(statement)
+            if status == SQLITE_DONE { break }
+            guard status == SQLITE_ROW else {
+                return Reading(notes: result,
+                               problem: L("Apple Notes could not finish reading its local database."))
+            }
             guard let text = sqlite3_column_text(statement, 1) else { continue }
             let clean = String(cString: text).trimmingCharacters(in: .whitespacesAndNewlines)
             guard clean.count >= 40 else { continue }

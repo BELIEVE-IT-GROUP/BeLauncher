@@ -123,18 +123,37 @@ codesign --force --options runtime --timestamp \
     "$APP"
 codesign --verify --strict --verbose=2 "$APP"
 
-# Signing with hardened runtime and no entitlements silently killed every system command and flow
-# step in every signed release: macOS refuses the Apple Event before asking, so no prompt appears
-# and the app never even shows up in Privacy › Automation. It only worked on the unsigned dev
-# build. Fail the release rather than ship that again.
-if ! codesign -d --entitlements - --xml "$APP" 2>/dev/null \
-    | plutil -convert xml1 -o - - 2>/dev/null \
-    | grep -q "com.apple.security.automation.apple-events"; then
-    echo "✗ El .app se firmó sin la entitlement de Apple Events." >&2
-    echo "  Los comandos de sistema y los flujos no funcionarían y nadie podría concederlo." >&2
+# A usage string only explains a permission prompt. The hardened binary must also retain the
+# matching capabilities or macOS can reject access before TCC registers the app. Inspect the
+# signed artifact and fail closed: the source plist is not proof of what codesign emitted.
+SIGNED_ENTITLEMENTS_JSON="$(codesign -d --entitlements - --xml "$APP" 2>/dev/null \
+    | plutil -convert json -o - -)"
+require_entitlement() {
+    local key="$1"
+    local feature="$2"
+    local value
+    # plutil treats dots as path separators; entitlement names contain dots literally. JSON with
+    # jq's bracket lookup reads the exact key and still distinguishes true from false/missing.
+    value="$(printf '%s' "$SIGNED_ENTITLEMENTS_JSON" \
+        | jq -r --arg entitlement_key "$key" '.[$entitlement_key] // false')"
+    if [ "$value" != "true" ]; then
+        echo "✗ El .app se firmó sin $key." >&2
+        echo "  $feature no funcionaría y macOS no podría registrar el permiso." >&2
+        exit 1
+    fi
+    echo "▸ Entitlement presente: $key"
+}
+require_entitlement "com.apple.security.automation.apple-events" "Los comandos de sistema y los flujos"
+require_entitlement "com.apple.security.device.audio-input" "El micrófono, el dictado y las notas de voz"
+
+MICROPHONE_USAGE="$(plutil -extract NSMicrophoneUsageDescription raw -o - \
+    "$APP/Contents/Info.plist" 2>/dev/null || true)"
+if [ -z "$MICROPHONE_USAGE" ]; then
+    echo "✗ El .app no explica por qué usa el micrófono." >&2
+    echo "  macOS terminaría o rechazaría la solicitud antes de presentar TCC." >&2
     exit 1
 fi
-echo "▸ Entitlement de Apple Events presente"
+echo "▸ NSMicrophoneUsageDescription presente"
 
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
     echo "▸ SKIP_NOTARIZE=1 — stopping after signing"

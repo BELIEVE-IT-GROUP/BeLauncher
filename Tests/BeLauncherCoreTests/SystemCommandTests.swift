@@ -268,13 +268,15 @@ struct EntitlementsTests {
         return ""
     }
 
-    @Test("the app ships an entitlements file that allows Apple Events")
+    @Test("the app ships the entitlements needed for automation and microphone capture")
     func hasEntitlements() throws {
         let path = (Self.repositoryRoot as NSString)
             .appendingPathComponent("Scripts/BeLauncher.entitlements")
         let contents = try String(contentsOfFile: path, encoding: .utf8)
         #expect(contents.contains("com.apple.security.automation.apple-events"),
                 "sin esto los comandos de sistema y los flujos no hacen nada en un build firmado")
+        #expect(contents.contains("com.apple.security.device.audio-input"),
+                "sin Audio Input el build firmado no llega al prompt TCC del micrófono")
     }
 
     @Test("the release actually passes it to codesign, and refuses to ship without it")
@@ -286,6 +288,8 @@ struct EntitlementsTests {
                 "el fichero puede existir y no usarse: eso ya pasó una vez")
         #expect(script.contains("com.apple.security.automation.apple-events"),
                 "el release debe verificar el .app firmado, no confiar en que salió bien")
+        #expect(script.contains("com.apple.security.device.audio-input"),
+                "el release debe abortar si codesign elimina Audio Input")
     }
 
     @Test("the Info.plist explains Apple Events instead of denying them")

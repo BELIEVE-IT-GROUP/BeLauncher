@@ -12,10 +12,13 @@
 	    It went unnoticed because the development build is not signed with hardened runtime, so it
 	    worked on the machine where it was tested and only on that path.
 
-	    This is the only entitlement here on purpose. It permits sending events; it does not grant
-	    access to any particular app — macOS still asks per target the first time.
-	-->
-	<key>com.apple.security.automation.apple-events</key>
-	<true/>
-</dict>
+		    It permits sending events; it does not grant access to any particular app — macOS still
+		    asks per target the first time.
+		-->
+		<key>com.apple.security.automation.apple-events</key>
+		<true/>
+		<!-- Required for a hardened macOS build to reach the microphone TCC prompt. -->
+		<key>com.apple.security.device.audio-input</key>
+		<true/>
+	</dict>
 </plist>

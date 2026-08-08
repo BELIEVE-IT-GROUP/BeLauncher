@@ -12,10 +12,28 @@ enum LocalMailConnector {
         let problem: String?
     }
 
+    static func mailRoot(home: String = NSHomeDirectory()) -> URL? {
+        let mail = URL(fileURLWithPath: home, isDirectory: true)
+            .appendingPathComponent("Library/Mail", isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: mail, includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]) else { return nil }
+        return entries.compactMap { entry -> (version: Int, url: URL)? in
+            let name = entry.lastPathComponent
+            guard name.first == "V", let version = Int(name.dropFirst()),
+                  (try? entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+            else { return nil }
+            return (version, entry)
+        }.max { $0.version < $1.version }?.url
+    }
+
     static func read(since: Date, home: String = NSHomeDirectory(), limit: Int = 300) -> Reading {
-        let root = (home as NSString).appendingPathComponent("Library/Mail/V10")
-        guard FileManager.default.fileExists(atPath: root) else {
+        let mail = (home as NSString).appendingPathComponent("Library/Mail")
+        guard FileManager.default.fileExists(atPath: mail) else {
             return Reading(messages: [], problem: nil)
+        }
+        guard let root = mailRoot(home: home)?.path else {
+            return Reading(messages: [], problem: L("I cannot read Apple Mail. macOS protects its local mail store; give BeLauncher Full Disk Access in System Settings, Privacy & Security."))
         }
         guard let enumerator = FileManager.default.enumerator(atPath: root) else {
             return Reading(messages: [], problem: L("I cannot read Apple Mail. macOS protects its local mail store; give BeLauncher Full Disk Access in System Settings, Privacy & Security."))
@@ -35,10 +53,10 @@ enum LocalMailConnector {
         }
 
         messages.sort { $0.at > $1.at }
-        return Reading(messages: Array(messages.prefix(limit)),
-                       problem: sawUnreadable && messages.isEmpty
-                           ? L("I cannot read Apple Mail. macOS protects its local mail store; give BeLauncher Full Disk Access in System Settings, Privacy & Security.")
-                           : nil)
+        let problem: String? = sawUnreadable
+            ? L("I could not read every Apple Mail message. Check Full Disk Access and the Mail store.")
+            : nil
+        return Reading(messages: Array(messages.prefix(limit)), problem: problem)
     }
 
     private static func isExcluded(_ path: String) -> Bool {

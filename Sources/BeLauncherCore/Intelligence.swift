@@ -55,6 +55,8 @@ public struct IntelligenceProvider: Sendable, Equatable, Identifiable {
 
 /// A provider is not healthy merely because its key is in Keychain or its app is installed.
 public enum IntelligenceProbeState: Sendable, Equatable {
+    /// Credentials or local endpoint accepted a catalogue request. Generation is not proven yet.
+    case configured
     case ready
     case needsSetup
     case offline(String)
@@ -79,6 +81,8 @@ public extension IntelligenceProvider {
             if provider.id == "anthropic" {
                 request.setValue(key, forHTTPHeaderField: "x-api-key")
                 request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            } else if provider.id == "gemini" {
+                request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
             } else {
                 request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
             }
@@ -94,7 +98,7 @@ public extension IntelligenceProvider {
                     return .offline(L("The local provider is running but returned no models."))
                 }
             }
-            return .ready
+            return .configured
         } catch {
             return .offline(error.localizedDescription)
         }
@@ -235,10 +239,18 @@ public struct IntelligenceClient: Sendable {
     ) async throws -> String {
         let urlRequest = try build(request, provider: provider, model: model ?? provider.defaultModel)
         let data: Data
+        let response: URLResponse
         do {
-            (data, _) = try await transport(urlRequest)
+            (data, response) = try await transport(urlRequest)
         } catch {
             throw IntelligenceError.transport(error.localizedDescription)
+        }
+        if let message = Self.providerError(from: data) {
+            throw IntelligenceError.transport(message)
+        }
+        if let status = (response as? HTTPURLResponse)?.statusCode,
+           !(200..<300).contains(status) {
+            throw IntelligenceError.transport(L("The provider answered HTTP %@.", String(status)))
         }
         guard let text = Self.extractText(from: data), !text.isEmpty else {
             throw IntelligenceError.emptyAnswer
@@ -280,7 +292,9 @@ public struct IntelligenceClient: Sendable {
         var providerError: String?
         do {
             for try await line in bytes.lines {
-                if let fragment = Self.fragment(fromSSE: line) {
+                if let message = Self.providerError(fromStreamLine: line) {
+                    providerError = message
+                } else if let fragment = Self.fragment(fromSSE: line) {
                     whole += fragment
                     onFragment(fragment)
                 } else if let data = line.data(using: .utf8),
@@ -292,15 +306,17 @@ public struct IntelligenceClient: Sendable {
                 }
             }
         } catch {
-            // Something already arrived: better a partial answer than losing it to a hiccup.
-            guard whole.isEmpty else { return whole.trimmingCharacters(in: .whitespacesAndNewlines) }
-            throw IntelligenceError.transport(error.localizedDescription)
+            let context = whole.isEmpty ? error.localizedDescription
+                : L("The stream stopped after %@ characters: %@", String(whole.count),
+                    error.localizedDescription)
+            throw IntelligenceError.transport(context)
         }
 
         if let statusCode, !(200..<300).contains(statusCode) {
             throw IntelligenceError.transport(providerError ??
                 L("The provider answered HTTP %@.", String(statusCode)))
         }
+        if let providerError { throw IntelligenceError.transport(providerError) }
 
         let text = whole.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
@@ -334,12 +350,37 @@ public struct IntelligenceClient: Sendable {
            let text = delta["text"] as? String, !text.isEmpty {
             return text
         }
+        // Gemini streamGenerateContent uses the same candidate shape as its final response.
+        if let candidates = root["candidates"] as? [[String: Any]],
+           let content = candidates.first?["content"] as? [String: Any],
+           let parts = content["parts"] as? [[String: Any]],
+           let text = Optional(parts.compactMap { $0["text"] as? String }.joined()),
+           !text.isEmpty {
+            return text
+        }
         return nil
+    }
+
+    static func providerError(fromStreamLine line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        let payload = trimmed.hasPrefix("data:")
+            ? String(trimmed.dropFirst(5)).trimmingCharacters(in: .whitespaces)
+            : trimmed
+        guard let data = payload.data(using: .utf8) else { return nil }
+        return providerError(from: data)
     }
 
     func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String,
                streaming: Bool = false) throws -> URLRequest {
-        guard let url = URL(string: provider.endpoint) else {
+        let endpoint: String
+        if provider.id == "gemini" {
+            let operation = streaming ? "streamGenerateContent?alt=sse" : "generateContent"
+            endpoint = provider.endpoint.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                + "/\(model):\(operation)"
+        } else {
+            endpoint = provider.endpoint
+        }
+        guard let url = URL(string: endpoint) else {
             throw IntelligenceError.transport(L("invalid endpoint"))
         }
         var urlRequest = URLRequest(url: url)
@@ -355,9 +396,26 @@ public struct IntelligenceClient: Sendable {
             case "anthropic":
                 urlRequest.setValue(key, forHTTPHeaderField: "x-api-key")
                 urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+            case "gemini":
+                urlRequest.setValue(key, forHTTPHeaderField: "x-goog-api-key")
             default:
                 urlRequest.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
             }
+        }
+
+        if provider.id == "gemini" {
+            var body: [String: Any] = [
+                "contents": [[
+                    "role": "user",
+                    "parts": [["text": request.prompt]],
+                ]],
+                "generationConfig": ["maxOutputTokens": request.maxTokens],
+            ]
+            if !request.system.isEmpty {
+                body["systemInstruction"] = ["parts": [["text": request.system]]]
+            }
+            urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
+            return urlRequest
         }
 
         var messages: [[String: String]] = []
@@ -410,10 +468,22 @@ public struct IntelligenceClient: Sendable {
             let text = content.compactMap { $0["text"] as? String }.joined()
             return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        // An error the provider bothered to explain.
-        if let error = root["error"] as? [String: Any], let message = error["message"] as? String {
-            return "⚠︎ " + message
+        // Gemini.
+        if let candidates = root["candidates"] as? [[String: Any]],
+           let content = candidates.first?["content"] as? [String: Any],
+           let parts = content["parts"] as? [[String: Any]] {
+            let text = parts.compactMap { $0["text"] as? String }.joined()
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return nil
+    }
+
+    static func providerError(from data: Data) -> String? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let error = root["error"] else { return nil }
+        if let object = error as? [String: Any], let message = object["message"] as? String {
+            return message
+        }
+        return error as? String
     }
 }

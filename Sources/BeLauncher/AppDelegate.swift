@@ -269,9 +269,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             source: CallAudioSource(rawValue: store.setting("call_audio_source") ?? "") ?? .automatic)
         callCapture?.onSuggestionChange = { [weak self] in self?.refreshCallSuggestion() }
         refreshCallSuggestion()
-        if Permissions.microphoneGranted {
-            QwenASRInstaller.shared.prepareInBackground()
-        }
         AudioCaptureController.pruneRecordings()
         announceUpdateIfAny()
         installKeyMonitor()
@@ -341,9 +338,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         askAboutCaptureIfNeeded()
     }
 
-    private func syncCorpusSource(_ source: String) {
-        Task { @MainActor [weak self] in
-            await self?.corpusRunner?.runOnce(source: source)
+    private func syncCorpusSource(_ source: String) async -> CorpusRunner.RunResult {
+        guard let corpusRunner else { return .failed(L("The capture service is not available.")) }
+        while corpusRunner.isRunning {
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        if source == "all" {
+            return await corpusRunner.runOnce(ignoringPowerPolicy: true)
+        } else {
+            return await corpusRunner.runOnce(source: source, ignoringPowerPolicy: true)
         }
     }
 
@@ -934,6 +937,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openSettings() {
         guard let store else { return }
         if let window = settingsWindow {
+            settingsModel?.refreshNotificationPermission()
+            settingsModel?.refreshBrainState()
+            settingsModel?.scanLocalModels()
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
@@ -951,10 +957,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsModel.updateStatus = L("There is a new version: %@", pending.version)
         }
         settingsModel.calendar = calendar
-        settingsModel.onRequestNotifications = { [weak self] in self?.requestNotifications() }
+        settingsModel.onRequestNotifications = { [weak self] in
+            await self?.requestNotifications() ?? false
+        }
         settingsModel.onHotKeyChange = { [weak self] label in self?.registerHotKey(named: label) }
         settingsModel.onCallAudioSourceChange = { [weak self] source in self?.callCapture?.source = source }
-        settingsModel.onSourceSync = { [weak self] source in self?.syncCorpusSource(source) }
+        settingsModel.onSourceSync = { [weak self] source in
+            guard let self else { return .failed(L("The capture service is not available.")) }
+            return await self.syncCorpusSource(source)
+        }
         settingsModel.onReviewInterrupted = { [weak self] id in self?.reviewInterruptedAction(id) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
             enabled ? self?.clipboard?.start() : self?.clipboard?.stop()
@@ -1307,6 +1318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .automation: Permissions.automationGranted()
         case .calendar: calendar.isAuthorised
         case .microphone: Permissions.microphoneGranted
+        case .fullDiskAccess: Permissions.fullDiskAccessLikely
         case .screen: ScreenCapture.screenRecordingGranted
         case .notifications, .clipboard, .updates, .launchAtLogin: true
         }
@@ -1612,7 +1624,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"] ?? UpdateCheck.defaultFeedURL
         )
         model.calendar = calendar
-        model.onRequestNotifications = { [weak self] in self?.requestNotifications() }
+        model.onRequestNotifications = { [weak self] in
+            await self?.requestNotifications() ?? false
+        }
         settingsModel = model
 
         let window = NSWindow(
@@ -1680,12 +1694,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Asked here rather than in the model so EventKit and UserNotifications stay in the app layer.
-    private func requestNotifications() {
-        Task { @MainActor in
-            let granted = (try? await UNUserNotificationCenter.current()
-                .requestAuthorization(options: [.alert, .sound])) ?? false
-            settingsModel?.notificationsGranted = granted
-        }
+    private func requestNotifications() async -> Bool {
+        (try? await UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound])) ?? false
     }
 
     /// Returns what went wrong, or nil when the step did what it said.

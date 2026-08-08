@@ -293,9 +293,53 @@ struct SemanticIndexTests {
         let first = store.replacePassages(for: source, title: "Regla", occurredAt: .now, text: text)
         store.storeVector([1, 0, 0], for: first[0].id, model: "bge-m3")
 
-        _ = store.replacePassages(for: source, title: "Regla", occurredAt: .now, text: text)
+        let unchanged = store.replacePassages(for: source, title: "Regla", occurredAt: .now,
+                                              text: text)
+        #expect(unchanged.isEmpty, "unchanged content writes and counts nothing")
         #expect(store.indexedPassageCount().vectorised == 1)
         #expect(store.passagesNeedingVectors(model: "bge-m3").isEmpty)
+    }
+
+    @Test("una fuente absurda se limita antes de trocearla")
+    func sourceTextIsBounded() throws {
+        let store = try makeStore()
+        let huge = String(repeating: "contenido ", count: 150_000)
+        let passages = store.replacePassages(for: .init(kind: .note, id: "huge"),
+                                             title: "Grande", occurredAt: .now, text: huge)
+        let expected = Semantic.passages(of: String(huge.prefix(IndexedPassage.sourceTextLimit)))
+        #expect(passages.map(\.text) == expected.map(\.text))
+    }
+
+    @Test("la reparación elimina solo amplificación derivada y conserva evidencia")
+    func repairsAmplifiedCorpus() throws {
+        let store = try makeStore()
+        let real = WorkNode(id: "file:real", kind: .file,
+                            name: String(repeating: "n", count: WorkNode.nameLimit + 20),
+                            detail: "original", target: "/tmp/real")
+        let episode = WorkNode(id: "episode:bad", kind: .conversation,
+                               name: "derived", detail: "derived")
+        store.upsertNode(real)
+        store.upsertNode(episode)
+        store.link(WorkEdge(source: episode.id, target: real.id, kind: .cameFrom))
+        let realSource = IndexedSource(kind: .node, id: real.id)
+        let episodeSource = IndexedSource(kind: .node, id: episode.id)
+        _ = store.replacePassages(for: realSource, title: "Real", occurredAt: .now,
+                                  text: String(repeating: "evidencia real que debe sobrevivir ", count: 4))
+        _ = store.replacePassages(for: episodeSource, title: "Derivado", occurredAt: .now,
+                                  text: String(repeating: "resumen derivado que debe desaparecer ", count: 4))
+
+        let report = try store.repairCorpusAmplification()
+
+        #expect(report.repaired)
+        #expect(report.removedPassages == 1)
+        #expect(report.removedEpisodeNodes == 1)
+        #expect(report.removedEpisodeEdges == 1)
+        #expect(store.node(id: real.id) != nil)
+        #expect(store.node(id: episode.id) == nil)
+        #expect(store.passages(for: realSource).count == 1)
+        #expect(store.passages(for: episodeSource).isEmpty)
+        #expect(store.matchingWords("evidencia").count == 1)
+        #expect(store.setting("corpus_amplification_repaired_v1") == "1")
     }
 
     @Test("Cambiar de modelo invalida los vectores en vez de mezclar dos espacios")

@@ -88,7 +88,7 @@ enum BrowserHistory {
                 ORDER BY v.visit_time DESC LIMIT ?
                 """
             let floor = since.timeIntervalSince1970 - appleEpochOffset
-            return query(handle, sql, floor: floor, limit: limit) { at, url, title in
+            return try query(handle, sql, floor: floor, limit: limit) { at, url, title in
                 BrowserVisit(at: Date(timeIntervalSince1970: at + appleEpochOffset),
                              url: url, title: title, browser: "Safari")
             }
@@ -121,7 +121,7 @@ enum BrowserHistory {
                 ORDER BY v.visit_time DESC LIMIT ?
                 """
             let floor = (since.timeIntervalSince1970 + windowsEpochOffset) * 1_000_000
-            return query(handle, sql, floor: floor, limit: limit) { at, url, title in
+            return try query(handle, sql, floor: floor, limit: limit) { at, url, title in
                 let seconds = at / 1_000_000 - windowsEpochOffset
                 return BrowserVisit(at: Date(timeIntervalSince1970: seconds),
                                     url: url, title: title, browser: "Chrome")
@@ -165,25 +165,32 @@ enum BrowserHistory {
     /// Runs one history query. Both browsers answer the same three columns, so the row reading is
     /// shared and only the epoch arithmetic differs.
     static func query(_ handle: OpaquePointer, _ sql: String, floor: Double, limit: Int,
-                      make: (Double, String, String) -> BrowserVisit) -> [BrowserVisit] {
+                      make: (Double, String, String) -> BrowserVisit) throws -> [BrowserVisit] {
         var statement: OpaquePointer?
-        guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else { return [] }
+        guard sqlite3_prepare_v2(handle, sql, -1, &statement, nil) == SQLITE_OK else {
+            throw Failure.queryFailed(String(cString: sqlite3_errmsg(handle)))
+        }
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_double(statement, 1, floor)
         sqlite3_bind_int64(statement, 2, Int64(limit))
 
         var result: [BrowserVisit] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
+        var status = sqlite3_step(statement)
+        while status == SQLITE_ROW {
             // Read as a double for both browsers even though Chrome's column is an integer:
             // 1.34e16 microseconds exceeds the 2^53 a Double holds exactly, but the rounding that
             // costs is about two microseconds on a timestamp, which no episode boundary can see.
             let at = sqlite3_column_double(statement, 0)
-            guard at > 0 else { continue }
-            guard let rawURL = sqlite3_column_text(statement, 1),
-                  let rawTitle = sqlite3_column_text(statement, 2) else { continue }
-            let title = String(cString: rawTitle).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !title.isEmpty else { continue }
-            result.append(make(at, String(cString: rawURL), title))
+            if at > 0,
+               let rawURL = sqlite3_column_text(statement, 1),
+               let rawTitle = sqlite3_column_text(statement, 2) {
+                let title = String(cString: rawTitle).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !title.isEmpty { result.append(make(at, String(cString: rawURL), title)) }
+            }
+            status = sqlite3_step(statement)
+        }
+        guard status == SQLITE_DONE else {
+            throw Failure.queryFailed(String(cString: sqlite3_errmsg(handle)))
         }
         return result
     }
@@ -192,6 +199,7 @@ enum BrowserHistory {
 
     enum Failure: Error {
         case unreadable(String)
+        case queryFailed(String)
     }
 
     /// Turns a copy failure into something a person can act on.

@@ -1,5 +1,87 @@
 import AppKit
+import AVFoundation
+import AVFAudio
 import BeLauncherCore
+
+// Repairs the affected derived corpus in a standalone process. It deliberately runs before the
+// AppKit application is created so a multi-gigabyte maintenance operation can never block the
+// command bar. `--database` exists for release and migration harnesses; normal use always targets
+// the person's actual local store.
+if CommandLine.arguments.contains("--repair-corpus") {
+    let output = { (line: String) in
+        FileHandle.standardOutput.write(Data((line + "\n").utf8))
+    }
+    let path = CommandLine.arguments.firstIndex(of: "--database").flatMap { index in
+        CommandLine.arguments.indices.contains(index + 1) ? CommandLine.arguments[index + 1] : nil
+    } ?? Store.defaultPath()
+
+    MainActor.assumeIsolated {
+        do {
+            let store = try Store(path: path)
+            let before = store.fileSize
+            let report = try store.repairCorpusAmplification()
+            output("corpus-repaired=\(report.repaired)")
+            output("removed-passages=\(report.removedPassages)")
+            output("removed-episode-nodes=\(report.removedEpisodeNodes)")
+            output("removed-episode-edges=\(report.removedEpisodeEdges)")
+            output("trimmed-nodes=\(report.trimmedNodes)")
+            output("trimmed-passages=\(report.trimmedPassages)")
+
+            try? store.database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            if !CommandLine.arguments.contains("--no-compact") {
+                let reclaimed = try store.compact()
+                try? store.database.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                // `VACUUM` can update the file after SQLite returns on APFS. Measure the final
+                // artifact as well as the method's immediate estimate so the diagnostic never
+                // reports zero after visibly reclaiming tens of gigabytes.
+                let measured = max(reclaimed, before - store.fileSize)
+                output("reclaimed-bytes=\(measured)")
+            } else {
+                output("reclaimed-bytes=0")
+            }
+            output("database-before=\(before)")
+            output("database-after=\(store.fileSize)")
+            exit(0)
+        } catch {
+            output("corpus-repair-error=\(error.localizedDescription)")
+            exit(1)
+        }
+    }
+}
+
+// Read-only source probe. It exercises the same signed process and connector code as a capture
+// pass, but never writes the corpus. A missing optional app database is reported as absent; an
+// existing database that cannot be opened or finished is a failure, never a green zero.
+if CommandLine.arguments.contains("--diagnose-sources") {
+    let output = { (line: String) in
+        FileHandle.standardOutput.write(Data((line + "\n").utf8))
+    }
+    let since = Date().addingTimeInterval(-7 * 24 * 60 * 60)
+    let browser = BrowserHistory.read(since: since, excludedDomains: [], excludedApps: [])
+    output("full-disk-access=\(Permissions.fullDiskAccessLikely)")
+    output("browsers-count=\(browser.visits.count)")
+    for problem in browser.problems { output("browsers-error=\(problem)") }
+
+    let mail = LocalMailConnector.read(since: since)
+    output("apple-mail-count=\(mail.messages.count)")
+    if let problem = mail.problem { output("apple-mail-error=\(problem)") }
+
+    let messages = LocalMessagesConnector.read(since: since)
+    output("messages-count=\(messages.messages.count)")
+    if let problem = messages.problem { output("messages-error=\(problem)") }
+
+    let notes = LocalNotesConnector.read(since: since)
+    output("notes-count=\(notes.notes.count)")
+    if let problem = notes.problem { output("notes-error=\(problem)") }
+
+    let sessions = Conversations.sessionsFolder()
+    let sessionFiles = FileManager.default.enumerator(atPath: sessions)?
+        .compactMap { $0 as? String }.filter { $0.hasSuffix(".jsonl") }.count ?? 0
+    output("conversations-files=\(sessionFiles)")
+    let hasError = !browser.problems.isEmpty || mail.problem != nil || messages.problem != nil
+        || notes.problem != nil
+    exit(hasError ? 1 : 0)
+}
 
 // `BeLauncher --mcp` runs as a plain stdio server instead of a menu-bar app, which is what an
 // MCP client launches. No window, no dock icon, no hotkey: just the brain on a pipe.
@@ -187,12 +269,25 @@ if CommandLine.arguments.contains("--diagnose-ai") {
                     : (Keychain.get(provider.keychainAccount)?.isEmpty == false)
             }
             out("\n3. Disponibles: \(available.map(\.id).joined(separator: ", "))")
-            guard let provider = available.first else {
+            let store = try? Store(path: Store.defaultPath())
+            let preferredID = store?.setting("ai_provider")
+            let provider = preferredID.flatMap { preferred in
+                available.first { $0.id == preferred }
+            } ?? available.first
+            guard let provider else {
                 out("   nada disponible; no hay a quién preguntar.")
                 exit(1)
             }
-            let model = running.first { $0.providerID == provider.id }?.models.first
-            out("   se usaría: \(provider.id) con el modelo \(model ?? provider.defaultModel)")
+            let runningModels = running.first { $0.providerID == provider.id }?.models ?? []
+            let savedModel = store?.setting("ai_model_\(provider.id)")
+            let model = if runningModels.isEmpty {
+                savedModel ?? provider.defaultModel
+            } else if let savedModel, runningModels.contains(savedModel) {
+                savedModel
+            } else {
+                runningModels[0]
+            }
+            out("   se usaría: \(provider.id) con el modelo \(model)")
             out("   endpoint: \(provider.endpoint)")
 
             out("\n4. Petición real, con streaming…")
@@ -323,6 +418,142 @@ if CommandLine.arguments.contains("--diagnose-windows") {
             AXUIElementIsAttributeSettable(window, kAXSizeAttribute as CFString, &settable)
             out("   tamaño modificable:   \(settable.boolValue ? "sí" : "NO")")
             exit(0)
+        }
+    }
+    RunLoop.main.run()
+}
+
+
+// Runs the permission path from the real .app bundle. The optional request flag is deliberately
+// explicit because it can open a macOS consent prompt.
+if CommandLine.arguments.contains("--diagnose-permissions") {
+    let application = NSApplication.shared
+    application.setActivationPolicy(.regular)
+    application.finishLaunching()
+    let outputURL: URL? = CommandLine.arguments.firstIndex(of: "--diagnostic-output").flatMap {
+        CommandLine.arguments.indices.contains($0 + 1)
+            ? URL(fileURLWithPath: CommandLine.arguments[$0 + 1]) : nil
+    }
+    if let outputURL { try? FileManager.default.removeItem(at: outputURL) }
+    MainActor.assumeIsolated {
+        Task { @MainActor in
+            let output = { (line: String) in
+                let data = Data((line + "\n").utf8)
+                FileHandle.standardOutput.write(data)
+                if let outputURL {
+                    if !FileManager.default.fileExists(atPath: outputURL.path) {
+                        FileManager.default.createFile(atPath: outputURL.path, contents: data)
+                    } else if let handle = try? FileHandle(forWritingTo: outputURL) {
+                        try? handle.seekToEnd()
+                        try? handle.write(contentsOf: data)
+                        try? handle.close()
+                    }
+                }
+            }
+            output("bundle=\(Bundle.main.bundleIdentifier ?? "missing")")
+            output("version=\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "missing")")
+            output("microphone-audio=\(AVAudioApplication.shared.recordPermission.rawValue)")
+            output("microphone-capture=\(AVCaptureDevice.authorizationStatus(for: .audio).rawValue)")
+            output("microphone-before=\(Permissions.microphoneStatus.rawValue)")
+            var microphoneSucceeded = Permissions.microphoneGranted
+            if CommandLine.arguments.contains("--request-microphone") {
+                microphoneSucceeded = await Permissions.requestMicrophone()
+                output("microphone-request-granted=\(microphoneSucceeded)")
+                output("microphone-after=\(Permissions.microphoneStatus.rawValue)")
+            }
+            var recordingSucceeded = true
+            if CommandLine.arguments.contains("--record-test") {
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("belauncher-microphone-test-\(UUID().uuidString).m4a")
+                defer { try? FileManager.default.removeItem(at: url) }
+                do {
+                    guard microphoneSucceeded, Permissions.microphoneGranted else {
+                        recordingSucceeded = false
+                        output("microphone-recording=skipped:not-authorized")
+                        throw CancellationError()
+                    }
+                    let recorder = try AVAudioRecorder(url: url, settings: [
+                        AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                        AVSampleRateKey: 44_100,
+                        AVNumberOfChannelsKey: 1,
+                    ])
+                    let prepared = recorder.prepareToRecord()
+                    let started = recorder.record()
+                    try await Task.sleep(for: .milliseconds(750))
+                    recorder.stop()
+                    let bytes = ((try? FileManager.default.attributesOfItem(atPath: url.path)[.size])
+                        as? NSNumber)?.intValue ?? 0
+                    let duration = try await AVURLAsset(url: url).load(.duration).seconds
+                    recordingSucceeded = prepared && started && bytes > 1_024 && duration >= 0.5
+                    output("microphone-recording=prepared:\(prepared),started:\(started),bytes:\(bytes),duration:\(String(format: "%.2f", duration)),valid:\(recordingSucceeded)")
+                } catch is CancellationError {
+                    // The explicit not-authorized line above is the useful diagnosis.
+                } catch {
+                    recordingSucceeded = false
+                    output("microphone-recording-error=\(error.localizedDescription)")
+                }
+            }
+            output("full-disk-access=\(Permissions.fullDiskAccessLikely)")
+            exit(microphoneSucceeded && recordingSucceeded ? 0 : 1)
+        }
+    }
+    RunLoop.main.run()
+}
+
+
+// Executes the same installer as Settings from the packaged app and exits only after the final
+// artifact inspection. This is a release harness, not a second installation path.
+if CommandLine.arguments.contains("--diagnose-qwen-install") {
+    let application = NSApplication.shared
+    application.setActivationPolicy(.prohibited)
+    application.finishLaunching()
+    MainActor.assumeIsolated {
+        Task { @MainActor in
+            let output = { (line: String) in
+                FileHandle.standardOutput.write(Data((line + "\n").utf8))
+            }
+            let installer = QwenASRInstaller.shared
+            installer.selectedModel = QwenASRInstaller.smallModel
+            installer.refresh()
+            output("qwen-before=\(String(describing: installer.phase))")
+            installer.install()
+            var previousStep = ""
+            while installer.isInstalling {
+                let step = installer.installProgress?.step ?? ""
+                if step != previousStep {
+                    output("qwen-step=\(step)")
+                    previousStep = step
+                }
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            installer.refresh()
+            output("qwen-after=\(String(describing: installer.phase))")
+            exit(installer.isReady ? 0 : 1)
+        }
+    }
+    RunLoop.main.run()
+}
+
+
+if let argument = CommandLine.arguments.firstIndex(of: "--diagnose-qwen-transcribe"),
+   CommandLine.arguments.indices.contains(argument + 1) {
+    let audio = URL(fileURLWithPath: CommandLine.arguments[argument + 1])
+    MainActor.assumeIsolated {
+        Task { @MainActor in
+            do {
+                guard let model = QwenASRRuntime.readyModel else {
+                    FileHandle.standardError.write(Data("qwen-not-ready\n".utf8))
+                    exit(1)
+                }
+                let started = Date()
+                let text = try await QwenASRRuntime.transcribe(fileAt: audio, model: model)
+                FileHandle.standardOutput.write(Data(
+                    "qwen-model=\(model)\nqwen-seconds=\(Date().timeIntervalSince(started))\nqwen-text=\(text)\n".utf8))
+                exit(0)
+            } catch {
+                FileHandle.standardError.write(Data("qwen-error=\(error.localizedDescription)\n".utf8))
+                exit(1)
+            }
         }
     }
     RunLoop.main.run()

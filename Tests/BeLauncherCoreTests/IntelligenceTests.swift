@@ -99,6 +99,26 @@ struct IntelligenceTests {
         #expect(json["max_tokens"] == nil)
     }
 
+    @Test("Gemini uses its native endpoint, key header and request shape")
+    func geminiRequestShape() throws {
+        let gemini = try #require(IntelligenceProvider.named("gemini"))
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                        keyLookup: { _ in "google-user-key" })
+        let request = try client.build(
+            IntelligenceRequest(system: "Sé breve", prompt: "Hola", maxTokens: 20),
+            provider: gemini, model: "gemini-2.5-pro"
+        )
+
+        #expect(request.url?.absoluteString ==
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent")
+        #expect(request.value(forHTTPHeaderField: "x-goog-api-key") == "google-user-key")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+        let data = try #require(request.httpBody)
+        let body = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(body["messages"] == nil)
+        #expect((body["generationConfig"] as? [String: Any])?["maxOutputTokens"] as? Int == 20)
+    }
+
     @Test("a missing key is named, not swallowed")
     func missingKey() {
         let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
@@ -118,11 +138,15 @@ struct IntelligenceTests {
         let anthropic = #"{"content":[{"type":"text","text":"Hola"},{"type":"text","text":" mundo"}]}"#
         #expect(IntelligenceClient.extractText(from: Data(anthropic.utf8)) == "Hola mundo")
 
+        let gemini = #"{"candidates":[{"content":{"parts":[{"text":"Hola Gemini"}]}}]}"#
+        #expect(IntelligenceClient.extractText(from: Data(gemini.utf8)) == "Hola Gemini")
+
         let ollama = #"{"message":{"role":"assistant","content":"Hola local"}}"#
         #expect(IntelligenceClient.extractText(from: Data(ollama.utf8)) == "Hola local")
 
         let failure = #"{"error":{"message":"rate limited"}}"#
-        #expect(IntelligenceClient.extractText(from: Data(failure.utf8))?.contains("rate limited") == true)
+        #expect(IntelligenceClient.extractText(from: Data(failure.utf8)) == nil,
+                "provider errors must be thrown, never rendered as successful answer text")
 
         #expect(IntelligenceClient.extractText(from: Data("<html>".utf8)) == nil)
     }
@@ -133,6 +157,21 @@ struct IntelligenceTests {
         let client = IntelligenceClient(transport: { _ in throw Offline() }, keyLookup: { _ in "k" })
         await #expect(throws: IntelligenceError.self) {
             try await client.answer(IntelligenceRequest(prompt: "Hola"), using: local)
+        }
+    }
+
+    @Test("a provider error can never be painted as a successful answer")
+    func providerErrorIsNotAnAnswer() async {
+        let openAI = IntelligenceProvider.named("openai")!
+        let response = HTTPURLResponse(url: URL(string: openAI.endpoint)!, statusCode: 400,
+                                       httpVersion: nil, headerFields: nil)!
+        let payload = Data(#"{"error":{"message":"Unsupported parameter: max_tokens"}}"#.utf8)
+        let client = IntelligenceClient(transport: { _ in (payload, response) },
+                                        keyLookup: { _ in "sk-user-own" })
+
+        await #expect(throws: IntelligenceError.transport(
+            "Unsupported parameter: max_tokens")) {
+            try await client.answer(IntelligenceRequest(prompt: "Hola"), using: openAI)
         }
     }
 
@@ -152,6 +191,8 @@ struct IntelligenceProbeTests {
 
     private let ollama = IntelligenceProvider.named("ollama")!
     private let openAI = IntelligenceProvider.named("openai")!
+    private let gemini = IntelligenceProvider.named("gemini")!
+    private let anthropic = IntelligenceProvider.named("anthropic")!
 
     private func response(_ status: Int = 200) -> HTTPURLResponse {
         HTTPURLResponse(url: URL(string: "http://localhost")!, statusCode: status,
@@ -173,7 +214,7 @@ struct IntelligenceProbeTests {
                                                                                  httpVersion: nil,
                                                                                  headerFields: nil)!)
         })
-        #expect(ready == .ready)
+        #expect(ready == .configured)
     }
 
     @Test("a cloud key is not a probe and an unauthorized response is offline")
@@ -198,12 +239,45 @@ struct IntelligenceProbeTests {
             transport: { _ in throw Offline() })
         #expect(result != .ready)
     }
+
+    @Test("Gemini validates an API key with Google's native header")
+    func geminiProbeShape() async {
+        let result = await IntelligenceProvider.probe(gemini, key: "google-user-key",
+            transport: { request in
+                #expect(request.url?.absoluteString ==
+                        "https://generativelanguage.googleapis.com/v1beta/models")
+                #expect(request.value(forHTTPHeaderField: "x-goog-api-key") == "google-user-key")
+                #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+                return (Data(#"{"models":[{"name":"models/gemini-2.5-pro"}]}"#.utf8),
+                        self.response())
+            })
+        #expect(result == .configured)
+    }
+
+    @Test("Anthropic validates keys against the models endpoint")
+    func anthropicProbeShape() async {
+        let result = await IntelligenceProvider.probe(anthropic, key: "anthropic-user-key",
+            transport: { request in
+                #expect(request.url?.absoluteString == "https://api.anthropic.com/v1/models")
+                #expect(request.httpMethod == "GET")
+                #expect(request.value(forHTTPHeaderField: "x-api-key") == "anthropic-user-key")
+                return (Data(#"{"data":[{"id":"claude-sonnet-5"}]}"#.utf8), self.response())
+            })
+        #expect(result == .configured)
+    }
 }
 
 /// Streaming, which is the difference between 28 seconds of spinner and 28 seconds of watching an
 /// answer arrive — and between a long answer finishing and a long answer timing out.
 @Suite("Reading an answer as it arrives")
 struct StreamingTests {
+
+    @Test("an SSE provider error is never accepted as generated text")
+    func streamErrorIsNotText() {
+        let line = #"data: {"error":{"message":"invalid model"}}"#
+        #expect(IntelligenceClient.providerError(fromStreamLine: line) == "invalid model")
+        #expect(IntelligenceClient.fragment(fromSSE: line) == nil)
+    }
 
     @Test("the OpenAI shape, which also covers Ollama and LM Studio")
     func openAIShape() {

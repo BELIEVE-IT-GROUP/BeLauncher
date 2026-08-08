@@ -23,10 +23,22 @@ final class CapabilityHealth {
     private(set) var automation: State = .unknown
     private(set) var fullDiskAccess: State = .unknown
 
-    init() { refresh() }
+    private let microphoneGrantedCheck: @MainActor () -> Bool
+    private let microphoneRequest: @MainActor () async -> Bool
+
+    init(
+        microphoneGranted: @escaping @MainActor () -> Bool = { Permissions.microphoneGranted },
+        requestMicrophone: @escaping @MainActor () async -> Bool = {
+            await Permissions.requestMicrophone()
+        }
+    ) {
+        microphoneGrantedCheck = microphoneGranted
+        microphoneRequest = requestMicrophone
+        refresh()
+    }
 
     func refresh() {
-        microphone = Permissions.microphoneGranted ? .ready : .needsPermission
+        microphone = microphoneGrantedCheck() ? .ready : .needsPermission
         screenRecording = ScreenCapture.screenRecordingGranted ? .ready : .needsPermission
         accessibility = Permissions.accessibilityGranted ? .ready : .needsPermission
         automation = Permissions.automationGranted() ? .ready : .needsPermission
@@ -35,8 +47,8 @@ final class CapabilityHealth {
 
     @discardableResult
     func requestMicrophone() async -> Bool {
-        let granted = await Permissions.requestMicrophone()
-        refresh()
+        let granted = await microphoneRequest()
+        microphone = granted ? .ready : .needsPermission
         return granted
     }
 

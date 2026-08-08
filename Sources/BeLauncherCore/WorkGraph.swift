@@ -12,6 +12,9 @@ import Foundation
 /// subject is the person node Andrés, including the ones that name him nowhere because they came
 /// out of a meeting he was in. Tags cannot express "came out of"; edges can.
 public struct WorkNode: Sendable, Equatable, Identifiable, Codable {
+    public static let nameLimit = 512
+    public static let detailLimit = 2_048
+    public static let targetLimit = 8_192
     public enum Kind: String, Sendable, Codable, CaseIterable {
         case person
         case company
@@ -67,19 +70,23 @@ public struct WorkNode: Sendable, Equatable, Identifiable, Codable {
                 lastSeen: Date = .now, weight: Int = 1) {
         self.id = id
         self.kind = kind
-        self.name = name
-        self.detail = detail
-        self.target = target
+        self.name = Self.bounded(name, limit: Self.nameLimit)
+        self.detail = Self.bounded(detail, limit: Self.detailLimit)
+        self.target = Self.bounded(target, limit: Self.targetLimit)
         self.lastSeen = lastSeen
         self.weight = weight
     }
 
     /// Stable across runs so the same person seen twice is one node, not two.
     public static func identifier(kind: Kind, name: String) -> String {
-        let folded = name
+        let folded = bounded(name, limit: nameLimit)
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return "\(kind.rawValue):\(folded)"
+    }
+
+    private static func bounded(_ value: String, limit: Int) -> String {
+        String(value.prefix(limit))
     }
 }
 
@@ -152,9 +159,12 @@ extension Store {
     }
 
     public func nodes(kind: WorkNode.Kind? = nil, limit: Int = 500) -> [WorkNode] {
+        let columns = "id, kind, substr(name, 1, \(WorkNode.nameLimit)) AS name, "
+            + "substr(detail, 1, \(WorkNode.detailLimit)) AS detail, "
+            + "substr(target, 1, \(WorkNode.targetLimit)) AS target, lastSeen, weight"
         let sql = kind == nil
-            ? "SELECT * FROM work_nodes ORDER BY lastSeen DESC LIMIT ?"
-            : "SELECT * FROM work_nodes WHERE kind = ? ORDER BY lastSeen DESC LIMIT ?"
+            ? "SELECT \(columns) FROM work_nodes ORDER BY lastSeen DESC LIMIT ?"
+            : "SELECT \(columns) FROM work_nodes WHERE kind = ? ORDER BY lastSeen DESC LIMIT ?"
         let arguments: [SQLValue] = kind == nil
             ? [.int(Int64(limit))]
             : [.text(kind!.rawValue), .int(Int64(limit))]
@@ -163,7 +173,12 @@ extension Store {
     }
 
     public func node(id: String) -> WorkNode? {
-        let rows = (try? database.query("SELECT * FROM work_nodes WHERE id = ?", [.text(id)])) ?? []
+        let rows = (try? database.query("""
+            SELECT id, kind, substr(name, 1, ?) AS name, substr(detail, 1, ?) AS detail,
+                   substr(target, 1, ?) AS target, lastSeen, weight
+            FROM work_nodes WHERE id = ?
+            """, [.int(Int64(WorkNode.nameLimit)), .int(Int64(WorkNode.detailLimit)),
+                  .int(Int64(WorkNode.targetLimit)), .text(id)])) ?? []
         return rows.first.map(Self.node(from:))
     }
 

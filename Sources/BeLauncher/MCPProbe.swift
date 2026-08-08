@@ -97,8 +97,9 @@ public enum MCPProbe {
     /// index to run a health check.
     private static func plant(_ canary: MCPHealth.Canary, in store: Store?) -> Bool {
         guard let store else { return false }
-        return !store.replacePassages(for: canarySource, title: MCPHealth.Canary.mark,
-                                      occurredAt: .now, text: canary.statement).isEmpty
+        _ = store.replacePassages(for: canarySource, title: MCPHealth.Canary.mark,
+                                  occurredAt: .now, text: canary.statement)
+        return !store.passages(for: canarySource).isEmpty
     }
 
     private struct Connectivity {

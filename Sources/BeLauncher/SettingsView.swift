@@ -295,7 +295,16 @@ private struct IntelligenceTab: View {
                     .font(.caption).foregroundStyle(.secondary)
 
                 HStack {
-                    Button("Probar") { model.testIntelligence() }
+                    Button {
+                        model.testIntelligence()
+                    } label: {
+                        if model.providerTesting.contains(model.aiProvider) {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Label(L("Test preferred model"), systemImage: "bolt.badge.checkmark")
+                        }
+                    }
+                    .disabled(model.providerTesting.contains(model.aiProvider))
                     if let status = model.aiStatus {
                         Text(status).font(.caption).foregroundStyle(.secondary)
                             .textSelection(.enabled)
@@ -305,24 +314,43 @@ private struct IntelligenceTab: View {
 
             Section(L("Your keys")) {
                 ForEach(IntelligenceProvider.all.filter { !$0.isPrivate }) { provider in
-                    HStack {
-                        Text(provider.name).frame(width: 100, alignment: .leading)
-                        SecureField(L("key"), text: Binding(
-                            get: { draftKeys[provider.id] ?? model.providerKeys[provider.id] ?? "" },
-                            set: { draftKeys[provider.id] = $0 }
-                        ))
-                        Button(L("Save")) {
-                            model.saveKey(draftKeys[provider.id] ?? "", for: provider)
-                            draftKeys[provider.id] = nil
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Text(provider.name).frame(width: 100, alignment: .leading)
+                            SecureField(L("key"), text: Binding(
+                                get: { draftKeys[provider.id]
+                                    ?? model.providerKeys[provider.id] ?? "" },
+                                set: { draftKeys[provider.id] = $0 }
+                            ))
+                            Button(L("Save")) {
+                                model.saveKey(draftKeys[provider.id]
+                                              ?? model.providerKeys[provider.id] ?? "",
+                                              for: provider)
+                                draftKeys[provider.id] = nil
+                            }
+                            .controlSize(.small)
+                            Button(L("Test")) {
+                                Task { await model.testProvider(provider) }
+                            }
+                            .controlSize(.small)
+                            .disabled((model.providerKeys[provider.id] ?? "").isEmpty
+                                      || model.providerTesting.contains(provider.id))
+                            if model.providerTesting.contains(provider.id) {
+                                ProgressView().controlSize(.small)
+                            }
+                            if let state = model.providerState(provider.id) {
+                                Image(systemName: state == .ready
+                                      ? "checkmark.circle.fill" : "exclamationmark.circle")
+                                    .foregroundStyle(state == .ready ? .green : .orange)
+                                    .font(.system(size: 11))
+                                    .help(model.providerStatusText(provider.id))
+                            }
                         }
-                        .controlSize(.small)
-                        if let state = model.providerState(provider.id) {
-                            Image(systemName: state == .ready
-                                  ? "checkmark.circle.fill" : "exclamationmark.circle")
-                                .foregroundStyle(state == .ready ? .green : .orange)
-                                .font(.system(size: 11))
-                                .help(state == .ready ? L("Ready") : L("Needs setup"))
-                        }
+                        Text(model.providerStatusText(provider.id))
+                            .font(.system(size: 10.5))
+                            .foregroundStyle(model.providerState(provider.id) == .ready
+                                             ? Color.green : Color.secondary)
+                            .textSelection(.enabled)
                     }
                 }
                 Text(L("The keys go into your Keychain and the requests leave your Mac straight for the provider: nothing passes through Believe and you pay whoever you choose. They are never included in an export."))
@@ -349,13 +377,29 @@ private struct IntelligenceTab: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Label(L("%@ is running", installation.name),
                                   systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green).font(.system(size: 12))
+                                .foregroundStyle(.secondary).font(.system(size: 12))
                             Picker(L("Model"), selection: Binding(
                                 get: { model.selectedLocalModels[installation.providerID]
                                         ?? installation.models[0] },
                                 set: { model.chooseLocalModel($0, for: installation.providerID) }
                             )) {
                                 ForEach(installation.models, id: \.self) { Text($0).tag($0) }
+                            }
+                            HStack {
+                                Button(L("Test")) {
+                                    if let provider = IntelligenceProvider.named(installation.providerID) {
+                                        Task { await model.testProvider(provider) }
+                                    }
+                                }
+                                .controlSize(.small)
+                                .disabled(model.providerTesting.contains(installation.providerID))
+                                if model.providerTesting.contains(installation.providerID) {
+                                    ProgressView().controlSize(.small)
+                                }
+                                Text(model.providerStatusText(installation.providerID))
+                                    .font(.caption)
+                                    .foregroundStyle(model.providerState(installation.providerID) == .ready
+                                                     ? Color.green : Color.secondary)
                             }
                         }
                     }
@@ -382,7 +426,10 @@ private struct IntelligenceTab: View {
             }
         }
         .formStyle(.grouped)
-        .task { await model.refreshProviderHealth() }
+        .task {
+            model.scanLocalModels()
+            await model.refreshProviderHealth()
+        }
     }
 }
 
@@ -570,7 +617,7 @@ private struct VoiceTab: View {
                     Button {
                         Task {
                             if await health.requestMicrophone() {
-                                qwen.prepareInBackground()
+                                qwen.refresh()
                             }
                         }
                     } label: {
@@ -591,6 +638,14 @@ private struct VoiceTab: View {
 
                 Text(status)
                     .font(.caption).foregroundStyle(.secondary)
+                if qwen.isInstalling, let step = qwen.installProgress?.step, !step.isEmpty {
+                    Label(step, systemImage: "arrow.down.circle")
+                        .font(.caption)
+                        .foregroundStyle(Theme.accent)
+                } else if qwen.installProgress?.phase == .cancelled {
+                    Text(L("The partial download is saved. Retry resumes it instead of starting over."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 HStack {
                     if qwen.isInstalling {
                         ProgressView().controlSize(.small)
@@ -651,7 +706,7 @@ private struct VoiceTab: View {
         }
         .formStyle(.grouped)
         .onAppear {
-            qwen.prepareInBackground()
+            qwen.refresh()
             health.refresh()
             callDetector.start()
         }
@@ -679,8 +734,10 @@ private struct VoiceTab: View {
         switch qwen.phase {
         case .unknown: return L("Checking local ASR…")
         case .unavailable: return L("Qwen ASR needs an Apple Silicon Mac.")
-        case .pythonMissing: return L("Preparing the local voice runtime…")
-        case .notInstalled: return L("Not installed. Apple Speech remains available as a fallback.")
+        case .pythonMissing: return L("Not installed. Download sets up its private runtime inside BeLauncher; no system Python is needed.")
+        case .notInstalled: return Transcription.isSupported
+            ? L("Model not installed. Apple's on-device speech engine remains available on this Mac.")
+            : L("Model not installed. Qwen is required for local transcription on this version of macOS.")
         case .installing: return L("Installing the local runtime and downloading model weights…")
         case .ready: return L("Ready. Audio stays on this Mac.")
         case .failed(let message): return L("Qwen ASR could not be installed: %@", message)

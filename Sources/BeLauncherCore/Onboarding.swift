@@ -17,6 +17,7 @@ public enum Onboarding {
             case calendar
             case notifications
             case microphone
+            case fullDiskAccess
             case clipboard
             case updates
             case launchAtLogin
@@ -62,6 +63,14 @@ public enum Onboarding {
                   accesses: L("What you copy, stored on your Mac. Never what you copy out of a password manager, and never anything shaped like a key or a token: that is thrown away before it is written."),
                   ifYouSayNo: L("The launcher, the snippets and everything else carry on. You only lose the history."),
                   symbol: "doc.on.clipboard", isSystemPermission: false, recommended: true),
+
+            .init(kind: .fullDiskAccess,
+                  title: L("Local Mail, Messages and Notes"),
+                  unlocks: L("Let your Brain connect relevant evidence from Apple Mail, Messages and Notes to the original item on this Mac."),
+                  accesses: L("Their protected local databases. BeLauncher reads them on this Mac, keeps only relevant text plus a link to the original, and never uploads them."),
+                  ifYouSayNo: L("Apps, files, clipboard, manual notes and every launcher command still work. These three sources remain disconnected."),
+                  symbol: "externaldrive.badge.checkmark", isSystemPermission: true,
+                  recommended: true),
 
             .init(kind: .accessibility,
                   title: L("Accessibility"),

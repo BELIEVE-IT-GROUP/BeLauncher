@@ -1,14 +1,18 @@
 import SwiftUI
 import AppKit
+import UserNotifications
 import BeLauncherCore
 
 @MainActor
 @Observable
 final class SettingsModel {
     let store: Store
+    private let loadsSecureState: Bool
     var onHotKeyChange: (String) -> Void = { _ in }
     var onCallAudioSourceChange: (CallAudioSource) -> Void = { _ in }
-    var onSourceSync: (String) -> Void = { _ in }
+    var onSourceSync: (String) async -> CorpusRunner.RunResult = { _ in
+        .failed(L("The capture service is not available."))
+    }
     var onReviewInterrupted: (String) -> Void = { _ in }
     var onClipboardToggle: (Bool) -> Void = { _ in } {
         // Whoever sets this is the only thing that can really start or stop the watcher, and it is
@@ -110,10 +114,24 @@ final class SettingsModel {
     var aiStatus: String?
     /// Last real provider discovery result. Missing means unchecked, never ready.
     var providerHealth: [String: IntelligenceProbeState] = [:]
+    var providerTesting: Set<String> = []
+    var providerVerifiedAt: [String: Date] = [:]
 
     var configuredProviders: [IntelligenceProvider] {
+        Self.configuredProviders(
+            localProviderIDs: Set(localInstallations.map(\.providerID)),
+            providerKeys: providerKeys
+        )
+    }
+
+    nonisolated static func configuredProviders(
+        localProviderIDs: Set<String>,
+        providerKeys: [String: String]
+    ) -> [IntelligenceProvider] {
         IntelligenceProvider.all.filter { provider in
-            provider.isPrivate || !(providerKeys[provider.id] ?? "").isEmpty
+            provider.isPrivate
+                ? localProviderIDs.contains(provider.id)
+                : !(providerKeys[provider.id] ?? "").isEmpty
         }
     }
 
@@ -138,6 +156,9 @@ final class SettingsModel {
             aiStatus = trimmed.isEmpty
                 ? L("%@ key deleted.", provider.name)
                 : L("%@ key saved to the Keychain.", provider.name)
+            if !trimmed.isEmpty {
+                Task { @MainActor in await self.refreshProviderHealth(providerIDs: [provider.id]) }
+            }
         } catch {
             aiStatus = L("The Keychain refused the key: %@", String(describing: error))
         }
@@ -145,46 +166,58 @@ final class SettingsModel {
 
     /// Asks the chosen model to say one word. The only way to know a key works is to use it.
     func testIntelligence() {
-        let available = configuredProviders
-        guard !available.isEmpty else {
-            aiStatus = IntelligenceError.noProviderConfigured.description
+        guard let provider = IntelligenceProvider.named(aiProvider),
+              configuredProviders.contains(where: { $0.id == provider.id }) else {
+            let name = IntelligenceProvider.named(aiProvider)?.name ?? aiProvider
+            aiStatus = L("%@ is not ready. Start the local server or save and verify its key.", name)
             return
         }
-        aiStatus = "Probando…"
-        let router = ModelRouter(
-            preferred: aiProvider,
-            localOnlyFor: confidentialStaysLocal ? [.confidential] : []
-        )
         Task { @MainActor in
-            do {
-                let provider = try router.provider(for: .personal, available: available)
-                let answer = try await IntelligenceClient().answer(
-                    IntelligenceRequest(prompt: L("Reply with one word only: ready"),
-                                        sensitivity: .personal, maxTokens: 20),
-                    using: provider
-                )
-                providerHealth[provider.id] = .ready
-                aiStatus = "\(provider.name) responde: \(answer.prefix(40))"
-            } catch let error as IntelligenceError {
-                if let provider = try? router.provider(for: .personal, available: available) {
-                    providerHealth[provider.id] = .offline(error.description)
-                }
-                aiStatus = error.description
-            } catch {
-                aiStatus = error.localizedDescription
-            }
+            await testProvider(provider)
         }
+    }
+
+    func testProvider(_ provider: IntelligenceProvider) async {
+        guard !providerTesting.contains(provider.id) else { return }
+        providerTesting.insert(provider.id)
+        defer { providerTesting.remove(provider.id) }
+        providerHealth[provider.id] = .configured
+        aiStatus = L("Testing %@…", provider.name)
+        do {
+            let answer = try await IntelligenceClient().answer(
+                IntelligenceRequest(prompt: L("Reply with one word only: ready"),
+                                    sensitivity: .personal, maxTokens: 256),
+                using: provider, model: modelForProvider(provider)
+            )
+            providerHealth[provider.id] = .ready
+            providerVerifiedAt[provider.id] = .now
+            aiStatus = L("%@ connected: %@", provider.name, String(answer.prefix(40)))
+        } catch let error as IntelligenceError {
+            providerHealth[provider.id] = .offline(error.description)
+            aiStatus = error.description
+        } catch {
+            providerHealth[provider.id] = .offline(error.localizedDescription)
+            aiStatus = error.localizedDescription
+        }
+    }
+
+    func modelForProvider(_ provider: IntelligenceProvider) -> String {
+        selectedLocalModels[provider.id] ?? provider.defaultModel
     }
 
     /// Checks configured providers through their discovery endpoint. A saved key or a selected
     /// local model is not enough to paint a green status in Settings.
-    func refreshProviderHealth() async {
+    func refreshProviderHealth(providerIDs: Set<String>? = nil) async {
         let providers = IntelligenceProvider.all.filter { provider in
-            provider.isPrivate || !(providerKeys[provider.id] ?? "").isEmpty
+            (providerIDs == nil || providerIDs?.contains(provider.id) == true)
+                && (provider.isPrivate || !(providerKeys[provider.id] ?? "").isEmpty)
         }
         for provider in providers {
-            providerHealth[provider.id] = await IntelligenceProvider.probe(
-                provider, key: providerKeys[provider.id])
+            let result = await IntelligenceProvider.probe(provider, key: providerKeys[provider.id])
+            if result == .configured, providerHealth[provider.id] == .ready {
+                continue
+            }
+            providerHealth[provider.id] = result
         }
     }
 
@@ -250,8 +283,9 @@ final class SettingsModel {
     /// Set when a newer version is available, so the UI can offer a download button.
     var availableUpdate: Release?
 
-    init(store: Store, appVersion: String, updateFeedURL: String?) {
+    init(store: Store, appVersion: String, updateFeedURL: String?, loadSecureState: Bool = true) {
         self.store = store
+        self.loadsSecureState = loadSecureState
         self.appVersion = appVersion
         self.updateFeedURL = updateFeedURL
         language = Language.resolve(stored: store.setting("ui_language"),
@@ -274,6 +308,7 @@ final class SettingsModel {
         pasteAfterCopy = store.setting("paste_after_copy", default: false) && Permissions.accessibilityGranted
         launchAtLogin = LaunchAtLogin.isEnabled
         reload()
+        refreshNotificationPermission()
         // Reads the stored pause and puts the menu bar item up if there is one. Done here so a
         // pause survives a restart *visibly*: coming back from lunch to an app that is silently
         // still paused is the failure this whole panel is guarding against.
@@ -284,10 +319,10 @@ final class SettingsModel {
         snippets = store.snippets()
         workflows = store.workflows()
         flows = store.flows()
-        secretNames = Keychain.names()
+        if loadsSecureState { secretNames = Keychain.names() }
         excludedApps = store.excludedApps().sorted()
         aliases = store.aliases().map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 }
-        loadProviderKeys()
+        if loadsSecureState { loadProviderKeys() }
         if shortcutNames.isEmpty { shortcutNames = Shortcuts.available() }
     }
 
@@ -814,7 +849,7 @@ final class SettingsModel {
 
     /// Set by the app so Settings can ask for the calendar without owning EventKit.
     var calendar: CalendarAccess?
-    var onRequestNotifications: (() -> Void)?
+    var onRequestNotifications: (() async -> Bool)?
 
     func requestCalendar() {
         Task { @MainActor in await requestCalendarAndRefresh() }
@@ -827,7 +862,22 @@ final class SettingsModel {
     }
 
     func requestNotifications() {
-        onRequestNotifications?()
+        guard let onRequestNotifications else { return }
+        Task { @MainActor in
+            notificationsGranted = await onRequestNotifications()
+        }
+    }
+
+    func refreshNotificationPermission() {
+        // UserNotifications requires an application bundle proxy. SwiftPM's test helper is not
+        // one, and asking its singleton there raises an Objective-C exception before Swift can
+        // catch it. The real `.app` path still refreshes the TCC state normally.
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return }
+        Task { @MainActor in
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            notificationsGranted = [.authorized, .provisional]
+                .contains(settings.authorizationStatus)
+        }
     }
 
     // MARK: - Vault: the promises, made real
@@ -842,6 +892,7 @@ final class SettingsModel {
         if let health = providerHealth[id] {
             switch health {
             case .ready: return .ready
+            case .configured: return .needsSetup
             case .needsSetup: return .needsSetup
             case .offline: return .offline
             }
@@ -852,6 +903,20 @@ final class SettingsModel {
         // Before a probe, configuration is deliberately inconclusive.
         if descriptor.isPrivate { return .offline }
         return configuredKeys.contains(descriptor.keychainAccount) ? .needsSetup : .needsSetup
+    }
+
+    func providerStatusText(_ id: String) -> String {
+        switch providerHealth[id] {
+        case .ready:
+            let model = IntelligenceProvider.named(id).map(modelForProvider) ?? ""
+            return L("Ready to answer with %@", model)
+        case .configured: return L("Connection found. Run Test to verify a real answer.")
+        case .offline(let reason): return reason
+        case .needsSetup: return L("Save a key and verify the connection")
+        case nil:
+            return (providerKeys[id] ?? "").isEmpty
+                ? L("No key saved") : L("Not verified yet")
+        }
     }
 
     func scanLocalModels() {
@@ -870,6 +935,7 @@ final class SettingsModel {
             selectedLocalModels = Dictionary(uniqueKeysWithValues: localInstallations.map {
                 ($0.providerID, store.setting("ai_model_\($0.providerID)") ?? $0.models[0])
             })
+            await refreshProviderHealth()
         }
     }
 
@@ -879,6 +945,8 @@ final class SettingsModel {
     func chooseLocalModel(_ model: String, for providerID: String) {
         store.setSetting("ai_model_\(providerID)", model)
         selectedLocalModels[providerID] = model
+        providerHealth[providerID] = .configured
+        providerVerifiedAt[providerID] = nil
     }
 
     var vaultRoot: String { Vault.defaultRoot() }
@@ -1147,24 +1215,57 @@ final class SettingsModel {
     }
 
     func setSourceEnabled(_ id: String, _ enabled: Bool) {
-        store.setSetting("source_enabled_\(id)", enabled ? "true" : "false")
+        store.setSetting("source_enabled_\(id)", enabled)
+        sourceRefreshRevision &+= 1
     }
 
     func syncSource(_ id: String) {
-        guard ["apple-mail", "messages", "notes"].contains(id), sourceEnabled(id) else { return }
-        sourceRefreshRevision &+= 1
-        onSourceSync(id)
-        // CorpusRunner records the result on its worker. Refresh the row while that run settles,
-        // so a successful or failed read is visible without reopening Settings.
+        let supported = ["apple-mail", "messages", "notes", "browsers", "conversations"]
+        guard supported.contains(id), sourceEnabled(id), !sourceSyncing.contains(id) else { return }
         Task { @MainActor in
-            for _ in 0..<12 {
-                try? await Task.sleep(for: .milliseconds(500))
-                sourceRefreshRevision &+= 1
-            }
+            sourceSyncing.insert(id)
+            sourceRefreshRevision &+= 1
+            let result = await onSourceSync(id)
+            sourceFeedback[id] = sourceMessage(result)
+            sourceFeedbackErrors[id] = if case .failed = result { true } else { false }
+            sourceSyncing.remove(id)
+            sourceRefreshRevision &+= 1
+            refreshBrainState()
+        }
+    }
+
+    func syncAllSources() {
+        guard sourceSyncing.isEmpty else { return }
+        Task { @MainActor in
+            sourceSyncing.insert("all")
+            sourceRefreshRevision &+= 1
+            let result = await onSourceSync("all")
+            sourceFeedback["all"] = sourceMessage(result)
+            sourceFeedbackErrors["all"] = if case .failed = result { true } else { false }
+            sourceSyncing.remove("all")
+            sourceRefreshRevision &+= 1
+            refreshBrainState()
         }
     }
 
     var sourceRefreshRevision = 0
+    var sourceSyncing: Set<String> = []
+    var sourceFeedback: [String: String] = [:]
+    var sourceFeedbackErrors: [String: Bool] = [:]
+
+    private func sourceMessage(_ result: CorpusRunner.RunResult) -> String {
+        switch result {
+        case .completed(let written): return L("Read completed · %@ new passages", String(written))
+        case .paused: return L("Capture is paused. Nothing was read.")
+        case .deferred(let reason): return L("Capture was deferred: %@", reason)
+        case .busy: return L("Another source is already being read.")
+        case .failed(let problem): return L("Read failed: %@", problem)
+        }
+    }
+
+    func sourceIsSyncing(_ id: String) -> Bool {
+        sourceSyncing.contains(id) || sourceSyncing.contains("all")
+    }
 
     func corpusSourceLabel(_ id: String?) -> String {
         switch id {
@@ -1181,6 +1282,7 @@ final class SettingsModel {
 
     func sourceStatusLine(_ id: String) -> String? {
         guard sourceEnabled(id) else { return L("Paused by you") }
+        if let feedback = sourceFeedback[id] { return feedback }
         guard let raw = store.setting("source_last_sync_\(id)"),
               let timestamp = Double(raw), timestamp > 0 else { return L("Not read yet") }
         let count = store.setting("source_last_count_\(id)") ?? "0"
@@ -1199,34 +1301,14 @@ final class SettingsModel {
     /// A catalog entry is not proof that this Mac has actually read the source. The source
     /// center uses this to keep its green state tied to a completed, error-free sync.
     func sourceHasSuccessfulSync(_ id: String) -> Bool {
-        guard sourceEnabled(id),
-              let raw = store.setting("source_last_sync_\(id)"),
-              let timestamp = Double(raw), timestamp > 0,
-              (store.setting("source_last_problem_\(id)") ?? "").isEmpty else { return false }
-        switch id {
-        case "apple-mail":
-            return FileManager.default.fileExists(atPath: NSHomeDirectory() + "/Library/Mail/V10")
-        case "messages":
-            return FileManager.default.fileExists(atPath: NSHomeDirectory() + "/Library/Messages/chat.db")
-        case "notes":
-            return FileManager.default.fileExists(atPath: NSHomeDirectory() + "/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite")
-        default:
-            return true
-        }
+        LocalSourceHealth.successfulSync(id, store: store)
     }
 
     /// The browser connector has no separate schedule record: its evidence is the local history
     /// database that the next corpus pass will read. Do not show Safari as connected on a Mac
     /// where no readable browser history exists.
     func browserSourceAvailable() -> Bool {
-        let home = NSHomeDirectory()
-        let safari = FileManager.default.isReadableFile(atPath: home + "/Library/Safari/History.db")
-        let chromeRoot = home + "/Library/Application Support/Google/Chrome"
-        let chrome = (try? FileManager.default.contentsOfDirectory(atPath: chromeRoot))?.contains {
-            ($0 == "Default" || $0.hasPrefix("Profile ")) &&
-            FileManager.default.isReadableFile(atPath: chromeRoot + "/\($0)/History")
-        } == true
-        return safari || chrome
+        LocalSourceHealth.browserAvailable()
     }
 
     func clipboardHasEvidence() -> Bool {

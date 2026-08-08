@@ -214,4 +214,24 @@ struct CorpusRunnerTests {
 
         #expect(input.nodes.map(\.id) == ["reciente"])
     }
+
+    @Test("los episodios derivados nunca vuelven a entrar como señales")
+    func noSeRealimenta() throws {
+        let store = try temporaryStore()
+        store.setSetting("graph_enabled", true)
+        let now = morning.addingTimeInterval(10 * 3_600)
+        store.upsertNode(WorkNode(id: "episode:generated", kind: .conversation,
+                                  name: String(repeating: "episodio ", count: 1_000),
+                                  lastSeen: now.addingTimeInterval(-600)))
+        store.upsertNode(WorkNode(id: "file:real", kind: .file, name: "real.swift",
+                                  lastSeen: now.addingTimeInterval(-500)))
+
+        let input = runner(store).assemblyInput(now: now, visits: [], exchanges: [],
+                                                transcripts: [])
+        #expect(input.nodes.map(\.id) == ["file:real"])
+        #expect(CorpusBuilder.signals(fromNodes: [
+            WorkNode(id: "episode:second-line", kind: .conversation, name: "derived"),
+            WorkNode(id: "file:raw", kind: .file, name: "raw.swift"),
+        ]).map(\.subject) == ["file:raw"])
+    }
 }

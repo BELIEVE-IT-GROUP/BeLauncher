@@ -47,7 +47,13 @@ enum LocalMessagesConnector {
         sqlite3_bind_int64(statement, 2, Int64(limit))
 
         var result: [MessageRecord] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
+        while true {
+            let status = sqlite3_step(statement)
+            if status == SQLITE_DONE { break }
+            guard status == SQLITE_ROW else {
+                return Reading(messages: result,
+                               problem: L("Apple Messages could not finish reading its local database."))
+            }
             guard let guid = sqlite3_column_text(statement, 0),
                   let text = sqlite3_column_text(statement, 1) else { continue }
             let rawDate = sqlite3_column_int64(statement, 2)

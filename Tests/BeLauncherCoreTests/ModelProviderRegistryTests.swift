@@ -33,7 +33,8 @@ struct ModelProviderRegistryTests {
         let ollama = try #require(ModelProviderRegistry.named("ollama"))
         #expect(ollama.modelsEndpoint?.hasSuffix("/api/tags") == true)
         #expect(ollama.managementEndpoint == "http://127.0.0.1:11434")
-        #expect(ModelProviderRegistry.named("anthropic")?.modelsEndpoint == nil)
+        #expect(ModelProviderRegistry.named("anthropic")?.modelsEndpoint
+                == "https://api.anthropic.com/v1/models")
     }
 }
 

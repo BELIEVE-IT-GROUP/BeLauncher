@@ -303,6 +303,10 @@ public enum CorpusBuilder {
     /// reach the corpus through the entity layer instead, which is where they belong.
     public static func signals(fromNodes nodes: [WorkNode]) -> [Episode.Signal] {
         nodes.compactMap { node in
+            // Episodes are derived from raw signals. Feeding the generated episode node back into
+            // the next pass recursively nests yesterday's summary inside today's summary and makes
+            // both titles and passage counts grow exponentially.
+            guard !node.id.hasPrefix("episode:") else { return nil }
             guard let kind = signalKind(for: node.kind) else { return nil }
             let subject = node.target.isEmpty ? node.id : node.target
             return Episode.Signal(at: node.lastSeen, kind: kind, subject: subject, title: node.name)

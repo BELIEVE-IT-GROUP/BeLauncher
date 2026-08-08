@@ -12,19 +12,25 @@ enum Permissions {
     static var accessibilityGranted: Bool { AXIsProcessTrusted() }
 
     static var microphoneGranted: Bool {
-        microphoneStatus == .authorized
+        microphoneStatus(for: AVAudioApplication.shared.recordPermission) == .authorized
     }
 
     static var microphoneStatus: AVAuthorizationStatus {
-        // AVAudioApplication is the macOS 14+ authority for AVAudioRecorder. Keep the
-        // AVCaptureDevice status as a compatibility signal: older TCC decisions and capture
-        // clients can expose one status before the other, especially for an LSUIElement app.
-        let audio = AVAudioApplication.shared.recordPermission
-        let capture = AVCaptureDevice.authorizationStatus(for: .audio)
-        if audio == .granted || capture == .authorized { return .authorized }
-        if audio == .denied || capture == .denied { return .denied }
-        if capture == .restricted { return .restricted }
-        return .notDetermined
+        microphoneStatus(for: AVAudioApplication.shared.recordPermission)
+    }
+
+    /// `AVAudioRecorder` is the recorder used by notes, dictation and calls, so its own authority
+    /// is the single source of truth. Combining it with a second API can create a false denial
+    /// while two framework views of the same TCC decision are settling.
+    static func microphoneStatus(
+        for permission: AVAudioApplication.recordPermission
+    ) -> AVAuthorizationStatus {
+        switch permission {
+        case .granted: .authorized
+        case .denied: .denied
+        case .undetermined: .notDetermined
+        @unknown default: .notDetermined
+        }
     }
 
     @discardableResult
@@ -52,33 +58,16 @@ enum Permissions {
             if wasAccessory { _ = NSApp.setActivationPolicy(.accessory) }
         }
         NSApp.activate(ignoringOtherApps: true)
-        if microphoneStatus == .authorized { return true }
 
-        // Ask the capture authority first. This is the path that makes a menu-bar agent appear
-        // in Privacy & Security > Microphone on current macOS releases. AVAudioApplication and
-        // AVCaptureDevice share the underlying TCC decision, but asking only the former can
-        // complete without registering an LSUIElement client in the pane.
-        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
-            let granted = await withCheckedContinuation { continuation in
-                AVCaptureDevice.requestAccess(for: .audio) { granted in
-                    continuation.resume(returning: granted)
-                }
-            }
-            if granted { return true }
-        }
-
-        // Keep the AVAudioApplication request for recorder clients and for systems where the
-        // capture authority was already decided independently.
+        var granted = AVAudioApplication.shared.recordPermission == .granted
         if AVAudioApplication.shared.recordPermission == .undetermined {
-            let granted = await withCheckedContinuation { continuation in
+            granted = await withCheckedContinuation { continuation in
                 AVAudioApplication.requestRecordPermission { granted in
                     continuation.resume(returning: granted)
                 }
             }
-            if granted { return true }
         }
 
-        let granted = microphoneStatus == .authorized
         if !granted { openMicrophoneSettings() }
         return granted
     }
@@ -94,13 +83,20 @@ enum Permissions {
     /// There is no prompt API for Full Disk Access. We can only probe a protected local source
     /// and take the person to the exact System Settings pane when the probe fails.
     static var fullDiskAccessLikely: Bool {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        fullDiskAccessLikely(home: FileManager.default.homeDirectoryForCurrentUser.path)
+    }
+
+    static func fullDiskAccessLikely(home: String) -> Bool {
+        let manager = FileManager.default
+        if let mail = LocalMailConnector.mailRoot(home: home),
+           (try? manager.contentsOfDirectory(atPath: mail.path)) != nil {
+            return true
+        }
         let paths = [
-            "\(home)/Library/Mail/V10/MailData/Envelope Index",
             "\(home)/Library/Messages/chat.db",
             "\(home)/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite",
         ]
-        let existing = paths.filter { FileManager.default.fileExists(atPath: $0) }
+        let existing = paths.filter { manager.fileExists(atPath: $0) }
         guard !existing.isEmpty else { return false }
         return existing.contains { path in
             guard let handle = try? FileHandle(forReadingFrom: URL(fileURLWithPath: path)) else { return false }

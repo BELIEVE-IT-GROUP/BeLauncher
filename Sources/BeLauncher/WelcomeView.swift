@@ -158,6 +158,7 @@ private struct CapabilityCard: View {
     let model: SettingsModel
     let health: CapabilityHealth
     @State private var permissionRevision = 0
+    @State private var isRequesting = false
 
     var body: some View {
         GroupBox {
@@ -180,7 +181,7 @@ private struct CapabilityCard: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
-                    Toggle("", isOn: binding).labelsHidden()
+                    capabilityControl
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -206,10 +207,106 @@ private struct CapabilityCard: View {
             }
     }
 
+    @ViewBuilder
+    private var capabilityControl: some View {
+        if capability.isSystemPermission {
+            if permissionIsReady {
+                Label(L("Granted"), systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else {
+                Button {
+                    requestSystemPermission()
+                } label: {
+                    if isRequesting {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Label(permissionButtonTitle,
+                              systemImage: permissionNeedsSettings ? "gearshape" : "plus.circle")
+                    }
+                }
+                .controlSize(.small)
+                .disabled(isRequesting)
+            }
+        } else {
+            Toggle("", isOn: preferenceBinding).labelsHidden()
+        }
+    }
+
+    private var permissionIsReady: Bool {
+        _ = permissionRevision
+        return switch capability.kind {
+        case .accessibility: health.accessibility.isReady
+        case .automation: health.automation.isReady
+        case .screen: health.screenRecording.isReady
+        case .calendar: model.calendarGranted
+        case .notifications: model.notificationsGranted
+        case .microphone: health.microphone.isReady
+        case .fullDiskAccess: health.fullDiskAccess.isReady
+        default: false
+        }
+    }
+
+    private var permissionNeedsSettings: Bool {
+        switch capability.kind {
+        case .microphone: Permissions.microphoneStatus == .denied
+        case .accessibility, .automation, .screen, .fullDiskAccess: true
+        default: false
+        }
+    }
+
+    private var permissionButtonTitle: String {
+        permissionNeedsSettings ? L("Open settings") : L("Allow")
+    }
+
+    private func requestSystemPermission() {
+        guard !isRequesting else { return }
+        isRequesting = true
+        switch capability.kind {
+        case .accessibility:
+            _ = health.requestAccessibility(reason: capability.unlocks)
+            finishPermissionRequest()
+        case .automation:
+            health.requestAutomation()
+            finishPermissionRequest()
+        case .screen:
+            health.requestScreenRecording()
+            finishPermissionRequest()
+        case .calendar:
+            Task { @MainActor in
+                await model.requestCalendarAndRefresh()
+                finishPermissionRequest()
+            }
+        case .notifications:
+            model.requestNotifications()
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                model.refreshNotificationPermission()
+                finishPermissionRequest()
+            }
+        case .microphone:
+            Task { @MainActor in
+                _ = await health.requestMicrophone()
+                finishPermissionRequest()
+            }
+        case .fullDiskAccess:
+            health.openFullDiskAccessSettings()
+            finishPermissionRequest()
+        default:
+            finishPermissionRequest()
+        }
+    }
+
+    private func finishPermissionRequest() {
+        health.refresh()
+        permissionRevision &+= 1
+        isRequesting = false
+    }
+
     /// System permissions cannot be switched on from here — macOS has to ask. Flipping the toggle
     /// triggers that request, and it stays off until macOS actually grants it, so the switch never
     /// claims something that is not true.
-    private var binding: Binding<Bool> {
+    private var preferenceBinding: Binding<Bool> {
         switch capability.kind {
         case .clipboard:
             Binding(get: { model.clipboardEnabled }, set: { model.clipboardEnabled = $0 })
@@ -217,51 +314,9 @@ private struct CapabilityCard: View {
             Binding(get: { model.updateCheckEnabled }, set: { model.updateCheckEnabled = $0 })
         case .launchAtLogin:
             Binding(get: { model.launchAtLogin }, set: { model.launchAtLogin = $0 })
-        case .accessibility:
-            Binding(get: { _ = permissionRevision; return health.accessibility.isReady },
-                    set: { if $0 {
-                        health.requestAccessibility(reason: capability.unlocks)
-                        refreshPermissionState()
-                    } })
-        case .automation:
-            // Asking macOS with askUserIfNeeded triggers the real prompt. If the person already
-            // said no once, macOS will not ask again, so the pane is opened for them.
-            Binding(get: { _ = permissionRevision; return health.automation.isReady },
-                    set: { wanted in
-                        guard wanted else { return }
-                        health.requestAutomation()
-                        refreshPermissionState()
-                    })
-        case .screen:
-            Binding(get: { _ = permissionRevision; return health.screenRecording.isReady },
-                    set: { if $0 { health.requestScreenRecording(); refreshPermissionState() } })
-        case .calendar:
-            Binding(get: { _ = permissionRevision; return model.calendarGranted },
-                    set: { if $0 {
-                        Task { @MainActor in
-                            await model.requestCalendarAndRefresh()
-                            refreshPermissionState()
-                        }
-                    } })
-        case .notifications:
-            Binding(get: { _ = permissionRevision; return model.notificationsGranted },
-                    set: { if $0 { model.requestNotifications(); refreshPermissionState() } })
-        case .microphone:
-            Binding(get: { _ = permissionRevision; return health.microphone.isReady },
-                    set: { wanted in
-                        guard wanted else { return }
-                        // Refresh only after TCC has answered. Refreshing immediately used to
-                        // leave the toggle visually off after the user accepted the native prompt.
-                        Task { @MainActor in
-                            _ = await health.requestMicrophone()
-                            permissionRevision += 1
-                        }
-                    })
+        case .accessibility, .automation, .screen, .calendar, .notifications,
+             .microphone, .fullDiskAccess:
+            .constant(false)
         }
-    }
-
-    private func refreshPermissionState() {
-        health.refresh()
-        permissionRevision += 1
     }
 }

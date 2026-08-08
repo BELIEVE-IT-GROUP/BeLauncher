@@ -12,12 +12,62 @@ import Foundation
 /// midió la sonda en este Mac — la buena, que puntuó 1,0, y la basura real que puntuó ~0,3.
 @Suite("La autoprueba de la transcripción")
 struct TranscriptionTests {
-    @Test("Qwen disk check reads macOS NSNumber filesystem attributes")
-    func qwenReadsFreeDiskSpace() {
-        let freeBytes = QwenASRInstaller.freeDiskSpace(
-            at: FileManager.default.homeDirectoryForCurrentUser.path)
+    @Test("Qwen disk check works before its support directory exists")
+    func qwenReadsFreeDiskSpaceForCleanInstall() {
+        let missingInstallRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("BeLauncher/ASR", isDirectory: true)
+        #expect(!FileManager.default.fileExists(atPath: missingInstallRoot.path))
+
+        let freeBytes = QwenASRInstaller.freeDiskSpace(at: missingInstallRoot.path)
         #expect(freeBytes != nil)
         #expect(freeBytes ?? 0 > 0)
+    }
+
+    @Test("Qwen creates the venv root, not a nested bin/bin environment")
+    func qwenVenvDestination() {
+        let root = URL(fileURLWithPath: "/tmp/BeLauncher/ASR", isDirectory: true)
+        #expect(QwenASRInstaller.venvRoot(at: root).path == "/tmp/BeLauncher/ASR/.venv")
+    }
+
+    @Test("Qwen repairs the bin/bin environment created by 0.32.16")
+    func repairsLegacyNestedVenv() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("qwen-legacy-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let nestedPython = root.appendingPathComponent(".venv/bin/bin/python3")
+        try FileManager.default.createDirectory(at: nestedPython.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: nestedPython.path, contents: Data())
+
+        #expect(try QwenASRInstaller.repairLegacyVenv(at: root))
+        #expect(!FileManager.default.fileExists(
+            atPath: root.appendingPathComponent(".venv").path))
+    }
+
+    @Test("Qwen removes a partial venv before recreating it")
+    func repairsPartialVenv() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("qwen-partial-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let partial = root.appendingPathComponent(".venv/bin", isDirectory: true)
+        try FileManager.default.createDirectory(at: partial, withIntermediateDirectories: true)
+
+        #expect(try QwenASRInstaller.removeInvalidVenv(at: root))
+        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent(".venv").path))
+    }
+
+    @Test("Qwen keeps Python and Hugging Face caches inside app support")
+    func qwenRuntimeIsIsolated() {
+        let root = URL(fileURLWithPath: "/tmp/BeLauncher/ASR", isDirectory: true)
+        let environment = QwenASRInstaller.installEnvironment(root: root)
+        #expect(environment["UV_PYTHON_INSTALL_DIR"] == "/tmp/BeLauncher/ASR/python")
+        #expect(environment["UV_NO_MODIFY_PATH"] == "1")
+        #expect(environment["HF_HOME"] == "/tmp/BeLauncher/ASR/.cache/huggingface")
+        #expect(QwenASRInstaller.runtimeEnvironment(root: root)["HF_HOME"]
+                == "/tmp/BeLauncher/ASR/.cache/huggingface")
+        #expect(QwenASRInstaller.modelDownloadScript.contains("snapshot_download"))
+        #expect(!QwenASRInstaller.modelDownloadScript.contains("from_pretrained"))
     }
 
 
@@ -170,6 +220,25 @@ struct QwenInstallDiagnosticsTests {
         #expect(!small.modelPresent)
     }
 
+    @Test("el runtime usa exactamente el modelo seleccionado")
+    func selectedModelControlsRuntime() throws {
+        let small = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: small.root) }
+        try small.makePythonAndEngine()
+        try small.makeSnapshot()
+
+        #expect(QwenASRRuntime.readyModel(
+            at: small.root,
+            selectedModel: QwenASRInstaller.smallModel,
+            modelCacheRoots: [small.cache]
+        ) == QwenASRInstaller.smallModel)
+        #expect(QwenASRRuntime.readyModel(
+            at: small.root,
+            selectedModel: QwenASRInstaller.largeModel,
+            modelCacheRoots: [small.cache]
+        ) == nil, "no debe usar 0.6B a escondidas cuando la persona eligió 1.7B")
+    }
+
     @Test("una descarga interrumpida es reanudable y no se reporta como lista")
     func interruptedInstallIsResumable() throws {
         let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
@@ -197,6 +266,51 @@ struct QwenInstallDiagnosticsTests {
         #expect(!state.modelPresent)
     }
 
+    @Test("un índice de pesos sin sus shards no cuenta como modelo descargado")
+    func indexWithoutWeightShardsIsRejected() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        try fixture.makePythonAndEngine()
+        try fixture.makeSnapshotIndexWithoutWeights()
+
+        let state = QwenASRInstaller.inspect(root: fixture.root, model: fixture.model,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(!state.modelPresent)
+        #expect(!state.isReady)
+    }
+
+    @Test("Hugging Face snapshots validate weights through their blob symlinks")
+    func linkedWeightBlobIsAccepted() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        try fixture.makePythonAndEngine()
+        try fixture.makeLinkedSnapshot()
+
+        let state = QwenASRInstaller.inspect(root: fixture.root, model: fixture.model,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(state.isReady)
+    }
+
+    @Test("archivos vacíos con nombres correctos no fingen un runtime instalado")
+    func placeholderRuntimeIsRejected() throws {
+        let fixture = try QwenFixture(model: QwenASRInstaller.smallModel)
+        defer { try? FileManager.default.removeItem(at: fixture.root) }
+        let python = fixture.root.appendingPathComponent(".venv/bin/python3")
+        try FileManager.default.createDirectory(at: python.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: python.path, contents: Data())
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: python.path)
+        try FileManager.default.createDirectory(
+            at: fixture.root.appendingPathComponent(
+                ".venv/lib/python3.12/site-packages/qwen3_asr_mlx"),
+            withIntermediateDirectories: true)
+
+        let state = QwenASRInstaller.inspect(root: fixture.root, model: fixture.model,
+                                              modelCacheRoots: [fixture.cache])
+        #expect(!state.pythonPresent)
+        #expect(!state.enginePresent)
+    }
+
     private struct QwenFixture {
         let root: URL
         let cache: URL
@@ -216,12 +330,17 @@ struct QwenInstallDiagnosticsTests {
                                                     withIntermediateDirectories: true)
             FileManager.default.createFile(atPath: python.path, contents: Data("python".utf8))
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: python.path)
+            try Data("home = managed".utf8).write(
+                to: root.appendingPathComponent(".venv/pyvenv.cfg"))
         }
 
         func makePythonAndEngine() throws {
             try makePythonOnly()
             let package = root.appendingPathComponent(".venv/lib/python3.12/site-packages/qwen3_asr_mlx")
             try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+            try Data("".utf8).write(to: package.appendingPathComponent("__init__.py"))
+            try Data(QwenASRInstaller.engineVersion.utf8).write(
+                to: QwenASRInstaller.engineMarker(at: root))
         }
 
         func makeSnapshot(includeWeights: Bool = true) throws {
@@ -230,8 +349,40 @@ struct QwenInstallDiagnosticsTests {
             try FileManager.default.createDirectory(at: snapshot, withIntermediateDirectories: true)
             try Data("{}".utf8).write(to: snapshot.appendingPathComponent("config.json"))
             if includeWeights {
-                try Data("weights".utf8).write(to: snapshot.appendingPathComponent("model.safetensors"))
+                let weights = snapshot.appendingPathComponent("model.safetensors")
+                FileManager.default.createFile(atPath: weights.path, contents: nil)
+                let handle = try FileHandle(forWritingTo: weights)
+                try handle.truncate(atOffset: 1_048_577)
+                try handle.close()
             }
+        }
+
+        func makeLinkedSnapshot() throws {
+            let cacheName = "models--" + model.replacingOccurrences(of: "/", with: "--")
+            let modelRoot = cache.appendingPathComponent(cacheName)
+            let snapshot = modelRoot.appendingPathComponent("snapshots/revision")
+            let blobs = modelRoot.appendingPathComponent("blobs")
+            try FileManager.default.createDirectory(at: snapshot, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: blobs, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: snapshot.appendingPathComponent("config.json"))
+            let blob = blobs.appendingPathComponent("weight")
+            FileManager.default.createFile(atPath: blob.path, contents: nil)
+            let handle = try FileHandle(forWritingTo: blob)
+            try handle.truncate(atOffset: 1_048_577)
+            try handle.close()
+            try FileManager.default.createSymbolicLink(
+                atPath: snapshot.appendingPathComponent("model.safetensors").path,
+                withDestinationPath: "../../blobs/weight")
+        }
+
+        func makeSnapshotIndexWithoutWeights() throws {
+            let cacheName = "models--" + model.replacingOccurrences(of: "/", with: "--")
+            let snapshot = cache.appendingPathComponent("\(cacheName)/snapshots/test")
+            try FileManager.default.createDirectory(at: snapshot, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: snapshot.appendingPathComponent("config.json"))
+            let index = #"{"weight_map":{"layer":"model-00001-of-00002.safetensors"}}"#
+            try Data(index.utf8).write(to: snapshot.appendingPathComponent(
+                "model.safetensors.index.json"))
         }
     }
 }

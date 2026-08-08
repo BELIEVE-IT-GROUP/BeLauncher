@@ -76,10 +76,15 @@ public struct IndexedPassage: Sendable, Equatable, Identifiable {
     /// places that build a title. Capping it at the sources means the next capture source added
     /// gets it wrong again, and the weakest copy of a rule is the one that decides.
     public static let titleLimit = 160
+    /// A single source can be long, but it cannot be unbounded. The original remains at its path;
+    /// the index is a retrieval aid, not a second copy of a multi-gigabyte file.
+    public static let sourceTextLimit = 1_000_000
 
     /// A title cut to a label, keeping whole words where it can and saying that it was cut.
     public static func label(_ title: String) -> String {
-        let clean = title.replacingOccurrences(of: "\n", with: " ")
+        // Prefix first. Normalising an amplified title before bounding it scans and allocates the
+        // entire corrupt value, which is precisely the startup failure this guard prevents.
+        let clean = String(title.prefix(titleLimit + 1)).replacingOccurrences(of: "\n", with: " ")
             .trimmingCharacters(in: .whitespaces)
         guard clean.count > titleLimit else { return clean }
         let head = clean.prefix(titleLimit)
@@ -126,6 +131,28 @@ public struct Retrieved: Sendable, Equatable, Identifiable {
         self.score = score
         self.route = route
         self.via = via
+    }
+}
+
+/// What an amplification repair changed. Passages and episode nodes are derived data; original
+/// files, notes, messages, clips, memories and conversations are never removed by this operation.
+public struct CorpusRepairReport: Sendable, Equatable {
+    public let repaired: Bool
+    public let removedPassages: Int
+    public let removedEpisodeNodes: Int
+    public let removedEpisodeEdges: Int
+    public let trimmedNodes: Int
+    public let trimmedPassages: Int
+
+    public init(repaired: Bool, removedPassages: Int = 0, removedEpisodeNodes: Int = 0,
+                removedEpisodeEdges: Int = 0, trimmedNodes: Int = 0,
+                trimmedPassages: Int = 0) {
+        self.repaired = repaired
+        self.removedPassages = removedPassages
+        self.removedEpisodeNodes = removedEpisodeNodes
+        self.removedEpisodeEdges = removedEpisodeEdges
+        self.trimmedNodes = trimmedNodes
+        self.trimmedPassages = trimmedPassages
     }
 }
 
@@ -195,6 +222,138 @@ extension Store {
         if repairOversizedTitles {
             trimOversizedTitles()
         }
+    }
+
+    /// Removes the recursive episode data written by affected builds without touching evidence.
+    ///
+    /// Rebuilding the small surviving side of each table is intentional. Deleting millions of
+    /// amplified rows one by one makes SQLite write a comparably large WAL or rollback journal,
+    /// which can exhaust the disk while trying to recover it. Dropping the old derived b-trees
+    /// after copying only valid rows frees their pages with a bounded transaction.
+    @discardableResult
+    public func repairCorpusAmplification() throws -> CorpusRepairReport {
+        try migrateSemanticIndex(repairOversizedTitles: false)
+
+        // Do not run length() over every passage here. On a damaged corpus that asks SQLite to
+        // touch gigabytes of overflow text before the repair can even begin. The recursive source
+        // prefixes are the corruption signature and are cheap to count; the reconstruction below
+        // bounds every surviving value as it copies it.
+        let episodePassages = try database.query(
+            """
+            SELECT count(*) AS total FROM passages
+            WHERE source_key >= 'node:episode:' AND source_key < 'node:episode;'
+            """).first?.int("total") ?? 0
+        let episodeNodes = try database.query(
+            """
+            SELECT count(*) AS total FROM work_nodes
+            WHERE id >= 'episode:' AND id < 'episode;'
+            """ ).first?.int("total") ?? 0
+        let episodeEdges = try database.query("""
+            SELECT count(*) AS total FROM work_edges
+            WHERE source LIKE 'episode:%' OR target LIKE 'episode:%'
+            """).first?.int("total") ?? 0
+
+        let needsRepair = episodePassages > 0 || episodeNodes > 0 || episodeEdges > 0
+        guard needsRepair else {
+            setSetting("corpus_amplification_repaired_v1", true)
+            return CorpusRepairReport(repaired: false)
+        }
+
+        do {
+            try database.execute("BEGIN IMMEDIATE")
+            try database.execute("DROP TRIGGER IF EXISTS passages_ai")
+            try database.execute("DROP TRIGGER IF EXISTS passages_ad")
+            try database.execute("DROP TRIGGER IF EXISTS passages_au")
+            try database.execute("DROP TABLE IF EXISTS passages_fts")
+
+            try database.execute("""
+                CREATE TABLE passages_repaired (
+                    id TEXT PRIMARY KEY,
+                    source_key TEXT NOT NULL,
+                    source_kind TEXT NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
+                    ordinal INTEGER NOT NULL DEFAULT 0,
+                    text TEXT NOT NULL,
+                    occurred_at REAL NOT NULL,
+                    digest TEXT NOT NULL,
+                    vector TEXT,
+                    vector_model TEXT NOT NULL DEFAULT ''
+                )
+                """)
+            try database.execute("""
+                INSERT INTO passages_repaired
+                    (id, source_key, source_kind, title, ordinal, text, occurred_at, digest,
+                     vector, vector_model)
+                SELECT id, source_key, source_kind,
+                       CASE WHEN length(title) > ? THEN rtrim(substr(title, 1, ?)) || '…'
+                            ELSE title END,
+                       ordinal, substr(text, 1, ?), occurred_at, digest, vector, vector_model
+                FROM passages
+                WHERE source_key NOT LIKE 'node:episode:%'
+                """, [.int(Int64(IndexedPassage.titleLimit)),
+                      .int(Int64(IndexedPassage.titleLimit)),
+                      .int(Int64(IndexedPassage.sourceTextLimit))])
+            try database.execute("DROP TABLE passages")
+            try database.execute("ALTER TABLE passages_repaired RENAME TO passages")
+
+            try database.execute("""
+                CREATE TABLE work_nodes_repaired (
+                    id TEXT PRIMARY KEY,
+                    kind TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    detail TEXT NOT NULL DEFAULT '',
+                    target TEXT NOT NULL DEFAULT '',
+                    lastSeen REAL NOT NULL,
+                    weight INTEGER NOT NULL DEFAULT 1
+                )
+                """)
+            try database.execute("""
+                INSERT INTO work_nodes_repaired (id, kind, name, detail, target, lastSeen, weight)
+                SELECT id, kind, substr(name, 1, ?), substr(detail, 1, ?), substr(target, 1, ?),
+                       lastSeen, weight
+                FROM work_nodes WHERE id NOT LIKE 'episode:%'
+                """, [.int(Int64(WorkNode.nameLimit)), .int(Int64(WorkNode.detailLimit)),
+                      .int(Int64(WorkNode.targetLimit))])
+            try database.execute("DROP TABLE work_nodes")
+            try database.execute("ALTER TABLE work_nodes_repaired RENAME TO work_nodes")
+
+            try database.execute("""
+                CREATE TABLE work_edges_repaired (
+                    source TEXT NOT NULL,
+                    target TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    at REAL NOT NULL,
+                    PRIMARY KEY (source, target, kind)
+                )
+                """)
+            try database.execute("""
+                INSERT INTO work_edges_repaired (source, target, kind, at)
+                SELECT source, target, kind, at FROM work_edges
+                WHERE source NOT LIKE 'episode:%' AND target NOT LIKE 'episode:%'
+                """)
+            try database.execute("DROP TABLE work_edges")
+            try database.execute("ALTER TABLE work_edges_repaired RENAME TO work_edges")
+            try database.execute("COMMIT")
+        } catch {
+            try? database.execute("ROLLBACK")
+            throw error
+        }
+
+        // Recreate indexes, FTS and its triggers only after the invalid rows are gone. Rebuilding
+        // FTS from the compact survivor set prevents carrying amplified terms into search.
+        try database.execute("CREATE INDEX IF NOT EXISTS work_nodes_seen ON work_nodes (lastSeen)")
+        try migrateSemanticIndex(repairOversizedTitles: false)
+        try database.execute("INSERT INTO passages_fts(passages_fts) VALUES('rebuild')")
+        setSetting("corpus_amplification_repaired_v1", true)
+
+        return CorpusRepairReport(
+            repaired: true,
+            removedPassages: Int(min(Int64(Int.max), episodePassages)),
+            removedEpisodeNodes: Int(min(Int64(Int.max), episodeNodes)),
+            removedEpisodeEdges: Int(min(Int64(Int.max), episodeEdges)),
+            trimmedNodes: 0,
+            trimmedPassages: 0
+        )
     }
 
     /// Cuts titles that were written before there was a cap on them.
@@ -310,34 +469,51 @@ extension Store {
     /// guesswork, and getting it wrong leaves orphan passages quoting text that no longer exists.
     public func replacePassages(for source: IndexedSource, title: String, occurredAt: Date,
                                 text: String) -> [IndexedPassage] {
-        let cut = Semantic.passages(of: text)
+        (try? replacePassagesChecked(for: source, title: title, occurredAt: occurredAt,
+                                     text: text)) ?? []
+    }
+
+    /// The checked write used by ingestion. The compatibility wrapper above remains convenient for
+    /// one-off UI writes, but a sync button must never report success after SQLite rejected data.
+    public func replacePassagesChecked(for source: IndexedSource, title: String,
+                                       occurredAt: Date, text: String) throws -> [IndexedPassage] {
+        let boundedText = String(text.prefix(IndexedPassage.sourceTextLimit))
+        let cut = Semantic.passages(of: boundedText)
         let title = IndexedPassage.label(title)
-        let digest = Semantic.digest(text)
+        let digest = Semantic.digest(boundedText)
 
         // Unchanged content keeps its vectors: re-embedding an untouched note on every index pass
         // would make indexing cost grow with the size of the brain rather than with what changed.
-        if let existing = try? database.query(
-            "SELECT digest FROM passages WHERE source_key = ? LIMIT 1", [.text(source.key)]),
+        let existing = try database.query(
+            "SELECT digest FROM passages WHERE source_key = ? LIMIT 1", [.text(source.key)])
+        if
            existing.first?.string("digest") == digest, !cut.isEmpty {
-            return passages(for: source)
+            return []
         }
 
-        try? database.execute("DELETE FROM passages WHERE source_key = ?", [.text(source.key)])
-        var result: [IndexedPassage] = []
-        for passage in cut {
-            let id = "\(source.key)#\(passage.ordinal)"
-            try? database.execute("""
-                INSERT INTO passages (id, source_key, source_kind, title, ordinal, text,
-                                      occurred_at, digest, vector, vector_model)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, '')
-                """, [.text(id), .text(source.key), .text(source.kind.rawValue), .text(title),
-                      .int(Int64(passage.ordinal)), .text(passage.text),
-                      .double(occurredAt.timeIntervalSince1970), .text(digest)])
-            result.append(IndexedPassage(id: id, source: source, title: title,
-                                         ordinal: passage.ordinal, text: passage.text,
-                                         occurredAt: occurredAt))
+        do {
+            try database.execute("BEGIN IMMEDIATE")
+            try database.execute("DELETE FROM passages WHERE source_key = ?", [.text(source.key)])
+            var result: [IndexedPassage] = []
+            for passage in cut {
+                let id = "\(source.key)#\(passage.ordinal)"
+                try database.execute("""
+                    INSERT INTO passages (id, source_key, source_kind, title, ordinal, text,
+                                          occurred_at, digest, vector, vector_model)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, '')
+                    """, [.text(id), .text(source.key), .text(source.kind.rawValue), .text(title),
+                          .int(Int64(passage.ordinal)), .text(passage.text),
+                          .double(occurredAt.timeIntervalSince1970), .text(digest)])
+                result.append(IndexedPassage(id: id, source: source, title: title,
+                                             ordinal: passage.ordinal, text: passage.text,
+                                             occurredAt: occurredAt))
+            }
+            try database.execute("COMMIT")
+            return result
+        } catch {
+            try? database.execute("ROLLBACK")
+            throw error
         }
-        return result
     }
 
     public func removePassages(for source: IndexedSource) {

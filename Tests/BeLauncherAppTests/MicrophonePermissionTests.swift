@@ -35,16 +35,27 @@ struct MicrophonePermissionTests {
         }
     }
 
-    @Test("el flujo de permiso usa las dos autoridades de TCC")
-    func permissionFlowUsesBothAppleAPIs() throws {
+    @Test("el build firmado declara Audio Input además del texto de uso")
+    func audioInputEntitlementIsShippedAndVerified() throws {
+        let entitlements = try String(contentsOf: URL(fileURLWithPath: Self.repositoryRoot)
+            .appendingPathComponent("Scripts/BeLauncher.entitlements"), encoding: .utf8)
+        let release = try String(contentsOf: URL(fileURLWithPath: Self.repositoryRoot)
+            .appendingPathComponent("Scripts/release-mac.sh"), encoding: .utf8)
+
+        #expect(entitlements.contains("com.apple.security.device.audio-input"))
+        #expect(release.contains("require_entitlement \"com.apple.security.device.audio-input\""),
+                "el release debe validar el binario firmado, no solo el plist fuente")
+    }
+
+    @Test("el flujo usa la autoridad del grabador sin combinar estados")
+    func permissionFlowUsesRecorderAuthority() throws {
         let path = URL(fileURLWithPath: Self.repositoryRoot)
             .appendingPathComponent("Sources/BeLauncher/Permissions.swift")
         let source = try String(contentsOf: path, encoding: .utf8)
 
         #expect(source.contains("AVAudioApplication.shared.recordPermission"))
         #expect(source.contains("AVAudioApplication.requestRecordPermission"))
-        #expect(source.contains("AVCaptureDevice.authorizationStatus(for: .audio)"))
-        #expect(source.contains("AVCaptureDevice.requestAccess(for: .audio)"))
+        #expect(!source.contains("AVCaptureDevice.requestAccess(for: .audio)"))
         #expect(source.contains("private static var microphoneRequest"))
         #expect(source.contains("NSApp.setActivationPolicy(.regular)"))
         #expect(source.contains("NSApp.setActivationPolicy(.accessory)"))

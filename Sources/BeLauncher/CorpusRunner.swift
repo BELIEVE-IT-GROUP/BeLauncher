@@ -34,6 +34,13 @@ struct CorpusRunRecord: Codable, Identifiable, Equatable, Sendable {
 @MainActor
 @Observable
 final class CorpusRunner {
+    enum RunResult: Equatable {
+        case completed(written: Int)
+        case paused
+        case deferred(String)
+        case busy
+        case failed(String)
+    }
 
     enum Phase: String, Equatable {
         case idle, waiting, gathering, assembling, writing, completed, paused, deferred, failed
@@ -118,14 +125,15 @@ final class CorpusRunner {
     /// Runs the normal bounded pass, or only one connector when a person asks for an immediate
     /// refresh from Settings. The latter is important: "sync Mail" must not unexpectedly wake up
     /// every browser and conversation database on the Mac.
-    func runOnce(source: String? = nil, now: Date = .now) async {
-        guard !isRunning else { return }
+    func runOnce(source: String? = nil, now: Date = .now,
+                 ignoringPowerPolicy: Bool = false) async -> RunResult {
+        guard !isRunning else { return .busy }
         guard isCapturing else {
             setPhase(.paused)
             persistIngestionProgress(phase: .paused, source: source ?? currentRunSource)
-            return
+            return .paused
         }
-        if source == nil {
+        if source == nil && !ignoringPowerPolicy {
             let thermal = BackgroundRunPolicy.ThermalState(
                 rawValue: ProcessInfo.processInfo.thermalState.rawValue) ?? .nominal
             let power = Self.powerSource()
@@ -142,7 +150,7 @@ final class CorpusRunner {
                 store.setSetting("corpus_last_deferral", reason.rawValue)
                 setPhase(.deferred)
                 persistIngestionProgress(phase: .deferred, source: source ?? "corpus")
-                return
+                return .deferred(reason.rawValue)
             }
         }
 
@@ -168,24 +176,31 @@ final class CorpusRunner {
         persistCheckpoint(source: runSource, phase: .gathering, windowStart: since)
         let excludedApps = store.excludedFromCapture()
         let excludedDomains = store.excludedDomains()
+        let requestedSource = source ?? (ignoringPowerPolicy ? "all" : nil)
+        let browsersEnabled = (source == nil || source == "browsers") &&
+            sourceMayRun("browsers", requested: requestedSource) &&
+            store.setting("source_enabled_browsers", default: true)
+        let conversationsEnabled = (source == nil || source == "conversations") &&
+            sourceMayRun("conversations", requested: requestedSource) &&
+            store.setting("source_enabled_conversations", default: true)
         let mailEnabled = (source == nil || source == "apple-mail") &&
-            sourceMayRun("apple-mail", requested: source) &&
+            sourceMayRun("apple-mail", requested: requestedSource) &&
             store.setting("source_enabled_apple-mail", default: true)
         let messagesEnabled = (source == nil || source == "messages") &&
-            sourceMayRun("messages", requested: source) &&
+            sourceMayRun("messages", requested: requestedSource) &&
             store.setting("source_enabled_messages", default: true)
         let notesEnabled = (source == nil || source == "notes") &&
-            sourceMayRun("notes", requested: source) &&
+            sourceMayRun("notes", requested: requestedSource) &&
             store.setting("source_enabled_notes", default: true)
 
         // Everything expensive off it: copying browser databases and walking session logs are both
         // file-system bound, and on the main actor they would be felt as a stuck launcher.
         let gathered = await Task.detached(priority: .utility) {
-            let history = source == nil
+            let history = browsersEnabled
                 ? BrowserHistory.read(since: since, excludedDomains: excludedDomains,
                                       excludedApps: excludedApps)
                 : BrowserHistory.Reading(visits: [], problems: [])
-            let exchanges = source == nil ? Self.conversations(since: since) : []
+            let exchanges = conversationsEnabled ? Self.conversations(since: since) : []
             let mail = mailEnabled ? LocalMailConnector.read(since: since)
                                    : LocalMailConnector.Reading(messages: [], problem: nil)
             let messages = messagesEnabled
@@ -196,13 +211,6 @@ final class CorpusRunner {
                 : LocalNotesConnector.Reading(notes: [], problem: nil)
             return (history, exchanges, mail, messages, notes)
         }.value
-
-        recordSource("apple-mail", enabled: mailEnabled, count: gathered.2.messages.count,
-                     problem: gathered.2.problem)
-        recordSource("messages", enabled: messagesEnabled, count: gathered.3.messages.count,
-                     problem: gathered.3.problem)
-        recordSource("notes", enabled: notesEnabled, count: gathered.4.notes.count,
-                     problem: gathered.4.problem)
 
         let transcripts = source == nil ? await transcribePending(since: since) : []
         await refreshCorrections()
@@ -232,19 +240,40 @@ final class CorpusRunner {
             persistIngestionProgress(phase: .paused, source: runSource)
             recordRun(source: source, startedAt: startedAt, phase: Phase.paused.rawValue,
                       written: 0, problem: nil)
-            return
+            return .paused
         }
 
         setPhase(.writing, source: runSource)
         persistIngestionProgress(phase: .writing, source: runSource,
                                  totalItems: corpus.items.count)
         persistCheckpoint(source: runSource, phase: .writing, windowStart: since)
-        await write(corpus)
+        do {
+            try await write(corpus)
+        } catch {
+            let problem = error.localizedDescription
+            lastProblem = problem
+            setPhase(.failed)
+            persistIngestionProgress(phase: .failed, source: runSource,
+                                     totalItems: corpus.items.count,
+                                     writtenPassages: lastWritten, problem: problem)
+            recordRun(source: source, startedAt: startedAt, phase: Phase.failed.rawValue,
+                      written: lastWritten, problem: problem)
+            return .failed(problem)
+        }
+        // A successful read is not a successful sync until the privacy gate has still allowed the
+        // assembled corpus to be committed. Recording this before `write` made a paused run green.
+        recordSource("browsers", enabled: browsersEnabled, count: gathered.0.visits.count,
+                     problem: gathered.0.problems.first)
+        recordSource("conversations", enabled: conversationsEnabled, count: gathered.1.count)
+        recordSource("apple-mail", enabled: mailEnabled, count: gathered.2.messages.count,
+                     problem: gathered.2.problem)
+        recordSource("messages", enabled: messagesEnabled, count: gathered.3.messages.count,
+                     problem: gathered.3.problem)
+        recordSource("notes", enabled: notesEnabled, count: gathered.4.notes.count,
+                     problem: gathered.4.problem)
         let problems = gathered.0.problems
             + [gathered.2.problem, gathered.3.problem, gathered.4.problem].compactMap { $0 }
-        if !problems.isEmpty {
-            store.setSetting("corpus_last_problem", problems.joined(separator: "\n"))
-        }
+        store.setSetting("corpus_last_problem", problems.joined(separator: "\n"))
         store.setSetting("corpus_last_run", String(now.timeIntervalSince1970))
         lastRun = now
         lastProblem = problems.first
@@ -259,6 +288,8 @@ final class CorpusRunner {
                   phase: phase.rawValue, written: lastWritten, problem: lastProblem)
 
         await distillIfDue(now: now)
+        if let lastProblem { return .failed(lastProblem) }
+        return .completed(written: lastWritten)
     }
 
     /// Reads power state once per scheduled pass. A missing power source is treated as unknown,
@@ -383,7 +414,9 @@ final class CorpusRunner {
         let noteNodes = notes.filter { $0.text.count >= 40 && !SecretGuard.carriesSecret($0.text) }
             .map(Capture.note).map(\.node)
         return CorpusBuilder.Input(
-            nodes: store.nodes(limit: 2_000).filter { $0.lastSeen >= since } + mailNodes + messageNodes + noteNodes,
+            nodes: store.nodes(limit: 2_000).filter {
+                $0.lastSeen >= since && !$0.id.hasPrefix("episode:")
+            } + mailNodes + messageNodes + noteNodes,
             clips: store.clips(limit: 500).filter { $0.createdAt >= since },
             exchanges: exchanges, visits: visits, mails: mails, messages: messages,
             notes: notes,
@@ -404,11 +437,12 @@ final class CorpusRunner {
     /// inside SQLite and 0 % waiting for events, which is the technical spelling of "BeLauncher
     /// no responde". The work is the same; the difference is that a keystroke now gets serviced
     /// between documents instead of after all of them.
-    func write(_ corpus: Corpus) async {
+    func write(_ corpus: Corpus) async throws {
         var written = 0
         for (index, item) in corpus.items.enumerated() {
-            written += store.replacePassages(for: item.source, title: item.title,
-                                             occurredAt: item.occurredAt, text: item.text).count
+            written += try store.replacePassagesChecked(for: item.source, title: item.title,
+                                                        occurredAt: item.occurredAt,
+                                                        text: item.text).count
             if index % 8 == 7 {
                 persistIngestionProgress(phase: .writing, source: currentRunSource,
                                          completedItems: index + 1,
