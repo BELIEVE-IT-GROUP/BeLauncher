@@ -17,6 +17,18 @@ import Foundation
 ///    does.
 public struct Retriever: Sendable {
 
+    public struct ContextSelection: Sendable, Equatable {
+        public let hits: [Retrieved]
+        public let estimatedTokens: Int
+        public let wasTruncated: Bool
+
+        public init(hits: [Retrieved], estimatedTokens: Int, wasTruncated: Bool) {
+            self.hits = hits
+            self.estimatedTokens = estimatedTokens
+            self.wasTruncated = wasTruncated
+        }
+    }
+
     public struct Result: Sendable, Equatable {
         public let hits: [Retrieved]
         /// Named so the UI can say which half was working, instead of a spinner that means
@@ -46,6 +58,74 @@ public struct Retriever: Sendable {
     /// question into the whole database.
     public static let expandFrom = 3
     public static let expansionScore: Double = 0.001
+    /// A conservative default for Brain prompts. Callers may lower it for a small local model.
+    public static let defaultContextTokenBudget = 6_000
+
+    /// Selects complete passages until the budget is reached. If the first passage is larger than
+    /// the budget, it is shortened rather than silently returning no evidence. Citation metadata
+    /// stays attached to the shortened passage, so a model can still point to the right source.
+    public static func context(
+        from hits: [Retrieved], tokenBudget: Int = defaultContextTokenBudget
+    ) -> ContextSelection {
+        guard tokenBudget > 0 else {
+            return ContextSelection(hits: [], estimatedTokens: 0, wasTruncated: !hits.isEmpty)
+        }
+
+        var selected: [Retrieved] = []
+        var used = 0
+        var truncated = false
+        for hit in hits {
+            let candidate = normalised(hit)
+            let cost = estimatedTokens(for: candidate)
+            if used + cost <= tokenBudget {
+                selected.append(candidate)
+                used += cost
+                continue
+            }
+
+            guard selected.isEmpty else {
+                truncated = true
+                break
+            }
+
+            // Reserve room for the title, source and citation envelope before fitting text.
+            let envelope = candidate.passage.title.count + candidate.passage.source.id.count + 67
+            // The ellipsis and ceiling in estimatedTokens need four extra characters of room.
+            let availableCharacters = max(1, (tokenBudget * 4) - envelope - 4)
+            let text = String(candidate.passage.text.prefix(availableCharacters)).trimmingCharacters(in: .whitespaces)
+            guard !text.isEmpty else { break }
+            let shortened = IndexedPassage(
+                id: candidate.passage.id, source: candidate.passage.source, title: candidate.passage.title,
+                ordinal: candidate.passage.ordinal,
+                text: text + (text.count < candidate.passage.text.count ? "…" : ""),
+                occurredAt: candidate.passage.occurredAt, hasVector: candidate.passage.hasVector
+            )
+            let shortenedHit = Retrieved(passage: shortened, score: candidate.score,
+                                         route: candidate.route, via: candidate.via)
+            used = estimatedTokens(for: shortenedHit)
+            selected.append(shortenedHit)
+            truncated = true
+            break
+        }
+        return ContextSelection(hits: selected, estimatedTokens: used, wasTruncated: truncated)
+    }
+
+    public static func estimatedTokens(for hit: Retrieved) -> Int {
+        let title = IndexedPassage.label(hit.passage.title)
+        return max(1, (hit.passage.text.count + title.count
+                + hit.passage.source.id.count + 67 + 3) / 4)
+    }
+
+    private static func normalised(_ hit: Retrieved) -> Retrieved {
+        let title = IndexedPassage.label(hit.passage.title)
+        guard title != hit.passage.title else { return hit }
+        let passage = IndexedPassage(
+            id: hit.passage.id, source: hit.passage.source, title: title,
+            ordinal: hit.passage.ordinal, text: hit.passage.text,
+            occurredAt: hit.passage.occurredAt, hasVector: hit.passage.hasVector
+        )
+        return Retrieved(passage: passage, score: hit.score, route: hit.route, via: hit.via)
+    }
 
     public static func retrieve(
         query: String,
@@ -138,16 +218,22 @@ public struct Retriever: Sendable {
     /// The language of the *answer* follows the question, not the interface and not this file. A
     /// bilingual corpus produces bilingual answers, which is correct: someone who asks in Spanish
     /// about an English meeting wants the answer in Spanish and the quotes as they were written.
-    public static func prompt(for question: String, hits: [Retrieved]) -> (system: String, user: String) {
+    public static func prompt(for question: String, hits: [Retrieved],
+                              tokenBudget: Int? = nil) -> (system: String, user: String) {
+        let selection = tokenBudget.map { context(from: hits, tokenBudget: $0) }
+        let contextHits = selection?.hits ?? hits
+        let truncation = selection?.wasTruncated == true
+            ? " Some passages were truncated to fit the context budget; do not infer what is missing."
+            : ""
         let system = """
         Answer using only what appears in the numbered passages. Cite the source with [n] after \
         every claim. If the passages do not contain the answer, say so in one sentence and stop. \
         Do not fill gaps with your own knowledge, do not assume, do not generalise. \
         Write the answer in the same language as the question, and quote passages in the language \
-        they were written in. Be direct.
+        they were written in. Be direct.\(truncation)
         """
         var lines: [String] = []
-        for (index, hit) in hits.enumerated() {
+        for (index, hit) in contextHits.enumerated() {
             let when = DateFormatter.retrievalStamp().string(from: hit.passage.occurredAt)
             lines.append("[\(index + 1)] (\(hit.passage.source.kind.label) · \(hit.passage.title) · \(when))\n\(hit.passage.text)")
         }

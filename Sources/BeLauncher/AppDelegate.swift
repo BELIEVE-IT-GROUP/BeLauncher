@@ -1106,7 +1106,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !result.hits.isEmpty else {
             return BrainAnswer(text: result.gap ?? L("The Brain has no evidence for that yet."), sources: [])
         }
-        let prompt = Retriever.prompt(for: question, hits: result.hits)
+        let context = Retriever.context(from: result.hits,
+                                        tokenBudget: Retriever.defaultContextTokenBudget)
+        let prompt = Retriever.prompt(for: question, hits: context.hits)
         let contextualPrompt: String
         if let usableContext {
             contextualPrompt = prompt.user + "\n\nCurrent document context (use only to resolve references; cite retrieved passages):\n"
@@ -1116,7 +1118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let answer = try await askModel(contextualPrompt, system: prompt.system)
         let documents = (try? CorpusFolder(root: CorpusFolder.defaultRoot()))?.documents() ?? []
-        var sources = result.hits.prefix(6).map { hit in
+        var sources = context.hits.prefix(6).map { hit in
             BrainCitation(sourceID: hit.passage.source.id,
                           title: hit.passage.title,
                           kind: hit.passage.source.kind.label,

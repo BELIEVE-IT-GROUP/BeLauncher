@@ -23,6 +23,7 @@ public enum MCPTools {
     /// pays for in tokens and reads none of.
     public static let maximumLimit = 20
     public static let defaultLimit = 8
+    public static let defaultContextTokenBudget = 6_000
 
     static func clamp(_ limit: Int?) -> Int {
         min(max(limit ?? defaultLimit, 1), maximumLimit)
@@ -175,7 +176,8 @@ public enum MCPTools {
         }
 
         let result = await brain.search(query, limit: clamp(limit))
-        let hits = safe(result.hits)
+        let hits = Retriever.context(from: safe(result.hits),
+                                     tokenBudget: defaultContextTokenBudget).hits
         guard !hits.isEmpty else {
             return reply(nothingFound(query: query, cover: cover, result: result))
         }
@@ -214,7 +216,8 @@ public enum MCPTools {
         // Asked wider than recall: assembling material for a rewrite wants the second-best
         // paragraph of a source too, where a question only wants the answer.
         let result = await brain.search(task, limit: min(clamp(limit) + 4, maximumLimit))
-        let hits = safe(result.hits)
+        let hits = Retriever.context(from: safe(result.hits),
+                                     tokenBudget: defaultContextTokenBudget).hits
         guard !hits.isEmpty else {
             return reply(nothingFound(query: task, cover: cover, result: result))
         }

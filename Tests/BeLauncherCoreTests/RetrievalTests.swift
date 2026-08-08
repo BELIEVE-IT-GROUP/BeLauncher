@@ -212,6 +212,29 @@ struct RetrieverTests {
         #expect(user.contains("[1]"))
         #expect(user.contains("el precio es 1000"))
     }
+
+    @Test("context selection stays inside a token budget and keeps the citation")
+    func contextBudget() {
+        let first = Retrieved(passage: passage("a", String(repeating: "dato ", count: 200)),
+                              score: 1, route: .meaning)
+        let second = Retrieved(passage: passage("b", "segunda fuente"), score: 0.5, route: .words)
+        let selection = Retriever.context(from: [first, second], tokenBudget: 120)
+
+        #expect(selection.estimatedTokens <= 120)
+        #expect(selection.hits.first?.id == "a")
+        #expect(selection.wasTruncated)
+        #expect(selection.hits.first?.passage.source.id == "a")
+    }
+
+    @Test("a prompt reports that its evidence was shortened")
+    func promptBudgetNotice() {
+        let hit = Retrieved(passage: passage("a", String(repeating: "dato ", count: 200)),
+                            score: 1, route: .meaning)
+        let (system, user) = Retriever.prompt(for: "qué pasó", hits: [hit], tokenBudget: 120)
+
+        #expect(system.contains("truncated"))
+        #expect(user.contains("[1]"))
+    }
 }
 
 @Suite("Qué entra en el índice")
