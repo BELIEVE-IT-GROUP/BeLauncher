@@ -176,8 +176,11 @@ public enum MCPTools {
         }
 
         let result = await brain.search(query, limit: clamp(limit))
-        let hits = Retriever.context(from: safe(result.hits),
-                                     tokenBudget: defaultContextTokenBudget).hits
+        let hits = Retriever.BeBrainContextProvider.retrieve(
+            result: Retriever.Result(hits: safe(result.hits), usedMeaning: result.usedMeaning,
+                                     usedWords: result.usedWords, gap: result.gap),
+            level: .b3, tokenBudget: defaultContextTokenBudget
+        ).hits
         guard !hits.isEmpty else {
             return reply(nothingFound(query: query, cover: cover, result: result))
         }
@@ -216,8 +219,11 @@ public enum MCPTools {
         // Asked wider than recall: assembling material for a rewrite wants the second-best
         // paragraph of a source too, where a question only wants the answer.
         let result = await brain.search(task, limit: min(clamp(limit) + 4, maximumLimit))
-        let hits = Retriever.context(from: safe(result.hits),
-                                     tokenBudget: defaultContextTokenBudget).hits
+        let hits = Retriever.BeBrainContextProvider.retrieve(
+            result: Retriever.Result(hits: safe(result.hits), usedMeaning: result.usedMeaning,
+                                     usedWords: result.usedWords, gap: result.gap),
+            level: .b3, tokenBudget: defaultContextTokenBudget
+        ).hits
         guard !hits.isEmpty else {
             return reply(nothingFound(query: task, cover: cover, result: result))
         }
@@ -558,7 +564,12 @@ public enum MCPTools {
         let hits = safe(result.hits)
             .filter { !already.contains($0.passage.source.key) }
             .prefix(5)
-        return Retriever.Result(hits: Array(hits), usedMeaning: result.usedMeaning,
+        let bounded = Retriever.BeBrainContextProvider.retrieve(
+            result: Retriever.Result(hits: Array(hits), usedMeaning: result.usedMeaning,
+                                     usedWords: result.usedWords, gap: result.gap),
+            level: .b3, tokenBudget: defaultContextTokenBudget
+        )
+        return Retriever.Result(hits: bounded.hits, usedMeaning: result.usedMeaning,
                                 usedWords: result.usedWords, gap: result.gap)
     }
 

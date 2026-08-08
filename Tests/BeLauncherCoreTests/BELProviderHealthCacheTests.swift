@@ -27,6 +27,18 @@ struct BELProviderHealthCacheTests {
         #expect(counter.value == 2)
     }
 
+    @Test("changing the selected model invalidates the cached health")
+    func modelChangeInvalidatesHealth() async throws {
+        let cache = BELProviderHealthCache(ttl: 600)
+        let provider = IntelligenceProvider.named("ollama")!
+        let probes = Counter()
+        _ = await cache.snapshot(for: [provider], models: [provider.id: "qwen2.5"],
+                                 probe: { _, _ in probes.value += 1; return .configured })
+        _ = await cache.snapshot(for: [provider], models: [provider.id: "llama3.2"],
+                                 probe: { _, _ in probes.value += 1; return .configured })
+        #expect(probes.value == 2)
+    }
+
     @Test("a generation failure can immediately mark a provider offline")
     func recordsFailure() async throws {
         let provider = try #require(IntelligenceProvider.named("ollama"))

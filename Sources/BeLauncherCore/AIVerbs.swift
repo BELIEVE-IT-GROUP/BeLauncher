@@ -146,7 +146,7 @@ public struct AIVerbRunner: Sendable {
 
         let routedProviders: [IntelligenceProvider]
         if let healthCache {
-            let health = await healthCache.snapshot(for: providers)
+            let health = await healthCache.snapshot(for: providers, models: models)
             routedProviders = try router.providers(for: verb.sensitivity, available: providers,
                                                    health: health,
                                                    machine: MacCapabilityDetector.current())

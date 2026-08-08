@@ -1601,7 +1601,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             preferred: store.setting("ai_provider"),
             localOnlyFor: store.setting("ai_confidential_local", default: true) ? [.confidential] : []
         )
-        let health = await providerHealthCache.snapshot(for: available)
+        let health = await providerHealthCache.snapshot(for: available, models: models)
         let providers = try router.providers(for: sensitivity, available: available, health: health,
                                              machine: MacCapabilityDetector.current())
 

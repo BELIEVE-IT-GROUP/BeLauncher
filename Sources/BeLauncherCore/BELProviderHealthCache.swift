@@ -17,6 +17,7 @@ public actor BELProviderHealthCache {
 
     public func snapshot(
         for providers: [IntelligenceProvider],
+        models: [String: String] = [:],
         keyLookup: @escaping @Sendable (String) -> String? = { Keychain.get($0) },
         now: Date = .now,
         probe: @escaping @Sendable (IntelligenceProvider, String?) async -> IntelligenceProbeState = {
@@ -25,7 +26,9 @@ public actor BELProviderHealthCache {
         }
     ) async -> [String: BELProviderHealth] {
         let fresh = providers.compactMap { provider -> (String, BELProviderHealth)? in
-            guard let cached = values[provider.id], cached.expiresAt > now else { return nil }
+            guard let cached = values[provider.id], cached.expiresAt > now,
+                  models[provider.id] == nil || cached.health.model == nil
+                    || cached.health.model == models[provider.id] else { return nil }
             return (provider.id, cached.health)
         }
         let known = Set(fresh.map(\.0))
@@ -38,7 +41,7 @@ public actor BELProviderHealthCache {
                     let key = provider.transport == .directKey
                         ? keyLookup(provider.keychainAccount) : nil
                     let state = await probe(provider, key)
-                    return (provider.id, BELProviderHealth(state: state))
+                    return (provider.id, BELProviderHealth(state: state, model: models[provider.id]))
                 }
             }
             for await (id, health) in group {
