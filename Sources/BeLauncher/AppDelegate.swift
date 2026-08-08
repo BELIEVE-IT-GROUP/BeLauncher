@@ -1795,7 +1795,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.messageText = L("Move %@ to the trash?", (path as NSString).lastPathComponent)
             alert.informativeText = L("This cannot be undone.")
             alert.alertStyle = .warning
-            alert.addButton(withTitle: L("Move to Trash"))
+            alert.addButton(withTitle: L("Move to the trash"))
             alert.addButton(withTitle: L("Cancel"))
             if alert.runModal() == .alertFirstButtonReturn {
                 executeStableFileAction(id: "files.move_to_trash", path: path, confirmed: true)

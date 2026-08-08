@@ -480,7 +480,7 @@ public enum SearchEngine {
                         id: "bel-(definition.id)", kind: .file,
                         title: definition.titleKey == "Move file to Trash"
                             ? L("Move %@ to the trash", name) : name,
-                        subtitle: definition.titleKey,
+                        subtitle: L(definition.titleKey),
                         score: 100_120 + match.confidence, matched: [], payload: path,
                         actionID: definition.id))
                 } else if definition.kind == .ai,
