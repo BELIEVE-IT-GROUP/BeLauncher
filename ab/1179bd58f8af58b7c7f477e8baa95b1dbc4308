@@ -1,0 +1,36 @@
+Sources/BeLauncherCore/BELStructuredOutput.swift
+  s_30bc31f46aebe1::t_e8dea4bc3e9f99 98-99,108-109,142-150,154-179,181-185
+  s_30bc31f46aebe1::t_f9b9f2f56e6764 151-153,180
+  s_30bc31f46aebe1::t_53c592a5c299bf 186
+Sources/BeLauncherCore/BELAIActionHandler.swift
+  s_30bc31f46aebe1::t_e8dea4bc3e9f99 15,25-27,35-55
+Sources/BeLauncherCore/Retriever.swift
+  s_30bc31f46aebe1::t_630008d1a7e015 20-60
+Sources/BeLauncherCore/AIVerbs.swift
+  s_30bc31f46aebe1::t_32af42154e6377 170-178,180-186
+Tests/BeLauncherCoreTests/BELAIActionHandlerTests.swift
+  s_30bc31f46aebe1::t_e8dea4bc3e9f99 47-70
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_630008d1a7e015 1111-1112
+  s_30bc31f46aebe1::t_32af42154e6377 1631-1635
+Sources/BeLauncherCore/BELFoundationModelsProvider.swift
+  s_30bc31f46aebe1::t_32af42154e6377 48
+Tests/BeLauncherCoreTests/RetrievalTests.swift
+  s_30bc31f46aebe1::t_630008d1a7e015 229-244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "ab1179bd58f8af58b7c7f477e8baa95b1dbc4308",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
