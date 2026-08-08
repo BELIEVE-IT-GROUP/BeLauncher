@@ -11,7 +11,11 @@ final class CommandPanel: NSPanel {
     private var globalClickMonitor: Any?
     private var localClickMonitor: Any?
 
-    init(model: LauncherModel, openSettings: @escaping () -> Void) {
+    init(model: LauncherModel,
+         openSettings: @escaping () -> Void,
+         newNote: @escaping () -> Void,
+         recordVoice: @escaping () -> Void,
+         dictate: @escaping () -> Void) {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 708, height: 120),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -31,7 +35,12 @@ final class CommandPanel: NSPanel {
         appearance = NSAppearance(named: .darkAqua)
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
 
-        let controller = NSHostingController(rootView: CommandView(model: model, openSettings: openSettings))
+        let controller = NSHostingController(rootView: CommandView(
+            model: model,
+            openSettings: openSettings,
+            newNote: newNote,
+            recordVoice: recordVoice,
+            dictate: dictate))
         controller.sizingOptions = [.preferredContentSize]
         contentViewController = controller
 

@@ -7,6 +7,9 @@ import BeLauncherCore
 struct CommandView: View {
     @Bindable var model: LauncherModel
     let openSettings: () -> Void
+    let newNote: () -> Void
+    let recordVoice: () -> Void
+    let dictate: () -> Void
 
     @FocusState private var focus: Field?
 
@@ -359,6 +362,21 @@ struct CommandView: View {
 
     private var footer: some View {
         HStack(spacing: 14) {
+            Button(action: newNote) {
+                Label(L("New note"), systemImage: "note.text.badge.plus")
+            }
+            .buttonStyle(.borderless)
+            .help(L("Write a quick note"))
+            Button(action: recordVoice) {
+                Label(L("Record"), systemImage: "waveform")
+            }
+            .buttonStyle(.borderless)
+            .help(L("Record a voice note"))
+            Button(action: dictate) {
+                Label(L("Dictate"), systemImage: "text.cursor")
+            }
+            .buttonStyle(.borderless)
+            .help(L("Dictate into the current app"))
             Text(countLabel)
                 .font(.system(size: 10.5))
                 .foregroundStyle(.tertiary)

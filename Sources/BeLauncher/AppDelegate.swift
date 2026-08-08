@@ -240,7 +240,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         self.model = model
 
-        let panel = CommandPanel(model: model, openSettings: { [weak self] in self?.openSettings() })
+        let panel = CommandPanel(
+            model: model,
+            openSettings: { [weak self] in self?.openSettings() },
+            newNote: { [weak self] in self?.openQuickNoteEditor() },
+            recordVoice: { [weak self] in self?.audioCapture?.toggleVoiceNote() },
+            dictate: { [weak self] in self?.audioCapture?.toggleDictation() })
         self.panel = panel
 
         // The agent runner owns the tray and everything that runs unattended.
