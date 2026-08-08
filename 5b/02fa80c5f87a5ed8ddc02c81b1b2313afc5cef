@@ -1,0 +1,22 @@
+Tests/BeLauncherCoreTests/BELAIActionHandlerTests.swift
+  s_30bc31f46aebe1::t_7d57fed6b22f7c 1-14,16-47
+  s_30bc31f46aebe1::t_cac244c334b787 15
+Sources/BeLauncherCore/BELAIActionHandler.swift
+  s_30bc31f46aebe1::t_7d57fed6b22f7c 1-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5b02fa80c5f87a5ed8ddc02c81b1b2313afc5cef",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
