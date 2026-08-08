@@ -7,7 +7,11 @@ let package = Package(
     targets: [
         .target(
             name: "BeLauncherCore",
-            linkerSettings: [.linkedLibrary("sqlite3")]
+            linkerSettings: [
+                .linkedLibrary("sqlite3"),
+                .linkedFramework("IOKit"),
+                .linkedFramework("SystemConfiguration")
+            ]
         ),
         .executableTarget(
             name: "BeLauncher",
