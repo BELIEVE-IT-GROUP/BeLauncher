@@ -1,0 +1,59 @@
+Sources/BeLauncherCore/Inbox.swift
+  s_30bc31f46aebe1::t_bf623de73d24f2 23,34-35,48
+Tests/BeLauncherCoreTests/BrainQueryTests.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 39-47,260-266
+Tests/BeLauncherAppTests/CorpusRunnerTests.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 25-27,238-241,243-257
+  s_30bc31f46aebe1::t_7acf92d456f73f 242
+  s_30bc31f46aebe1::t_32b19d3bc48047 258
+Sources/BeLauncherCore/Vault.swift
+  s_30bc31f46aebe1::t_f28255fd719f7b 328-329
+  s_30bc31f46aebe1::t_aaa87879ee8f6a 81-82,85-102,318-327
+  s_30bc31f46aebe1::t_2fc9221db0d191 330-331
+docs/release-0.32.54.md
+  s_30bc31f46aebe1::t_ff1a0c3cadc228 1-42
+Tests/BeLauncherCoreTests/UtilitiesTests.swift
+  s_30bc31f46aebe1::t_0a024e0262df8a 305-326
+Sources/BeLauncher/LauncherInputNeeds.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 31-34,43,53
+Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 38,42,46
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_7acf92d456f73f 266-272
+Sources/BeLauncher/CorpusRunner.swift
+  s_30bc31f46aebe1::t_7acf92d456f73f 564,751
+  s_30bc31f46aebe1::t_18405bbda9fceb 51,81,85,218,546-547,553-563,565-578,744-750
+Tests/BeLauncherCoreTests/VaultTests.swift
+  s_30bc31f46aebe1::t_56f7db9b94e4ef 80-82
+  s_30bc31f46aebe1::t_a8994af49e3218 63-79,83-92
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_24140e3f99de47 1380,1383-1384,1389-1390
+Sources/BeLauncherCore/Corpus.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 295-297,366-400
+  s_30bc31f46aebe1::t_112191e980e29e 401
+Tests/BeLauncherCoreTests/CorpusTests.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 196-223
+Sources/BeLauncherCore/Utilities.swift
+  s_30bc31f46aebe1::t_593b0cb50a5b83 108,155-156,159-161,167,230-231
+Sources/BeLauncherCore/Phrases.swift
+  s_30bc31f46aebe1::t_30a2f9621cc14a 71-77
+Sources/BeLauncherCore/BrainQuery.swift
+  s_30bc31f46aebe1::t_18405bbda9fceb 27-32,34-39
+  s_30bc31f46aebe1::t_8e3fdb97448acb 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8ec95f9b27d7b959359331c2089683886221bcda",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
