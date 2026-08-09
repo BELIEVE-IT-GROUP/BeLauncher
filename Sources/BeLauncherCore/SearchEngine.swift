@@ -482,6 +482,13 @@ public enum SearchEngine {
                         score: 100_200, matched: [],
                         payload: typed.verb.id + "\u{1F}" + source,
                         actionID: "ai.verb.\(typed.verb.id)"))
+                } else {
+                    pinned.append(SearchResult(
+                        id: "verb-input-\(typed.verb.id)", kind: .answer,
+                        title: typed.verb.title,
+                        subtitle: L("Write or paste text to continue"),
+                        score: 100_200, matched: [], payload: typed.verb.id,
+                        actionID: "ai.verb.\(typed.verb.id)"))
                 }
             }
 

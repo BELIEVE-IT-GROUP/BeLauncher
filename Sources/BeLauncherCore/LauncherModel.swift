@@ -197,6 +197,7 @@ public final class LauncherModel {
     }
 
     public private(set) var aiState: AIState = .idle
+    public private(set) var textRequest: AIVerb?
     /// The app layer owns the Brain search because it also owns the configured provider and vault.
     /// The launcher only decides that a free-form question should be handed there.
     public var onNaturalLanguageQuestion: (@MainActor (String) -> Void)?
@@ -244,6 +245,17 @@ public final class LauncherModel {
         }
     }
     public func aiFailed(_ message: String) { aiState = .failed(message) }
+
+    public func requestText(for verb: AIVerb) { textRequest = verb }
+
+    public func submitTextRequest(_ text: String) {
+        guard let verb = textRequest,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        textRequest = nil
+        perform(.runVerb(id: verb.id, text: text))
+    }
+
+    public func cancelTextRequest() { textRequest = nil }
     public func clearAI() { aiState = .idle; perform(.cancelAI) }
 
     public private(set) var isActionPanelOpen = false
@@ -652,6 +664,11 @@ public final class LauncherModel {
         case .answer:
             if result.id == "brain-question" {
                 onNaturalLanguageQuestion?(result.payload)
+                return true
+            }
+            if result.id.hasPrefix("verb-input-"),
+               let verb = AIVerb.named(String(result.id.dropFirst("verb-input-".count))) {
+                requestText(for: verb)
                 return true
             }
             if result.payload.isEmpty, let completion = result.completion {

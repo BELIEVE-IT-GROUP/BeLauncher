@@ -222,11 +222,12 @@ struct TypedVerbTests {
         #expect(offer?.payload.contains("lo copiado") == false)
     }
 
-    @Test("nothing to work on means no offer at all")
-    func noSourceNoOffer() {
+    @Test("without clipboard the verb offers a text composer")
+    func noSourceOffersComposer() {
         let results = SearchEngine.search("traducir", in: SearchInput())
-        #expect(!results.contains { $0.id.hasPrefix("verb-") },
-                "ofrecer traducir la nada es peor que no ofrecer nada")
+        let offer = results.first { $0.id == "verb-input-translate-es" }
+        #expect(offer != nil)
+        #expect(offer?.subtitle == "Write or paste text to continue")
     }
 
     @Test("ordinary typing never becomes an AI offer by accident")

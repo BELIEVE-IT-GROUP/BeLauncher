@@ -82,6 +82,10 @@ Los verbos de IA también aceptan lenguaje cotidiano: `resume esto`, `corrige lo
 `traducir esto` y equivalentes usan el último texto copiado como contexto y aparecen como una fila
 ejecutable. Los flujos y atajos creados por la persona conservan prioridad si usan la misma palabra.
 
+Cuando el verbo no tiene texto disponible, el Launcher abre un compositor propio para escribir o
+pegar el contenido. Ya no exige haber copiado algo antes ni deja que el verbo falle sobre una entrada
+vacía.
+
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover

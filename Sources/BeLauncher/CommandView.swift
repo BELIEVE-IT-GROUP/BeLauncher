@@ -68,6 +68,14 @@ struct CommandView: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
+        .overlay {
+            if let verb = model.textRequest {
+                AIInputComposer(verb: verb,
+                                submit: { model.submitTextRequest($0) },
+                                cancel: { model.cancelTextRequest() })
+                    .transition(.opacity)
+            }
+        }
         .shadow(color: .black.opacity(0.45), radius: 24, y: 14)
         .padding(Theme.shadowPadding)
         .onAppear { focusSearchSoon() }
@@ -687,6 +695,77 @@ private struct AIPane: View {
 }
 
 // MARK: - Action panel
+
+@MainActor
+private struct AIInputComposer: View {
+    let verb: AIVerb
+    let submit: (String) -> Void
+    let cancel: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 9) {
+                Image(systemName: verb.symbol).foregroundStyle(Theme.cyan)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verb.title).font(.system(size: 14, weight: .semibold))
+                    Text(L("Write or paste text")).font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(16)
+            Divider().overlay(.white.opacity(0.08))
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $text)
+                    .font(.system(size: 13))
+                    .scrollContentBackground(.hidden)
+                    .focused($focused)
+                    .padding(10)
+                if text.isEmpty {
+                    Text(L("Paste or type the text you want to work on…"))
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 17)
+                        .allowsHitTesting(false)
+                }
+            }
+            Divider().overlay(.white.opacity(0.08))
+            HStack {
+                Button(L("Paste")) {
+                    if let value = NSPasteboard.general.string(forType: .string) {
+                        text = value
+                    }
+                    focused = true
+                }
+                .buttonStyle(.borderless)
+                Spacer()
+                Button(L("Cancel")) { cancel() }
+                Button(L("Run")) { submit(text) }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(12)
+        }
+        .frame(width: 520, height: 300)
+        .background(GlassSurface())
+        .background(Color.black.opacity(0.35))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Theme.cyan.opacity(0.35), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.6), radius: 26, y: 12)
+        .onAppear {
+            if !reduceMotion { withAnimation(.easeOut(duration: 0.14)) { focused = true } }
+            else { focused = true }
+        }
+    }
+}
 
 @MainActor
 private struct ActionPanelView: View {
