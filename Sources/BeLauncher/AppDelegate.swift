@@ -496,6 +496,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "reminders":
             guard reminders.isAuthorised else { return false }
             await reminders.refresh()
+            let current = Set(Capture.reminders(reminders.reminders).map(\.node.id))
+            let old = Set((store?.nodes(kind: .commitment, limit: 2_000) ?? [])
+                .map(\.id).filter { $0.hasPrefix("commitment:reminder:") })
+            store?.removeWorkNodes(ids: old.subtracting(current))
             rememberAll(Capture.reminders(reminders.reminders))
         case "contacts":
             guard contacts.isAuthorised else { return false }

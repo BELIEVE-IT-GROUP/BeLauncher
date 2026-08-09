@@ -151,3 +151,5 @@ dato de contacto útil se convierten en nodos `Person` sin duplicar la libreta n
 Brain es el origen. Photos permanece fuera del grafo y Reminders conserva su modelo de pendientes.
 Los recordatorios pendientes también se proyectan como `Commitment` operativos al actualizar la
 fuente; no entran como memoria confirmada y su fuente sigue siendo Reminders.
+Los compromisos que ya no devuelve una lectura autorizada se retiran solo si llevan el prefijo de
+Reminders; un fallo de lectura nunca dispara esa limpieza.

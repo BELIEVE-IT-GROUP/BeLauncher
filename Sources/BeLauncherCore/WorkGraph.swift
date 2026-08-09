@@ -182,6 +182,16 @@ extension Store {
         return rows.first.map(Self.node(from:))
     }
 
+    /// Removes only source-owned graph nodes. Callers must pass an explicit set so a failed or
+    /// partial connector read can never wipe an unrelated part of the Brain.
+    public func removeWorkNodes(ids: Set<String>) {
+        for id in ids {
+            try? database.execute("DELETE FROM work_edges WHERE source = ? OR target = ?",
+                                 [.text(id), .text(id)])
+            try? database.execute("DELETE FROM work_nodes WHERE id = ?", [.text(id)])
+        }
+    }
+
     public func edges(from id: String) -> [WorkEdge] {
         let rows = (try? database.query(
             "SELECT * FROM work_edges WHERE source = ? OR target = ?", [.text(id), .text(id)]
