@@ -5,6 +5,14 @@ public enum BELLocalCore {
     public static let id = "bebrain.local.core"
 }
 
+/// Where the provider actually executes. This is deliberately separate from the provider name:
+/// a local Ollama endpoint and a future first-party local core share the same privacy boundary.
+public enum BELModelPlacement: String, Codable, Sendable, Equatable {
+    case onDevice
+    case local
+    case cloud
+}
+
 /// The model boundary used by Brain actions. The Brain asks for a capability and a typed
 /// response; it never needs to know whether the answer came from Ollama, an OpenAI-compatible
 /// server, or a direct cloud API.
@@ -39,13 +47,29 @@ public struct BELModelResponse: Sendable, Equatable {
 
 public protocol BELLanguageModelProvider: Sendable {
     var providerID: String { get }
+    var placement: BELModelPlacement { get }
     var capabilities: Set<ModelCapability> { get }
+
+    /// `nil` means the provider has not supplied a verified context limit. It must never be
+    /// replaced with a marketing value because retrieval budgets depend on this number.
+    var contextWindow: Int? { get async }
+
+    /// A runtime check, not a configuration check. Implementations must perform a real probe or
+    /// consult a runtime-owned health source before returning true.
+    func isAvailable() async -> Bool
 
     func generate(_ request: BELModelRequest, model: String?) async throws -> BELModelResponse
 
     /// Returns the same response while exposing fragments to interactive surfaces.
     func stream(_ request: BELModelRequest, model: String?,
                 onFragment: @escaping @Sendable (String) -> Void) async throws -> BELModelResponse
+}
+
+public extension BELLanguageModelProvider {
+    var contextWindow: Int? { nil }
+
+    /// New providers fail closed until they implement a real availability check.
+    func isAvailable() async -> Bool { false }
 }
 
 /// Adapter for every provider that speaks the configured HTTP contract. Keeping this adapter
@@ -57,6 +81,9 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
     public let client: IntelligenceClient
 
     public var providerID: String { descriptor.id }
+    public var placement: BELModelPlacement {
+        descriptor.isPrivate ? .local : .cloud
+    }
 
     public init(descriptor: IntelligenceProvider,
                 capabilities: Set<ModelCapability>? = nil,
@@ -67,6 +94,7 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
     }
 
     public func generate(_ request: BELModelRequest, model: String? = nil) async throws -> BELModelResponse {
+        try Task.checkCancellation()
         let intelligenceRequest = IntelligenceRequest(
             system: request.system,
             prompt: request.prompt,
@@ -76,12 +104,14 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
         )
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.answer(intelligenceRequest, using: descriptor, model: selectedModel)
+        try Task.checkCancellation()
         return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
     }
 
     public func stream(_ request: BELModelRequest, model: String? = nil,
                        onFragment: @escaping @Sendable (String) -> Void) async throws
         -> BELModelResponse {
+        try Task.checkCancellation()
         let intelligenceRequest = IntelligenceRequest(
             system: request.system,
             prompt: request.prompt,
@@ -92,7 +122,18 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.stream(intelligenceRequest, using: descriptor,
                                            model: selectedModel, onFragment: onFragment)
+        try Task.checkCancellation()
         return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
+    }
+
+    public func isAvailable() async -> Bool {
+        let key = descriptor.transport == .directKey
+            ? client.keyLookup(descriptor.keychainAccount)
+            : nil
+        let state = await IntelligenceProvider.probe(descriptor, key: key,
+                                                      transport: client.transport)
+        if case .configured = state { return true }
+        return false
     }
 }
 
@@ -101,7 +142,9 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
 public struct BELLocalCoreProvider: BELLanguageModelProvider {
     public let backend: BELHTTPModelProvider
     public var providerID: String { BELLocalCore.id }
+    public var placement: BELModelPlacement { .local }
     public var capabilities: Set<ModelCapability> { backend.capabilities }
+    public var contextWindow: Int? { get async { backend.contextWindow } }
 
     public init(descriptor: IntelligenceProvider,
                 client: IntelligenceClient = IntelligenceClient()) {
@@ -119,6 +162,10 @@ public struct BELLocalCoreProvider: BELLanguageModelProvider {
         -> BELModelResponse {
         let response = try await backend.stream(request, model: model, onFragment: onFragment)
         return BELModelResponse(text: response.text, providerID: providerID, model: response.model)
+    }
+
+    public func isAvailable() async -> Bool {
+        await backend.isAvailable()
     }
 }
 

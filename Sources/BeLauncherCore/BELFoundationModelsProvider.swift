@@ -15,9 +15,14 @@ public enum BELFoundationModelsRuntime {
 @available(macOS 26.0, *)
 public struct BELFoundationModelsProvider: BELLanguageModelProvider {
     public let providerID = "apple.foundation.models"
+    public let placement: BELModelPlacement = .onDevice
     public let capabilities: Set<ModelCapability> = [.chat]
 
     public init() {}
+
+    public func isAvailable() async -> Bool {
+        BELFoundationModelsRuntime.isAvailable
+    }
 
     private func session(for request: BELModelRequest) throws -> LanguageModelSession {
         guard SystemLanguageModel.default.isAvailable else {

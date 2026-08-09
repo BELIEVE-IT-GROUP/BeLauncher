@@ -75,6 +75,27 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("every implemented action resolves through its declared adapter")
+    func everyImplementedActionHasAHandler() throws {
+        let runtime = BELActionRuntime()
+        let implemented = BELActionCatalog.all.filter {
+            $0.availability == .implemented && $0.kind == .native
+        }
+
+        #expect(!implemented.isEmpty)
+        for definition in implemented {
+            #expect(runtime.handler(for: definition)?.actionID == definition.id,
+                    "missing handler for \(definition.id) via \(definition.adapter.rawValue)")
+        }
+    }
+
+    @Test("native resolution order is explicit and public APIs lead")
+    func nativeResolutionOrder() {
+        #expect(BELActionRuntime.nativeAdapterOrder == [
+            .publicAPI, .ownAppIntent, .shortcut, .urlScheme, .appleScript, .allowlistedShell,
+        ])
+    }
+
     @Test("permission-sensitive public actions stop at the central gate")
     func publicAdaptersRespectCapabilities() async throws {
         let runtime = BELActionRuntime()
