@@ -1,0 +1,23 @@
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_9f4edd622b778c 863,869,1617,1774-1777
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_9f4edd622b778c 29
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_84bf702bb32b37 42-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "c2baff8a0a2a0cfb141f040db505dd200fd208b6",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
