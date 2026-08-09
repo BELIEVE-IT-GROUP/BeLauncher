@@ -1,0 +1,23 @@
+Sources/BeLauncher/MCPProbe.swift
+  s_30bc31f46aebe1::t_696bae72588e33 20-21,68-70,82-86,98
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_64842f8f2f30fb 1203-1204
+docs/release-0.32.62.md
+  s_30bc31f46aebe1::t_985a3d49e0a9de 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "7b300e1c6cd5b18ab0884f789036308b850e328c",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
