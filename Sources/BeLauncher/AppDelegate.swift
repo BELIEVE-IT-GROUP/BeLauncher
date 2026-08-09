@@ -509,6 +509,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "contacts":
             guard contacts.isAuthorised else { return false }
             await contacts.refresh()
+            if let problem = contacts.lastError, !problem.isEmpty {
+                recordLocalSourceProblem("contacts", problem: problem)
+                return false
+            }
             let current = Set(Capture.contacts(contacts.contacts).map(\.node.id))
             let old = Set((store?.nodes(kind: .person, limit: 2_000) ?? [])
                 .map(\.id).filter { $0.hasPrefix("person:contact:") })
@@ -531,6 +535,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.setSetting("source_last_sync_\(id)", String(Date.now.timeIntervalSince1970))
         store.setSetting("source_last_count_\(id)", String(count))
         store.setSetting("source_last_problem_\(id)", "")
+    }
+
+    private func recordLocalSourceProblem(_ id: String, problem: String) {
+        guard let store else { return }
+        store.setSetting("source_last_problem_\(id)", String(problem.prefix(500)))
     }
 
     private func reviewInterruptedAction(_ id: String) {
