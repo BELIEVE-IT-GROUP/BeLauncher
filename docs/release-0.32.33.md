@@ -2,7 +2,7 @@
 
 ## Scope
 
-This release closes N6 and A6 from `docs/plan-action-map-v2.md` and records the N7 release audit.
+This release closes N6, A6, A7 and A8 from `docs/plan-action-map-v2.md` and records the N7 release audit.
 
 ## N7 audit: signed release boundary
 
@@ -62,11 +62,34 @@ truncated tool envelope are not guessed around. No prompt text is interpreted by
 an instruction; it is validated only as the declared JSON field value and remains subject to the
 same size limit.
 
+## A7: local model discovery and routing
+
+Local Ollama and LM Studio model discovery now trims and deduplicates names, rejects unhealthy
+endpoints, and selects only an installed chat-capable model. A saved embedding model or stale model
+name is not sent to chat. When a usable local model exists, it is the default route unless the user
+explicitly selected a cloud provider; cloud remains an explicit fallback rather than a silent
+startup choice.
+
+## A8: confirmed writeback and forgetting
+
+AI output enters the vault only as an extracted proposal. `confirm` is the sole path that promotes it
+to committed memory; `discard` records the decision without creating an object. Evidence and project
+updates remain ordinary Inbox/proposal flows, and each AI control-plane transition is appended to the
+local audit JSONL without storing prompts or model output.
+
+`forget` is two-step: preview reports the exact counts, then confirmation removes source rows,
+passages and vectors, graph nodes/edges and action-log entries in the selected period. The contract
+tests verify that a vectorized passage is no longer searchable after confirmation.
+
 ## Verification
 
 - Curated catalog count, unique IDs, unknown-action rejection and deep-link round trip.
 - Structured output: valid JSON, fences, schema mismatch, unknown fields, truncation, oversized
   input, depth, object, array and string limits.
+- Local model routing: Ollama/LM Studio discovery, stale saved-model rejection, embedding-model
+  rejection and offline endpoint handling.
+- Writeback: proposal-only writes, explicit confirm/discard, project proposal, audited evidence,
+  and two-step forgetting with index/vector deletion.
 - Full Swift suite: run `swift test` from the repository root before packaging.
 
 ## Deliberate limits

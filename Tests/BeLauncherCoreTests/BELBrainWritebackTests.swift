@@ -36,6 +36,22 @@ struct BELBrainWritebackTests {
         #expect(vault.aiAuditEvents().map(\.action) == [.proposalRecorded, .proposalConfirmed])
     }
 
+    @Test("discard is explicit and never creates a current object")
+    func discard() throws {
+        let vault = try vault()
+        let commit = try BELBrainWriteback.propose(
+            json: "{\"statement\":\"No guardar esta hipótesis\",\"kind\":\"note\"}",
+            vault: vault
+        )
+
+        try BELBrainWriteback.discard(commitID: commit.id, in: vault)
+
+        #expect(vault.current().isEmpty)
+        #expect(vault.objects().isEmpty)
+        #expect(vault.commits(state: .discarded).map(\.id) == [commit.id])
+        #expect(vault.aiAuditEvents().map(\.action) == [.proposalRecorded, .proposalDiscarded])
+    }
+
     @Test("invalid or unknown model output cannot reach the vault")
     func rejectsUnsafeOutput() throws {
         let vault = try vault()
@@ -77,16 +93,24 @@ struct BELBrainWritebackTests {
         let storePath = FileManager.default.temporaryDirectory
             .appendingPathComponent("writeback-store-\(UUID().uuidString)/store.sqlite3").path
         let store = try Store(path: storePath)
+        try store.migrateSemanticIndex()
         let vault = try vault()
         let at = Date(timeIntervalSince1970: 2_000_000)
         _ = store.recordClip(text: "private", sourceApp: "Test", at: at)
+        _ = store.replacePassages(
+            for: IndexedSource(kind: .clip, id: "voice-1"), title: "Voice note", occurredAt: at,
+            text: "Private voice note that must disappear from the searchable brain."
+        )
         let period = Privacy.Period(from: at.addingTimeInterval(-1), to: at.addingTimeInterval(1))
 
         let preview = try BELBrainWriteback.previewForget(period, store: store, vault: vault, date: at)
         #expect(preview.clips == 1)
+        #expect(preview.passages == 1)
         #expect(store.clips().count == 1)
+        #expect(store.indexedPassageCount().total == 1)
         _ = try BELBrainWriteback.confirmForget(period, store: store, vault: vault, date: at)
         #expect(store.clips().isEmpty)
+        #expect(store.indexedPassageCount().total == 0)
         #expect(vault.aiAuditEvents().map(\.action) == [.forgetPreviewed, .forgetConfirmed])
     }
 }
