@@ -134,6 +134,16 @@ struct KeyboardWorkflowTests {
         #expect(found.first?.id == "reminder-r1")
     }
 
+    @Test("an explicit reminder command creates a confirmed action")
+    func createReminderCommand() {
+        let input = SearchInput(remindersAuthorised: true)
+        let result = SearchEngine.search("/reminder llamar al cliente", in: input).first
+        #expect(result?.id == "reminder-create")
+        #expect(result?.payload == "llamar al cliente")
+        #expect(ActionRegistry.actions(for: result!).first?.title == "Create reminder")
+        #expect(ActionRegistry.actions(for: result!).first?.isDestructive == false)
+    }
+
     @Test("an unavailable local source explains how to unlock it")
     func sourcePermissionResultIsActionable() {
         let result = SearchEngine.search("/contacts", in: SearchInput()).first
