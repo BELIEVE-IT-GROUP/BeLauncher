@@ -112,6 +112,15 @@ struct KeyboardWorkflowTests {
         #expect(recorder.actions.first == .copyToClipboard(text: "Best,\nJorge", cursorOffset: 6))
     }
 
+    @Test("shortcuts can be browsed without knowing their exact name")
+    func browseShortcuts() {
+        let results = SearchEngine.search("/shortcuts",
+                                          in: SearchInput(systemShortcuts: ["Focus block"]))
+        #expect(results.count == 1)
+        #expect(results.first?.kind == .shortcut)
+        #expect(results.first?.payload == "Focus block")
+    }
+
     @Test("an unmatched natural-language question is handed to the Brain")
     func naturalLanguageQuestion() {
         let recorder = Recorder()

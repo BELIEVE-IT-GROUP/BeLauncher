@@ -90,6 +90,13 @@ Un término sin resultados ofrece ahora `Ask your brain` con la misma frase, en 
 persona solo con ejemplos técnicos. En el Brain, cada fuente disponible o manual tiene un acceso
 directo a Ajustes; las fuentes planificadas siguen marcadas como tales y no prometen una conexión.
 
+## Wave 2: Shortcuts
+
+Los atajos de macOS ya no dependen de recordar el nombre exacto: el footer tiene una entrada
+`Shortcuts` que abre `/shortcuts`, muestra los atajos que macOS reporta en esta máquina y permite
+seleccionarlos, leer su detalle y ejecutarlos con Enter. La ejecución sigue pasando por la compuerta
+de permisos y confirmación existente.
+
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover

@@ -285,7 +285,14 @@ public enum SearchEngine {
                                  title: snippet.title,
                                  subtitle: "\(snippet.keyword) · \(preview(snippet.body))",
                                  score: 100_000 - index, matched: [], payload: snippet.body,
-                                 recordID: snippet.id)
+                    recordID: snippet.id)
+                }
+            }
+            if slash == "shortcut" || slash == "shortcuts" {
+                return input.systemShortcuts.prefix(limit).enumerated().map { index, name in
+                    SearchResult(id: "shortcut-run-\(name)", kind: .shortcut,
+                                 title: name, subtitle: L("macOS Shortcut"),
+                                 score: 100_000 - index, matched: [], payload: name)
                 }
             }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {

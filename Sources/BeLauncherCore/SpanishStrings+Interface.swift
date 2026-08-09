@@ -24,6 +24,7 @@ extension SpanishStrings {
         "Quick actions": "Acciones rápidas",
         "Snippets": "Snippets",
         "Use a saved snippet": "Usar un snippet guardado",
+        "Use a macOS Shortcut": "Usar un atajo de macOS",
         "Ask your Brain about %@": "Preguntar al Brain sobre %@",
         "Search your local knowledge and show the sources": "Buscar en tu conocimiento local y mostrar las fuentes",
         "Asking your Brain…": "Preguntando a tu Brain…",

@@ -403,6 +403,14 @@ struct CommandView: View {
             }
             .buttonStyle(.borderless)
             .help(L("Use a saved snippet"))
+            Button {
+                model.query = "/shortcuts"
+                focus = .search
+            } label: {
+                Label(L("Shortcuts"), systemImage: "square.stack.3d.up")
+            }
+            .buttonStyle(.borderless)
+            .help(L("Use a macOS Shortcut"))
             Button(action: recordVoice) {
                 Label(L("Record"), systemImage: "waveform")
             }
