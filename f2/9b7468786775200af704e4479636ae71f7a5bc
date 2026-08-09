@@ -1,0 +1,37 @@
+Sources/BeLauncher/PDFActionHandler.swift
+  s_30bc31f46aebe1::t_cc5d78c759ea90 1-40
+Sources/BeLauncher/CalendarActionHandler.swift
+  s_30bc31f46aebe1::t_cc5d78c759ea90 1-50
+Sources/BeLauncher/BELActionRuntime.swift
+  s_30bc31f46aebe1::t_efb74751727dbd 21-23
+Sources/BeLauncher/FileActionHandler.swift
+  s_30bc31f46aebe1::t_9cffd3ecb760e3 32,36,42
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_934f1edadb1546 48-51
+Sources/BeLauncher/ScreenActionHandler.swift
+  s_30bc31f46aebe1::t_9cffd3ecb760e3 29-32,55
+  s_30bc31f46aebe1::t_cc5d78c759ea90 1-28,33-54,56-57
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_efb74751727dbd 22,137-169
+  s_30bc31f46aebe1::t_c8c6ce69f8afb7 170
+Sources/BeLauncher/ShortcutActionHandler.swift
+  s_30bc31f46aebe1::t_9cffd3ecb760e3 51
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_8174b574c7205c 54-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "f29b7468786775200af704e4479636ae71f7a5bc",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
