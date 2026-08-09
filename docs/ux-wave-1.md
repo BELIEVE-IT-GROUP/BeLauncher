@@ -104,7 +104,7 @@ de permisos y confirmación existente.
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta muestra una acción `Quick Preview`
-visible y también abre el detalle al mantener el cursor 240 ms sobre ella (con cancelación al salir). El contenido completo se expande dentro del Launcher, sin
+visible y también abre el detalle al mantener el cursor 160 ms sobre ella (con cancelación al salir). El contenido completo se expande dentro del Launcher, sin
 cerrarlo ni reemplazar el contenido del portapapeles. El preview reutiliza el detalle real y funciona
 para texto largo, imágenes y archivos, junto con las acciones existentes de la tarjeta.
 

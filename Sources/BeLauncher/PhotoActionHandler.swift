@@ -24,7 +24,8 @@ struct PhotoActionHandler: BELActionHandler {
     }
     func perform(input: Data) async throws -> BELActionResult {
         let value = try JSONDecoder().decode(BELPhotoActionInput.self, from: input)
-        guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
+        let authorization = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard authorization == .authorized || authorization == .limited else {
             throw PhotoActionError.permission
         }
         if actionID == "photos.remember" {

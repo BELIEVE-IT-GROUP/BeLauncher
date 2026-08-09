@@ -7,7 +7,12 @@ final class PhotoAccess {
     private(set) var photos: [PhotoItem] = []
     private var hasAsked = false
     var isAuthorised: Bool {
-        PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized
+        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+        case .authorized, .limited:
+            return true
+        default:
+            return false
+        }
     }
 
     func requestAccessIfNeeded() async {
@@ -27,15 +32,27 @@ final class PhotoAccess {
         var mapped: [PhotoItem] = []
         let assets = (0..<images.count).map { images.object(at: $0) }
             + (0..<videos.count).map { videos.object(at: $0) }
-        for asset in assets {
-            let date = asset.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? L("Photo")
-            mapped.append(PhotoItem(id: asset.localIdentifier, title: date,
-                                    album: L("Photo library"),
-                                    creationDate: asset.creationDate,
-                                    width: asset.pixelWidth, height: asset.pixelHeight,
-                                    isFavorite: asset.isFavorite,
-                                    mediaType: asset.mediaType == .video ? "video" : "image"))
-        }
+        mapped = assets.map(makeItem)
         photos = mapped
+    }
+
+    /// Resolves an asset outside the 500-item launcher snapshot.
+    /// This keeps a selected localIdentifier from becoming a false success when it is outside
+    /// the launcher-facing recent window.
+    func item(for assetID: String) -> PhotoItem? {
+        guard isAuthorised,
+              let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
+        else { return nil }
+        return makeItem(asset)
+    }
+
+    private func makeItem(_ asset: PHAsset) -> PhotoItem {
+        let date = asset.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? L("Photo")
+        return PhotoItem(id: asset.localIdentifier, title: date,
+                         album: L("Photo library"),
+                         creationDate: asset.creationDate,
+                         width: asset.pixelWidth, height: asset.pixelHeight,
+                         isFavorite: asset.isFavorite,
+                         mediaType: asset.mediaType == .video ? "video" : "image")
     }
 }

@@ -2214,9 +2214,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 Task { @MainActor in
                     do {
-                        _ = try await BELActionRuntime().execute(definition, input: input,
-                                                                 capabilities: .allGranted,
-                                                                 confirmed: true)
+                        let result = try await BELActionRuntime().execute(definition, input: input,
+                                                                          capabilities: .allGranted,
+                                                                          confirmed: true)
+                        let detail = result.receipt.isEmpty
+                            ? result.text
+                            : [result.text, L("Receipt: %@", result.receipt)]
+                                .filter { !$0.isEmpty }
+                                .joined(separator: "\n")
+                        report(L("Shortcut completed"), detail)
                     } catch {
                         report(L("The shortcut could not be run"), "\(error)")
                     }
@@ -2345,7 +2351,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
-                if id == "photos.remember", let photo = photos.photos.first(where: { $0.id == argument }) {
+                if id == "photos.remember" {
+                    guard let photo = photos.item(for: argument) else {
+                        report(L("The action could not be completed"),
+                               L("The selected photo is no longer available in Photos."))
+                        return
+                    }
                     remember(Capture.photo(photo))
                 }
                 report(L("Action completed"), result.text)
