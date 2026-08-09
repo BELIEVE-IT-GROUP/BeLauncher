@@ -2306,6 +2306,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let date = promptForReminderDate() else { return }
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument,
                                                                          dueDate: date))
+            case "reminders.show_list":
+                input = try JSONEncoder().encode(BELReminderActionInput(list: argument))
             case "contacts.find":
                 input = try JSONEncoder().encode(BELContactActionInput(query: argument))
             case "contacts.get_details", "contacts.copy_email":

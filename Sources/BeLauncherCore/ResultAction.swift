@@ -284,6 +284,11 @@ public enum ActionRegistry {
                                      shortcut: .enter, section: .manage,
                                      intent: .systemCommand("bel:reminders.create\u{1F}\(result.payload)"))]
             }
+            if result.id == "reminder-list" {
+                return [ResultAction(id: "show-list", title: L("Show reminders in list"),
+                                     symbol: "list.bullet", shortcut: .enter,
+                                     intent: .systemCommand("bel:reminders.show_list\u{1F}\(result.payload)"))]
+            }
             if result.id == "contact-create" {
                 return [ResultAction(id: "create", title: L("Create contact"), symbol: "person.badge.plus",
                                      shortcut: .enter, section: .manage,

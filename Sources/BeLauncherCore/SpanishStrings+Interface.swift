@@ -54,6 +54,7 @@ extension SpanishStrings {
         "Clipboard waiting": "Portapapeles pendiente",
         "Remove from Inbox": "Quitar del Inbox",
         "Complete reminder": "Completar recordatorio",
+        "Show reminders in list": "Mostrar recordatorios de la lista",
         "Change due date": "Cambiar fecha de vencimiento",
         "Create reminder": "Crear recordatorio",
         "Create contact": "Crear contacto",

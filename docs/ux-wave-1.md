@@ -123,6 +123,8 @@ actualizan la proyección del Brain y dejan un recibo con el identificador de Ev
 abre un campo explícito que acepta `tomorrow 09:00`, `today 15:30` o `yyyy-MM-dd HH:mm`, pide confirmación
 antes de escribir en EventKit y refresca el recordatorio después del guardado. Una fecha inválida no
 se interpreta ni se ejecuta.
+Para consultar una lista concreta sin crear nada, `/reminders list Trabajo` es una orden distinta:
+lee solo los recordatorios pendientes de esa lista y devuelve un recibo de lectura.
 
 ## Wave 2: Contacts
 

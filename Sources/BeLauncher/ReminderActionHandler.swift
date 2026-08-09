@@ -20,7 +20,8 @@ struct ReminderActionHandler: BELActionHandler {
     let actionID: String
 
     init?(definition: BELActionDefinition) {
-        guard ["reminders.find", "reminders.create", "reminders.complete", "reminders.change_due_date"].contains(definition.id),
+        guard ["reminders.find", "reminders.create", "reminders.complete",
+               "reminders.change_due_date", "reminders.show_list"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -72,6 +73,30 @@ struct ReminderActionHandler: BELActionHandler {
             try store.save(reminder, commit: true)
             return BELActionResult(text: L("Reminder rescheduled: %@", reminder.title ?? L("Untitled")),
                                    changed: [id], receipt: "reminders:due-date:\(id)")
+        }
+        if actionID == "reminders.show_list" {
+            let listName = value.list?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !listName.isEmpty else { throw ReminderActionError.invalidInput }
+            guard let calendar = store.calendars(for: .reminder).first(where: {
+                $0.title.localizedCaseInsensitiveCompare(listName) == .orderedSame
+            }) else { throw ReminderActionError.noList }
+            let predicate = store.predicateForReminders(in: [calendar])
+            let lines: [String] = await withCheckedContinuation { continuation in
+                store.fetchReminders(matching: predicate) { items in
+                    let lines = (items ?? []).filter { !$0.isCompleted }
+                        .prefix(50)
+                        .map { item in
+                            let due = item.dueDateComponents.flatMap { Calendar.current.date(from: $0) }
+                                .map { $0.formatted(date: .abbreviated, time: .shortened) }
+                                ?? L("No due date")
+                            return "\(item.title ?? L("Untitled")) · \(due)"
+                        }
+                    continuation.resume(returning: lines)
+                }
+            }
+            guard !lines.isEmpty else { throw ReminderActionError.noMatches }
+            return BELActionResult(text: lines.joined(separator: "\n"),
+                                   receipt: "reminders:list:\(calendar.calendarIdentifier)")
         }
         let predicate = store.predicateForReminders(in: nil)
         let query = value.query.trimmingCharacters(in: .whitespacesAndNewlines)

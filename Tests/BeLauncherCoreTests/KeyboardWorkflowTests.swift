@@ -134,6 +134,17 @@ struct KeyboardWorkflowTests {
         #expect(found.first?.id == "reminder-r1")
     }
 
+    @Test("a reminder list command is explicit and does not become a create command")
+    func browseReminderList() {
+        let results = SearchEngine.search("/reminders list Trabajo",
+                                          in: SearchInput(remindersAuthorised: true))
+        #expect(results.count == 1)
+        #expect(results.first?.id == "reminder-list")
+        #expect(results.first?.payload == "Trabajo")
+        #expect(ActionRegistry.actions(for: results[0]).first?.intent
+                == .systemCommand("bel:reminders.show_list\u{1F}Trabajo"))
+    }
+
     @Test("an explicit reminder command creates a confirmed action")
     func createReminderCommand() {
         let input = SearchInput(remindersAuthorised: true)

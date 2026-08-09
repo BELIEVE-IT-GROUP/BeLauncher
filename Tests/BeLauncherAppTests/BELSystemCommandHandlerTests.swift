@@ -172,6 +172,9 @@ struct BELSystemCommandHandlerTests {
         let complete = try #require(BELActionCatalog.named("reminders.complete"))
         #expect(complete.availability == .implemented)
         #expect(BELActionRuntime().handler(for: complete)?.actionID == complete.id)
+        let list = try #require(BELActionCatalog.named("reminders.show_list"))
+        #expect(list.availability == .implemented)
+        #expect(BELActionRuntime().handler(for: list)?.actionID == list.id)
     }
 
     @Test("completing a reminder cannot bypass confirmation")
