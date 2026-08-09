@@ -876,7 +876,9 @@ final class SettingsModel {
     func requestRemindersAndRefresh() async {
         guard let reminders else { return }
         await reminders.requestAccessIfNeeded()
-        await reminders.refresh()
+        if reminders.isAuthorised {
+            _ = await onLocalSourceRefresh?("reminders")
+        }
         sourceRefreshRevision += 1
     }
 
@@ -887,7 +889,9 @@ final class SettingsModel {
     func requestContactsAndRefresh() async {
         guard let contacts else { return }
         await contacts.requestAccessIfNeeded()
-        await contacts.refresh()
+        if contacts.isAuthorised {
+            _ = await onLocalSourceRefresh?("contacts")
+        }
         sourceRefreshRevision += 1
     }
 
@@ -898,7 +902,9 @@ final class SettingsModel {
     func requestPhotosAndRefresh() async {
         guard let photos else { return }
         await photos.requestAccessIfNeeded()
-        photos.refresh()
+        if photos.isAuthorised {
+            _ = await onLocalSourceRefresh?("photos")
+        }
         sourceRefreshRevision += 1
     }
 
