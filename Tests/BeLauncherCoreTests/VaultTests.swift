@@ -397,6 +397,37 @@ struct VaultTests {
         #expect(try String(contentsOfFile: attachmentDestination, encoding: .utf8) == "contract bytes")
         #expect(!FileManager.default.fileExists(atPath: staging))
     }
+
+    @Test("a recovered quick note manifest publishes the Inbox Markdown")
+    func recoversInterruptedQuickNote() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-note-recovery-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let first = try Vault(root: root)
+        let staging = (root as NSString).appendingPathComponent(".beacon-vault-staging-note")
+        let inboxDestination = (first.inboxFolder as NSString).appendingPathComponent("recovered-note.md")
+        let stagedNote = (staging as NSString).appendingPathComponent("0.blob")
+        try FileManager.default.createDirectory(atPath: staging, withIntermediateDirectories: true)
+        try QuickNote.render("call Ana about the contract", at: Date(timeIntervalSince1970: 7_000_002))
+            .write(toFile: stagedNote, atomically: true, encoding: .utf8)
+        let manifest: [String: Any] = [
+            "writes": [["staged": stagedNote, "destination": inboxDestination, "previous": NSNull()]]
+        ]
+        try JSONSerialization.data(withJSONObject: manifest)
+            .write(to: URL(fileURLWithPath: (staging as NSString).appendingPathComponent("manifest.json")),
+                   options: .atomic)
+
+        _ = try Vault(root: root)
+        let record = try #require(QuickNote.records(inVaultAt: root).first {
+            $0.title.contains("call Ana")
+        })
+
+        #expect(record.kind == .note)
+        #expect(record.path == inboxDestination)
+        #expect(QuickNote.body(from: try String(contentsOfFile: inboxDestination, encoding: .utf8))
+            == "call Ana about the contract")
+        #expect(!FileManager.default.fileExists(atPath: staging))
+    }
 }
 
 @Suite("The brain inside the launcher")
