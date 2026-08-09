@@ -860,11 +860,13 @@ struct GraphView: View {
                                   showGraph: { surface = .graph })
                 } else if surface == .inbox {
                     BrainNotesView(onlyInbox: true,
+                                   proposeMemory: { text in runIntent("remember that (text)") },
                                    newNote: beginNewNote,
                                    retryTranscription: { retryTranscription($0) },
                                    refresh: reloadInbox)
                 } else if surface == .notes {
                     BrainNotesView(
+                        proposeMemory: { text in runIntent("remember that (text)") },
                         newNote: beginNewNote,
                         retryTranscription: { retryTranscription($0) },
                         refresh: reloadInbox)
@@ -1612,6 +1614,7 @@ private struct BrainOverview: View {
 @MainActor
 private struct BrainNotesView: View {
     var onlyInbox = false
+    let proposeMemory: (String) -> Void
     let newNote: () -> Void
     let retryTranscription: (QuickNote.Record) -> Void
     let refresh: () -> Void
@@ -1768,6 +1771,10 @@ private struct BrainNotesView: View {
                         Text(L("Review this note when you are done with it."))
                             .font(.caption).foregroundStyle(.secondary)
                         Spacer()
+                        Button(L("Keep in Brain")) {
+                            proposeMemory(body(of: selected))
+                        }
+                        .buttonStyle(.borderedProminent)
                         Button(L("Mark as reviewed")) {
                             try? QuickNote.markReviewed(selected)
                             reload()

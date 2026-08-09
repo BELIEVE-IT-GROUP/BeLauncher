@@ -26,6 +26,7 @@ extension SpanishStrings {
         "Inbox": "Bandeja de entrada",
         "Review captured notes and voice notes before they become memory.": "Revisa las notas capturadas y de voz antes de convertirlas en memoria.",
         "Inbox is clear": "La bandeja está vacía",
+        "Keep in Brain": "Guardar en el Brain",
         "Where your Brain looks": "Dónde busca tu Brain",
         "Worth your attention": "Merece tu atención",
         "Recent notes": "Notas recientes",

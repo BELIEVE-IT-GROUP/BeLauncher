@@ -39,3 +39,7 @@ Inbox, leer/editar Markdown, preparar una misión y abrir la fuente original.
 Cada capacidad visible debe tener un camino de entrada, un estado mientras trabaja, un resultado
 que se pueda inspeccionar y un error que indique la siguiente acción. Una etiqueta o un contador no
 cuentan como UX terminada si no llevan a una operación real.
+
+El Inbox ya ofrece la bifurcación explícita `Keep in Brain` o `Mark as reviewed`. La primera usa la
+propuesta de memoria existente y conserva la confirmación humana; la segunda limpia la cola sin
+convertir el contenido en memoria.
