@@ -650,22 +650,24 @@ enum QwenASRRuntime {
                             environment: [String: String] = [:]) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
-            let pipe = Pipe()
+            let stdout = Pipe()
+            let stderr = Pipe()
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = arguments
             process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, new in new }
-            process.standardOutput = pipe
-            process.standardError = pipe
+            process.standardOutput = stdout
+            process.standardError = stderr
             process.terminationHandler = { process in
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? ""
+                let outputData = stdout.fileHandleForReading.readDataToEndOfFile()
+                let errorData = stderr.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: outputData, encoding: .utf8) ?? ""
                 if process.terminationStatus == 0 { continuation.resume(returning: output) }
                 else {
-                    let detail = output
+                    let detail = (String(data: errorData, encoding: .utf8) ?? "")
                         .replacingOccurrences(of: "\u{001B}", with: "")
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     continuation.resume(throwing: Failure.exit(process.terminationStatus,
-                                                               String(detail.suffix(1_200))))
+                                                               String((detail.isEmpty ? output : detail).suffix(1_200))))
                 }
             }
             do { try process.run() }

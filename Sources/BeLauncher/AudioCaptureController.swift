@@ -16,9 +16,11 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate, Observabl
 
     private let notify: (String) -> Void
     private let onSaved: () -> Void
+    private let targetApplication: () -> NSRunningApplication?
     private var recorder: AVAudioRecorder?
     private var recordingURL: URL?
     private var shouldPaste = false
+    private var pasteTarget: NSRunningApplication?
     @Published private(set) var state: State = .idle
     @Published private(set) var message = ""
 
@@ -35,9 +37,11 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate, Observabl
         return started
     }
 
-    init(notify: @escaping (String) -> Void, onSaved: @escaping () -> Void = {}) {
+    init(notify: @escaping (String) -> Void, onSaved: @escaping () -> Void = {},
+         targetApplication: @escaping () -> NSRunningApplication? = { nil }) {
         self.notify = notify
         self.onSaved = onSaved
+        self.targetApplication = targetApplication
     }
 
     var isRecording: Bool {
@@ -73,9 +77,19 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate, Observabl
     private func startRecording(shouldPaste: Bool) {
         guard !isRecording else { return }
         self.shouldPaste = shouldPaste
+        pasteTarget = shouldPaste ? targetApplication() : nil
         Task { @MainActor [weak self] in
             guard let self else { return }
+            if shouldPaste && !Permissions.requestAccessibility(
+                reason: L("Dictation needs permission to insert the transcription in the app you were using.")) {
+                self.shouldPaste = false
+                self.pasteTarget = nil
+                self.announce(L("Dictation was not started because insertion permission is not granted."))
+                return
+            }
             guard await Permissions.requestMicrophone() else {
+                self.shouldPaste = false
+                self.pasteTarget = nil
                 announce(L("Microphone permission is needed for a voice note."))
                 return
             }
@@ -118,7 +132,9 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate, Observabl
     private func finishedRecording(successfully flag: Bool) {
         let url = recordingURL
         let paste = shouldPaste
+        let target = pasteTarget
         shouldPaste = false
+        pasteTarget = nil
         self.recorder = nil
         recordingURL = nil
         guard flag, let url else {
@@ -139,15 +155,25 @@ final class AudioCaptureController: NSObject, AVAudioRecorderDelegate, Observabl
                     at: transcript.at,
                     sourcePath: url.path)
                 onSaved()
+                var inserted = false
+                var insertionUnavailable = false
                 if paste {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(transcript.text, forType: .string)
-                    if Permissions.accessibilityGranted {
-                        Permissions.pasteToFrontmostApp()
+                    if let target, !target.isTerminated {
+                        target.activate(options: [])
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            Permissions.pasteToFrontmostApp()
+                        }
+                        inserted = true
+                    } else {
+                        insertionUnavailable = true
                     }
                 }
                 state = .idle
-                announce(L("Voice note saved in your Brain"))
+                announce(inserted ? L("Transcription inserted in the active app") :
+                            insertionUnavailable ? L("Voice note saved, but dictation could not be inserted.") :
+                            L("Voice note saved in your Brain"))
             } catch {
                 let title = L("Voice note awaiting transcription")
                 let detail = "Audio: \(url.path)\n\n" +

@@ -288,7 +288,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         installStatusItem()
         audioCapture = AudioCaptureController(
             notify: { [weak self] message in self?.setAudioStatus(message) },
-            onSaved: { [weak self] in self?.refreshBrain(force: true) })
+            onSaved: { [weak self] in self?.refreshBrain(force: true) },
+            targetApplication: { [weak self] in
+                let ownPID = ProcessInfo.processInfo.processIdentifier
+                if let front = NSWorkspace.shared.frontmostApplication,
+                   front.processIdentifier != ownPID {
+                    return front
+                }
+                return self?.appBeforePanel
+            })
         if let audioCapture {
             capturePanel = CaptureStatusPanel(
                 controller: audioCapture,
