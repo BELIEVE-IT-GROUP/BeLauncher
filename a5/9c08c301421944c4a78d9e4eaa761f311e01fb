@@ -1,0 +1,25 @@
+Sources/BeLauncher/LauncherInputNeeds.swift
+  s_30bc31f46aebe1::t_9a8912d8fe3689 58-79
+Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift
+  s_30bc31f46aebe1::t_9a8912d8fe3689 77-85
+  s_30bc31f46aebe1::t_ec1d7779499f70 76
+  s_30bc31f46aebe1::t_a8ae39d7a904f1 86
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_9a8912d8fe3689 259-261,287-289
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a59c08c301421944c4a78d9e4eaa761f311e01fb",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": null
+    }
+  }
+}
