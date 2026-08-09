@@ -869,30 +869,36 @@ final class SettingsModel {
     }
 
     func requestReminders() {
-        Task { @MainActor in
-            guard let reminders else { return }
-            await reminders.requestAccessIfNeeded()
-            await reminders.refresh()
-            sourceRefreshRevision += 1
-        }
+        Task { @MainActor in await requestRemindersAndRefresh() }
+    }
+
+    func requestRemindersAndRefresh() async {
+        guard let reminders else { return }
+        await reminders.requestAccessIfNeeded()
+        await reminders.refresh()
+        sourceRefreshRevision += 1
     }
 
     func requestContacts() {
-        Task { @MainActor in
-            guard let contacts else { return }
-            await contacts.requestAccessIfNeeded()
-            await contacts.refresh()
-            sourceRefreshRevision += 1
-        }
+        Task { @MainActor in await requestContactsAndRefresh() }
+    }
+
+    func requestContactsAndRefresh() async {
+        guard let contacts else { return }
+        await contacts.requestAccessIfNeeded()
+        await contacts.refresh()
+        sourceRefreshRevision += 1
     }
 
     func requestPhotos() {
-        Task { @MainActor in
-            guard let photos else { return }
-            await photos.requestAccessIfNeeded()
-            photos.refresh()
-            sourceRefreshRevision += 1
-        }
+        Task { @MainActor in await requestPhotosAndRefresh() }
+    }
+
+    func requestPhotosAndRefresh() async {
+        guard let photos else { return }
+        await photos.requestAccessIfNeeded()
+        photos.refresh()
+        sourceRefreshRevision += 1
     }
 
     func requestNotifications() {

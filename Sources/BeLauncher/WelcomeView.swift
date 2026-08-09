@@ -281,11 +281,11 @@ private struct CapabilityCard: View {
                 finishPermissionRequest()
             }
         case .reminders:
-            Task { @MainActor in model.requestReminders(); try? await Task.sleep(for: .milliseconds(500)); finishPermissionRequest() }
+            Task { @MainActor in await model.requestRemindersAndRefresh(); finishPermissionRequest() }
         case .contacts:
-            Task { @MainActor in model.requestContacts(); try? await Task.sleep(for: .milliseconds(500)); finishPermissionRequest() }
+            Task { @MainActor in await model.requestContactsAndRefresh(); finishPermissionRequest() }
         case .photos:
-            Task { @MainActor in model.requestPhotos(); try? await Task.sleep(for: .milliseconds(500)); finishPermissionRequest() }
+            Task { @MainActor in await model.requestPhotosAndRefresh(); finishPermissionRequest() }
         case .notifications:
             model.requestNotifications()
             Task { @MainActor in
