@@ -334,6 +334,19 @@ struct CaptureWiringTests {
         #expect(events[0].node.target.isEmpty)
     }
 
+    @Test("pending reminders project into operational commitments, not confirmed memories")
+    func remindersBecomeCommitments() {
+        let due = Date(timeIntervalSince1970: 1_700_000_000)
+        let events = Capture.reminders([
+            ReminderItem(id: "r1", title: "Enviar propuesta", list: "Trabajo", dueDate: due)
+        ], at: due)
+        #expect(events.count == 1)
+        #expect(events[0].node.kind == .commitment)
+        #expect(events[0].node.name == "Enviar propuesta")
+        #expect(events[0].node.id.contains("reminder:r1"))
+        #expect(events[0].node.detail.contains("Trabajo"))
+    }
+
     @Test("a file remembers where it can be opened from")
     func filesAreOpenable() {
         let event = Capture.file(at: "/Users/x/Clientes/Acme/propuesta.pdf")

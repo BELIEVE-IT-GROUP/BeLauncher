@@ -81,6 +81,21 @@ public enum Capture {
         }
     }
 
+    /// Pending Reminders become operational commitments. They are not committed Brain memories:
+    /// the source remains Reminders, and the next refresh can update the same node or remove it.
+    public static func reminders(_ reminders: [ReminderItem], at date: Date = .now) -> [Event] {
+        reminders.map { reminder in
+            Event(node: WorkNode(
+                id: WorkNode.identifier(kind: .commitment, name: "reminder:\(reminder.id)"),
+                kind: .commitment,
+                name: reminder.title,
+                detail: [reminder.list, reminder.displayDueDate]
+                    .filter { !$0.isEmpty }.joined(separator: " · "),
+                lastSeen: reminder.dueDate ?? date
+            ))
+        }
+    }
+
     static let freeMailDomains: Set<String> = [
         "gmail.com", "googlemail.com", "icloud.com", "me.com", "mac.com", "outlook.com",
         "hotmail.com", "live.com", "yahoo.com", "proton.me", "protonmail.com", "aol.com",

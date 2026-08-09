@@ -149,3 +149,5 @@ Photos al grafo sigue siendo una próxima capa, no una promesa escondida detrás
 Contacts sí tiene una primera proyección al Brain: al actualizar la fuente, los nombres y el primer
 dato de contacto útil se convierten en nodos `Person` sin duplicar la libreta ni afirmar que el
 Brain es el origen. Photos permanece fuera del grafo y Reminders conserva su modelo de pendientes.
+Los recordatorios pendientes también se proyectan como `Commitment` operativos al actualizar la
+fuente; no entran como memoria confirmada y su fuente sigue siendo Reminders.

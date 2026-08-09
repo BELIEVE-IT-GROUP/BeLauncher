@@ -496,6 +496,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "reminders":
             guard reminders.isAuthorised else { return false }
             await reminders.refresh()
+            rememberAll(Capture.reminders(reminders.reminders))
         case "contacts":
             guard contacts.isAuthorised else { return false }
             await contacts.refresh()
