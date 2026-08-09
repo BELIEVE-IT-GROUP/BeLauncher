@@ -132,6 +132,9 @@ struct KeyboardWorkflowTests {
 
         let found = SearchEngine.search("propuesta", in: input)
         #expect(found.first?.id == "reminder-r1")
+        #expect(ActionRegistry.actions(for: found[0]).contains {
+            $0.intent == .systemCommand("bel:reminders.open\u{1F}r1")
+        })
     }
 
     @Test("a reminder list command is explicit and does not become a create command")

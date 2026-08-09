@@ -56,6 +56,7 @@ struct BELActionRuntime: Sendable {
             case .appleScript:
                 return ContactOpenActionHandler(definition: definition)
                     ?? PhotoOpenActionHandler(definition: definition)
+                    ?? ReminderOpenActionHandler(definition: definition)
             case .allowlistedShell:
                 return SystemCommandActionHandler(definition: definition)
             case .model, .none:

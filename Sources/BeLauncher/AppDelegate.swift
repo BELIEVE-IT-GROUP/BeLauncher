@@ -2305,6 +2305,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELReminderActionInput(name: argument))
             case "reminders.complete":
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
+            case "reminders.open":
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
             case "reminders.uncomplete":
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
             case "reminders.delete":

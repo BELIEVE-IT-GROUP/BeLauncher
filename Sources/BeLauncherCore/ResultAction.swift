@@ -362,6 +362,9 @@ public enum ActionRegistry {
             return [
                 ResultAction(id: "copy", title: L("Copy the reminder"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .copy(text: result.title)),
+                ResultAction(id: "open", title: L("Open reminder"), symbol: "checklist",
+                             section: .manage,
+                             intent: .systemCommand("bel:reminders.open\u{1F}\(result.payload)")),
                 ResultAction(id: "complete", title: L("Complete reminder"), symbol: "checkmark.circle",
                              section: .manage, isDestructive: true,
                              intent: .systemCommand("bel:reminders.complete\u{1F}\(result.payload)")),

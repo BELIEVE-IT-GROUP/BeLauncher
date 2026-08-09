@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 @preconcurrency import EventKit
 import BeLauncherCore
 
@@ -251,4 +252,49 @@ enum ReminderPriorityParser {
         default: return nil
         }
     }
+}
+
+/// Opens the exact reminder through Reminders' documented `show` command. Launching Reminders
+/// without selecting the record would be a misleading success, so Automation failures stay typed.
+struct ReminderOpenActionHandler: BELActionHandler {
+    let actionID = "reminders.open"
+
+    init?(definition: BELActionDefinition) {
+        guard definition.id == "reminders.open", definition.adapter == .appleScript else { return nil }
+    }
+
+    func perform(input: Data) async throws -> BELActionResult {
+        let value = try JSONDecoder().decode(BELReminderActionInput.self, from: input)
+        guard let id = value.reminderID?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else {
+            throw ReminderOpenActionError.invalidInput
+        }
+        let escapedID = id.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Reminders"
+            activate
+            set matches to (every reminder whose id is "\(escapedID)")
+            if (count of matches) is 0 then error number -1728
+            show item 1 of matches
+        end tell
+        """
+        let failure: ReminderOpenActionError? = await MainActor.run {
+            var error: NSDictionary?
+            NSAppleScript(source: script)?.executeAndReturnError(&error)
+            guard let error else { return nil }
+            let code = error[NSAppleScript.errorNumber] as? Int ?? 0
+            if code == -1728 { return .noMatches }
+            if code == -1743 { return .automationPermission }
+            return .scriptFailed(error[NSAppleScript.errorMessage] as? String ?? L("The reminder could not be opened."))
+        }
+        if let failure { throw failure }
+        return BELActionResult(text: L("Reminder opened"), receipt: "reminders:open:\(id)")
+    }
+}
+
+enum ReminderOpenActionError: Error, Equatable {
+    case invalidInput
+    case noMatches
+    case automationPermission
+    case scriptFailed(String)
 }

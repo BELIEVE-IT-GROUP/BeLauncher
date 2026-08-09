@@ -135,6 +135,8 @@ Un recordatorio seleccionado también permite añadir notas, moverlo a otra list
 prioridad. También puede eliminarse desde la sección `Danger`; borrar nunca es la acción primaria y
 requiere una confirmación separada. Cada operación muestra un resumen, pide confirmación, guarda
 mediante EventKit y vuelve a leer la fuente antes de reportar el resultado.
+`Open reminder` usa el comando `show` del diccionario de Reminders para seleccionar el elemento
+exacto; si Automator no tiene permiso o el identificador ya no existe, el launcher lo informa.
 
 ## Wave 2: Contacts
 
