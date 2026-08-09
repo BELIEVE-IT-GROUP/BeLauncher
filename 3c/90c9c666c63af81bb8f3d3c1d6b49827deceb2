@@ -1,0 +1,33 @@
+Sources/BeLauncherCore/BELMTPScheduler.swift
+  s_30bc31f46aebe1::t_0a33c8320b10bd 150-152
+  s_30bc31f46aebe1::t_342896f160b00f 1-47,55-149,153-181,184-212
+  s_30bc31f46aebe1::t_1b4b29f5b92619 182-183
+  s_30bc31f46aebe1::t_837c22ec83c0de 48-54
+Tests/BeLauncherCoreTests/BELMTPSchedulerTests.swift
+  s_30bc31f46aebe1::t_1b4b29f5b92619 37
+  s_30bc31f46aebe1::t_342896f160b00f 1-36,38-91
+docs/spikes/litert-lm-x2.md
+  s_30bc31f46aebe1::t_837c22ec83c0de 3
+Scripts/spike-litert-lm-x5.sh
+  s_30bc31f46aebe1::t_837c22ec83c0de 1-41
+docs/spikes/litert-lm-x5.md
+  s_30bc31f46aebe1::t_837c22ec83c0de 1-24
+docs/spikes/litert-lm-x4.md
+  s_30bc31f46aebe1::t_837c22ec83c0de 1-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3c90c9c666c63af81bb8f3d3c1d6b49827deceb2",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
