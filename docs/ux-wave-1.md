@@ -104,7 +104,7 @@ de permisos y confirmación existente.
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta muestra una acción `Quick Preview`
-visible (con contraste reforzado al pasar el cursor o seleccionar) que expande el contenido completo dentro del Launcher, sin
+visible y también abre el detalle al mantener el cursor 240 ms sobre ella (con cancelación al salir). El contenido completo se expande dentro del Launcher, sin
 cerrarlo ni reemplazar el contenido del portapapeles. El preview reutiliza el detalle real y funciona
 para texto largo, imágenes y archivos, junto con las acciones existentes de la tarjeta.
 
@@ -119,7 +119,10 @@ La búsqueda no modifica nada y Enter copia el recordatorio seleccionado. Ademá
 leche` abre una intención explícita y, tras confirmación, crea el recordatorio en EventKit. Un
 recordatorio seleccionado ofrece `Complete reminder`; la acción está detrás del gate central `r2`,
 por lo que ninguna ruta puede completarlo silenciosamente. Crear y completar refrescan el snapshot,
-actualizan la proyección del Brain y dejan un recibo con el identificador de EventKit.
+actualizan la proyección del Brain y dejan un recibo con el identificador de EventKit. `Change due date`
+abre un campo explícito que acepta `tomorrow 09:00`, `today 15:30` o `yyyy-MM-dd HH:mm`, pide confirmación
+antes de escribir en EventKit y refresca el recordatorio después del guardado. Una fecha inválida no
+se interpreta ni se ejecuta.
 
 ## Wave 2: Contacts
 

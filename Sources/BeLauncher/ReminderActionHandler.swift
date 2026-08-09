@@ -20,7 +20,7 @@ struct ReminderActionHandler: BELActionHandler {
     let actionID: String
 
     init?(definition: BELActionDefinition) {
-        guard ["reminders.find", "reminders.create", "reminders.complete"].contains(definition.id),
+        guard ["reminders.find", "reminders.create", "reminders.complete", "reminders.change_due_date"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -61,6 +61,18 @@ struct ReminderActionHandler: BELActionHandler {
             return BELActionResult(text: L("Completed: %@", reminder.title ?? L("Untitled")),
                                    changed: [id], receipt: "reminders:complete:\(id)")
         }
+        if actionID == "reminders.change_due_date" {
+            guard let id = value.reminderID,
+                  let dueDate = value.dueDate,
+                  let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else {
+                throw ReminderActionError.invalidInput
+            }
+            reminder.dueDateComponents = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute], from: dueDate)
+            try store.save(reminder, commit: true)
+            return BELActionResult(text: L("Reminder rescheduled: %@", reminder.title ?? L("Untitled")),
+                                   changed: [id], receipt: "reminders:due-date:\(id)")
+        }
         let predicate = store.predicateForReminders(in: nil)
         let query = value.query.trimmingCharacters(in: .whitespacesAndNewlines)
         let lines: [String] = await withCheckedContinuation { continuation in
@@ -87,4 +99,30 @@ enum ReminderActionError: Error, Equatable {
     case noMatches
     case noList
     case invalidInput
+}
+
+enum ReminderDateParser {
+    static func parse(_ raw: String, now: Date = .now) -> Date? {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        if let exact = formatter.date(from: value) { return exact }
+
+        let folded = value.lowercased()
+        let calendar = Calendar.current
+        let day: Date
+        if folded.hasPrefix("tomorrow") || folded.hasPrefix("mañana") {
+            day = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+        } else if folded.hasPrefix("today") || folded.hasPrefix("hoy") {
+            day = now
+        } else {
+            return nil
+        }
+        let time = folded.split(separator: " ", maxSplits: 1).dropFirst().first.map(String.init) ?? "09:00"
+        let pieces = time.split(separator: ":").compactMap { Int($0) }
+        guard pieces.count >= 2, pieces[0] >= 0, pieces[0] < 24,
+              pieces[1] >= 0, pieces[1] < 60 else { return nil }
+        return calendar.date(bySettingHour: pieces[0], minute: pieces[1], second: 0, of: day)
+    }
 }

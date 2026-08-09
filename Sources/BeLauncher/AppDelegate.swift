@@ -2255,6 +2255,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELReminderActionInput(title: argument))
             case "reminders.complete":
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
+            case "reminders.change_due_date":
+                guard let date = promptForReminderDate() else { return }
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument,
+                                                                         dueDate: date))
             case "contacts.find":
                 input = try JSONEncoder().encode(BELContactActionInput(query: argument))
             case "contacts.get_details", "contacts.copy_email":
@@ -2270,22 +2274,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task { @MainActor in
             do {
-                let confirmed = ["reminders.complete", "reminders.create", "contacts.create"].contains(id)
+                let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
+                                 "reminders.change_due_date"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
+                                         : id == "reminders.change_due_date" ? L("Change this reminder's due date?")
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
+                                         : id == "reminders.change_due_date" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
-                guard !["reminders.complete", "reminders.create", "contacts.create"].contains(id) || confirmed else { return }
+                guard !["reminders.complete", "reminders.create", "contacts.create",
+                        "reminders.change_due_date"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
                 report(L("Action completed"), result.text)
-                if ["reminders.complete", "reminders.create", "contacts.create"].contains(id) {
+                if ["reminders.complete", "reminders.create", "contacts.create",
+                    "reminders.change_due_date"].contains(id) {
                     _ = await refreshLocalSource(id == "contacts.create" ? "contacts" : "reminders")
                 }
             } catch {
@@ -2301,6 +2310,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: L("Continue"))
         alert.addButton(withTitle: L("Cancel"))
         return alert.runModal() == .alertFirstButtonReturn
+    }
+
+    private func promptForReminderDate() -> Date? {
+        let field = NSTextField(string: L("tomorrow 09:00"))
+        field.placeholderString = L("tomorrow, today 15:30 or 2026-08-12 09:00")
+        field.frame = NSRect(x: 0, y: 0, width: 280, height: 24)
+        let alert = NSAlert()
+        alert.messageText = L("When is it due?")
+        alert.informativeText = L("Enter a date and time. The reminder will not change until you confirm the next step.")
+        alert.accessoryView = field
+        alert.addButton(withTitle: L("Continue"))
+        alert.addButton(withTitle: L("Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        return ReminderDateParser.parse(field.stringValue)
     }
 
     /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole

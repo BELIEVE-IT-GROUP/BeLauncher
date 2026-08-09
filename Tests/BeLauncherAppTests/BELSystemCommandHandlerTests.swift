@@ -184,6 +184,16 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("reminder date input accepts human and deterministic forms")
+    func reminderDateInput() throws {
+        let now = Date(timeIntervalSince1970: 1_754_000_000)
+        let tomorrow = try #require(ReminderDateParser.parse("tomorrow 09:00", now: now))
+        #expect(Calendar.current.component(.hour, from: tomorrow) == 9)
+        #expect(Calendar.current.dateComponents([.day], from: tomorrow)
+                == Calendar.current.dateComponents([.day], from: Calendar.current.date(byAdding: .day, value: 1, to: now)!))
+        #expect(ReminderDateParser.parse("not a date", now: now) == nil)
+    }
+
     @Test("public app actions validate identifiers and settings without opening the host")
     func publicAppActions() async throws {
         let app = try #require(BELActionCatalog.named("system.open_app"))

@@ -1165,6 +1165,7 @@ private struct ClipCard: View {
 
     @State private var image: NSImage?
     @State private var hovering = false
+    @State private var hoverToken = UUID()
 
     private var previewPath: String { result.previewPath }
 
@@ -1223,7 +1224,19 @@ private struct ClipCard: View {
             .accessibilityLabel(L("Quick Preview"))
             .padding(7)
         }
-        .onHover { hovering = $0 }
+        .onHover { inside in
+            hovering = inside
+            hoverToken = UUID()
+            guard inside else { return }
+
+            // Hover is a preview affordance, not just a selection highlight. The small delay
+            // keeps the rail usable while moving across cards without opening every card.
+            let token = hoverToken
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+                guard hovering, token == hoverToken else { return }
+                preview()
+            }
+        }
         .task(id: previewPath) { await loadImage() }
     }
 

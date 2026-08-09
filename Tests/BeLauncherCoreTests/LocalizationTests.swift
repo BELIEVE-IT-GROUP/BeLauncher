@@ -312,6 +312,8 @@ struct LocalizationTests {
             "*_`~'\"“”‘’«»()[]{}<>,;:.…·—–- ",
             // Frase de prueba del reconocedor de voz: se compara contra lo que devuelve el modelo.
             "el modelo de voz funciona sin conexion a internet",
+            // Datos del parser de fechas: un locale técnico y un alias que la persona puede escribir.
+            "en_US_POSIX", "mañana",
         ]
     }
 

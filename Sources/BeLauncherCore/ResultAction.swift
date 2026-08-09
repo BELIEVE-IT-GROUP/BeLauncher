@@ -346,6 +346,9 @@ public enum ActionRegistry {
                 ResultAction(id: "complete", title: L("Complete reminder"), symbol: "checkmark.circle",
                              section: .manage, isDestructive: true,
                              intent: .systemCommand("bel:reminders.complete\u{1F}\(result.payload)")),
+                ResultAction(id: "due-date", title: L("Change due date"), symbol: "calendar.badge.clock",
+                             section: .manage,
+                             intent: .systemCommand("bel:reminders.change_due_date\u{1F}\(result.payload)")),
             ]
 
         case .contact:
