@@ -1,0 +1,59 @@
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_ce7657880a8d1c 168
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_3da4a998470946 46-47
+Sources/BeLauncher/BELActionRuntime.swift
+  s_30bc31f46aebe1::t_3da4a998470946 47
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_143c91ed5aea3f 49
+  s_30bc31f46aebe1::t_3da4a998470946 25,75,135,157,175,332-338,724-728
+  s_30bc31f46aebe1::t_f601154bc61cc6 729-730
+Sources/BeLauncherCore/LauncherModel.swift
+  s_30bc31f46aebe1::t_32299f1d4045bd 740
+  s_30bc31f46aebe1::t_3da4a998470946 739,741-742
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_04e03ce8838bf6 851,858,889-893
+  s_30bc31f46aebe1::t_8002710d945306 894-896
+  s_30bc31f46aebe1::t_eed395730a354b 897
+Sources/BeLauncher/SourceCenterView.swift
+  s_30bc31f46aebe1::t_04e03ce8838bf6 134-136,184-185
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_32299f1d4045bd 124-130
+Sources/BeLauncherCore/ResultAction.swift
+  s_30bc31f46aebe1::t_3da4a998470946 338-343
+Sources/BeLauncher/PhotoActionHandler.swift
+  s_30bc31f46aebe1::t_04e03ce8838bf6 1-17,19,29-31
+  s_30bc31f46aebe1::t_32299f1d4045bd 18,20-28
+Sources/BeLauncher/PhotoAccess.swift
+  s_30bc31f46aebe1::t_04e03ce8838bf6 1-31
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_ce7657880a8d1c 1004-1005
+  s_30bc31f46aebe1::t_04e03ce8838bf6 998-1003,1006
+Sources/BeLauncherCore/Photo.swift
+  s_30bc31f46aebe1::t_3da4a998470946 1-12
+Sources/BeLauncherCore/ResultDetail.swift
+  s_30bc31f46aebe1::t_3da4a998470946 208-210,212
+  s_30bc31f46aebe1::t_32299f1d4045bd 211
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_3da4a998470946 706-707
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_04e03ce8838bf6 70,287,1105
+Sources/BeLauncherCore/KnowledgeSources.swift
+  s_30bc31f46aebe1::t_04e03ce8838bf6 53-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "9231f06df02bd5a13fb809017107b1f5054606d0",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
