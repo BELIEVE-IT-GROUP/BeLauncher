@@ -89,6 +89,17 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("every unavailable inventory seed is blocked before execution")
+    func unavailableSeedsCannotExecute() async throws {
+        let runtime = BELActionRuntime()
+
+        for definition in BELActionCatalog.all where definition.availability == .unavailable {
+            await #expect(throws: BELActionExecutionError.blocked(.unavailable)) {
+                try await runtime.execute(definition, capabilities: .allGranted, confirmed: true)
+            }
+        }
+    }
+
     #if canImport(AppIntents)
     @Test("App Intents publish the complete curated command surface")
     @MainActor

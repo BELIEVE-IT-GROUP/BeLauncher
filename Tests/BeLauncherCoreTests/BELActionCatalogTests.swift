@@ -15,6 +15,26 @@ struct BELActionCatalogTests {
         #expect(definitions.allSatisfy { $0.id.contains(".") })
     }
 
+    @Test("the full spec inventory is present without pretending seeds work")
+    func specInventoryIsHonest() {
+        let definitions = BELActionCatalog.all
+        let native = definitions.filter { $0.kind == .native }
+        let ai = definitions.filter { $0.kind == .ai }
+        let seeds = definitions.filter { $0.availability == .unavailable }
+
+        #expect(native.count >= 100)
+        #expect(ai.count >= 80)
+        #expect(!seeds.isEmpty)
+        #expect(seeds.allSatisfy { definition in
+            definition.adapter == .none
+                && definition.output != nil
+                && !definition.aliases.isEmpty
+        })
+        #expect(seeds.allSatisfy { definition in
+            definition.arguments.allSatisfy { !$0.name.isEmpty }
+        })
+    }
+
     @Test("the stable AI ID resolves to the existing verb runner ID")
     func aiIDsBridgeToLegacyVerbs() {
         for verb in AIVerb.all {

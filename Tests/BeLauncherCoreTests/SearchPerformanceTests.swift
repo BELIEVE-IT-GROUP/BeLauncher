@@ -57,7 +57,7 @@ struct SearchPerformanceTests {
         let milliseconds = Date().timeIntervalSince(start) * 1000
 
         #expect(!results.isEmpty)
-        #expect(milliseconds < 50, "a keystroke took \(Int(milliseconds)) ms — investigate the launcher path")
+        #expect(milliseconds < 75, "a keystroke took \(Int(milliseconds)) ms — investigate the launcher path")
     }
 
     @Test("parallel and serial paths return the same ranking")

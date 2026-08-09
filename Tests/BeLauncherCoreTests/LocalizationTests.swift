@@ -284,6 +284,8 @@ struct LocalizationTests {
             "main.swift",
             // El propio nombre de este idioma, que se escribe en ese idioma.
             "Localization.swift",
+            // Stable action IDs and seed title keys are contract data, not visible interface text.
+            "BELActionCatalog.swift",
         ]
     }
 
