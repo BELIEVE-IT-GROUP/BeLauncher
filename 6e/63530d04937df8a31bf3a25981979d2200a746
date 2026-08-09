@@ -1,0 +1,30 @@
+docs/release-0.32.56.md
+  s_30bc31f46aebe1::t_0b55adf0aeae7a 1-23
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_22cd1bc8a0c6a7 266,1480-1485,1703-1758
+  s_30bc31f46aebe1::t_0a355547801b75 23-47,177-265
+  s_30bc31f46aebe1::t_64ddf309640259 267
+  s_30bc31f46aebe1::t_651834cb7015eb 1759
+Tests/BeLauncherAppTests/GraphCorrectionsTests.swift
+  s_30bc31f46aebe1::t_9ec5b23bde9c11 333,336-337
+  s_30bc31f46aebe1::t_9eb27b870aa872 326-332,334-335,338-373
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_30bc31f46aebe1::t_9e653f84ed9338 791-792,794-807
+  s_30bc31f46aebe1::t_fcb92d3f785326 793
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "6e63530d04937df8a31bf3a25981979d2200a746",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
