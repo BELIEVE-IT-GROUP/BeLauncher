@@ -103,8 +103,8 @@ de permisos y confirmación existente.
 
 ### Inspección completa del clip
 
-Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover
-reconocible y una acción `Quick Preview` que expande el contenido completo dentro del Launcher, sin
+Una miniatura no basta para saber qué se copió. Cada tarjeta muestra una acción `Quick Preview`
+visible (con contraste reforzado al pasar el cursor o seleccionar) que expande el contenido completo dentro del Launcher, sin
 cerrarlo ni reemplazar el contenido del portapapeles. El preview reutiliza el detalle real y funciona
 para texto largo, imágenes y archivos, junto con las acciones existentes de la tarjeta.
 

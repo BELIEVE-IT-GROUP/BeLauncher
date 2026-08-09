@@ -1109,8 +1109,11 @@ struct ClipboardCarousel: View {
                                  showsShortcut: model.mode == .clipboard,
                                  selected: index == model.selection,
                                  preview: {
-                                     model.select(index)
                                      expandedClipID = result.id
+                                     // Set the expansion first. Selecting another card publishes an
+                                     // async state change; doing it in the opposite order let the
+                                     // selection observer clear a preview before it appeared.
+                                     model.select(index)
                                  })
                             .id(index)
                             .onTapGesture {
@@ -1206,17 +1209,19 @@ private struct ClipCard: View {
                               lineWidth: selected ? 1.6 : 1)
         )
         .overlay(alignment: .topTrailing) {
-            if hovering || selected {
-                Button(action: preview) {
-                    Image(systemName: "eye")
-                        .font(.system(size: 10, weight: .semibold))
-                        .frame(width: 24, height: 22)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .help(L("Quick Preview"))
-                .padding(7)
+            // The action is visible without requiring the person to discover a hover affordance.
+            // Hover/selection still strengthens the contrast, but never controls discoverability.
+            Button(action: preview) {
+                Image(systemName: "eye")
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: 24, height: 22)
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .tint((hovering || selected) ? Theme.accent : .secondary)
+            .help(L("Quick Preview"))
+            .accessibilityLabel(L("Quick Preview"))
+            .padding(7)
         }
         .onHover { hovering = $0 }
         .task(id: previewPath) { await loadImage() }
