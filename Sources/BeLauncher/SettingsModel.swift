@@ -1200,7 +1200,8 @@ final class SettingsModel {
         let path = mcpExecutablePath
         Task { @MainActor in
             let reports = await MCPProbe.diagnose(executablePath: path)
-            self.mcpReports = reports
+            let clientNames = Set(MCPClient.all.map(\.name))
+            self.mcpReports = reports.filter { clientNames.contains($0.clientName) }
             self.refreshMCPConnections()
             self.mcpChecking = false
         }

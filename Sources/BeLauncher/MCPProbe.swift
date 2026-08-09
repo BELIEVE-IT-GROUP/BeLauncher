@@ -17,6 +17,8 @@ import BeLauncherCore
 @MainActor
 public enum MCPProbe {
 
+    public static let directCheckName = "BeLauncher direct MCP check"
+
     /// How long to wait for one reply before calling that step failed.
     public static let stepTimeout: TimeInterval = 5
 
@@ -63,6 +65,9 @@ public enum MCPProbe {
         defer { store?.removePassages(for: canarySource) }
 
         var byCommand: [String: Connectivity] = [:]
+        let directCommand = [executablePath, "--mcp"]
+        let directConnectivity = await probeConnectivity(command: directCommand, canary: canary,
+                                                         executablePath: executablePath)
         for command in commandByClient.values {
             let key = command.joined(separator: "\u{1F}")
             guard byCommand[key] == nil else { continue }
@@ -74,7 +79,11 @@ public enum MCPProbe {
         // cannot contain it, and the report says why instead of blaming the pipe.
         let expected = planted ? canary.echo : ""
 
-        return MCPClient.all.map { client in
+        let direct = MCPHealth.report(
+            clientName: directCheckName, configured: true, launch: directConnectivity.launch,
+            handshake: directConnectivity.handshake, toolsList: directConnectivity.toolsList,
+            toolCall: directConnectivity.toolCall, echoing: expected)
+        let clients = MCPClient.all.map { client in
             guard let command = commandByClient[client.id],
                   let connectivity = byCommand[command.joined(separator: "\u{1F}")] else {
                 return MCPHealth.report(
@@ -86,6 +95,7 @@ public enum MCPProbe {
                 handshake: connectivity.handshake, toolsList: connectivity.toolsList,
                 toolCall: connectivity.toolCall, echoing: expected)
         }
+        return [direct] + clients
     }
 
     // MARK: - The canary
