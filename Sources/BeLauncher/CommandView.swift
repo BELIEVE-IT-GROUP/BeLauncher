@@ -411,6 +411,21 @@ struct CommandView: View {
             }
             .buttonStyle(.borderless)
             .help(L("Use a macOS Shortcut"))
+            Menu {
+                Button { model.query = "/reminders"; focus = .search } label: {
+                    Label(L("Reminders"), systemImage: "checklist")
+                }
+                Button { model.query = "/contacts"; focus = .search } label: {
+                    Label(L("Contacts"), systemImage: "person.crop.circle")
+                }
+                Button { model.query = "/photos"; focus = .search } label: {
+                    Label(L("Photos"), systemImage: "photo")
+                }
+            } label: {
+                Label(L("Sources"), systemImage: "square.stack")
+            }
+            .menuStyle(.borderlessButton)
+            .help(L("Search local sources"))
             Button(action: recordVoice) {
                 Label(L("Record"), systemImage: "waveform")
             }

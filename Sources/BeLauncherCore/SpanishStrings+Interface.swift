@@ -1013,5 +1013,7 @@ extension SpanishStrings {
         "Find local photos and open them in Photos.": "Encuentra fotos locales y ábrelas en Fotos.",
         "Photo metadata only; originals are not copied into the Brain.": "Solo metadatos de fotos; los originales no se copian al Brain.",
         "Everything else works; Photos stays disconnected.": "Todo lo demás funciona; Fotos permanece desconectado.",
+        "Sources": "Fuentes",
+        "Search local sources": "Buscar fuentes locales",
     ]
 }
