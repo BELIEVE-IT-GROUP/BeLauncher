@@ -304,4 +304,27 @@ struct EntitlementsTests {
         #expect(!plist.contains("does not send Apple Events"),
                 "el texto del diálogo de permiso no puede negar lo que la app hace")
     }
+
+    @Test("the bundle explains every TCC permission used by the native adapters")
+    func usageStringsCoverNativeAdapters() throws {
+        let path = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/Info.plist")
+        let plist = try String(contentsOfFile: path, encoding: .utf8)
+        for key in ["NSMicrophoneUsageDescription", "NSCalendarsUsageDescription",
+                    "NSAudioCaptureUsageDescription"] {
+            #expect(plist.contains("<key>\(key)</key>"), "falta \(key) en el bundle")
+        }
+    }
+
+    @Test("the release fails closed when a native permission description is missing")
+    func releaseChecksNativeUsageStrings() throws {
+        let path = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/release-mac.sh")
+        let script = try String(contentsOfFile: path, encoding: .utf8)
+        for key in ["NSMicrophoneUsageDescription", "NSCalendarsUsageDescription",
+                    "NSAudioCaptureUsageDescription"] {
+            #expect(script.contains("require_usage_description \"\(key)\""),
+                    "el release no verifica \(key)")
+        }
+    }
 }

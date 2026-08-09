@@ -26,6 +26,8 @@
 	<string>BeLauncher usa esto para los comandos de sistema y los flujos: silenciar notificaciones, poner el Mac en reposo, vaciar la papelera, expulsar discos, cambiar a modo oscuro. Solo cuando tú ejecutas uno. No lee ni controla el contenido de tus apps.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>BeLauncher captura el audio del sistema solo cuando tú inicias una grabación de llamada.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>BeLauncher lee tus próximos eventos solo cuando preparas una reunión o activas el calendario del Brain.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Local-only launcher. No accounts, no telemetry.</string>
 	<key>NSMicrophoneUsageDescription</key>

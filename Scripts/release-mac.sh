@@ -146,14 +146,21 @@ require_entitlement() {
 require_entitlement "com.apple.security.automation.apple-events" "Los comandos de sistema y los flujos"
 require_entitlement "com.apple.security.device.audio-input" "El micrófono, el dictado y las notas de voz"
 
-MICROPHONE_USAGE="$(plutil -extract NSMicrophoneUsageDescription raw -o - \
-    "$APP/Contents/Info.plist" 2>/dev/null || true)"
-if [ -z "$MICROPHONE_USAGE" ]; then
-    echo "✗ El .app no explica por qué usa el micrófono." >&2
-    echo "  macOS terminaría o rechazaría la solicitud antes de presentar TCC." >&2
-    exit 1
-fi
-echo "▸ NSMicrophoneUsageDescription presente"
+require_usage_description() {
+    local key="$1"
+    local feature="$2"
+    local value
+    value="$(plutil -extract "$key" raw -o - "$APP/Contents/Info.plist" 2>/dev/null || true)"
+    if [ -z "$value" ]; then
+        echo "✗ El .app no explica el permiso requerido para $feature ($key)." >&2
+        echo "  macOS puede rechazar la solicitud antes de presentar TCC." >&2
+        exit 1
+    fi
+    echo "▸ $key presente"
+}
+require_usage_description "NSMicrophoneUsageDescription" "micrófono"
+require_usage_description "NSCalendarsUsageDescription" "calendario"
+require_usage_description "NSAudioCaptureUsageDescription" "audio del sistema"
 
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
     echo "▸ SKIP_NOTARIZE=1 — stopping after signing"
