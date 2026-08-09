@@ -66,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let commandCoordinator = BrainCommandCoordinator()
     private let calendar = CalendarAccess()
     private let reminders = ReminderAccess()
+    private let contacts = ContactAccess()
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
@@ -281,6 +282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     events: needs.needsCalendar ? self.calendar.events : [],
                     packs: needs.needsPacks ? store.availablePacks() : [],
                     reminders: self.reminders.reminders,
+                    contacts: self.contacts.contacts,
                     workNodes: workNodes,
                     workEdges: workEdges,
                     traits: needs.needsTraits ? store.traits() : [],
@@ -1097,6 +1099,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsModel.calendar = calendar
         settingsModel.reminders = reminders
+        settingsModel.contacts = contacts
         settingsModel.onRequestNotifications = { [weak self] in
             await self?.requestNotifications() ?? false
         }

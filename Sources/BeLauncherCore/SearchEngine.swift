@@ -21,6 +21,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case agent
     case process
     case reminder
+    case contact
 
     public var label: String {
         switch self {
@@ -43,6 +44,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .agent: L("Command")
         case .process: L("Process")
         case .reminder: L("Reminder")
+        case .contact: L("Contact")
         }
     }
 
@@ -67,6 +69,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .agent: "terminal"
         case .process: "gauge.with.needle"
         case .reminder: "checklist"
+        case .contact: "person.crop.circle"
         }
     }
 }
@@ -125,6 +128,7 @@ public struct SearchInput: Sendable {
     public var pendingCommits: [MemoryCommit]
     public var events: [CalendarEvent]
     public var reminders: [ReminderItem]
+    public var contacts: [ContactItem]
     /// The outcomes installed on this Mac, which is what `/` offers.
     public var packs: [OutcomePack]
     /// Operational memory: what was worked on, and how it is connected.
@@ -145,6 +149,7 @@ public struct SearchInput: Sendable {
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
                 reminders: [ReminderItem] = [],
+                contacts: [ContactItem] = [],
                 workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
                 processes: [RunningProcess] = [], workspaces: [Workspace] = [],
                 notes: [QuickNote.Record] = []) {
@@ -161,6 +166,7 @@ public struct SearchInput: Sendable {
         self.pendingCommits = pendingCommits
         self.events = events
         self.reminders = reminders
+        self.contacts = contacts
         self.packs = packs
         self.workNodes = workNodes
         self.workEdges = workEdges
@@ -307,6 +313,14 @@ public enum SearchEngine {
                                  title: reminder.title,
                                  subtitle: "\(reminder.list) · \(reminder.displayDueDate)",
                                  score: 100_000 - index, matched: [], payload: reminder.id)
+                }
+            }
+            if slash == "contact" || slash == "contacts" {
+                return input.contacts.prefix(limit).enumerated().map { index, contact in
+                    SearchResult(id: "contact-\(contact.id)", kind: .contact,
+                                 title: contact.name,
+                                 subtitle: contact.email.isEmpty ? contact.phone : contact.email,
+                                 score: 100_000 - index, matched: [], payload: contact.id)
                 }
             }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {
@@ -684,6 +698,14 @@ public enum SearchEngine {
                 subtitle: "\(reminder.list) · \(reminder.displayDueDate)",
                 score: match.score + 25, matched: match.matched, payload: reminder.id
             ))
+        }
+
+        for contact in input.contacts {
+            guard let match = Fuzzy.match(needle: needle, hay: Fuzzy.folded(contact.searchableText)) else { continue }
+            results.append(SearchResult(id: "contact-\(contact.id)", kind: .contact,
+                                        title: contact.name,
+                                        subtitle: contact.email.isEmpty ? contact.phone : contact.email,
+                                        score: match.score + 25, matched: match.matched, payload: contact.id))
         }
 
         for (command, score) in WindowCommand.search(query) {

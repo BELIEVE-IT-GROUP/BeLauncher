@@ -990,5 +990,10 @@ extension SpanishStrings {
         "Copy the reminder": "Copiar el recordatorio",
         "List and due date": "Lista y fecha de vencimiento",
         "Reminders on this Mac": "Recordatorios de este Mac",
+        "Contacts": "Contactos",
+        "Contact": "Contacto",
+        "Names and contact details after permission.": "Nombres y datos de contacto después de conceder permiso.",
+        "Contact detail": "Dato de contacto",
+        "Copy contact": "Copiar contacto",
     ]
 }

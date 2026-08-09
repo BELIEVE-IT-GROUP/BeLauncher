@@ -43,6 +43,7 @@ struct BELActionRuntime: Sendable {
                     ?? SystemPublicActionHandler(definition: definition)
                     ?? CalendarActionHandler(definition: definition)
                     ?? ReminderActionHandler(definition: definition)
+                    ?? ContactActionHandler(definition: definition)
             case .ownAppIntent:
                 // App Intents are an exposure surface today. They do not become an execution
                 // adapter unless their stable BEL ID is wired to a concrete handler.

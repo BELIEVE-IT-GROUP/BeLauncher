@@ -847,11 +847,13 @@ final class SettingsModel {
     /// never shows "on" for something the system has not agreed to.
     var calendarGranted: Bool { calendar?.isAuthorised ?? false }
     var remindersGranted: Bool { reminders?.isAuthorised ?? false }
+    var contactsGranted: Bool { contacts?.isAuthorised ?? false }
     var notificationsGranted = false
 
     /// Set by the app so Settings can ask for the calendar without owning EventKit.
     var calendar: CalendarAccess?
     var reminders: ReminderAccess?
+    var contacts: ContactAccess?
     var onRequestNotifications: (() async -> Bool)?
 
     func requestCalendar() {
@@ -869,6 +871,15 @@ final class SettingsModel {
             guard let reminders else { return }
             await reminders.requestAccessIfNeeded()
             await reminders.refresh()
+            sourceRefreshRevision += 1
+        }
+    }
+
+    func requestContacts() {
+        Task { @MainActor in
+            guard let contacts else { return }
+            await contacts.requestAccessIfNeeded()
+            await contacts.refresh()
             sourceRefreshRevision += 1
         }
     }

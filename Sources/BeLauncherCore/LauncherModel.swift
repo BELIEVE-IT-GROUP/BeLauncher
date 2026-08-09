@@ -732,6 +732,10 @@ public final class LauncherModel {
             perform(.copyToClipboard(text: result.title, cursorOffset: nil))
             perform(.dismiss)
 
+        case .contact:
+            perform(.copyToClipboard(text: result.subtitle, cursorOffset: nil))
+            perform(.dismiss)
+
         case .file:
             perform(.openFile(path: result.payload))
             perform(.dismiss)

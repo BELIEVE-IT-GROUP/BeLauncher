@@ -331,6 +331,10 @@ public enum ActionRegistry {
                              shortcut: .enter, intent: .copy(text: result.title)),
             ]
 
+        case .contact:
+            return [ResultAction(id: "copy", title: L("Copy contact"), symbol: "doc.on.clipboard",
+                                 shortcut: .enter, intent: .copy(text: result.subtitle))]
+
         case .window:
             return [
                 ResultAction(id: "arrange", title: L("Place the window"), symbol: "macwindow",
