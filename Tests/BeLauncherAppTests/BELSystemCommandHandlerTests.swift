@@ -175,6 +175,11 @@ struct BELSystemCommandHandlerTests {
         let list = try #require(BELActionCatalog.named("reminders.show_list"))
         #expect(list.availability == .implemented)
         #expect(BELActionRuntime().handler(for: list)?.actionID == list.id)
+        for id in ["reminders.change_list", "reminders.add_notes", "reminders.set_priority"] {
+            let definition = try #require(BELActionCatalog.named(id))
+            #expect(definition.availability == .implemented)
+            #expect(BELActionRuntime().handler(for: definition)?.actionID == id)
+        }
     }
 
     @Test("completing a reminder cannot bypass confirmation")
@@ -195,6 +200,14 @@ struct BELSystemCommandHandlerTests {
         #expect(Calendar.current.dateComponents([.day], from: tomorrow)
                 == Calendar.current.dateComponents([.day], from: Calendar.current.date(byAdding: .day, value: 1, to: now)!))
         #expect(ReminderDateParser.parse("not a date", now: now) == nil)
+    }
+
+    @Test("reminder priority accepts bilingual human values and rejects guesses")
+    func reminderPriorityInput() {
+        #expect(ReminderPriorityParser.parse("high") == 3)
+        #expect(ReminderPriorityParser.parse("alta") == 3)
+        #expect(ReminderPriorityParser.parse("muy alta") == 4)
+        #expect(ReminderPriorityParser.parse("urgent") == nil)
     }
 
     @Test("public app actions validate identifiers and settings without opening the host")

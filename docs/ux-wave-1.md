@@ -125,6 +125,9 @@ antes de escribir en EventKit y refresca el recordatorio después del guardado. 
 se interpreta ni se ejecuta.
 Para consultar una lista concreta sin crear nada, `/reminders list Trabajo` es una orden distinta:
 lee solo los recordatorios pendientes de esa lista y devuelve un recibo de lectura.
+Un recordatorio seleccionado también permite añadir notas, moverlo a otra lista o cambiar su
+prioridad. Cada operación muestra un resumen, pide confirmación, guarda mediante EventKit y vuelve
+a leer la fuente antes de reportar el resultado.
 
 ## Wave 2: Contacts
 

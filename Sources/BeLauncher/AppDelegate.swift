@@ -2308,6 +2308,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                                          dueDate: date))
             case "reminders.show_list":
                 input = try JSONEncoder().encode(BELReminderActionInput(list: argument))
+            case "reminders.change_list":
+                guard let list = promptForReminderList() else { return }
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument, list: list))
+            case "reminders.add_notes":
+                guard let notes = promptForReminderNotes() else { return }
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument, notes: notes))
+            case "reminders.set_priority":
+                guard let priority = promptForReminderPriority() else { return }
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument, priority: priority))
             case "contacts.find":
                 input = try JSONEncoder().encode(BELContactActionInput(query: argument))
             case "contacts.get_details", "contacts.copy_email":
@@ -2335,7 +2344,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             do {
                 let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
-                                 "reminders.change_due_date", "contacts.update", "photos.add_to_album",
+                                 "reminders.change_due_date", "reminders.change_list",
+                                 "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                                  "photos.create_album", "photos.remember"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
@@ -2345,6 +2355,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "photos.add_to_album" ? L("Add this photo to the album?")
                                          : id == "photos.remember" ? L("Keep this photo in Brain?")
                                          : id == "reminders.change_due_date" ? L("Change this reminder's due date?")
+                                         : id == "reminders.change_list" ? L("Move this reminder to another list?")
+                                         : id == "reminders.add_notes" ? L("Add notes to this reminder?")
+                                         : id == "reminders.set_priority" ? L("Change this reminder's priority?")
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
@@ -2354,10 +2367,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "photos.add_to_album" ? L("This changes your Photos library.")
                                          : id == "photos.remember" ? L("Only this photo's metadata and a link to Photos will be kept.")
                                          : id == "reminders.change_due_date" ? L("This changes the reminder in macOS Reminders.")
+                                         : id == "reminders.change_list" ? L("This moves the reminder in macOS Reminders.")
+                                         : id == "reminders.add_notes" ? L("This adds notes to the reminder in macOS Reminders.")
+                                         : id == "reminders.set_priority" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
                 guard !["reminders.complete", "reminders.create", "contacts.create",
-                        "reminders.change_due_date", "contacts.update", "photos.add_to_album",
+                        "reminders.change_due_date", "reminders.change_list",
+                        "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                         "photos.create_album", "photos.remember"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
@@ -2372,7 +2389,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 report(L("Action completed"), result.text)
                 if ["reminders.complete", "reminders.create", "contacts.create",
-                    "reminders.change_due_date", "contacts.update", "photos.add_to_album",
+                    "reminders.change_due_date", "reminders.change_list",
+                    "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                     "photos.create_album", "photos.remember"].contains(id) {
                     let source = ["contacts.create", "contacts.update"].contains(id) ? "contacts" :
                         (["photos.add_to_album", "photos.create_album", "photos.remember"].contains(id) ? "photos" : "reminders")
@@ -2405,6 +2423,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: L("Cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return nil }
         return ReminderDateParser.parse(field.stringValue)
+    }
+
+    private func promptForReminderList() -> String? {
+        promptForReminderText(title: L("Move reminder to list"),
+                              detail: L("Enter the exact Reminders list name."),
+                              placeholder: L("List name"))
+    }
+
+    private func promptForReminderNotes() -> String? {
+        promptForReminderText(title: L("Add notes to reminder"),
+                              detail: L("These notes are appended to the existing reminder notes."),
+                              placeholder: L("Notes"))
+    }
+
+    private func promptForReminderPriority() -> Int? {
+        guard let raw = promptForReminderText(
+            title: L("Set reminder priority"),
+            detail: L("Use none, low, medium, high or very high."),
+            placeholder: L("Priority")) else { return nil }
+        guard let priority = ReminderPriorityParser.parse(raw) else {
+            report(L("The action could not be prepared"),
+                   L("Priority must be none, low, medium, high or very high."))
+            return nil
+        }
+        return priority
+    }
+
+    private func promptForReminderText(title: String, detail: String,
+                                       placeholder: String) -> String? {
+        let field = NSTextField()
+        field.placeholderString = placeholder
+        field.frame = NSRect(x: 0, y: 0, width: 300, height: 24)
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = detail
+        alert.accessoryView = field
+        alert.addButton(withTitle: L("Continue"))
+        alert.addButton(withTitle: L("Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        let value = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 
     private func promptForContactEdit(contactID: String) -> BELContactActionInput? {

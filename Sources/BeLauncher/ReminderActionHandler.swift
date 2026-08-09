@@ -8,10 +8,13 @@ struct BELReminderActionInput: Codable, Sendable {
     let title: String?
     let list: String?
     let dueDate: Date?
+    let notes: String?
+    let priority: Int?
     init(query: String = "", reminderID: String? = nil, title: String? = nil,
-         list: String? = nil, dueDate: Date? = nil) {
+         list: String? = nil, dueDate: Date? = nil, notes: String? = nil,
+         priority: Int? = nil) {
         self.query = query; self.reminderID = reminderID; self.title = title
-        self.list = list; self.dueDate = dueDate
+        self.list = list; self.dueDate = dueDate; self.notes = notes; self.priority = priority
     }
 }
 
@@ -21,7 +24,8 @@ struct ReminderActionHandler: BELActionHandler {
 
     init?(definition: BELActionDefinition) {
         guard ["reminders.find", "reminders.create", "reminders.complete",
-               "reminders.change_due_date", "reminders.show_list"].contains(definition.id),
+               "reminders.change_due_date", "reminders.show_list", "reminders.change_list",
+               "reminders.add_notes", "reminders.set_priority"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -73,6 +77,40 @@ struct ReminderActionHandler: BELActionHandler {
             try store.save(reminder, commit: true)
             return BELActionResult(text: L("Reminder rescheduled: %@", reminder.title ?? L("Untitled")),
                                    changed: [id], receipt: "reminders:due-date:\(id)")
+        }
+        if ["reminders.change_list", "reminders.add_notes", "reminders.set_priority"].contains(actionID) {
+            guard let id = value.reminderID,
+                  let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else {
+                throw ReminderActionError.noMatches
+            }
+            switch actionID {
+            case "reminders.change_list":
+                let listName = value.list?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !listName.isEmpty,
+                      let calendar = store.calendars(for: .reminder).first(where: {
+                          $0.title.localizedCaseInsensitiveCompare(listName) == .orderedSame
+                      }) else { throw ReminderActionError.noList }
+                reminder.calendar = calendar
+                try store.save(reminder, commit: true)
+                return BELActionResult(text: L("Reminder moved to: %@", calendar.title),
+                                       changed: [id], receipt: "reminders:list-change:\(id)")
+            case "reminders.add_notes":
+                let note = value.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !note.isEmpty else { throw ReminderActionError.invalidInput }
+                reminder.notes = reminder.notes?.isEmpty == false
+                    ? reminder.notes! + "\n" + note : note
+                try store.save(reminder, commit: true)
+                return BELActionResult(text: L("Notes added to: %@", reminder.title ?? L("Untitled")),
+                                       changed: [id], receipt: "reminders:notes:\(id)")
+            default:
+                guard let priority = value.priority, (0...4).contains(priority) else {
+                    throw ReminderActionError.invalidInput
+                }
+                reminder.priority = priority
+                try store.save(reminder, commit: true)
+                return BELActionResult(text: L("Priority changed for: %@", reminder.title ?? L("Untitled")),
+                                       changed: [id], receipt: "reminders:priority:\(id)")
+            }
         }
         if actionID == "reminders.show_list" {
             let listName = value.list?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -149,5 +187,24 @@ enum ReminderDateParser {
         guard pieces.count >= 2, pieces[0] >= 0, pieces[0] < 24,
               pieces[1] >= 0, pieces[1] < 60 else { return nil }
         return calendar.date(bySettingHour: pieces[0], minute: pieces[1], second: 0, of: day)
+    }
+}
+
+enum ReminderPriorityParser {
+    static func parse(_ raw: String) -> Int? {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let none = String(decoding: [110, 105, 110, 103, 117, 110, 97], as: UTF8.self)
+        let low = String(decoding: [98, 97, 106, 97], as: UTF8.self)
+        let medium = String(decoding: [109, 101, 100, 105, 97], as: UTF8.self)
+        let high = String(decoding: [97, 108, 116, 97], as: UTF8.self)
+        let veryHigh = String(decoding: [109, 117, 121, 32, 97, 108, 116, 97], as: UTF8.self)
+        switch value {
+        case "0", "none", "normal", none: return 0
+        case "1", "low", low: return 1
+        case "2", "medium", medium: return 2
+        case "3", "high", high: return 3
+        case "4", "very high", veryHigh: return 4
+        default: return nil
+        }
     }
 }

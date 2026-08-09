@@ -354,6 +354,15 @@ public enum ActionRegistry {
                 ResultAction(id: "due-date", title: L("Change due date"), symbol: "calendar.badge.clock",
                              section: .manage,
                              intent: .systemCommand("bel:reminders.change_due_date\u{1F}\(result.payload)")),
+                ResultAction(id: "notes", title: L("Add notes"), symbol: "note.text.badge.plus",
+                             section: .manage,
+                             intent: .systemCommand("bel:reminders.add_notes\u{1F}\(result.payload)")),
+                ResultAction(id: "list", title: L("Move to list"), symbol: "list.bullet.rectangle",
+                             section: .manage,
+                             intent: .systemCommand("bel:reminders.change_list\u{1F}\(result.payload)")),
+                ResultAction(id: "priority", title: L("Set priority"), symbol: "exclamationmark.3",
+                             section: .manage,
+                             intent: .systemCommand("bel:reminders.set_priority\u{1F}\(result.payload)")),
             ]
 
         case .contact:
