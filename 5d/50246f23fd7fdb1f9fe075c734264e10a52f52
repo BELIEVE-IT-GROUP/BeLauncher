@@ -1,0 +1,59 @@
+Sources/BeLauncherCore/ResultDetail.swift
+  s_30bc31f46aebe1::t_27bad0216f2852 197-203
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_9407487f0e46cf 171-173
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_40439997633de3 45
+  s_30bc31f46aebe1::t_e11b169d077736 23,69,127,147,163,304-311,679-685
+  s_30bc31f46aebe1::t_31558de42d1dcc 686-688
+Sources/BeLauncher/ReminderAccess.swift
+  s_30bc31f46aebe1::t_e11b169d077736 1-52
+Sources/BeLauncherCore/Reminder.swift
+  s_30bc31f46aebe1::t_e11b169d077736 1-26
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_7009597599990f 416-417
+Sources/BeLauncherCore/KnowledgeSources.swift
+  s_30bc31f46aebe1::t_7009597599990f 47-49
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_7009597599990f 42-43
+Sources/BeLauncherCore/ResultAction.swift
+  s_30bc31f46aebe1::t_27bad0216f2852 328-333
+Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift
+  s_30bc31f46aebe1::t_9407487f0e46cf 124-135
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_fcbd1ec4e796b1 106-116
+Sources/BeLauncherCore/LauncherModel.swift
+  s_30bc31f46aebe1::t_27bad0216f2852 731-734
+Sources/BeLauncher/ReminderActionHandler.swift
+  s_30bc31f46aebe1::t_ae3091d1144a8f 26-38,40
+  s_30bc31f46aebe1::t_e11b169d077736 1-19,22,42-48
+  s_30bc31f46aebe1::t_6a489b9080f988 20-21,23-25,39,41
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_ae3091d1144a8f 283
+  s_30bc31f46aebe1::t_7009597599990f 68,257,1099
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_7009597599990f 849,854,867-873
+  s_30bc31f46aebe1::t_799d26247dadae 874-875
+Sources/BeLauncher/SourceCenterView.swift
+  s_30bc31f46aebe1::t_7009597599990f 128-130,174-175
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_ee07fa4cacf9dd 985-992
+Sources/BeLauncher/BELActionRuntime.swift
+  s_30bc31f46aebe1::t_7009597599990f 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5d50246f23fd7fdb1f9fe075c734264e10a52f52",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
