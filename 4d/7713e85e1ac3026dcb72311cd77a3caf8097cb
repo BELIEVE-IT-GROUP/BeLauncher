@@ -1,0 +1,31 @@
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_154a086f92c7e5 53-60
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_b25a093ac1af55 3-4,27,31-32,37-39
+  s_30bc31f46aebe1::t_ccadf376ad753a 40
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_a0a5d8e23d052c 967,1672,1835-1843,1883-1889,1931-1940
+  s_30bc31f46aebe1::t_d0a08e2e9eb098 1777-1784
+  s_30bc31f46aebe1::t_b25a093ac1af55 947-951,1941,1952,1954,1970,1986-1991
+  s_30bc31f46aebe1::t_e6b5bb06953daf 1942
+Sources/BeLauncherCore/Utilities.swift
+  s_30bc31f46aebe1::t_a0a5d8e23d052c 247-252
+Tests/BeLauncherCoreTests/UtilitiesTests.swift
+  s_30bc31f46aebe1::t_b25a093ac1af55 263-283
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "4d7713e85e1ac3026dcb72311cd77a3caf8097cb",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
