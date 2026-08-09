@@ -857,6 +857,7 @@ final class SettingsModel {
     var contacts: ContactAccess?
     var photos: PhotoAccess?
     var onRequestNotifications: (() async -> Bool)?
+    var onLocalSourceRefresh: ((String) async -> Bool)?
 
     func requestCalendar() {
         Task { @MainActor in await requestCalendarAndRefresh() }
@@ -1261,14 +1262,21 @@ final class SettingsModel {
     }
 
     func syncSource(_ id: String) {
-        let supported = ["apple-mail", "messages", "notes", "browsers", "conversations"]
+        let supported = ["apple-mail", "messages", "notes", "browsers", "conversations",
+                         "calendar", "reminders", "contacts", "photos"]
         guard supported.contains(id), sourceEnabled(id), !sourceSyncing.contains(id) else { return }
         Task { @MainActor in
             sourceSyncing.insert(id)
             sourceRefreshRevision &+= 1
-            let result = await onSourceSync(id)
-            sourceFeedback[id] = sourceMessage(result)
-            sourceFeedbackErrors[id] = if case .failed = result { true } else { false }
+            if ["calendar", "reminders", "contacts", "photos"].contains(id) {
+                let refreshed = await onLocalSourceRefresh?(id) ?? false
+                sourceFeedback[id] = refreshed ? L("Updated locally") : L("Permission is needed")
+                sourceFeedbackErrors[id] = !refreshed
+            } else {
+                let result = await onSourceSync(id)
+                sourceFeedback[id] = sourceMessage(result)
+                sourceFeedbackErrors[id] = if case .failed = result { true } else { false }
+            }
             sourceSyncing.remove(id)
             sourceRefreshRevision &+= 1
             refreshBrainState()

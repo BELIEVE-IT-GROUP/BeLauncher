@@ -1015,5 +1015,8 @@ extension SpanishStrings {
         "Everything else works; Photos stays disconnected.": "Todo lo demás funciona; Fotos permanece desconectado.",
         "Sources": "Fuentes",
         "Search local sources": "Buscar fuentes locales",
+        "Refresh local data": "Actualizar datos locales",
+        "Updated locally": "Actualizado localmente",
+        "Permission is needed": "Hace falta permiso",
     ]
 }

@@ -488,6 +488,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func refreshLocalSource(_ source: String) async -> Bool {
+        switch source {
+        case "calendar":
+            guard calendar.isAuthorised else { return false }
+            calendar.refresh()
+        case "reminders":
+            guard reminders.isAuthorised else { return false }
+            await reminders.refresh()
+        case "contacts":
+            guard contacts.isAuthorised else { return false }
+            await contacts.refresh()
+        case "photos":
+            guard photos.isAuthorised else { return false }
+            photos.refresh()
+        default:
+            return false
+        }
+        launcherInputCache = nil
+        return true
+    }
+
     private func reviewInterruptedAction(_ id: String) {
         guard let store, let snapshot = store.actionRuns(limit: 100).first(where: { $0.id == id }),
               let mission = snapshot.missionForReview() else { return }
@@ -1120,6 +1141,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsModel.onSourceSync = { [weak self] source in
             guard let self else { return .failed(L("The capture service is not available.")) }
             return await self.syncCorpusSource(source)
+        }
+        settingsModel.onLocalSourceRefresh = { [weak self] source in
+            await self?.refreshLocalSource(source) ?? false
         }
         settingsModel.onReviewInterrupted = { [weak self] id in self?.reviewInterruptedAction(id) }
         settingsModel.onClipboardToggle = { [weak self] enabled in
@@ -1830,6 +1854,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.photos = photos
         model.onRequestNotifications = { [weak self] in
             await self?.requestNotifications() ?? false
+        }
+        model.onLocalSourceRefresh = { [weak self] source in
+            await self?.refreshLocalSource(source) ?? false
         }
         settingsModel = model
 

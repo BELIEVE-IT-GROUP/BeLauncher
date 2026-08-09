@@ -141,3 +141,7 @@ del arranque, fuera del camino crítico del launcher; no hace falta volver a pul
 El footer del Launcher también tiene ahora `Sources`: un menú descubrible que lleva a `/reminders`,
 `/contacts` y `/photos`. La persona puede encontrar estas fuentes con el ratón o el teclado sin
 aprender comandos internos.
+
+En Settings, `Refresh` para estas tres fuentes actualiza su snapshot local y devuelve feedback
+explícito. No se enruta por el corpus runner existente: la ingestión de Reminders, Contacts y
+Photos al grafo sigue siendo una próxima capa, no una promesa escondida detrás de un botón.

@@ -134,6 +134,17 @@ private struct SourceRow: View {
         case "photos" where !model.photosGranted:
             Button(L("Allow")) { model.requestPhotos() }
                 .controlSize(.small)
+        case "calendar", "reminders", "contacts", "photos":
+            Button { model.syncSource(source.id) } label: {
+                if model.sourceIsSyncing(source.id) {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+            .buttonStyle(.borderless)
+            .help(L("Refresh local data"))
+            .disabled(!model.graphEnabled || model.sourceIsSyncing(source.id))
         case "audio":
             Text(L("Manual")).font(.caption).foregroundStyle(.secondary)
         case "notes", "messages", "apple-mail", "browsers", "conversations":
