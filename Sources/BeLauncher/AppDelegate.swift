@@ -256,7 +256,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     needs.needsWorkGraph ? "graph" : "",
                     needs.needsMemories ? "memories" : "",
                     needs.needsCalendar ? "calendar" : "",
-                    "reminders",
+                    needs.needsReminders ? "reminders" : "",
+                    needs.needsContacts ? "contacts" : "",
+                    needs.needsPhotos ? "photos" : "",
                     needs.needsTraits ? "traits" : ""
                 ].joined(separator: "|")
                 if let cached = self.launcherInputCache,
@@ -282,9 +284,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         ? (self.vault?.commits(state: .proposed) ?? []) : [],
                     events: needs.needsCalendar ? self.calendar.events : [],
                     packs: needs.needsPacks ? store.availablePacks() : [],
-                    reminders: self.reminders.reminders,
-                    contacts: self.contacts.contacts,
-                    photos: self.photos.photos,
+                    reminders: needs.needsReminders ? self.reminders.reminders : [],
+                    contacts: needs.needsContacts ? self.contacts.contacts : [],
+                    photos: needs.needsPhotos ? self.photos.photos : [],
                     workNodes: workNodes,
                     workEdges: workEdges,
                     traits: needs.needsTraits ? store.traits() : [],

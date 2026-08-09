@@ -8,7 +8,6 @@ struct LauncherInputNeedsTests {
     @Test("invocar vacío no toca vault, grafo, procesos ni workspaces")
     func emptySummonIsLightweight() {
         let needs = LauncherInputNeeds(query: "", mode: .all)
-
         #expect(!needs.needsMemories)
         #expect(!needs.needsPendingCommits)
         #expect(!needs.needsWorkGraph)
@@ -24,13 +23,10 @@ struct LauncherInputNeedsTests {
         let ordinary = LauncherInputNeeds(query: "atlas", mode: .all)
         let promised = LauncherInputNeeds(query: "what did we promise Andrés", mode: .all)
         let resume = LauncherInputNeeds(query: "pick up where i left off", mode: .all)
-
         #expect(!ordinary.needsWorkGraph)
         #expect(!ordinary.needsMemories)
-
         #expect(promised.needsWorkGraph)
         #expect(promised.needsMemories)
-
         #expect(resume.needsWorkGraph)
         #expect(resume.needsCalendar)
     }
@@ -40,11 +36,9 @@ struct LauncherInputNeedsTests {
         let ordinary = LauncherInputNeeds(query: "pricing", mode: .all)
         let decision = LauncherInputNeeds(query: "what did we decide about pricing", mode: .all)
         let pulse = LauncherInputNeeds(query: "pulse", mode: .all)
-
         #expect(!ordinary.needsMemories)
         #expect(decision.needsMemories)
         #expect(!decision.needsWorkGraph)
-
         #expect(pulse.needsMemories)
         #expect(pulse.needsTraits)
     }
@@ -54,7 +48,6 @@ struct LauncherInputNeedsTests {
         #expect(LauncherInputNeeds(query: "cpu", mode: .all).needsProcesses)
         #expect(LauncherInputNeeds(query: "workspaces", mode: .all).needsWorkspaces)
         #expect(LauncherInputNeeds(query: "/proposal", mode: .all).needsPacks)
-
         let plain = LauncherInputNeeds(query: "safari", mode: .all)
         #expect(!plain.needsProcesses)
         #expect(!plain.needsWorkspaces)
@@ -74,11 +67,21 @@ struct LauncherInputNeedsTests {
         let workspace = LauncherInputNeeds(query: "workspaces", mode: .clipboard)
         let brain = LauncherInputNeeds(query: "what did we decide about pricing", mode: .clipboard)
         let pack = LauncherInputNeeds(query: "/proposal", mode: .clipboard)
-
         #expect(!process.needsProcesses)
         #expect(!workspace.needsWorkspaces)
         #expect(!brain.needsMemories)
         #expect(!brain.needsWorkGraph)
         #expect(!pack.needsPacks)
+    }
+
+    @Test("local sources stay off the hot path")
+    func sourceIntentGates() {
+        let ordinary = LauncherInputNeeds(query: "Safari", mode: .all)
+        #expect(!ordinary.needsReminders)
+        #expect(!ordinary.needsContacts)
+        #expect(!ordinary.needsPhotos)
+        #expect(LauncherInputNeeds(query: "/reminders", mode: .all).needsReminders)
+        #expect(LauncherInputNeeds(query: "/contacts", mode: .all).needsContacts)
+        #expect(LauncherInputNeeds(query: "/photos", mode: .all).needsPhotos)
     }
 }

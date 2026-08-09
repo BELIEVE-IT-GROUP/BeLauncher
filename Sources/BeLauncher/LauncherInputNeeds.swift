@@ -55,4 +55,26 @@ struct LauncherInputNeeds: Equatable {
         default: return workIntent == .resumeBefore
         }
     }
+
+    private var sourceQuery: String {
+        query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var needsReminders: Bool {
+        guard mode == .all else { return false }
+        return sourceQuery == "/reminders" || sourceQuery == "/reminder" ||
+            sourceQuery.hasPrefix("reminder ") || sourceQuery.hasPrefix("recordatorio ")
+    }
+
+    var needsContacts: Bool {
+        guard mode == .all else { return false }
+        return sourceQuery == "/contacts" || sourceQuery == "/contact" ||
+            sourceQuery.hasPrefix("contact ") || sourceQuery.hasPrefix("contacto ")
+    }
+
+    var needsPhotos: Bool {
+        guard mode == .all else { return false }
+        return sourceQuery == "/photos" || sourceQuery == "/photo" ||
+            sourceQuery.hasPrefix("photo ") || sourceQuery.hasPrefix("foto ")
+    }
 }
