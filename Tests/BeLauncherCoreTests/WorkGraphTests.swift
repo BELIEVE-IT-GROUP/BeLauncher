@@ -322,6 +322,18 @@ struct CaptureWiringTests {
         #expect(plain.links.isEmpty)
     }
 
+    @Test("authorized contacts project into person nodes without copying the source database")
+    func contactsBecomePeople() {
+        let events = Capture.contacts([
+            ContactItem(id: "c1", name: "Ana López", email: "ana@example.com", phone: "")
+        ])
+        #expect(events.count == 1)
+        #expect(events[0].node.kind == .person)
+        #expect(events[0].node.name == "Ana López")
+        #expect(events[0].node.detail == "ana@example.com")
+        #expect(events[0].node.target.isEmpty)
+    }
+
     @Test("a file remembers where it can be opened from")
     func filesAreOpenable() {
         let event = Capture.file(at: "/Users/x/Clientes/Acme/propuesta.pdf")

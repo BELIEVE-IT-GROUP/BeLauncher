@@ -499,6 +499,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "contacts":
             guard contacts.isAuthorised else { return false }
             await contacts.refresh()
+            rememberAll(Capture.contacts(contacts.contacts))
         case "photos":
             guard photos.isAuthorised else { return false }
             photos.refresh()

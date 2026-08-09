@@ -68,6 +68,19 @@ public enum Capture {
         ])
     }
 
+    /// Contacts become people in the operational graph. Only the display name and the first
+    /// useful contact detail are retained; the Contacts database remains the source of truth.
+    public static func contacts(_ contacts: [ContactItem], at date: Date = .now) -> [Event] {
+        contacts.map { contact in
+            let detail = [contact.email, contact.phone].filter { !$0.isEmpty }
+                .joined(separator: " · ")
+            return Event(node: WorkNode(
+                id: WorkNode.identifier(kind: .person, name: contact.name),
+                kind: .person, name: contact.name, detail: detail, lastSeen: date
+            ))
+        }
+    }
+
     static let freeMailDomains: Set<String> = [
         "gmail.com", "googlemail.com", "icloud.com", "me.com", "mac.com", "outlook.com",
         "hotmail.com", "live.com", "yahoo.com", "proton.me", "protonmail.com", "aol.com",

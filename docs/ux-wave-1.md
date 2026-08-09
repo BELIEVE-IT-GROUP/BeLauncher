@@ -145,3 +145,7 @@ aprender comandos internos.
 En Settings, `Refresh` para estas tres fuentes actualiza su snapshot local y devuelve feedback
 explícito. No se enruta por el corpus runner existente: la ingestión de Reminders, Contacts y
 Photos al grafo sigue siendo una próxima capa, no una promesa escondida detrás de un botón.
+
+Contacts sí tiene una primera proyección al Brain: al actualizar la fuente, los nombres y el primer
+dato de contacto útil se convierten en nodos `Person` sin duplicar la libreta ni afirmar que el
+Brain es el origen. Photos permanece fuera del grafo y Reminders conserva su modelo de pendientes.
