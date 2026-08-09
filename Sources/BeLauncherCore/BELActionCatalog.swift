@@ -1737,6 +1737,15 @@ public enum BELActionCatalog {
 
     private static var nativeFiles: [BELActionDefinition] {
         [
+            BELActionDefinition(id: "files.choose", kind: .native,
+                                titleKey: "Choose file",
+                                aliases: ["choose file", "pick file", L("Choose file")],
+                                arguments: [
+                                    .init("directoriesOnly", .boolean, required: false),
+                                    .init("multiple", .boolean, required: false),
+                                ], output: .fileList, requiredCapabilities: [.files], risk: .r0,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
             BELActionDefinition(id: "files.open", kind: .native,
                                 titleKey: "Open file", aliases: ["open file", L("Open file")],
                                 arguments: [.init("path", .path)], output: .path,

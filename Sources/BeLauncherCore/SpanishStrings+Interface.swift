@@ -49,6 +49,7 @@ extension SpanishStrings {
         "Nothing here yet. As soon as the brain captures a stretch of work, it shows up.": "Todavía no hay corpus. En cuanto el cerebro capture un rato de trabajo, aparece aquí.",
         "Open": "Abrir",
         "Open file": "Abrir archivo",
+        "Choose file": "Elegir archivo",
         "Open brain file": "Abrir archivo del cerebro",
         "Open source": "Abrir origen",
         "The file action could not be completed": "No se pudo completar la acción sobre el archivo",

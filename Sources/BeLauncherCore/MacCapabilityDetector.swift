@@ -30,24 +30,31 @@ public enum MacMemoryPressure: String, Sendable, Equatable {
 public struct MacCapabilitySnapshot: Sendable, Equatable {
     public let architecture: MacArchitecture
     public let unifiedMemoryGB: Int
+    public let physicalMemoryBytes: UInt64
     public let thermalState: MacThermalState
     public let memoryPressure: MacMemoryPressure
     public let lowPowerMode: Bool
     public let onBattery: Bool?
     public let networkAvailable: Bool?
+    public let foundationModelsAvailable: Bool?
 
     public init(architecture: MacArchitecture, unifiedMemoryGB: Int,
+                physicalMemoryBytes: UInt64? = nil,
                 thermalState: MacThermalState = .unknown,
                 memoryPressure: MacMemoryPressure = .unknown,
                 lowPowerMode: Bool = false, onBattery: Bool? = nil,
-                networkAvailable: Bool? = nil) {
+                networkAvailable: Bool? = nil,
+                foundationModelsAvailable: Bool? = nil) {
         self.architecture = architecture
         self.unifiedMemoryGB = unifiedMemoryGB
+        self.physicalMemoryBytes = physicalMemoryBytes
+            ?? UInt64(max(1, unifiedMemoryGB)) * 1024 * 1024 * 1024
         self.thermalState = thermalState
         self.memoryPressure = memoryPressure
         self.lowPowerMode = lowPowerMode
         self.onBattery = onBattery
         self.networkAvailable = networkAvailable
+        self.foundationModelsAvailable = foundationModelsAvailable
     }
 
     public var prefersSmallLocalModel: Bool {
@@ -62,7 +69,8 @@ public enum MacCapabilityDetector {
         processInfo: ProcessInfo = .processInfo,
         onBattery: Bool? = nil,
         networkAvailable: Bool? = nil,
-        memoryPressure: MacMemoryPressure? = nil
+        memoryPressure: MacMemoryPressure? = nil,
+        foundationModelsAvailable: Bool? = nil
     ) -> MacCapabilitySnapshot {
         #if arch(arm64)
         let architecture: MacArchitecture = .appleSilicon
@@ -82,11 +90,13 @@ public enum MacCapabilityDetector {
         return MacCapabilitySnapshot(
             architecture: architecture,
             unifiedMemoryGB: max(1, Int(processInfo.physicalMemory / (1024 * 1024 * 1024))),
+            physicalMemoryBytes: UInt64(processInfo.physicalMemory),
             thermalState: thermal,
             memoryPressure: memoryPressure ?? detectMemoryPressure(processInfo: processInfo),
             lowPowerMode: processInfo.isLowPowerModeEnabled,
             onBattery: onBattery ?? detectOnBattery(),
-            networkAvailable: networkAvailable ?? detectNetworkAvailable()
+            networkAvailable: networkAvailable ?? detectNetworkAvailable(),
+            foundationModelsAvailable: foundationModelsAvailable ?? detectFoundationModels()
         )
     }
 
@@ -121,6 +131,17 @@ public enum MacCapabilityDetector {
         let reachable = flags.contains(.reachable)
         let needsConnection = flags.contains(.connectionRequired)
         return reachable && !needsConnection
+        #else
+        return nil
+        #endif
+    }
+
+    private static func detectFoundationModels() -> Bool? {
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *) {
+            return BELFoundationModelsRuntime.isAvailable
+        }
+        return false
         #else
         return nil
         #endif

@@ -110,6 +110,93 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("the file chooser returns selected paths without touching the real panel in tests")
+    func fileChooserAdapter() async throws {
+        let definition = try #require(BELActionCatalog.named("files.choose"))
+        let expected = [URL(fileURLWithPath: "/tmp/one.md"), URL(fileURLWithPath: "/tmp/two.md")]
+        let chooser: @MainActor @Sendable (BELFileSelectionInput) -> [URL] = { _ in
+            [URL(fileURLWithPath: "/tmp/one.md"), URL(fileURLWithPath: "/tmp/two.md")]
+        }
+        let handler = try #require(FileActionHandler(definition: definition, choose: chooser))
+        let input = try JSONEncoder().encode(BELFileSelectionInput(multiple: true))
+
+        let result = try await BELActionExecutor.execute(definition, input: input,
+                                                         capabilities: .allGranted,
+                                                         handler: handler)
+        #expect(result.receipt == "file:choose")
+        #expect(result.changed == expected.map(\.path))
+        #expect(result.text == expected.map(\.path).joined(separator: "\n"))
+    }
+
+    @Test("cancelling the file chooser is an explicit typed failure")
+    func fileChooserCancellation() async throws {
+        let definition = try #require(BELActionCatalog.named("files.choose"))
+        let chooser: @MainActor @Sendable (BELFileSelectionInput) -> [URL] = { _ in [] }
+        let handler = try #require(FileActionHandler(definition: definition, choose: chooser))
+
+        await #expect(throws: FileActionError.selectionCancelled) {
+            try await BELActionExecutor.execute(definition, capabilities: .allGranted,
+                                                handler: handler)
+        }
+    }
+
+    @Test("the first public native batch is wired, and unverified app APIs stay unavailable")
+    func firstPublicBatchIsHonest() throws {
+        let runtime = BELActionRuntime()
+        for id in ["files.choose", "files.extract_pdf_text", "screen.read_context",
+                   "screen.ocr", "calendar.upcoming"] {
+            let definition = try #require(BELActionCatalog.named(id))
+            #expect(definition.availability == .implemented)
+            #expect(runtime.handler(for: definition)?.actionID == id)
+        }
+        for id in ["reminders.create", "contacts.find", "photos.find"] {
+            #expect(BELActionCatalog.named(id)?.availability == .unavailable)
+        }
+    }
+
+    @Test("Shortcuts bridge reports inventory, exit failures and foreground requirements")
+    @MainActor
+    func shortcutBridgeIsHonest() throws {
+        let runner: Shortcuts.ProcessRunner = { arguments in
+            if arguments == ["list"] {
+                return BELShortcutCommandResult(executableFound: true, terminationStatus: 0,
+                                                stdout: "BEL • Files • Make PDF\n", stderr: "")
+            }
+            return BELShortcutCommandResult(executableFound: true, terminationStatus: 0,
+                                            stdout: "done\n", stderr: "")
+        }
+        let names: [String]
+        switch Shortcuts.available(using: runner) {
+        case .success(let value): names = value
+        case .failure(let error): throw error
+        }
+        #expect(names == ["BEL • Files • Make PDF"])
+
+        let mapping = BELShortcutMapping(actionID: "files.make_pdf",
+                                         shortcutName: names[0], requiresForeground: true)
+        #expect(Shortcuts.validate(mapping, availableNames: Set(names)) == .availableForeground)
+        #expect(Shortcuts.validate(mapping, availableNames: []) == .missing)
+
+        let result = try Shortcuts.command(["run", names[0]], using: runner)
+        #expect(result.stdout == "done\n")
+
+        let failing: Shortcuts.ProcessRunner = { _ in
+            BELShortcutCommandResult(executableFound: true, terminationStatus: 42,
+                                     stdout: "", stderr: "shortcut failed")
+        }
+        #expect(throws: BELShortcutCommandError.failed(status: 42, detail: "shortcut failed")) {
+            try Shortcuts.command(["run", names[0]], using: failing)
+        }
+
+        let missing: Shortcuts.ProcessRunner = { _ in
+            BELShortcutCommandResult(executableFound: false, terminationStatus: -1,
+                                     stdout: "", stderr: "")
+        }
+        #expect(throws: BELShortcutCommandError.toolUnavailable) {
+            try Shortcuts.command(["run", names[0]], using: missing)
+        }
+    }
+
     @Test("every unavailable inventory seed is blocked before execution")
     func unavailableSeedsCannotExecute() async throws {
         let runtime = BELActionRuntime()

@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import BeLauncherCore
 
 struct BELShortcutActionInput: Codable, Sendable {
@@ -37,59 +38,46 @@ struct ShortcutActionHandler: BELActionHandler {
             guard name.hasPrefix(BELShortcutMapping.namePrefix) else {
                 throw ShortcutActionError.invalidMapping
             }
-            guard Self.availableShortcuts().contains(name) else {
-                throw ShortcutActionError.missingShortcut(name)
+            let mapping = await MainActor.run { ShortcutMappingStore.mapping(for: value.actionID) }
+            let available = await MainActor.run {
+                Shortcuts.available(using: Shortcuts.defaultRunner)
+            }
+            switch available {
+            case .success(let names):
+                guard names.contains(name) else { throw ShortcutActionError.missingShortcut(name) }
+            case .failure(.toolUnavailable):
+                throw ShortcutActionError.toolUnavailable
+            case .failure(.failed(let status, let detail)):
+                throw ShortcutActionError.failed(status: status, detail: detail)
+            case .failure(.invalidName):
+                throw ShortcutActionError.invalidName
+            }
+            if mapping?.requiresForeground == true {
+                let active = await MainActor.run { NSApp?.isActive == true }
+                guard active else { throw ShortcutActionError.foregroundRequired(name) }
             }
         }
-        let executable = "/usr/bin/shortcuts"
-        guard FileManager.default.isExecutableFile(atPath: executable) else {
-            throw ShortcutActionError.toolUnavailable
-        }
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = ["run", name]
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
         do {
-            try process.run()
-            process.waitUntilExit()
+            let result = try await MainActor.run { try Shortcuts.run(named: name) }
+            return BELActionResult(text: result.stdout.trimmingCharacters(in: .whitespacesAndNewlines),
+                                   receipt: "shortcut:\(name)")
+        } catch let error as BELShortcutCommandError {
+            switch error {
+            case .invalidName: throw ShortcutActionError.invalidName
+            case .toolUnavailable: throw ShortcutActionError.toolUnavailable
+            case .failed(let status, let detail):
+                throw ShortcutActionError.failed(status: status, detail: detail)
+            }
         } catch {
             throw ShortcutActionError.launchFailed(error.localizedDescription)
         }
-
-        let output = String(decoding: stdout.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let problem = String(decoding: stderr.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard process.terminationStatus == 0 else {
-            throw ShortcutActionError.failed(status: process.terminationStatus,
-                                              detail: String(problem.prefix(4_000)))
-        }
-        return BELActionResult(text: String(output.prefix(16_000)), receipt: "shortcut:\(name)")
-    }
-
-    private static func availableShortcuts() -> Set<String> {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/shortcuts")
-        process.arguments = ["list"]
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return [] }
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return [] }
-        return Set(String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            .split(separator: "\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) })
     }
 }
 
 enum ShortcutActionError: Error, Equatable {
     case invalidName
     case invalidMapping
+    case foregroundRequired(String)
     case missingShortcut(String)
     case toolUnavailable
     case launchFailed(String)
