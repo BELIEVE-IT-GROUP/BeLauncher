@@ -1,0 +1,23 @@
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_221a3276e7ee01 468-487
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_0c4bf43198a3bf 81-84
+Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift
+  s_30bc31f46aebe1::t_221a3276e7ee01 129-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "137afd92d69a0d633485a35225e0eadd02c33b1e",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
