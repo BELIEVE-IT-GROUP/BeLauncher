@@ -1,0 +1,23 @@
+Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift
+  s_30bc31f46aebe1::t_9a8912d8fe3689 2,5,7-16
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_9a8912d8fe3689 259-261,287-289
+Sources/BeLauncher/LauncherInputNeeds.swift
+  s_30bc31f46aebe1::t_9a8912d8fe3689 58-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "10fa529b37b27980e411595539f5f7c2c60bae28",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
