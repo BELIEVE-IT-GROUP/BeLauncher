@@ -356,6 +356,47 @@ struct VaultTests {
         #expect(reopened.load(id: object.id)?.statement == "Recovered decision")
         #expect(!FileManager.default.fileExists(atPath: staging))
     }
+
+    @Test("a recovered evidence manifest publishes the inbox note and attachment together")
+    func recoversInterruptedEvidenceImport() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-evidence-recovery-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let first = try Vault(root: root)
+        let staging = (root as NSString).appendingPathComponent(".beacon-vault-staging-evidence")
+        let inboxDestination = (first.inboxFolder as NSString).appendingPathComponent("recovered-import.md")
+        let attachmentDestination = (first.attachmentsFolder as NSString)
+            .appendingPathComponent("imports/recovered-contract.txt")
+        let stagedInbox = (staging as NSString).appendingPathComponent("0.blob")
+        let stagedAttachment = (staging as NSString).appendingPathComponent("1.blob")
+        try FileManager.default.createDirectory(atPath: staging, withIntermediateDirectories: true)
+        try QuickNote.renderEvidence(title: "Recovered contract",
+                                     text: "The body is already readable.",
+                                     at: Date(timeIntervalSince1970: 7_000_001),
+                                     sourcePath: "/tmp/original-contract.txt",
+                                     attachmentPath: attachmentDestination)
+            .write(toFile: stagedInbox, atomically: true, encoding: .utf8)
+        try "contract bytes".write(toFile: stagedAttachment, atomically: true, encoding: .utf8)
+        let manifest: [String: Any] = [
+            "writes": [
+                ["staged": stagedInbox, "destination": inboxDestination, "previous": NSNull()],
+                ["staged": stagedAttachment, "destination": attachmentDestination, "previous": NSNull()],
+            ]
+        ]
+        try JSONSerialization.data(withJSONObject: manifest)
+            .write(to: URL(fileURLWithPath: (staging as NSString).appendingPathComponent("manifest.json")),
+                   options: .atomic)
+
+        _ = try Vault(root: root)
+        let record = try #require(QuickNote.records(inVaultAt: root).first {
+            $0.title == "Recovered contract"
+        })
+
+        #expect(record.sourcePath == "/tmp/original-contract.txt")
+        #expect(record.attachmentPath == attachmentDestination)
+        #expect(try String(contentsOfFile: attachmentDestination, encoding: .utf8) == "contract bytes")
+        #expect(!FileManager.default.fileExists(atPath: staging))
+    }
 }
 
 @Suite("The brain inside the launcher")

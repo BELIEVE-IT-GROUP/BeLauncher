@@ -95,7 +95,7 @@ public final class Vault {
         ]
         if let attachmentURL, let attachmentDestination {
             writes.append(StagedWriteInput(destination: attachmentDestination,
-                                           data: try Data(contentsOf: attachmentURL),
+                                           payload: .file(attachmentURL),
                                            previous: manager.fileExists(atPath: attachmentDestination)
                                                 ? attachmentDestination : nil))
         }
@@ -311,8 +311,25 @@ public final class Vault {
 
     private struct StagedWriteInput {
         let destination: String
-        let data: Data
+        let payload: StagedPayload
         let previous: String?
+
+        init(destination: String, data: Data, previous: String?) {
+            self.destination = destination
+            self.payload = .data(data)
+            self.previous = previous
+        }
+
+        init(destination: String, payload: StagedPayload, previous: String?) {
+            self.destination = destination
+            self.payload = payload
+            self.previous = previous
+        }
+    }
+
+    private enum StagedPayload {
+        case data(Data)
+        case file(URL)
     }
 
     private func stageableAttachmentPath(for url: URL, title: String, at date: Date) throws -> String {
@@ -342,7 +359,12 @@ public final class Vault {
         do {
             let writes = try inputs.enumerated().map { index, input in
                 let staged = (staging as NSString).appendingPathComponent("\(index).blob")
-                try input.data.write(to: URL(fileURLWithPath: staged), options: .atomic)
+                switch input.payload {
+                case .data(let data):
+                    try data.write(to: URL(fileURLWithPath: staged), options: .atomic)
+                case .file(let url):
+                    try manager.copyItem(at: url, to: URL(fileURLWithPath: staged))
+                }
                 return StagedWrite(staged: staged, destination: input.destination,
                                    previous: input.previous)
             }
