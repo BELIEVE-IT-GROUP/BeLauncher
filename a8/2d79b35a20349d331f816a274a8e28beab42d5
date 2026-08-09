@@ -1,0 +1,40 @@
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_b0fd8a77fc70f8 932-933,937-938
+docs/release-0.32.33.md
+  s_30bc31f46aebe1::t_2e3cfed78fc116 5-24
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_b0fd8a77fc70f8 1707-1708,2315-2316
+Sources/BeLauncherCore/ModelRouting.swift
+  s_30bc31f46aebe1::t_6b54a519498317 83-98,104
+Tests/BeLauncherCoreTests/LocalModelsTests.swift
+  s_30bc31f46aebe1::t_6b54a519498317 1-5,7-22,24-25,28-37
+  s_30bc31f46aebe1::t_7461290edaaa74 26-27
+  s_30bc31f46aebe1::t_0c3329c3280e9f 6
+  s_30bc31f46aebe1::t_279b63ae264092 23
+Sources/BeLauncherCore/LocalModels.swift
+  s_30bc31f46aebe1::t_279b63ae264092 115
+  s_30bc31f46aebe1::t_6b54a519498317 11-12,45,48,53-61,69-70,78-79,109-114,116
+  s_30bc31f46aebe1::t_bb54a898599b91 117-118
+Tests/BeLauncherCoreTests/ModelRoutingTests.swift
+  s_30bc31f46aebe1::t_6b54a519498317 82-94
+Scripts/release-mac.sh
+  s_30bc31f46aebe1::t_2e3cfed78fc116 69-77,158-180,196
+Tests/BeLauncherCoreTests/SystemCommandTests.swift
+  s_30bc31f46aebe1::t_2e3cfed78fc116 330-360
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a82d79b35a20349d331f816a274a8e28beab42d5",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
