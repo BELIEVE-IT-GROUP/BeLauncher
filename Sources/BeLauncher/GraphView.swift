@@ -1603,6 +1603,7 @@ private struct BrainOverview: View {
         case .available: return L("Available")
         case .manual: return L("Manual")
         case .planned: return L("Planned")
+        case .unsupported: return L("Unsupported")
         }
     }
 

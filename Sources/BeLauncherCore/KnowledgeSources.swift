@@ -10,6 +10,7 @@ public struct KnowledgeSource: Identifiable, Sendable, Equatable {
         case available
         case manual
         case planned
+        case unsupported
     }
 
     public let id: String
@@ -69,7 +70,7 @@ public enum KnowledgeSourceCatalog {
                   scope: L("Recent text messages from the local Messages database; attachments are excluded."),
                   state: .available, symbol: "message"),
             .init(id: "whatsapp", title: L("WhatsApp"),
-                  scope: L("Planned connector with separate permission and privacy controls."),
+                  scope: L("WhatsApp is detected when present, but this build only reads it after a supported local message store is verified."),
                   state: .planned, symbol: "message"),
             .init(id: "apple-mail", title: L("Apple Mail"),
                   scope: L("Recent relevant messages with a reference to the original local .emlx file."),

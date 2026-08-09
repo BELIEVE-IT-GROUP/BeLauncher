@@ -68,4 +68,67 @@ struct LocalSourceConnectorTests {
         store.setSetting("source_last_problem_photos", "read failed")
         #expect(LocalSourceHealth.state(for: source, store: store) == .available)
     }
+
+    @Test("WhatsApp ausente sigue siendo planeado, no conectado")
+    func whatsappAbsentIsPlanned() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let status = LocalWhatsAppConnector.status(home: home.path)
+
+        #expect(!status.installed)
+        #expect(status.sourceState == .planned)
+        #expect(status.diagnosticState == "not-detected")
+        #expect(status.problem == nil)
+    }
+
+    @Test("WhatsApp instalado sin store de mensajes soportado queda explícitamente no soportado")
+    func whatsappInstalledWithoutReadableStoreIsUnsupported() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let container = home.appendingPathComponent("Library/Containers/net.whatsapp.WhatsApp",
+                                                    isDirectory: true)
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+
+        let status = LocalWhatsAppConnector.status(home: home.path)
+
+        #expect(status.installed)
+        #expect(!status.isSupported)
+        #expect(status.sourceState == .unsupported)
+        #expect(status.diagnosticState == "detected-unsupported")
+        #expect(status.problem?.contains("no supported readable local message store") == true)
+    }
+
+    @Test("WhatsApp Web en IndexedDB no se confunde con un parser de chats")
+    func whatsappWebStoreIsUnsupported() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let webStore = home.appendingPathComponent(
+            "Library/Application Support/Google/Chrome/Profile 2/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb",
+            isDirectory: true)
+        try FileManager.default.createDirectory(at: webStore, withIntermediateDirectories: true)
+
+        let status = LocalWhatsAppConnector.status(home: home.path)
+
+        #expect(status.webStores.map { ($0 as NSString).lastPathComponent }
+            == ["https_web.whatsapp.com_0.indexeddb.leveldb"])
+        #expect(status.sourceState == .unsupported)
+    }
+
+    @Test("solo una base de mensajes conocida convierte WhatsApp en fuente soportable")
+    func whatsappSupportedStoreIsAvailable() throws {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let store = home.appendingPathComponent(
+            "Library/Containers/net.whatsapp.WhatsApp/Data/ChatStorage.sqlite")
+        try FileManager.default.createDirectory(at: store.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+        try Data("sqlite".utf8).write(to: store)
+
+        let status = LocalWhatsAppConnector.status(home: home.path)
+
+        #expect(status.isSupported)
+        #expect(status.sourceState == .available)
+        #expect(status.diagnosticState == "supported-store-found")
+        #expect(status.problem == nil)
+    }
 }

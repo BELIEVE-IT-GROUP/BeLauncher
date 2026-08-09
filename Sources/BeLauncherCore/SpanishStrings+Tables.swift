@@ -763,6 +763,10 @@ extension SpanishStrings {
         "Planned connector. Nothing is read yet.": "Conector previsto. Todavía no se lee nada.",
         "Planned connector with separate permission and privacy controls.":
             "Conector previsto con permisos y controles de privacidad separados.",
+        "WhatsApp is detected when present, but this build only reads it after a supported local message store is verified.":
+            "WhatsApp se detecta cuando está presente, pero esta versión solo lo lee después de verificar un almacén local de mensajes soportado.",
+        "WhatsApp is installed, but no supported readable local message store was found.":
+            "WhatsApp está instalado, pero no se encontró un almacén local de mensajes legible y soportado.",
         "Planned connector for Mail, Slack, Teams and Discord.":
             "Conector previsto para Mail, Slack, Teams y Discord.",
         "I cannot read Apple Mail. macOS protects its local mail store; give BeLauncher Full Disk Access in System Settings, Privacy & Security.":
@@ -771,6 +775,7 @@ extension SpanishStrings {
         "Available": "Disponible",
         "Manual": "Manual",
         "Planned": "Previsto",
+        "Unsupported": "No soportado",
         "Launcher ready in %@ ms": "Launcher listo en %@ ms",
         "Deep local sources ready": "Fuentes locales profundas listas",
         "Full Disk Access needed for Mail, Messages and Notes":
@@ -785,6 +790,7 @@ extension SpanishStrings {
             "Nada sale de este Mac. Cada conector conserva solo evidencia relevante y una referencia a su fuente original.",
         "Allow": "Permitir",
         "Coming later": "Más adelante",
+        "Detected, not supported": "Detectado, no soportado",
         "Disable source": "Desactivar fuente",
         "Enable source": "Activar fuente",
         "Paused by you": "Pausada por ti",

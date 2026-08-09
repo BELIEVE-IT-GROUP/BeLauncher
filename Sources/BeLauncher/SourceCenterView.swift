@@ -177,6 +177,9 @@ private struct SourceRow: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
+        case "whatsapp" where effectiveState == .unsupported:
+            Text(L("Detected, not supported")).font(.caption).foregroundStyle(.secondary)
+                .help(source.scope)
         case "planned", "whatsapp", "mail-and-chats":
             Text(L("Coming later")).font(.caption).foregroundStyle(.secondary)
         default:
@@ -207,6 +210,7 @@ private struct SourceRow: View {
         case .available: L("Available")
         case .manual: L("Manual")
         case .planned: L("Planned")
+        case .unsupported: L("Unsupported")
         }
     }
 
@@ -216,6 +220,7 @@ private struct SourceRow: View {
         case .available: .orange
         case .manual: .secondary
         case .planned: .secondary
+        case .unsupported: .secondary
         }
     }
 }

@@ -17,6 +17,8 @@ enum LocalSourceHealth {
         case "notes", "messages", "apple-mail":
             return Permissions.fullDiskAccessLikely && successfulSync(source.id, store: store)
                 ? .connected : .available
+        case "whatsapp":
+            return LocalWhatsAppConnector.status().sourceState
         case "apps":
             let hasEvidence = store.nodes(limit: 500).contains { $0.kind == .application }
             return store.setting("graph_enabled", default: false)

@@ -74,6 +74,13 @@ if CommandLine.arguments.contains("--diagnose-sources") {
     output("notes-count=\(notes.notes.count)")
     if let problem = notes.problem { output("notes-error=\(problem)") }
 
+    let whatsapp = LocalWhatsAppConnector.status()
+    output("whatsapp-state=\(whatsapp.diagnosticState)")
+    output("whatsapp-native-containers=\(whatsapp.nativeContainers.count)")
+    output("whatsapp-web-stores=\(whatsapp.webStores.count)")
+    output("whatsapp-supported-stores=\(whatsapp.supportedStores.count)")
+    if let problem = whatsapp.problem { output("whatsapp-error=\(problem)") }
+
     let sessions = Conversations.sessionsFolder()
     let sessionFiles = FileManager.default.enumerator(atPath: sessions)?
         .compactMap { $0 as? String }.filter { $0.hasSuffix(".jsonl") }.count ?? 0
