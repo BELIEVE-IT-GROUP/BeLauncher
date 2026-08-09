@@ -1,6 +1,6 @@
 # X2: LiteRT-LM embeddable bridge and model capability spike
 
-Status: **bridge verified; E4B/MTP remains unverified and is not enabled**.
+Status: **bridge and E4B capability verified; MTP scheduling remains a separate, unenabled spike**.
 
 ## Scope
 
