@@ -564,6 +564,12 @@ final class QwenASRInstaller {
 }
 
 enum QwenASRRuntime {
+    struct AudioSignalSummary: Equatable, Sendable {
+        let duration: TimeInterval
+        let peak: Float
+        let rms: Float
+    }
+
     static var isReady: Bool {
         readyModel != nil
     }
@@ -595,6 +601,13 @@ enum QwenASRRuntime {
         defer {
             if wav != url { try? FileManager.default.removeItem(at: wav) }
         }
+        let signal = try audioSignalSummary(for: wav)
+        guard signal.duration >= 0.25 else {
+            throw Failure.audioTooShort(signal.duration)
+        }
+        guard signal.peak >= 0.0005 && signal.rms >= 0.00005 else {
+            throw Failure.silentAudio(signal.duration)
+        }
         let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; print(Qwen3ASR.from_pretrained(sys.argv[2]).transcribe(sys.argv[1]).text)"
         var environment = QwenASRInstaller.runtimeEnvironment(root: root)
         // Hugging Face/tqdm can write download progress to stdout. That stream is not a
@@ -621,6 +634,46 @@ enum QwenASRRuntime {
             }
             .joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func audioSignalSummary(for url: URL) throws -> AudioSignalSummary {
+        let file = try AVAudioFile(forReading: url)
+        let format = file.processingFormat
+        let duration = file.length > 0 ? Double(file.length) / format.sampleRate : 0
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 8_192) else {
+            throw Failure.audioConversion
+        }
+        var sumSquares: Double = 0
+        var peak: Float = 0
+        var samples: Int = 0
+        while file.framePosition < file.length {
+            let frames = AVAudioFrameCount(min(Int64(buffer.frameCapacity),
+                                                file.length - file.framePosition))
+            try file.read(into: buffer, frameCount: frames)
+            let count = Int(buffer.frameLength)
+            guard count > 0 else { continue }
+            if let channels = buffer.floatChannelData {
+                for channel in 0..<Int(format.channelCount) {
+                    for index in 0..<count {
+                        let value = abs(channels[channel][index])
+                        peak = max(peak, value)
+                        sumSquares += Double(value * value)
+                    }
+                }
+                samples += count * Int(format.channelCount)
+            } else if let channels = buffer.int16ChannelData {
+                for channel in 0..<Int(format.channelCount) {
+                    for index in 0..<count {
+                        let value = abs(Float(channels[channel][index])) / 32_768
+                        peak = max(peak, value)
+                        sumSquares += Double(value * value)
+                    }
+                }
+                samples += count * Int(format.channelCount)
+            }
+        }
+        let rms = samples > 0 ? Float(sqrt(sumSquares / Double(samples))) : 0
+        return AudioSignalSummary(duration: duration, peak: peak, rms: rms)
     }
 
     /// qwen3-asr-mlx reads PCM WAV directly. AVAudioRecorder writes AAC M4A and the call
@@ -676,11 +729,15 @@ enum QwenASRRuntime {
     }
 
     private enum Failure: LocalizedError {
-        case notInstalled, empty, audioConversion, exit(Int32, String)
+        case notInstalled, empty, audioConversion, audioTooShort(TimeInterval), silentAudio(TimeInterval), exit(Int32, String)
         var errorDescription: String? {
             switch self {
             case .notInstalled: return "Qwen ASR is not installed."
             case .empty: return "Qwen ASR returned no text."
+            case .audioTooShort(let duration):
+                return L("This recording is too short to transcribe (%@ seconds).", String(format: "%.2f", duration))
+            case .silentAudio(let duration):
+                return L("This recording contains no audible microphone signal (%@ seconds). Check the microphone input and record again.", String(format: "%.2f", duration))
             case .audioConversion:
                 return L("This audio format could not be prepared for local transcription.")
             case .exit(let code, let detail):

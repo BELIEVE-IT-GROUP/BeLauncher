@@ -106,6 +106,32 @@ struct TranscriptionTests {
         #expect(try AVAudioFile(forReading: normalized).length == 1_600)
     }
 
+    @Test("Qwen identifies a silent recording before calling the model")
+    func qwenDetectsSilentAudio() throws {
+        let source = FileManager.default.temporaryDirectory
+            .appendingPathComponent("silent-(UUID().uuidString).caf")
+        defer { try? FileManager.default.removeItem(at: source) }
+        let format: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatLinearPCM),
+            AVSampleRateKey: 16_000,
+            AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16,
+            AVLinearPCMIsFloatKey: false,
+            AVLinearPCMIsBigEndianKey: false,
+            AVLinearPCMIsNonInterleaved: false,
+        ]
+        let file = try AVAudioFile(forWriting: source, settings: format)
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                                                    frameCapacity: 16_000))
+        buffer.frameLength = 16_000
+        try file.write(from: buffer)
+
+        let summary = try QwenASRRuntime.audioSignalSummary(for: source)
+        #expect(summary.duration == 1)
+        #expect(summary.peak == 0)
+        #expect(summary.rms == 0)
+    }
+
 
     private let spanish = "el modelo de voz funciona sin conexion a internet"
     /// Lo que devolvió de verdad el transcriptor con el modelo ausente.

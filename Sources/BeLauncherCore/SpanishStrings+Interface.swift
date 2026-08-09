@@ -150,6 +150,8 @@ extension SpanishStrings {
         "Voice note could not be transcribed: %@": "La nota de voz no pudo transcribirse: %@",
         "Microphone permission is needed for a voice note.": "Hace falta permiso para usar el micrófono en una nota de voz.",
         "The microphone did not start recording.": "El micrófono no empezó a grabar.",
+        "This recording is too short to transcribe (%@ seconds).": "Esta grabación es demasiado corta para transcribirla (%@ segundos).",
+        "This recording contains no audible microphone signal (%@ seconds). Check the microphone input and record again.": "Esta grabación no contiene señal audible del micrófono (%@ segundos). Comprueba la entrada del micrófono y vuelve a grabar.",
         "Ready to transcribe · click to continue": "Lista para transcribir · haz clic para continuar",
         "Ready for your review · click to continue": "Lista para revisar · haz clic para continuar",
         "Transcribe now": "Transcribir ahora",
