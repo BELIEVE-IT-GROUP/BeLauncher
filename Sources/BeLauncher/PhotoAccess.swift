@@ -19,7 +19,10 @@ final class PhotoAccess {
 
     func refresh() {
         guard isAuthorised else { return }
-        let result = PHAsset.fetchAssets(with: .image, options: nil)
+        let options = PHFetchOptions()
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        options.fetchLimit = 500
+        let result = PHAsset.fetchAssets(with: .image, options: options)
         var mapped: [PhotoItem] = []
         result.enumerateObjects { asset, _, _ in
             let date = asset.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? L("Photo")

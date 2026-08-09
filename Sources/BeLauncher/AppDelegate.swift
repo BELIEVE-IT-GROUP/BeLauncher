@@ -692,6 +692,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             shortcuts = await Task.detached(priority: .utility) { ShortcutIndex.scan() }.value
             systemShortcuts = Shortcuts.available()
             calendar.refresh()
+            // Permissions are never requested here. If the person already granted access, warm
+            // the small launcher-facing snapshots after the app is usable so `/sources` is not
+            // mysteriously empty on the first search.
+            if reminders.isAuthorised { await reminders.refresh() }
+            if contacts.isAuthorised { await contacts.refresh() }
+            if photos.isAuthorised { photos.refresh() }
+            launcherInputCache = nil
             model?.isIndexing = false
         }
     }

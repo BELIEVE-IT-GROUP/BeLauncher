@@ -135,6 +135,8 @@ Reminders, Contacts y Photos ya no son conexiones escondidas solo en Settings. L
 las muestra como permisos opcionales con lenguaje humano, usa el estado real del sistema para pintar
 `Granted`, y refresca el estado cuando la persona vuelve desde Privacy & Security. El Brain y el
 centro de fuentes mantienen el mismo estado y la misma acción `Allow`.
+Si el permiso ya existía antes de abrir la app, los snapshots de estas fuentes se calientan después
+del arranque, fuera del camino crítico del launcher; no hace falta volver a pulsar `Allow`.
 
 El footer del Launcher también tiene ahora `Sources`: un menú descubrible que lleva a `/reminders`,
 `/contacts` y `/photos`. La persona puede encontrar estas fuentes con el ratón o el teclado sin
