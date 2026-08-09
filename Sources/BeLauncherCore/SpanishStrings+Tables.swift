@@ -376,6 +376,10 @@ extension SpanishStrings {
         "Counting what is stored…": "Contando lo que hay guardado…",
         "The brain's status could not be read: %@. Press “Refresh”; if it stays like this, export the diagnostic from Data and send it to us.":
             "No se pudo leer el estado del cerebro: %@. Pulsa «Actualizar»; si sigue igual, exporta el diagnóstico desde Datos y mándanoslo.",
+        "Refresh Inbox": "Actualizar Inbox",
+        "Open all notes": "Abrir todas las notas",
+        "Write a note": "Escribir una nota",
+        "Refresh notes": "Actualizar notas",
         "All of this is worked out and kept on this Mac.":
             "Todo esto se calcula y se guarda en este Mac.",
         "The model that understands meaning lives on a server: the text you search leaves this Mac to reach it. Install a local one if you would rather nothing left.":

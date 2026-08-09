@@ -858,6 +858,8 @@ struct GraphView: View {
                                           inboxRecord = inboxRecords.first { $0.path == path }
                                       }
                                   },
+                                  showNotes: { surface = .notes },
+                                  refreshInbox: reloadInbox,
                                   rememberClip: { item in
                                       runIntent("remember this clipboard capture: \(item.excerpt)")
                                   },
@@ -1251,6 +1253,8 @@ private struct BrainOverview: View {
     let runIntent: @MainActor (String) -> Void
     let inboxItems: [InboxItem]
     let openInbox: (InboxItem) -> Void
+    let showNotes: () -> Void
+    let refreshInbox: () -> Void
     let rememberClip: (InboxItem) -> Void
     let dismissClip: (InboxItem) -> Void
     let pulseSignals: [Pulse.Signal]
@@ -1417,17 +1421,35 @@ private struct BrainOverview: View {
                 }
 
                 section(title: L("Inbox"), symbol: "tray") {
-                    Picker(L("Inbox filter"), selection: $inboxFilter) {
-                        ForEach(InboxFilter.allCases) { filter in
-                            Text(filter.label).tag(filter)
+                    HStack(spacing: 10) {
+                        Picker(L("Inbox filter"), selection: $inboxFilter) {
+                            ForEach(InboxFilter.allCases) { filter in
+                                Text(filter.label).tag(filter)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        Spacer()
+                        Button { refreshInbox() } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(L("Refresh Inbox"))
+                        Button { showNotes() } label: {
+                            Label(L("Open all notes"), systemImage: "arrow.up.right")
+                        }
+                        .buttonStyle(.borderless)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
 
                     if filteredInboxItems.isEmpty {
-                        Text(L("Nothing is waiting for review."))
-                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(L("Nothing is waiting for review."))
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                            Button { newNote() } label: {
+                                Label(L("Write a note"), systemImage: "square.and.pencil")
+                            }
+                            .buttonStyle(.borderless)
+                        }
                     } else {
                         ForEach(filteredInboxItems.prefix(10)) { item in
                             if item.kind == .clipboard {
@@ -1610,6 +1632,11 @@ private struct BrainNotesView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button { reload() } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .help(L("Refresh notes"))
                 Button(action: newNote) {
                     Label(L("New note"), systemImage: "note.text.badge.plus")
                 }

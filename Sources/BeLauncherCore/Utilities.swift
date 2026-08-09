@@ -176,8 +176,23 @@ public enum QuickNote {
     /// Returns the human text from an Inbox Markdown file without exposing its front matter to a
     /// reader or to a memory proposal.
     public static func body(from raw: String) -> String {
-        raw.components(separatedBy: "---").dropFirst(2).joined(separator: "---")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        frontMatter(in: raw)?.body ?? raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Splits only the YAML envelope at the start of the file. Markdown bodies are allowed to
+    /// contain horizontal rules, so splitting on every `---` corrupts a note during an edit.
+    private static func frontMatter(in raw: String) -> (header: String, body: String)? {
+        let lines = raw.components(separatedBy: .newlines)
+        guard lines.first?.trimmingCharacters(in: .whitespaces) == "---",
+              let closing = lines.dropFirst().firstIndex(where: {
+                  $0.trimmingCharacters(in: .whitespaces) == "---"
+              }) else { return nil }
+        let header = lines[1..<closing].joined(separator: "\n")
+        let bodyStart = lines.index(after: closing)
+        let body = bodyStart < lines.endIndex
+            ? lines[bodyStart...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            : ""
+        return (header, body)
     }
 
     public static func records(inVaultAt root: String) -> [Record] {
@@ -188,7 +203,7 @@ public enum QuickNote {
             guard let raw = try? String(contentsOfFile: path, encoding: .utf8) else { return nil }
             let reviewed = raw.split(separator: "\n", omittingEmptySubsequences: false)
                 .contains { $0.trimmingCharacters(in: .whitespaces).lowercased() == "reviewed: true" }
-            let frontMatter = raw.components(separatedBy: "---").dropFirst().first ?? ""
+            let frontMatter = QuickNote.frontMatter(in: raw)?.header ?? ""
             let body = QuickNote.body(from: raw)
             let metadata = Dictionary(uniqueKeysWithValues: frontMatter
                 .split(whereSeparator: \.isNewline)
@@ -220,8 +235,9 @@ public enum QuickNote {
             .contains(where: { $0.trimmingCharacters(in: .whitespaces).lowercased() == "reviewed: true" }) else {
             return
         }
-        if let closing = raw.range(of: "---", options: [], range: raw.index(after: raw.startIndex)..<raw.endIndex) {
-            raw.insert(contentsOf: "\nreviewed: true\n", at: closing.lowerBound)
+        if let parsed = frontMatter(in: raw) {
+            let header = parsed.header + "\nreviewed: true\n"
+            raw = "---\n\(header)---\n\n\(parsed.body)\n"
         } else {
             raw = "---\nreviewed: true\n---\n\n" + raw
         }
@@ -232,10 +248,9 @@ public enum QuickNote {
     /// Notes stay in the inbox so the Brain can keep their provenance and review state.
     public static func updateBody(_ record: Record, body: String) throws {
         let raw = try String(contentsOfFile: record.path, encoding: .utf8)
-        let parts = raw.components(separatedBy: "---")
-        guard parts.count >= 3 else { throw UpdateError.invalidNote }
+        guard let parsed = frontMatter(in: raw) else { throw UpdateError.invalidNote }
         let clean = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        let updated = parts[0] + "---" + parts[1] + "---\n\n" + clean + "\n"
+        let updated = "---\n\(parsed.header)\n---\n\n\(clean)\n"
         try updated.write(toFile: record.path, atomically: true, encoding: .utf8)
     }
 

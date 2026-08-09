@@ -234,6 +234,32 @@ struct QuickNoteTests {
         #expect(!raw.contains("texto original"))
     }
 
+    @Test("editar Markdown conserva separadores horizontales del cuerpo")
+    func bodyEditPreservesHorizontalRules() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quick-note-horizontal-rule-\(UUID().uuidString)")
+        let inbox = root.appendingPathComponent("inbox")
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let path = inbox.appendingPathComponent("note.md")
+        let raw = QuickNote.render("primera parte\n\n---\n\nsegunda parte",
+                                   at: Date(timeIntervalSince1970: 0))
+        try raw.write(to: path, atomically: true, encoding: .utf8)
+        let record = try #require(QuickNote.records(inVaultAt: root.path).first)
+
+        #expect(QuickNote.body(from: raw).contains("---"))
+        try QuickNote.markReviewed(record)
+        let reviewed = try #require(QuickNote.records(inVaultAt: root.path).first)
+        #expect(QuickNote.body(from: try String(contentsOf: path, encoding: .utf8))
+                == "primera parte\n\n---\n\nsegunda parte")
+        try QuickNote.updateBody(reviewed, body: "primera parte\n\n---\n\ntexto editado")
+        let updated = try String(contentsOf: path, encoding: .utf8)
+        #expect(updated.contains("reviewed: true"))
+        #expect(updated.contains("---\n\ntexto editado"))
+        #expect(QuickNote.body(from: updated) == "primera parte\n\n---\n\ntexto editado")
+    }
+
     @Test("el inbox conserva procedencia y detecta transcripción pendiente")
     func recordCarriesProvenance() throws {
         let root = FileManager.default.temporaryDirectory
