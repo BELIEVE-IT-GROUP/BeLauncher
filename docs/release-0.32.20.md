@@ -99,8 +99,8 @@ codesign --verify --deep --strict --verbose=2 build/BeLauncher.app
 ```
 
 Result: the bundle was valid on disk and satisfied its designated requirement. The generated
-artifact contained version `0.32.19` during pre-release verification; the release build uses the
-version in the tag and must be checked again after notarization.
+artifact contained version `0.32.19` during pre-release verification; the signed release build
+was checked again by the runner at version `0.32.20`.
 
 ## What is not proven by repository tests
 
@@ -164,8 +164,19 @@ working-tree change still blocks the release.
 - `f29b746` Expose ScreenCapture, PDFKit and EventKit adapters.
 - `6bb247a` Harden native permission release checks.
 
-## Current status
+## Published result
 
-Code and automated verification are complete for this increment. The release artifact and the
-manual MacBook checks are the remaining gates. No section above should be read as a claim that a
-permission or provider works on the target Mac until its smoke-test result is recorded.
+The workflow completed successfully on 2026-08-09:
+
+- Workflow run: `31285863400`
+- Duration: 3m 09s
+- Test gate: passed, 1043 tests in 144 suites
+- Build/sign/notarize gate: passed
+- GitHub Release and R2 publication: passed
+- Release page: https://github.com/BELIEVE-IT-GROUP/BeLauncher/releases/tag/v0.32.20
+- DMG: https://github.com/BELIEVE-IT-GROUP/BeLauncher/releases/download/v0.32.20/BeLauncher-0.32.20.dmg
+- SHA-256: https://github.com/BELIEVE-IT-GROUP/BeLauncher/releases/download/v0.32.20/BeLauncher-0.32.20.dmg.sha256
+
+The release is ready for installation. The manual MacBook checks above remain deliberately open:
+the CI result proves the artifact and its tests, not the target Mac's TCC state, local models,
+network, disk space or corpus startup time. Record those results after installing the DMG.
