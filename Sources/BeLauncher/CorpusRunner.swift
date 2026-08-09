@@ -386,6 +386,10 @@ final class CorpusRunner {
                                         source: source, windowStart: windowStart, phase: phase,
                                         completed: completed)
         checkpoint = completed ? nil : saved
+        if completed {
+            store.removeSetting("corpus_checkpoint")
+            return
+        }
         guard let data = try? JSONEncoder().encode(saved),
               let raw = String(data: data, encoding: .utf8) else { return }
         store.setSetting("corpus_checkpoint", raw)

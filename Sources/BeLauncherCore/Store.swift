@@ -204,6 +204,10 @@ public final class Store {
         )
     }
 
+    public func removeSetting(_ key: String) {
+        try? database.execute("DELETE FROM settings WHERE key = ?", [.text(key)])
+    }
+
     public func setSetting(_ key: String, _ value: Bool) { setSetting(key, value ? "1" : "0") }
     public func setSetting(_ key: String, _ value: Int) { setSetting(key, String(value)) }
 

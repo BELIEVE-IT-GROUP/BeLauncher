@@ -108,6 +108,17 @@ struct StoreTests {
         #expect(store.setting("clipboard_max_items", default: 500) == 250)
     }
 
+    @Test("settings can be removed when a durable marker is no longer true")
+    func removeSetting() throws {
+        let store = try temporaryStore()
+        store.setSetting("corpus_checkpoint", "pending")
+        #expect(store.setting("corpus_checkpoint") == "pending")
+
+        store.removeSetting("corpus_checkpoint")
+
+        #expect(store.setting("corpus_checkpoint") == nil)
+    }
+
     @Test("export/import round-trips and never overwrites existing keywords")
     func archiveRoundTrip() throws {
         let source = try temporaryStore()

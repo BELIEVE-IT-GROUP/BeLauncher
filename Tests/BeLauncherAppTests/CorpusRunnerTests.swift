@@ -256,4 +256,42 @@ struct CorpusRunnerTests {
         #expect(!folder.documents(kind: .episode).isEmpty)
         #expect(!folder.documents(kind: .entity).isEmpty)
     }
+
+    @Test("una pasada completada elimina el checkpoint pendiente")
+    func completedRunClearsCheckpoint() async throws {
+        let store = try temporaryStore()
+        try store.migrateSemanticIndex()
+        store.setSetting("graph_enabled", true)
+        store.setSetting("source_enabled_browsers", false)
+        store.setSetting("source_enabled_conversations", false)
+        store.setSetting("source_enabled_apple-mail", false)
+        store.setSetting("source_enabled_messages", false)
+        store.setSetting("source_enabled_notes", false)
+        store.upsertNode(WorkNode(id: "file:atlas-brief", kind: .file,
+                                  name: "atlas-brief.md",
+                                  target: "/Users/mac/atlas-brief.md",
+                                  lastSeen: morning.addingTimeInterval(3_600)))
+        store.recordClip(text: "Atlas pricing notes", at: morning.addingTimeInterval(3_900))
+        let stale = IngestionCheckpoint(source: "corpus", windowStart: morning,
+                                        phase: .writing)
+        let raw = try String(data: JSONEncoder().encode(stale), encoding: .utf8)
+        store.setSetting("corpus_checkpoint", try #require(raw))
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-corpus-clear-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+
+        let result = await runner(store, corpusRoot: root)
+            .runOnce(now: morning.addingTimeInterval(5 * 3_600),
+                     ignoringPowerPolicy: true)
+
+        guard case .completed = result else {
+            Issue.record("la pasada debía completar, no \(result)")
+            return
+        }
+        #expect(store.setting("corpus_checkpoint") == nil)
+        let progress = store.setting("corpus_ingestion_progress")
+            .flatMap { $0.data(using: .utf8) }
+            .flatMap { try? JSONDecoder().decode(IngestionProgress.self, from: $0) }
+        #expect(progress?.phase == .completed)
+    }
 }
