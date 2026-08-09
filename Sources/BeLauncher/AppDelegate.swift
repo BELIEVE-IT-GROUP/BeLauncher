@@ -1190,7 +1190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Selected document: \(usableContext.title)
             \(document)
             """
-            let answer = try await askModel(user, system: system)
+            let answer = try await askModel(user, system: system, brainContextLevel: .b3)
             return BrainAnswer(
                 text: answer,
                 sources: [BrainCitation(sourceID: usableContext.sourceID,
@@ -1207,14 +1207,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let prompt = Retriever.prompt(for: question, hits: context.hits)
         let contextualPrompt: String
         if let usableContext {
-            let remaining = max(400, Retriever.defaultContextTokenBudget - context.estimatedTokens)
+            let remaining = max(0, Retriever.defaultContextTokenBudget - context.estimatedTokens)
             let document = Retriever.boundedText(usableContext.body, tokenBudget: remaining)
-            contextualPrompt = prompt.user + "\n\nCurrent document context (use only to resolve references; cite retrieved passages):\n"
-                + document
+            contextualPrompt = document.isEmpty
+                ? prompt.user
+                : prompt.user + "\n\nCurrent document context (use only to resolve references; cite retrieved passages):\n"
+                    + document
         } else {
             contextualPrompt = prompt.user
         }
-        let answer = try await askModel(contextualPrompt, system: prompt.system)
+        let answer = try await askModel(contextualPrompt, system: prompt.system,
+                                        brainContextLevel: .b3)
         let documents = (try? CorpusFolder(root: CorpusFolder.defaultRoot()))?.documents() ?? []
         var sources = context.hits.prefix(6).map { hit in
             BrainCitation(sourceID: hit.passage.source.id,
@@ -1676,6 +1679,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// asks for, and what the person's own style adds to the prompt.
     func askModel(_ prompt: String, sensitivity: Sensitivity = .personal,
                   system override: String? = nil,
+                  brainContextLevel: BELActionDefinition.BrainContextLevel = .b0,
                   onFragment: (@Sendable (String) -> Void)? = nil) async throws -> String {
         guard let store else { throw IntelligenceError.noProviderConfigured }
         let running = await LocalModels.installed()
@@ -1697,7 +1701,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         let health = await providerHealthCache.snapshot(for: available, models: models)
         let providers = try router.providers(for: sensitivity, available: available, health: health,
-                                             machine: MacCapabilityDetector.current())
+                                             machine: MacCapabilityDetector.current(),
+                                             routePolicy: brainContextLevel.requiresLocalExecution
+                                                 ? .localOnly : nil)
 
         // How this person writes, when the app has watched long enough to be sure.
         let style = OperatingModel.systemPrompt(from: store.traits())
@@ -1722,7 +1728,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     for: provider, client: client)
                 let request = BELModelRequest(system: system, prompt: prompt,
                                               sensitivity: sensitivity, maxTokens: 900,
-                                              localOnly: router.localOnlyFor.contains(sensitivity))
+                                              localOnly: router.localOnlyFor.contains(sensitivity)
+                                                  || brainContextLevel.requiresLocalExecution,
+                                              brainContextLevel: brainContextLevel)
                 let response = try await modelProvider.stream(request, model: models[provider.id],
                                                               onFragment: onFragment ?? { _ in })
                 await providerHealthCache.record(
@@ -1740,7 +1748,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 let request = BELModelRequest(system: system, prompt: prompt,
                                               sensitivity: sensitivity, maxTokens: 900,
-                                              localOnly: true)
+                                              localOnly: true,
+                                              brainContextLevel: brainContextLevel)
                 return try await foundation.stream(request, model: nil,
                                                    onFragment: onFragment ?? { _ in }).text
             } catch {

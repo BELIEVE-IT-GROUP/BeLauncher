@@ -205,14 +205,51 @@ public struct IntelligenceRequest: Sendable, Equatable {
     public let maxTokens: Int
     /// Defense in depth. A caller may require local execution even if a future router changes.
     public let localOnly: Bool
+    /// The highest Brain scope included in the prompt. B2/B3 are local-only by policy.
+    public let brainContextLevel: BELActionDefinition.BrainContextLevel
 
     public init(system: String = "", prompt: String, sensitivity: Sensitivity = .personal,
-                maxTokens: Int = 1024, localOnly: Bool = false) {
+                maxTokens: Int = 1024, localOnly: Bool = false,
+                brainContextLevel: BELActionDefinition.BrainContextLevel = .b0) {
         self.system = system
         self.prompt = prompt
         self.sensitivity = sensitivity
         self.maxTokens = maxTokens
         self.localOnly = localOnly
+        self.brainContextLevel = brainContextLevel
+    }
+
+    public var requiresLocalExecution: Bool {
+        localOnly || brainContextLevel.requiresLocalExecution
+    }
+}
+
+public enum BELProviderClass: String, Sendable, Equatable {
+    case local
+    case cloud
+}
+
+/// Metadata-only privacy evidence. It intentionally carries no prompt, system text, or source.
+public struct BELPrivacyAuditEvent: Sendable, Equatable {
+    public let providerID: String
+    public let providerClass: BELProviderClass
+    public let sensitivity: Sensitivity
+    public let brainContextLevel: BELActionDefinition.BrainContextLevel
+    public let localOnly: Bool
+    public let redactedSystem: Bool
+    public let redactedPrompt: Bool
+
+    public init(providerID: String, providerClass: BELProviderClass,
+                sensitivity: Sensitivity,
+                brainContextLevel: BELActionDefinition.BrainContextLevel,
+                localOnly: Bool, redactedSystem: Bool, redactedPrompt: Bool) {
+        self.providerID = providerID
+        self.providerClass = providerClass
+        self.sensitivity = sensitivity
+        self.brainContextLevel = brainContextLevel
+        self.localOnly = localOnly
+        self.redactedSystem = redactedSystem
+        self.redactedPrompt = redactedPrompt
     }
 }
 
@@ -229,15 +266,18 @@ public struct IntelligenceClient: Sendable {
     public var transport: Transport
     public var byteTransport: ByteTransport
     public var keyLookup: @Sendable (String) -> String?
+    public var audit: @Sendable (BELPrivacyAuditEvent) -> Void
 
     public init(
         transport: @escaping Transport = { try await URLSession.shared.data(for: $0) },
         byteTransport: @escaping ByteTransport = { try await URLSession.shared.bytes(for: $0) },
-        keyLookup: @escaping @Sendable (String) -> String? = { Keychain.get($0) }
+        keyLookup: @escaping @Sendable (String) -> String? = { Keychain.get($0) },
+        audit: @escaping @Sendable (BELPrivacyAuditEvent) -> Void = { _ in }
     ) {
         self.transport = transport
         self.byteTransport = byteTransport
         self.keyLookup = keyLookup
+        self.audit = audit
     }
 
     public func answer(
@@ -380,7 +420,7 @@ public struct IntelligenceClient: Sendable {
 
     func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String,
                streaming: Bool = false) throws -> URLRequest {
-        guard !request.localOnly || provider.isPrivate else {
+        guard !request.requiresLocalExecution || provider.isPrivate else {
             throw IntelligenceError.blockedBySensitivity(provider.name)
         }
         let endpoint: String
@@ -419,6 +459,14 @@ public struct IntelligenceClient: Sendable {
         // lines replaced, regardless of which caller assembled the prompt.
         let outboundSystem = provider.isPrivate ? request.system : SecretGuard.redacted(request.system)
         let outboundPrompt = provider.isPrivate ? request.prompt : SecretGuard.redacted(request.prompt)
+        audit(BELPrivacyAuditEvent(
+            providerID: provider.id,
+            providerClass: provider.isPrivate ? .local : .cloud,
+            sensitivity: request.sensitivity,
+            brainContextLevel: request.brainContextLevel,
+            localOnly: request.requiresLocalExecution,
+            redactedSystem: outboundSystem != request.system,
+            redactedPrompt: outboundPrompt != request.prompt))
 
         if provider.id == "gemini" {
             var body: [String: Any] = [

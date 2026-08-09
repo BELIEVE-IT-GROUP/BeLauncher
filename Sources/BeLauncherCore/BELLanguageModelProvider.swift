@@ -22,14 +22,17 @@ public struct BELModelRequest: Sendable, Equatable {
     public let sensitivity: Sensitivity
     public let maxTokens: Int
     public let localOnly: Bool
+    public let brainContextLevel: BELActionDefinition.BrainContextLevel
 
     public init(system: String = "", prompt: String, sensitivity: Sensitivity = .personal,
-                maxTokens: Int = 1024, localOnly: Bool = false) {
+                maxTokens: Int = 1024, localOnly: Bool = false,
+                brainContextLevel: BELActionDefinition.BrainContextLevel = .b0) {
         self.system = system
         self.prompt = prompt
         self.sensitivity = sensitivity
         self.maxTokens = maxTokens
         self.localOnly = localOnly
+        self.brainContextLevel = brainContextLevel
     }
 }
 
@@ -100,7 +103,8 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
             prompt: request.prompt,
             sensitivity: request.sensitivity,
             maxTokens: request.maxTokens,
-            localOnly: request.localOnly
+            localOnly: request.localOnly,
+            brainContextLevel: request.brainContextLevel
         )
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.answer(intelligenceRequest, using: descriptor, model: selectedModel)
@@ -117,7 +121,8 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
             prompt: request.prompt,
             sensitivity: request.sensitivity,
             maxTokens: request.maxTokens,
-            localOnly: request.localOnly
+            localOnly: request.localOnly,
+            brainContextLevel: request.brainContextLevel
         )
         let selectedModel = model ?? descriptor.defaultModel
         let text = try await client.stream(intelligenceRequest, using: descriptor,

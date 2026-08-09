@@ -20,20 +20,38 @@ public struct Retriever: Sendable {
     /// The single Brain context boundary. Retrieval remains the implementation, while callers
     /// declare how much memory they are allowed to see instead of choosing arbitrary hit counts.
     public enum BeBrainContextProvider {
+        public enum MemoryScope: String, Sendable, Equatable {
+            case none
+            case working
+            case longTerm
+        }
+
         public struct Selection: Sendable, Equatable {
             public let level: BELActionDefinition.BrainContextLevel
+            public let scope: MemoryScope
             public let hits: [Retrieved]
             public let estimatedTokens: Int
             public let gap: String?
             public let wasTruncated: Bool
 
-            public init(level: BELActionDefinition.BrainContextLevel, hits: [Retrieved],
+            public init(level: BELActionDefinition.BrainContextLevel,
+                        scope: MemoryScope? = nil, hits: [Retrieved],
                         estimatedTokens: Int, gap: String?, wasTruncated: Bool) {
                 self.level = level
+                self.scope = scope ?? Self.scope(for: level)
                 self.hits = hits
                 self.estimatedTokens = estimatedTokens
                 self.gap = gap
                 self.wasTruncated = wasTruncated
+            }
+
+            private static func scope(for level: BELActionDefinition.BrainContextLevel)
+                -> MemoryScope {
+                switch level {
+                case .b0, .b1: .none
+                case .b2: .working
+                case .b3: .longTerm
+                }
             }
         }
 
@@ -103,8 +121,8 @@ public struct Retriever: Sendable {
     public static let defaultContextTokenBudget = 6_000
 
     /// Selects complete passages until the budget is reached. If the first passage is larger than
-    /// the budget, it is shortened rather than silently returning no evidence. Citation metadata
-    /// stays attached to the shortened passage, so a model can still point to the right source.
+    /// the budget, it is shortened while retaining citation metadata. If even the citation
+    /// envelope cannot fit, it fails closed rather than returning an over-budget fake guarantee.
     public static func context(
         from hits: [Retrieved], tokenBudget: Int = defaultContextTokenBudget
     ) -> ContextSelection {
@@ -130,19 +148,36 @@ public struct Retriever: Sendable {
             }
 
             // Reserve room for the title, source and citation envelope before fitting text.
-            let envelope = candidate.passage.title.count + candidate.passage.source.id.count + 67
+            let envelope = candidate.passage.title.utf8.count
+                + candidate.passage.source.id.utf8.count + 67
+            guard envelope + 1 <= tokenBudget * 4 else {
+                truncated = true
+                break
+            }
             // The ellipsis and ceiling in estimatedTokens need four extra characters of room.
             let availableCharacters = max(1, (tokenBudget * 4) - envelope - 4)
-            let text = String(candidate.passage.text.prefix(availableCharacters)).trimmingCharacters(in: .whitespaces)
-            guard !text.isEmpty else { break }
-            let shortened = IndexedPassage(
-                id: candidate.passage.id, source: candidate.passage.source, title: candidate.passage.title,
-                ordinal: candidate.passage.ordinal,
-                text: text + (text.count < candidate.passage.text.count ? "…" : ""),
-                occurredAt: candidate.passage.occurredAt, hasVector: candidate.passage.hasVector
-            )
-            let shortenedHit = Retrieved(passage: shortened, score: candidate.score,
-                                         route: candidate.route, via: candidate.via)
+            var text = String(candidate.passage.text.prefix(availableCharacters))
+                .trimmingCharacters(in: .whitespaces)
+            var shortenedHit: Retrieved?
+            while !text.isEmpty {
+                let shortened = IndexedPassage(
+                    id: candidate.passage.id, source: candidate.passage.source,
+                    title: candidate.passage.title, ordinal: candidate.passage.ordinal,
+                    text: text + (text.count < candidate.passage.text.count ? "…" : ""),
+                    occurredAt: candidate.passage.occurredAt, hasVector: candidate.passage.hasVector
+                )
+                let attempt = Retrieved(passage: shortened, score: candidate.score,
+                                        route: candidate.route, via: candidate.via)
+                if estimatedTokens(for: attempt) <= tokenBudget {
+                    shortenedHit = attempt
+                    break
+                }
+                text = String(text.dropLast()).trimmingCharacters(in: .whitespaces)
+            }
+            guard let shortenedHit else {
+                truncated = true
+                break
+            }
             used = estimatedTokens(for: shortenedHit)
             selected.append(shortenedHit)
             truncated = true
@@ -153,8 +188,8 @@ public struct Retriever: Sendable {
 
     public static func estimatedTokens(for hit: Retrieved) -> Int {
         let title = IndexedPassage.label(hit.passage.title)
-        return max(1, (hit.passage.text.count + title.count
-                + hit.passage.source.id.count + 67 + 3) / 4)
+        return max(1, (hit.passage.text.utf8.count + title.utf8.count
+                + hit.passage.source.id.utf8.count + 67 + 3) / 4)
     }
 
     /// Keeps an explicitly selected document inside the same predictable budget as retrieved

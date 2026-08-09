@@ -237,9 +237,30 @@ struct RetrieverTests {
             usedMeaning: true, usedWords: true)
         let b0 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b0)
         let b2 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b2)
+        let b3 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b3)
         #expect(b0.hits.isEmpty)
         #expect(b0.level == .b0)
+        #expect(b0.scope == .none)
         #expect(b2.hits.count == 1)
+        #expect(b2.scope == .working)
+        #expect(b3.scope == .longTerm)
+    }
+
+    @Test("a citation envelope that cannot fit is omitted rather than exceeding the budget")
+    func tinyBudgetFailsClosed() {
+        let hit = Retrieved(passage: passage("a", "evidence"), score: 1, route: .meaning)
+        let selection = Retriever.context(from: [hit], tokenBudget: 1)
+        #expect(selection.hits.isEmpty)
+        #expect(selection.estimatedTokens == 0)
+        #expect(selection.wasTruncated)
+    }
+
+    @Test("multibyte evidence cannot bypass the token accounting")
+    func multibyteBudget() {
+        let hit = Retrieved(passage: passage("emoji", String(repeating: "🔒", count: 500)),
+                            score: 1, route: .meaning)
+        let selection = Retriever.context(from: [hit], tokenBudget: 120)
+        #expect(selection.estimatedTokens <= 120)
     }
 
     @Test("a prompt reports that its evidence was shortened")

@@ -66,6 +66,23 @@ public struct BELActionDefinition: Codable, Sendable, Identifiable, Equatable {
         case b2
         /// B2 plus long-term memories, people, goals and prior decisions.
         case b3
+
+        /// Whether the action may receive evidence from the person's Brain.
+        public var includesMemory: Bool {
+            switch self {
+            case .b0, .b1: false
+            case .b2, .b3: true
+            }
+        }
+
+        /// Working and long-term memory are local-only by default. This prevents a cloud request
+        /// from acquiring durable context merely because a caller appended it to the prompt.
+        public var requiresLocalExecution: Bool {
+            switch self {
+            case .b0, .b1: false
+            case .b2, .b3: true
+            }
+        }
     }
 
     /// Which class of engine may serve the action. The router picks the provider; the definition

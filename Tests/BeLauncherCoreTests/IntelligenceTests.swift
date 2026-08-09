@@ -8,6 +8,10 @@ struct IntelligenceTests {
     private let local = IntelligenceProvider.named("ollama")!
     private let cloud = IntelligenceProvider.named("anthropic")!
 
+    private final class AuditRecorder: @unchecked Sendable {
+        var events: [BELPrivacyAuditEvent] = []
+    }
+
     // MARK: - Routing
 
     @Test("confidential material never leaves the Mac by accident")
@@ -118,6 +122,36 @@ struct IntelligenceTests {
         let body = try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
         let messages = try #require(body["messages"] as? [[String: String]])
         #expect(messages.last?["content"]?.contains("sk-proj-") == true)
+    }
+
+    @Test("long-term Brain context is refused before a cloud request is built")
+    func longTermContextIsLocalOnly() {
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                         keyLookup: { _ in "user-key" })
+        #expect(throws: IntelligenceError.blockedBySensitivity("Anthropic")) {
+            try client.build(
+                IntelligenceRequest(prompt: "private memory", brainContextLevel: .b3),
+                provider: cloud, model: "claude-sonnet-5")
+        }
+    }
+
+    @Test("the privacy audit records provider class and flags, never prompt content")
+    func privacyAuditIsMetadataOnly() throws {
+        let recorder = AuditRecorder()
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                         keyLookup: { _ in "user-key" },
+                                         audit: { recorder.events.append($0) })
+        _ = try client.build(
+            IntelligenceRequest(system: "AUTH_TOKEN=sk-ant-api03-12345678901234567890",
+                                 prompt: "hello", sensitivity: .personal),
+            provider: cloud, model: "claude-sonnet-5")
+        let event = try #require(recorder.events.first)
+        #expect(event.providerID == "anthropic")
+        #expect(event.providerClass == .cloud)
+        #expect(event.brainContextLevel == .b0)
+        #expect(event.localOnly == false)
+        #expect(event.redactedSystem)
+        #expect(event.redactedPrompt == false)
     }
 
     @Test("OpenAI GPT-5 uses the current completion limit parameter")
