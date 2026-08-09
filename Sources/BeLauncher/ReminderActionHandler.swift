@@ -28,7 +28,7 @@ struct ReminderActionHandler: BELActionHandler {
     init?(definition: BELActionDefinition) {
         guard ["reminders.find", "reminders.create", "reminders.create_list", "reminders.complete",
                "reminders.change_due_date", "reminders.show_list", "reminders.change_list",
-               "reminders.add_notes", "reminders.set_priority"].contains(definition.id),
+               "reminders.add_notes", "reminders.set_priority", "reminders.delete"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -86,6 +86,16 @@ struct ReminderActionHandler: BELActionHandler {
             try store.save(reminder, commit: true)
             return BELActionResult(text: L("Completed: %@", reminder.title ?? L("Untitled")),
                                    changed: [id], receipt: "reminders:complete:\(id)")
+        }
+        if actionID == "reminders.delete" {
+            guard let id = value.reminderID,
+                  let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else {
+                throw ReminderActionError.noMatches
+            }
+            let title = reminder.title ?? L("Untitled")
+            try store.remove(reminder, commit: true)
+            return BELActionResult(text: L("Reminder deleted: %@", title),
+                                   changed: [id], receipt: "reminders:delete:\(id)")
         }
         if actionID == "reminders.change_due_date" {
             guard let id = value.reminderID,

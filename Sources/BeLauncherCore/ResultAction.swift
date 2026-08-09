@@ -368,6 +368,9 @@ public enum ActionRegistry {
                 ResultAction(id: "priority", title: L("Set priority"), symbol: "exclamationmark.3",
                              section: .manage,
                              intent: .systemCommand("bel:reminders.set_priority\u{1F}\(result.payload)")),
+                ResultAction(id: "delete", title: L("Delete reminder"), symbol: "trash",
+                             section: .danger, isDestructive: true,
+                             intent: .systemCommand("bel:reminders.delete\u{1F}\(result.payload)")),
             ]
 
         case .contact:
