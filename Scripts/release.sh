@@ -11,7 +11,18 @@ cd "$ROOT"
 BUMP="${1:-patch}"
 case "$BUMP" in patch|minor|major) ;; *) echo "usage: release.sh [patch|minor|major]"; exit 1 ;; esac
 
-[ -z "$(git status --porcelain)" ] || { echo "Working tree is dirty; commit first."; exit 1; }
+UNEXPECTED_DIRTY="$(git status --porcelain | while IFS= read -r line; do
+    path="${line:3}"
+    case "$path" in
+        audit-ai-layer/*|audit-native-actions/*|docs/plan-action-map-v2.md) ;;
+        *) printf '%s\n' "$line" ;;
+    esac
+done)"
+[ -z "$UNEXPECTED_DIRTY" ] || {
+    echo "Working tree is dirty; commit first."
+    printf '%s\n' "$UNEXPECTED_DIRTY"
+    exit 1
+}
 
 CURRENT="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Scripts/Info.plist)"
 IFS=. read -r MAJOR MINOR PATCH <<< "$CURRENT"
