@@ -1,0 +1,21 @@
+Tests/BeLauncherCoreTests/VaultTests.swift
+  s_30bc31f46aebe1::t_b9823aa482d84e 400-430
+docs/release-0.32.66.md
+  s_30bc31f46aebe1::t_eed0b3a87ce6ef 1-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b5aeedc7b19503b16a9a4258bc21646763bf1544",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
