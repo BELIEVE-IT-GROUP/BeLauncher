@@ -260,6 +260,27 @@ struct QuickNoteTests {
         #expect(QuickNote.body(from: updated) == "primera parte\n\n---\n\ntexto editado")
     }
 
+    @Test("descartar Inbox borra solo la entrada Markdown")
+    func discardKeepsOriginalSource() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quick-note-discard-\(UUID().uuidString)")
+        let inbox = root.appendingPathComponent("inbox")
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let source = root.appendingPathComponent("recording.m4a")
+        try Data("audio".utf8).write(to: source)
+        let path = inbox.appendingPathComponent("recording.md")
+        try QuickNote.renderEvidence(title: "Voice note", text: "pending",
+                                     at: .now, sourcePath: source.path)
+            .write(to: path, atomically: true, encoding: .utf8)
+        let record = try #require(QuickNote.records(inVaultAt: root.path).first)
+
+        try QuickNote.discard(record)
+        #expect(!FileManager.default.fileExists(atPath: path.path))
+        #expect(FileManager.default.fileExists(atPath: source.path))
+    }
+
     @Test("el inbox conserva procedencia y detecta transcripción pendiente")
     func recordCarriesProvenance() throws {
         let root = FileManager.default.temporaryDirectory

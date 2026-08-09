@@ -944,6 +944,11 @@ struct GraphView: View {
                                    try? QuickNote.markReviewed(record)
                                    reloadInbox()
                                    inboxRecord = nil
+                               },
+                               discard: {
+                                   try? QuickNote.discard(record)
+                                   reloadInbox()
+                                   inboxRecord = nil
                                })
         }
         .onAppear { reloadInbox() }
@@ -959,7 +964,7 @@ struct GraphView: View {
     }
 
     private func rememberInboxClip(_ item: InboxItem) {
-        runIntent("remember this clipboard capture: (item.excerpt)")
+        runIntent("remember this clipboard capture: \(item.excerpt)")
     }
 
     private func dismissInboxClip(_ item: InboxItem) {
@@ -1664,6 +1669,7 @@ private struct BrainNotesView: View {
     @State private var draft = ""
     @State private var editing = false
     @State private var status: String?
+    @State private var showingDiscardConfirmation = false
 
     private var filtered: [QuickNote.Record] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1768,6 +1774,14 @@ private struct BrainNotesView: View {
             }
         }
         .onAppear { reload() }
+        .alert(L("Remove this note from Inbox?"), isPresented: $showingDiscardConfirmation) {
+            Button(L("Cancel"), role: .cancel) { }
+            Button(L("Remove"), role: .destructive) {
+                if let selected { discard(selected) }
+            }
+        } message: {
+            Text(L("The Inbox Markdown entry will be deleted. The original audio or source will remain untouched."))
+        }
     }
 
     private func noteRow(_ note: QuickNote.Record) -> some View {
@@ -1818,6 +1832,15 @@ private struct BrainNotesView: View {
                     } else {
                         Button(L("Edit")) { draft = body(of: selected); editing = true }
                     }
+                    if onlyInbox {
+                        Button {
+                            showingDiscardConfirmation = true
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(L("Remove from Inbox"))
+                    }
                     if let source = selected.sourcePath, !source.isEmpty {
                         Button {
                             NSWorkspace.shared.open(URL(fileURLWithPath: source))
@@ -1857,8 +1880,13 @@ private struct BrainNotesView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         Button(L("Mark as reviewed")) {
-                            try? QuickNote.markReviewed(selected)
-                            reload()
+                            do {
+                                try QuickNote.markReviewed(selected)
+                                status = L("Marked as reviewed")
+                                reload()
+                            } catch {
+                                status = L("Could not update the note: %@", error.localizedDescription)
+                            }
                         }
                     }
                     .padding(12)
@@ -1900,6 +1928,18 @@ private struct BrainNotesView: View {
             status = error.localizedDescription
         }
     }
+
+    private func discard(_ note: QuickNote.Record) {
+        do {
+            try QuickNote.discard(note)
+            selectedID = nil
+            showingDiscardConfirmation = false
+            status = L("Removed from Inbox")
+            reload()
+        } catch {
+            status = L("Could not remove the note: %@", error.localizedDescription)
+        }
+    }
 }
 
 @MainActor
@@ -1909,7 +1949,9 @@ private struct BrainInboxNoteView: View {
     let proposeMemory: (String) -> Void
     let retryTranscription: () -> Void
     let markReviewed: () -> Void
+    let discard: () -> Void
     @State private var text = ""
+    @State private var showingDiscardConfirmation = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1925,6 +1967,7 @@ private struct BrainInboxNoteView: View {
                         .buttonStyle(.borderedProminent)
                 }
                 Button(L("Mark as reviewed")) { markReviewed() }
+                Button(L("Remove from Inbox")) { showingDiscardConfirmation = true }
                 Button(L("Open original")) {
                     NSWorkspace.shared.open(URL(fileURLWithPath: record.sourcePath ?? record.path))
                 }
@@ -1940,6 +1983,12 @@ private struct BrainInboxNoteView: View {
         }
         .frame(width: 700, height: 520)
         .onAppear { text = (try? String(contentsOfFile: record.path, encoding: .utf8)) ?? record.excerpt }
+        .alert(L("Remove this note from Inbox?"), isPresented: $showingDiscardConfirmation) {
+            Button(L("Cancel"), role: .cancel) { }
+            Button(L("Remove"), role: .destructive, action: discard)
+        } message: {
+            Text(L("The original audio or source will remain untouched."))
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 # Ola 1: auditoria UX del Brain y del Launcher
 
-Estado: **en curso**.
+Estado: **completada en código; pendiente únicamente de validación visual en el MacBook de
+release**.
 
 ## Criterio humano
 
@@ -23,16 +24,19 @@ Inbox, leer/editar Markdown, preparar una misión y abrir la fuente original.
 - La escalera técnica de niveles de verdad permanece disponible dentro del inspector, donde sirve
   para revisar evidencia, pero no compite con la navegación principal.
 
-## Recorridos que deben cerrarse en los siguientes cortes
+## Recorridos cerrados en esta ola
 
 1. Nueva nota: abrir, escribir, guardar Markdown, encontrarla después y editarla.
 2. Inbox: entender por qué algo está pendiente, transcribirlo, revisarlo, convertirlo en memoria o
-   descartarlo.
-3. Brain: preguntar en lenguaje natural, ver la respuesta con fuentes y abrir la evidencia sin
-   ventanas vacías.
+   descartarlo sin borrar el audio/origen.
+3. Brain: preguntar en lenguaje natural, ver la respuesta con fuentes y abrir la evidencia real.
 4. Misión: expresar una intención, revisar el plan, aprobarla y leer el recibo.
 5. Fuentes: saber qué se lee, qué no se lee, cuándo se sincronizó y qué permiso falta.
 6. Launcher: usar clipboard, snippets, verbos, nota rápida, voz y dictado sin perder el foco.
+
+El descarte de Inbox elimina solo el sobre Markdown de triage y conserva la procedencia. Los
+errores de revisión y guardado se muestran en la misma superficie. El flujo de conservar clipboard
+usa el texto seleccionado real, no un literal fijo.
 
 ## Regla de la ola
 

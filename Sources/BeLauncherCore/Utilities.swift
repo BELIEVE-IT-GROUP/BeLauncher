@@ -244,6 +244,12 @@ public enum QuickNote {
         try raw.write(toFile: record.path, atomically: true, encoding: .utf8)
     }
 
+    /// Discards the Inbox envelope without touching the original audio or source file.
+    /// The Inbox is a triage queue; removing its Markdown entry must not destroy evidence.
+    public static func discard(_ record: Record) throws {
+        try FileManager.default.removeItem(atPath: record.path)
+    }
+
     /// Updates only the human body while preserving the note's front matter and source metadata.
     /// Notes stay in the inbox so the Brain can keep their provenance and review state.
     public static func updateBody(_ record: Record, body: String) throws {
