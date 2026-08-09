@@ -781,7 +781,7 @@ final class GraphModel {
 @MainActor
 struct GraphView: View {
     private enum Surface: String, CaseIterable, Identifiable {
-        case overview, notes, graph
+        case overview, inbox, notes, graph
         var id: String { rawValue }
     }
 
@@ -814,6 +814,7 @@ struct GraphView: View {
             VerbRail(model: model,
                      selectedSurface: surface.rawValue,
                      showOverview: { surface = .overview },
+                     showInbox: { surface = .inbox },
                      showNotes: { surface = .notes },
                      showGraph: { surface = .graph })
                 .frame(width: 236)
@@ -857,6 +858,11 @@ struct GraphView: View {
                                       reader = CorpusReaderModel(folder: corpus, selecting: id)
                                   },
                                   showGraph: { surface = .graph })
+                } else if surface == .inbox {
+                    BrainNotesView(onlyInbox: true,
+                                   newNote: beginNewNote,
+                                   retryTranscription: { retryTranscription($0) },
+                                   refresh: reloadInbox)
                 } else if surface == .notes {
                     BrainNotesView(
                         newNote: beginNewNote,
@@ -1605,6 +1611,7 @@ private struct BrainOverview: View {
 
 @MainActor
 private struct BrainNotesView: View {
+    var onlyInbox = false
     let newNote: () -> Void
     let retryTranscription: (QuickNote.Record) -> Void
     let refresh: () -> Void
@@ -1617,23 +1624,27 @@ private struct BrainNotesView: View {
 
     private var filtered: [QuickNote.Record] {
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !needle.isEmpty else { return notes }
-        return notes.filter {
+        let candidates = onlyInbox ? notes.filter { !$0.reviewed } : notes
+        guard !needle.isEmpty else { return candidates }
+        return candidates.filter {
             $0.title.localizedCaseInsensitiveContains(needle)
                 || $0.excerpt.localizedCaseInsensitiveContains(needle)
         }
     }
 
     private var selected: QuickNote.Record? {
-        notes.first { $0.id == selectedID }
+        filtered.first { $0.id == selectedID }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(L("My notes")).font(.system(size: 18, weight: .semibold))
-                    Text(L("Write, edit and keep your Markdown notes in one place."))
+                    Text(L(onlyInbox ? "Inbox" : "My notes"))
+                        .font(.system(size: 18, weight: .semibold))
+                    Text(L(onlyInbox
+                           ? "Review captured notes and voice notes before they become memory."
+                           : "Write, edit and keep your Markdown notes in one place."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -1662,7 +1673,9 @@ private struct BrainNotesView: View {
                         VStack(spacing: 8) {
                             Spacer()
                             Image(systemName: "note.text").font(.title2).foregroundStyle(.secondary)
-                            Text(notes.isEmpty ? L("No notes yet") : L("No notes match your search"))
+                            Text(filtered.isEmpty && onlyInbox
+                                 ? L("Inbox is clear")
+                                 : (notes.isEmpty ? L("No notes yet") : L("No notes match your search")))
                                 .font(.caption).foregroundStyle(.secondary)
                             Spacer()
                         }
@@ -1784,7 +1797,7 @@ private struct BrainNotesView: View {
 
     private func reload() {
         notes = QuickNote.records(inVaultAt: Vault.defaultRoot())
-        if selectedID == nil { selectedID = notes.first?.id }
+        if selectedID == nil || selected == nil { selectedID = filtered.first?.id }
         if let selected { draft = body(of: selected) }
         refresh()
     }
@@ -2025,6 +2038,7 @@ private struct VerbRail: View {
     @Bindable var model: GraphModel
     let selectedSurface: String
     let showOverview: () -> Void
+    let showInbox: () -> Void
     let showNotes: () -> Void
     let showGraph: () -> Void
 
@@ -2035,6 +2049,8 @@ private struct VerbRail: View {
             VStack(spacing: 3) {
                 navigationButton(L("Overview"), symbol: "square.grid.2x2",
                                  selected: selectedSurface == "overview", action: showOverview)
+                navigationButton(L("Inbox"), symbol: "tray.full",
+                                 selected: selectedSurface == "inbox", action: showInbox)
                 navigationButton(L("My notes"), symbol: "note.text",
                                  selected: selectedSurface == "notes", action: showNotes)
                 navigationButton(L("Graph"), symbol: "circle.grid.cross",
