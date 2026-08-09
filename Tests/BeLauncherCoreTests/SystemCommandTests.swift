@@ -327,4 +327,35 @@ struct EntitlementsTests {
                     "el release no verifica \(key)")
         }
     }
+
+    @Test("N7 conserva el modelo no sandbox mientras las fuentes usan Full Disk Access")
+    func releaseGuardsTheFileAccessArchitecture() throws {
+        let entitlementsPath = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/BeLauncher.entitlements")
+        let entitlements = try String(contentsOfFile: entitlementsPath, encoding: .utf8)
+        #expect(!entitlements.contains("com.apple.security.app-sandbox"),
+                "no se puede activar sandbox sin migrar las lecturas protegidas a bookmarks o helper")
+
+        let releasePath = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/release-mac.sh")
+        let release = try String(contentsOfFile: releasePath, encoding: .utf8)
+        #expect(release.contains("require_absent_entitlement \"com.apple.security.app-sandbox\""),
+                "el release debe inspeccionar el entitlement firmado y bloquear una regresión de sandbox")
+        #expect(release.contains("Full Disk Access"),
+                "el gate debe explicar por qué sandbox y el acceso directo a las fuentes no son intercambiables")
+        #expect(release.contains("arm64") && release.contains("x86_64"),
+                "el release debe rechazar un binario que no sea universal")
+    }
+
+    @Test("N7 verifica en el artefacto las usage descriptions que realmente usa")
+    func releaseChecksEveryCurrentUsageDescription() throws {
+        let path = (Self.repositoryRoot as NSString)
+            .appendingPathComponent("Scripts/release-mac.sh")
+        let release = try String(contentsOfFile: path, encoding: .utf8)
+        for key in ["NSMicrophoneUsageDescription", "NSCalendarsUsageDescription",
+                    "NSAudioCaptureUsageDescription", "NSAppleEventsUsageDescription"] {
+            #expect(release.contains("require_usage_description \"\(key)\""),
+                    "el release debe comprobar \(key) en el Info.plist empaquetado")
+        }
+    }
 }

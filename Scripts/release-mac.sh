@@ -66,6 +66,15 @@ for asset in "$ROOT/Resources/"*; do
 done
 
 lipo -archs "$APP/Contents/MacOS/BeLauncher"
+ARCHS="$(lipo -archs "$APP/Contents/MacOS/BeLauncher")"
+case " $ARCHS " in
+    *" arm64 "*) ;;
+    *) echo "✗ El binario no contiene arm64." >&2; exit 1 ;;
+esac
+case " $ARCHS " in
+    *" x86_64 "*) ;;
+    *) echo "✗ El binario no contiene x86_64." >&2; exit 1 ;;
+esac
 
 # ---------------------------------------------------------------- sign
 # The Developer ID is imported from Believe's .p12 into a throwaway keychain, which is
@@ -146,6 +155,29 @@ require_entitlement() {
 require_entitlement "com.apple.security.automation.apple-events" "Los comandos de sistema y los flujos"
 require_entitlement "com.apple.security.device.audio-input" "El micrófono, el dictado y las notas de voz"
 
+# N7 deliberately does not enable App Sandbox. BeLauncher reads the user's local Mail,
+# Messages, Notes and Safari stores after Full Disk Access is granted. Full Disk Access is a
+# TCC decision; it does not waive App Sandbox's container/file rules. Adding the sandbox here
+# would make those direct reads fail unless the architecture first moved to security-scoped
+# bookmarks or a privileged helper. Keep this as a signed-artifact gate so a future entitlement
+# edit cannot silently ship a binary that the current source architecture cannot use.
+require_absent_entitlement() {
+    local key="$1"
+    local reason="$2"
+    local value
+    value="$(printf '%s' "$SIGNED_ENTITLEMENTS_JSON" \
+        | jq -r --arg entitlement_key "$key" \
+            'if has($entitlement_key) then .[$entitlement_key] else "missing" end')"
+    if [ "$value" = "true" ]; then
+        echo "✗ El .app declara $key." >&2
+        echo "  $reason" >&2
+        exit 1
+    fi
+    echo "▸ Entitlement incompatible ausente: $key"
+}
+require_absent_entitlement "com.apple.security.app-sandbox" \
+    "El acceso directo a Mail, Messages, Notes y Safari requiere el modelo no sandbox actual; migrarlo exige security-scoped bookmarks o un helper y otra auditoría."
+
 require_usage_description() {
     local key="$1"
     local feature="$2"
@@ -161,6 +193,7 @@ require_usage_description() {
 require_usage_description "NSMicrophoneUsageDescription" "micrófono"
 require_usage_description "NSCalendarsUsageDescription" "calendario"
 require_usage_description "NSAudioCaptureUsageDescription" "audio del sistema"
+require_usage_description "NSAppleEventsUsageDescription" "automatización de Apple Events"
 
 if [ "${SKIP_NOTARIZE:-0}" = "1" ]; then
     echo "▸ SKIP_NOTARIZE=1 — stopping after signing"

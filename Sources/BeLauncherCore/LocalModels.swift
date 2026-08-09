@@ -8,6 +8,8 @@ import Foundation
 /// found — including, when it finds nothing, how to get one.
 public enum LocalModels {
 
+    public typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
     public struct Installation: Sendable, Equatable, Identifiable {
         public let providerID: String
         public let name: String
@@ -40,12 +42,21 @@ public enum LocalModels {
             return []
         }
         if let models = object["models"] as? [[String: Any]] {
-            return models.compactMap { $0["name"] as? String }
+            return uniqueModels(models.compactMap { $0["name"] as? String })
         }
         if let data = object["data"] as? [[String: Any]] {
-            return data.compactMap { $0["id"] as? String }
+            return uniqueModels(data.compactMap { $0["id"] as? String })
         }
         return []
+    }
+
+    private static func uniqueModels(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.compactMap { raw in
+            let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty, seen.insert(value).inserted else { return nil }
+            return value
+        }
     }
 
     /// Looks for every local runner at once. A short timeout on purpose: this runs while a window
@@ -55,7 +66,8 @@ public enum LocalModels {
     /// embedding model from the semantic index, which then reported "no hay ningún modelo" on a
     /// machine with three of them installed.
     public static func installed(timeout: TimeInterval = 1.2,
-                                 including accept: @Sendable @escaping (String) -> Bool = canChat)
+                                 including accept: @Sendable @escaping (String) -> Bool = canChat,
+                                 transport: @escaping Transport = { try await URLSession.shared.data(for: $0) })
     async -> [Installation] {
         await withTaskGroup(of: Installation?.self) { group in
             for entry in catalogues {
@@ -63,7 +75,8 @@ public enum LocalModels {
                     guard let url = URL(string: entry.url) else { return nil }
                     var request = URLRequest(url: url)
                     request.timeoutInterval = timeout
-                    guard let (data, _) = try? await URLSession.shared.data(for: request) else {
+                    guard let (data, response) = try? await transport(request),
+                          (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? true else {
                         return nil
                     }
                     let models = models(in: data).filter(accept)
@@ -91,6 +104,16 @@ public enum LocalModels {
     public static func canChat(_ model: String) -> Bool {
         let name = model.lowercased()
         return !embeddingMarkers.contains { name.contains($0) }
+    }
+
+    /// Chooses a model that is actually present in the discovered catalogue. A saved choice wins
+    /// only while it still exists; otherwise the first chat-capable model is used. Returning nil
+    /// is important: it prevents a default name such as `llama3.2` from being sent to a runner
+    /// that has no such model.
+    public static func selectedModel(in installation: Installation,
+                                     saved: String? = nil) -> String? {
+        if let saved, installation.models.contains(saved), canChat(saved) { return saved }
+        return installation.models.first(where: canChat)
     }
 
     /// What to tell someone who has no local model. One command, not a research project.

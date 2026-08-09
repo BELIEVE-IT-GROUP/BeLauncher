@@ -80,13 +80,28 @@ public extension ModelRouter {
             return BELProviderRoute(providerID: provider.id, score: score, health: status.state)
         }
 
-        guard !candidates.isEmpty else {
+        // A local runtime is the product default. An unselected cloud provider must not win
+        // merely because a key exists or because a cloud health probe was faster. Cloud remains
+        // available when the person explicitly selected it, or when no local runtime is usable.
+        let hasUsableLocal = candidates.contains { route in
+            available.first(where: { $0.id == route.providerID })?.isPrivate == true
+        }
+        let localFirstCandidates: [BELProviderRoute]
+        if preferred == nil, hasUsableLocal {
+            localFirstCandidates = candidates.filter { route in
+                available.first(where: { $0.id == route.providerID })?.isPrivate == true
+            }
+        } else {
+            localFirstCandidates = candidates
+        }
+
+        guard !localFirstCandidates.isEmpty else {
             if localOnly, let first = available.first(where: { !$0.isPrivate }) {
                 throw IntelligenceError.blockedBySensitivity(first.name)
             }
             throw IntelligenceError.noProviderConfigured
         }
-        return candidates.sorted {
+        return localFirstCandidates.sorted {
             if $0.score != $1.score { return $0.score > $1.score }
             return $0.providerID < $1.providerID
         }

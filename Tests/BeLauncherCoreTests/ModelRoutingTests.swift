@@ -79,6 +79,19 @@ struct ModelRoutingTests {
         }
     }
 
+    @Test("without an explicit preference, a usable local runtime excludes cloud")
+    func localIsTheDefault() throws {
+        let router = ModelRouter(preferred: nil)
+        let routes = try router.rankedRoutes(
+            for: .personal,
+            available: [cloud, local],
+            health: ["ollama": BELProviderHealth(state: .configured),
+                     "openai": BELProviderHealth(state: .ready)]
+        )
+
+        #expect(routes.map(\.providerID) == ["ollama"])
+    }
+
     @Test("stale ready evidence is not accepted as current health")
     func staleHealthIsExcluded() {
         let old = Date(timeIntervalSinceNow: -31)

@@ -1704,8 +1704,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let running = await LocalModels.installed()
         var models: [String: String] = [:]
         for installation in running {
-            models[installation.providerID] = store.setting("ai_model_\(installation.providerID)")
-                .flatMap { saved in installation.models.contains(saved) ? saved : nil }
+            models[installation.providerID] = LocalModels.selectedModel(
+                in: installation, saved: store.setting("ai_model_\(installation.providerID)"))
                 ?? installation.models[0]
         }
         let runningIDs = Set(running.map(\.providerID))
@@ -2312,8 +2312,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let running = await LocalModels.installed()
             var models: [String: String] = [:]
             for installation in running {
-                models[installation.providerID] = store.setting("ai_model_\(installation.providerID)")
-                    .flatMap { saved in installation.models.contains(saved) ? saved : nil }
+                models[installation.providerID] = LocalModels.selectedModel(
+                    in: installation, saved: store.setting("ai_model_\(installation.providerID)"))
                     ?? installation.models[0]
             }
             let runningIDs = Set(running.map(\.providerID))

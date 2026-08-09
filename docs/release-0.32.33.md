@@ -2,7 +2,26 @@
 
 ## Scope
 
-This release closes N6 and A6 from `docs/plan-action-map-v2.md`.
+This release closes N6 and A6 from `docs/plan-action-map-v2.md` and records the N7 release audit.
+
+## N7 audit: signed release boundary
+
+N7 is **partial by design**. The current architecture reads local Mail, Messages, Notes and
+Safari stores by path after the user grants Full Disk Access. The repository has no
+security-scoped bookmark flow and no privileged/helper process. App Sandbox is therefore not
+compatible with the current source connectors: Full Disk Access is a TCC authorization and does
+not remove the separate sandbox file/container restrictions. This release does not add
+`com.apple.security.app-sandbox` and must not claim that it does.
+
+The release script now verifies the signed artifact, not just source files:
+
+- `com.apple.security.automation.apple-events` and audio input are present;
+- `com.apple.security.app-sandbox` is absent, failing closed if it is signed in;
+- the executable contains both `arm64` and `x86_64` slices;
+- the bundle carries microphone, audio capture, calendar and Apple Events usage descriptions.
+
+The remaining N7 work is a separate architecture decision: migrate protected-source access to
+security-scoped bookmarks or an approved helper, then re-evaluate sandboxing and notarization.
 
 ## N6: curated App Intents and deep links
 

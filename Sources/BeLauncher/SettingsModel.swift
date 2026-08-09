@@ -929,12 +929,13 @@ final class SettingsModel {
             for installation in localInstallations {
                 let key = "ai_model_\(installation.providerID)"
                 let saved = store.setting(key) ?? ""
-                if !installation.models.contains(saved) {
-                    store.setSetting(key, installation.models[0])
+                if let selected = LocalModels.selectedModel(in: installation, saved: saved) {
+                    store.setSetting(key, selected)
                 }
             }
             selectedLocalModels = Dictionary(uniqueKeysWithValues: localInstallations.map {
-                ($0.providerID, store.setting("ai_model_\($0.providerID)") ?? $0.models[0])
+                ($0.providerID, LocalModels.selectedModel(
+                    in: $0, saved: store.setting("ai_model_\($0.providerID)")) ?? $0.models[0])
             })
             await refreshProviderHealth()
         }
