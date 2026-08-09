@@ -124,13 +124,21 @@ struct KeyboardWorkflowTests {
     @Test("reminders can be browsed and searched from the launcher")
     func browseReminders() {
         let reminder = ReminderItem(id: "r1", title: "Enviar propuesta", list: "Trabajo")
-        let listed = SearchEngine.search("/reminders", in: SearchInput(reminders: [reminder]))
+        let input = SearchInput(reminders: [reminder], remindersAuthorised: true)
+        let listed = SearchEngine.search("/reminders", in: input)
         #expect(listed.count == 1)
         #expect(listed.first?.kind == .reminder)
         #expect(listed.first?.payload == "r1")
 
-        let found = SearchEngine.search("propuesta", in: SearchInput(reminders: [reminder]))
+        let found = SearchEngine.search("propuesta", in: input)
         #expect(found.first?.id == "reminder-r1")
+    }
+
+    @Test("an unavailable local source explains how to unlock it")
+    func sourcePermissionResultIsActionable() {
+        let result = SearchEngine.search("/contacts", in: SearchInput()).first
+        #expect(result?.id == "source-permission-contacts")
+        #expect(ActionRegistry.actions(for: result!).first?.intent == .openSettings)
     }
 
     @Test("an unmatched natural-language question is handed to the Brain")

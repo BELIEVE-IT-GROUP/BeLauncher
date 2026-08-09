@@ -1018,5 +1018,11 @@ extension SpanishStrings {
         "Refresh local data": "Actualizar datos locales",
         "Updated locally": "Actualizado localmente",
         "Permission is needed": "Hace falta permiso",
+        "Allow Reminders": "Permitir Recordatorios",
+        "Allow Contacts": "Permitir Contactos",
+        "Allow Photos": "Permitir Fotos",
+        "Open settings to search your reminders": "Abre Ajustes para buscar tus recordatorios",
+        "Open settings to search your contacts": "Abre Ajustes para buscar tus contactos",
+        "Open settings to search your photos": "Abre Ajustes para buscar tus fotos",
     ]
 }

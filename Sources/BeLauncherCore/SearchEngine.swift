@@ -133,6 +133,9 @@ public struct SearchInput: Sendable {
     public var reminders: [ReminderItem]
     public var contacts: [ContactItem]
     public var photos: [PhotoItem]
+    public var remindersAuthorised: Bool
+    public var contactsAuthorised: Bool
+    public var photosAuthorised: Bool
     /// The outcomes installed on this Mac, which is what `/` offers.
     public var packs: [OutcomePack]
     /// Operational memory: what was worked on, and how it is connected.
@@ -155,6 +158,8 @@ public struct SearchInput: Sendable {
                 reminders: [ReminderItem] = [],
                 contacts: [ContactItem] = [],
                 photos: [PhotoItem] = [],
+                remindersAuthorised: Bool = false, contactsAuthorised: Bool = false,
+                photosAuthorised: Bool = false,
                 workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
                 processes: [RunningProcess] = [], workspaces: [Workspace] = [],
                 notes: [QuickNote.Record] = []) {
@@ -173,6 +178,9 @@ public struct SearchInput: Sendable {
         self.reminders = reminders
         self.contacts = contacts
         self.photos = photos
+        self.remindersAuthorised = remindersAuthorised
+        self.contactsAuthorised = contactsAuthorised
+        self.photosAuthorised = photosAuthorised
         self.packs = packs
         self.workNodes = workNodes
         self.workEdges = workEdges
@@ -314,6 +322,10 @@ public enum SearchEngine {
                 }
             }
             if slash == "reminder" || slash == "reminders" {
+                if !input.remindersAuthorised {
+                    return [permissionResult(source: "reminders", title: L("Allow Reminders"),
+                                             detail: L("Open settings to search your reminders"))]
+                }
                 return input.reminders.prefix(limit).enumerated().map { index, reminder in
                     SearchResult(id: "reminder-\(reminder.id)", kind: .reminder,
                                  title: reminder.title,
@@ -322,6 +334,10 @@ public enum SearchEngine {
                 }
             }
             if slash == "contact" || slash == "contacts" {
+                if !input.contactsAuthorised {
+                    return [permissionResult(source: "contacts", title: L("Allow Contacts"),
+                                             detail: L("Open settings to search your contacts"))]
+                }
                 return input.contacts.prefix(limit).enumerated().map { index, contact in
                     SearchResult(id: "contact-\(contact.id)", kind: .contact,
                                  title: contact.name,
@@ -330,6 +346,10 @@ public enum SearchEngine {
                 }
             }
             if slash == "photo" || slash == "photos" {
+                if !input.photosAuthorised {
+                    return [permissionResult(source: "photos", title: L("Allow Photos"),
+                                             detail: L("Open settings to search your photos"))]
+                }
                 return input.photos.prefix(limit).enumerated().map { index, photo in
                     SearchResult(id: "photo-\(photo.id)", kind: .photo, title: photo.title,
                                  subtitle: photo.album, score: 100_000 - index, matched: [],
@@ -817,6 +837,11 @@ public enum SearchEngine {
             )]
         }
         return visible
+    }
+
+    private static func permissionResult(source: String, title: String, detail: String) -> SearchResult {
+        SearchResult(id: "source-permission-\(source)", kind: .answer, title: title,
+                     subtitle: detail, score: 100_000, matched: [], payload: "")
     }
 
     private static func isNaturalLanguage(_ query: String) -> Bool {

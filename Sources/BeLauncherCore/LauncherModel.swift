@@ -662,6 +662,10 @@ public final class LauncherModel {
             return true
 
         case .answer:
+            if result.id.hasPrefix("source-permission-") {
+                perform(.openSettings)
+                return true
+            }
             if result.id == "brain-question" {
                 onNaturalLanguageQuestion?(result.payload)
                 return true

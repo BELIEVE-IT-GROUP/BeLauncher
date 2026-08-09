@@ -279,6 +279,10 @@ public enum ActionRegistry {
             ]
 
         case .answer:
+            if result.id.hasPrefix("source-permission-") {
+                return [ResultAction(id: "settings", title: L("Open settings"), symbol: "gearshape",
+                                     shortcut: .enter, intent: .openSettings)]
+            }
             if result.id.hasPrefix("brain-"), let completion = result.completion {
                 return [
                     ResultAction(id: "start", title: L("Start typing this"), symbol: "text.cursor",
