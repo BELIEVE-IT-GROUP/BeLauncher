@@ -1,0 +1,50 @@
+Sources/BeLauncher/FileActionHandler.swift
+  s_30bc31f46aebe1::t_79ee4ef039f69d 9-18,23,25-26,29,32,36-45,74-84,88
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_d6b4478e7a8798 117-120,134-135
+  s_30bc31f46aebe1::t_be5bd9f81a75f0 143-156
+  s_30bc31f46aebe1::t_771a1f39bf82d2 113-116,121-133,136-142
+  s_30bc31f46aebe1::t_81473c0da06da0 157-199
+docs/release-0.32.30.md
+  s_30bc31f46aebe1::t_7a63fd2414d77e 1-61
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_79ee4ef039f69d 1740-1748
+Sources/BeLauncher/ShortcutActionHandler.swift
+  s_30bc31f46aebe1::t_b29d470fd39ecb 2,41-57,61-70,80
+Sources/BeLauncherCore/BELShortcutMapping.swift
+  s_30bc31f46aebe1::t_50649dc5939296 11,15-16,21-34,43,53
+  s_30bc31f46aebe1::t_01476f5916767e 41
+  s_30bc31f46aebe1::t_f3bbf5188672f8 40,42
+Sources/BeLauncher/Shortcuts.swift
+  s_30bc31f46aebe1::t_b29d470fd39ecb 78
+  s_30bc31f46aebe1::t_f3bbf5188672f8 118-121
+  s_30bc31f46aebe1::t_72177c927ec911 14-48,65,67-68,74-77,79-82,85-93,95-117,122,126-138,147-154
+Tests/BeLauncherCoreTests/MacCapabilityDetectorTests.swift
+  s_30bc31f46aebe1::t_7c9a7ed02338ba 31-35
+  s_30bc31f46aebe1::t_be5bd9f81a75f0 1-30,36-48
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_7a63fd2414d77e 18
+Sources/BeLauncherCore/MacCapabilityDetector.swift
+  s_30bc31f46aebe1::t_be5bd9f81a75f0 33,39,42,46-47,50-51,57,93,98-99,139-144
+  s_30bc31f46aebe1::t_01476f5916767e 72-73
+  s_30bc31f46aebe1::t_8c3eb52d15b834 145-147
+  s_30bc31f46aebe1::t_fbd3971d9a4def 148-149
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_77d0624f50feb9 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b57e555ad706a7b537ccc713cffc2f4dc820120d",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
