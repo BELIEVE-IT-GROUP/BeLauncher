@@ -1,0 +1,34 @@
+Sources/BeLauncher/AudioCaptureController.swift
+  s_30bc31f46aebe1::t_3e5ca4203a2227 159,170,175
+  s_30bc31f46aebe1::t_e1b4357468cd99 158,164,168,174
+  s_30bc31f46aebe1::t_10956832328e89 19,23,40-41,44,80,83-89,91-92,135,137,163,165-167,169,176
+docs/release-0.32.23.md
+  s_30bc31f46aebe1::t_d89fdd2673e063 1-30
+Sources/BeLauncher/QwenASR.swift
+  s_30bc31f46aebe1::t_10956832328e89 653-654,658-659,661-663,666,670
+docs/manual-0.32.22.md
+  s_30bc31f46aebe1::t_d89fdd2673e063 1,4,23-27,30,36-38
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_10956832328e89 291-299
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_e1b4357468cd99 109-112
+  s_30bc31f46aebe1::t_3e5ca4203a2227 113
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_d89fdd2673e063 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "1a16deb2923869c866da34560ac0da6dc58550af",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
