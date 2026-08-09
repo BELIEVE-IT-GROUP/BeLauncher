@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import Contacts
 import BeLauncherCore
 
@@ -135,3 +136,49 @@ struct ContactActionHandler: BELActionHandler {
     }
 }
 enum ContactActionError: Error, Equatable { case permission, noMatches, noDetails, invalidInput }
+
+/// Opens the exact record through Contacts' documented scripting dictionary. A plain
+/// `NSWorkspace.open` would only launch an empty Contacts window and falsely claim to open a
+/// contact. The script is a fixed template; only the opaque system identifier is escaped.
+struct ContactOpenActionHandler: BELActionHandler {
+    let actionID = "contacts.open"
+
+    init?(definition: BELActionDefinition) {
+        guard definition.id == "contacts.open", definition.adapter == .appleScript else { return nil }
+    }
+
+    func perform(input: Data) async throws -> BELActionResult {
+        let value = try JSONDecoder().decode(BELContactActionInput.self, from: input)
+        guard let id = value.contactID?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else {
+            throw ContactOpenActionError.invalidInput
+        }
+        let escapedID = id.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Contacts"
+            activate
+            set matches to (every person whose id is "\(escapedID)")
+            if (count of matches) is 0 then error number -1728
+            set selection to matches
+        end tell
+        """
+        let failure: ContactOpenActionError? = await MainActor.run {
+            var error: NSDictionary?
+            NSAppleScript(source: script)?.executeAndReturnError(&error)
+            guard let error else { return nil }
+            let code = error[NSAppleScript.errorNumber] as? Int ?? 0
+            if code == -1728 { return .noMatches }
+            if code == -1743 { return .automationPermission }
+            return .scriptFailed(error[NSAppleScript.errorMessage] as? String ?? L("The contact could not be opened."))
+        }
+        if let failure { throw failure }
+        return BELActionResult(text: L("Contact opened"), receipt: "contacts:open:\(id)")
+    }
+}
+
+enum ContactOpenActionError: Error, Equatable {
+    case invalidInput
+    case noMatches
+    case automationPermission
+    case scriptFailed(String)
+}

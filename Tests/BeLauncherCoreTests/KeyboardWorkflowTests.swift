@@ -188,6 +188,16 @@ struct KeyboardWorkflowTests {
                 == .systemCommand("bel:contacts.create\u{1F}Ada Lovelace"))
     }
 
+    @Test("a contact result opens its exact record, not an empty Contacts window")
+    func openContactAction() throws {
+        let contact = ContactItem(id: "contact-42", name: "Ada Lovelace",
+                                  email: "ada@example.com", phone: "")
+        let result = try #require(SearchEngine.search("Ada", in: SearchInput(contacts: [contact])).first)
+        #expect(ActionRegistry.actions(for: result).contains {
+            $0.intent == .systemCommand("bel:contacts.open\u{1F}contact-42")
+        })
+    }
+
     @Test("an unavailable local source explains how to unlock it")
     func sourcePermissionResultIsActionable() {
         let result = SearchEngine.search("/contacts", in: SearchInput()).first

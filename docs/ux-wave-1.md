@@ -141,7 +141,10 @@ mediante EventKit y vuelve a leer la fuente antes de reportar el resultado.
 Contacts tiene ahora un puente de lectura local mediante `Contacts.framework`: Settings muestra el
 permiso, `/contacts` lista la libreta y una búsqueda por nombre, correo o teléfono devuelve un
 resultado que se puede inspeccionar y copiar. Un contacto seleccionado ofrece detalle completo,
-copia del email o teléfono asociado y `Edit contact` usando su identificador estable. La edición
+copia del email o teléfono asociado y `Open contact` selecciona la ficha exacta en Contacts usando
+su identificador estable. La primera apertura puede pedir Automatización para BeLauncher; un
+bloqueo del sistema se muestra como error accionable, no como éxito. `Edit contact` usa el mismo
+identificador estable. La edición
 abre nombre, email y teléfono; los campos vacíos conservan su valor actual. Requiere confirmación
 `r2`, escribe con `CNSaveRequest`, deja recibo y refresca Contacts y su proyección operativa del
 Brain. Compartir el contacto y abrir una ficha concreta fuera de BeLauncher siguen pendientes.

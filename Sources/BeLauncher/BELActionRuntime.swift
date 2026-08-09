@@ -51,8 +51,10 @@ struct BELActionRuntime: Sendable {
                 return nil
             case .shortcut:
                 return ShortcutActionHandler(definition: definition)
-            case .urlScheme, .appleScript:
+            case .urlScheme:
                 return nil
+            case .appleScript:
+                return ContactOpenActionHandler(definition: definition)
             case .allowlistedShell:
                 return SystemCommandActionHandler(definition: definition)
             case .model, .none:

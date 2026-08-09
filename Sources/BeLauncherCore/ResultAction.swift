@@ -391,6 +391,9 @@ public enum ActionRegistry {
                     ResultAction(id: "copy-detail", title: L("Copy email or phone"), symbol: "doc.on.doc",
                                  section: .copy,
                                  intent: .systemCommand("bel:contacts.copy_email\u{1F}\(result.payload)")),
+                    ResultAction(id: "open", title: L("Open contact"), symbol: "person.crop.circle",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:contacts.open\u{1F}\(result.payload)")),
                     ResultAction(id: "edit", title: L("Edit contact"), symbol: "pencil",
                                  section: .manage,
                                  intent: .systemCommand("bel:contacts.update\u{1F}\(result.payload)"))]

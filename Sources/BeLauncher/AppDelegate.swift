@@ -2326,7 +2326,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument, priority: priority))
             case "contacts.find":
                 input = try JSONEncoder().encode(BELContactActionInput(query: argument))
-            case "contacts.get_details", "contacts.copy_email":
+            case "contacts.get_details", "contacts.copy_email", "contacts.open":
                 input = try JSONEncoder().encode(BELContactActionInput(contactID: argument))
             case "contacts.create":
                 input = try JSONEncoder().encode(BELContactActionInput(name: argument))

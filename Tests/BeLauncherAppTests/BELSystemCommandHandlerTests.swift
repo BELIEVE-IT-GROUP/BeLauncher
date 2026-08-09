@@ -190,6 +190,10 @@ struct BELSystemCommandHandlerTests {
         let uncomplete = try #require(BELActionCatalog.named("reminders.uncomplete"))
         #expect(uncomplete.availability == .implemented)
         #expect(BELActionRuntime().handler(for: uncomplete)?.actionID == uncomplete.id)
+        let openContact = try #require(BELActionCatalog.named("contacts.open"))
+        #expect(openContact.availability == .implemented)
+        #expect(openContact.adapter == .appleScript)
+        #expect(BELActionRuntime().handler(for: openContact)?.actionID == openContact.id)
     }
 
     @Test("completing a reminder cannot bypass confirmation")
