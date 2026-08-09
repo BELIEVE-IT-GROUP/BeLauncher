@@ -465,6 +465,26 @@ public enum SearchEngine {
             let collides = userOwned.contains(folded)
                 || input.systemShortcuts.contains { $0.caseInsensitiveCompare(folded) == .orderedSame }
 
+            // AI verbs are ordinary language, not slash commands. Keep the user's own flow or
+            // shortcut in charge when it owns the same keyword; otherwise "resume esto" and
+            // "corrige lo que copié" should reach the selected text without requiring ⌘K.
+            if !collides, let typed = AIVerb.typed(query) {
+                let pronouns = Set(["esto", "this", "it", "lo", "eso", "that"])
+                let argument = Phrases.fold(typed.argument)
+                let copied = input.clips.first(where: { $0.kind == .text })?.text ?? ""
+                let source = typed.argument.isEmpty || pronouns.contains(argument) ? copied : typed.argument
+                if !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    pinned.append(SearchResult(
+                        id: "verb-\(typed.verb.id)", kind: .answer, title: typed.verb.title,
+                        subtitle: typed.argument.isEmpty || pronouns.contains(argument)
+                            ? L("on the last thing you copied · %@", preview(source))
+                            : preview(source),
+                        score: 100_200, matched: [],
+                        payload: typed.verb.id + "\u{1F}" + source,
+                        actionID: "ai.verb.\(typed.verb.id)"))
+                }
+            }
+
             // One catalogue resolves both native and AI actions. The payload keeps the existing
             // execution format until LauncherModel is fully migrated; actionID is the stable
             // identity used by new UI, receipts and later App Intents.

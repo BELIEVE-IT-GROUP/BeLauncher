@@ -126,6 +126,21 @@ struct KeyboardWorkflowTests {
         #expect(handedOff == "what is the status of Project Atlas")
     }
 
+    @Test("everyday AI verbs use the last copied text without opening a hidden menu")
+    func naturalLanguageVerb() {
+        let recorder = Recorder()
+        let model = makeModel(
+            clips: [Clip(id: 21, text: "A long note that needs a useful summary.", sourceApp: "Notes")],
+            recorder: recorder)
+        model.activate()
+        model.query = "resume esto"
+        #expect(model.selected?.id == "verb-summarise")
+        model.handle(.enter)
+        #expect(recorder.actions == [
+            .runVerb(id: "summarise", text: "A long note that needs a useful summary.")
+        ])
+    }
+
     @Test("workflow keyword completes with Tab, then Enter opens the built URL")
     func runWorkflow() {
         let recorder = Recorder()
