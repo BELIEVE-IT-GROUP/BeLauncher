@@ -19,7 +19,7 @@ public enum BELActionCatalog {
     /// The definitions that have a corresponding runtime today. The legacy registries remain the
     /// execution layer until N1 migrates them behind a handler protocol.
     public static var all: [BELActionDefinition] {
-        nativeSystem + nativeFiles + nativeScreen + nativeCalendar + nativeShortcuts + aiVerbs
+        nativeSystem + nativeSystemPublic + nativeFiles + nativeScreen + nativeCalendar + nativeShortcuts + aiVerbs
             + unavailableSeeds
     }
 
@@ -84,7 +84,7 @@ public enum BELActionCatalog {
     /// claim that a missing adapter works. A seed becomes searchable/executable only when it is
     /// replaced by an implemented definition and a handler-backed test.
     private static var unavailableSeeds: [BELActionDefinition] {
-        let implemented = Set((nativeSystem + nativeFiles + nativeScreen + nativeCalendar
+        let implemented = Set((nativeSystem + nativeSystemPublic + nativeFiles + nativeScreen + nativeCalendar
                                + nativeShortcuts + aiVerbs).map(\.id))
         return (unavailableNativeSeeds + unavailableAISeeds).filter { !implemented.contains($0.id) }
     }
@@ -1768,6 +1768,21 @@ public enum BELActionCatalog {
                                 availability: .implemented),
         ]
     }
+
+    private static let nativeSystemPublic: [BELActionDefinition] = [
+        BELActionDefinition(id: "system.open_app", kind: .native,
+                            titleKey: "native.system.open_app",
+                            aliases: ["system.open_app", "open app", "abrir app"],
+                            arguments: [.init("identifier", .text, required: true)],
+                            output: .text, risk: .r0, adapter: .publicAPI,
+                            availability: .implemented),
+        BELActionDefinition(id: "system.open_system_setting", kind: .native,
+                            titleKey: "native.system.open_system_setting",
+                            aliases: ["system.open_system_setting", "open settings", "abrir ajustes"],
+                            arguments: [.init("pane", .text, required: true)],
+                            output: .text, risk: .r0, adapter: .publicAPI,
+                            availability: .implemented),
+    ]
 
     private static var nativeShortcuts: [BELActionDefinition] {
         [BELActionDefinition(

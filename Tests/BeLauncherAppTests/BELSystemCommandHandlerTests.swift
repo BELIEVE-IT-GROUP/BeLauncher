@@ -3,6 +3,21 @@ import Testing
 import BeLauncherCore
 @testable import BeLauncher
 
+private final class URLRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var urls: [URL] = []
+
+    func append(_ url: URL) {
+        lock.lock(); defer { lock.unlock() }
+        urls.append(url)
+    }
+
+    var value: [URL] {
+        lock.lock(); defer { lock.unlock() }
+        return urls
+    }
+}
+
 @Suite("Native BEL adapters")
 struct BELSystemCommandHandlerTests {
     @Test("the existing closed system commands execute through stable BEL IDs")
@@ -69,7 +84,8 @@ struct BELSystemCommandHandlerTests {
     @Test("public API actions are wired to concrete handlers")
     func publicAdaptersAreRegistered() throws {
         let runtime = BELActionRuntime()
-        for id in ["screen.read_context", "screen.ocr", "files.extract_pdf_text", "calendar.upcoming"] {
+        for id in ["screen.read_context", "screen.ocr", "files.extract_pdf_text", "calendar.upcoming",
+                   "system.open_app", "system.open_system_setting"] {
             let definition = try #require(BELActionCatalog.named(id))
             #expect(runtime.handler(for: definition)?.actionID == id)
         }
@@ -151,6 +167,39 @@ struct BELSystemCommandHandlerTests {
         }
         for id in ["reminders.create", "contacts.find", "photos.find"] {
             #expect(BELActionCatalog.named(id)?.availability == .unavailable)
+        }
+    }
+
+    @Test("public app actions validate identifiers and settings without opening the host")
+    func publicAppActions() async throws {
+        let app = try #require(BELActionCatalog.named("system.open_app"))
+        let settings = try #require(BELActionCatalog.named("system.open_system_setting"))
+        let opened = URLRecorder()
+        let open: @MainActor @Sendable (URL) -> Bool = { url in
+            opened.append(url)
+            return true
+        }
+        let appHandler = try #require(SystemPublicActionHandler(definition: app, open: open))
+        let settingsHandler = try #require(SystemPublicActionHandler(definition: settings, open: open))
+
+        let appInput = try JSONEncoder().encode(BELOpenAppInput(identifier: "com.apple.TextEdit"))
+        let settingInput = try JSONEncoder().encode(BELOpenSettingInput(pane: "Privacy_Microphone"))
+        let appResult = try await BELActionExecutor.execute(app, input: appInput,
+                                                             capabilities: .allGranted,
+                                                             handler: appHandler)
+        let settingResult = try await BELActionExecutor.execute(settings, input: settingInput,
+                                                                capabilities: .allGranted,
+                                                                handler: settingsHandler)
+        #expect(appResult.receipt == "system:open_app")
+        #expect(settingResult.receipt == "system:open_setting")
+        #expect(opened.value.count == 2)
+        #expect(opened.value[1].scheme == "x-apple.systempreferences")
+
+        let bad = try JSONEncoder().encode(BELOpenSettingInput(pane: "https://example.com"))
+        await #expect(throws: SystemPublicActionError.settingNotAllowed("https://example.com")) {
+            try await BELActionExecutor.execute(settings, input: bad,
+                                                capabilities: .allGranted,
+                                                handler: settingsHandler)
         }
     }
 

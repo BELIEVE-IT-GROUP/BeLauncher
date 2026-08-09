@@ -40,6 +40,7 @@ struct BELActionRuntime: Sendable {
                 return FileActionHandler(definition: definition)
                     ?? PDFActionHandler(definition: definition)
                     ?? ScreenActionHandler(definition: definition)
+                    ?? SystemPublicActionHandler(definition: definition)
                     ?? CalendarActionHandler(definition: definition)
             case .ownAppIntent:
                 // App Intents are an exposure surface today. They do not become an execution
