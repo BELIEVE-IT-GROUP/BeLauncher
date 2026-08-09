@@ -1,0 +1,585 @@
+.foreman/routes/T-02-attempt-3.json
+  s_30bc31f46aebe1::t_dfca1051538c8a 1-2,4-5
+  s_30bc31f46aebe1::t_af9e7dc6cc2e3c 3,6
+docs/audit/_filelist.txt
+  s_c95fefffce3b55::t_3e30493a106e72 1-173
+.foreman/evidence/T-03-attempt-2-worker.txt
+  s_30bc31f46aebe1::t_5294c20b1f71eb 1-22
+.foreman/events/T-01-verification-fail.json
+  s_30bc31f46aebe1::t_0994c7d4eae3e4 1-9,11-18
+  s_30bc31f46aebe1::t_0b885e65f6ccb1 10
+.foreman/tickets/T-03.json
+  s_30bc31f46aebe1::t_a7dc93da8864db 1-16,18,20
+  s_30bc31f46aebe1::t_1d155942452ae6 17
+  s_30bc31f46aebe1::t_99ce5bb99a61d6 19
+.foreman/events/T-11-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_5a343fe5869a3f 1-12
+.foreman/events/T-02-attempt-2-verification-fail.json
+  s_30bc31f46aebe1::t_1866db79cc8528 9,11
+  s_30bc31f46aebe1::t_c2603da620f73f 12
+  s_30bc31f46aebe1::t_104fa76daf54d4 1-8,10,13-20
+Tests/BeLauncherCoreTests/AIVerbTests.swift
+  s_30bc31f46aebe1::t_1d478ba7d02a04 12,18-20,22,78-87,96-155
+  s_30bc31f46aebe1::t_a29d08d782c41b 180
+  s_30bc31f46aebe1::t_554598c590b8bc 156
+.foreman/tickets/T-09.json
+  s_30bc31f46aebe1::t_392536a088ef59 1-35
+.foreman/events/T-13-verification-pass.json
+  s_30bc31f46aebe1::t_62dcc34014ce7c 1
+.foreman/tickets/T-14.json
+  s_30bc31f46aebe1::t_d772fac192c6d2 1-16,18-26,29-32,34-38
+  s_30bc31f46aebe1::t_37997d344c0d46 28,33
+  s_30bc31f46aebe1::t_0b535c007ceff7 17,27
+.foreman/events/T-07-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_7a3d6b0c518cc8 1
+Sources/BeLauncher/CommandView.swift
+  s_30bc31f46aebe1::t_d1dab18154af43 392-394,396-435,437-449,451-460,462-471,508-525,527-528,530-531,533-539,542-544
+  s_30bc31f46aebe1::t_03db1a6ba99601 395,472-481,483-484,486-487,490-492,495-501,503-507,1235-1236
+  s_30bc31f46aebe1::t_ceebe977627219 1212-1213,1215,1269,1282-1283
+  s_30bc31f46aebe1::t_a510861fff7c22 1210
+.foreman/evidence/T-07-verifier-pass.txt
+  s_30bc31f46aebe1::t_fbf7d0fdadfb66 1-16
+Sources/BeLauncherCore/AIVerbs.swift
+  s_30bc31f46aebe1::t_11e605aa838e84 149-151,153-154,160,165-166,180
+.foreman/events/T-02-recovery.json
+  s_30bc31f46aebe1::t_cfab8e73c11c80 1-8
+.foreman/evidence/T-02-attempt-2-worker.txt
+  s_30bc31f46aebe1::t_088a7877d64f20 1-16
+.foreman/events/T-03-recovery.json
+  s_30bc31f46aebe1::t_5fa6e945bcfbad 1
+.foreman/evidence/T-17-attempt-1-lead.txt
+  s_30bc31f46aebe1::t_1244df4abe6311 1-26
+.foreman/evidence/final-assembled-pass.txt
+  s_30bc31f46aebe1::t_d82b1cf17a1e17 1-31
+.foreman/tickets/T-04.json
+  s_30bc31f46aebe1::t_a7dc93da8864db 1-16,18
+  s_30bc31f46aebe1::t_3fcda0c5474154 17
+.foreman/routes/T-03.json
+  s_30bc31f46aebe1::t_a7dc93da8864db 1-3
+.foreman/tickets/T-13.json
+  s_30bc31f46aebe1::t_223bbe65e4ff58 1-3,5-37
+  s_30bc31f46aebe1::t_ac2f673ec08762 4
+.foreman/evidence/T-04-attempt-2-worker.txt
+  s_30bc31f46aebe1::t_0ef5915b338284 1-25
+.foreman/events/T-02-replanned-lead.json
+  s_30bc31f46aebe1::t_25b8909f1987e7 1-7
+.foreman/events/T-02-outcome.json
+  s_30bc31f46aebe1::t_4e77f720607eda 7
+  s_30bc31f46aebe1::t_f06b511a5d727d 1-6,8-12
+.foreman/events/W2-W3-breaker-progress.json
+  s_30bc31f46aebe1::t_5fa6e945bcfbad 1
+.foreman/evidence/T-10-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_8abdc0040f0af6 1-29
+.foreman/events/T-01-attempt-2-outcome.json
+  s_30bc31f46aebe1::t_46321b68a6ebfc 7
+  s_30bc31f46aebe1::t_b08f603155b8bf 1-6,8-12
+.foreman/evidence/T-13-verifier-pass.txt
+  s_30bc31f46aebe1::t_58db9b3aa57b3d 1-43
+Sources/BeLauncherCore/ResultAction.swift
+  s_30bc31f46aebe1::t_122648343de7a4 400-402
+  s_30bc31f46aebe1::t_9bdce3161e7e06 408,411-413,416,419,422,425,455-458
+  s_30bc31f46aebe1::t_e9806350785892 459-460
+Tests/BeLauncherCoreTests/MacCapabilityDetectorTests.swift
+  s_30bc31f46aebe1::t_cb827d08870f9e 27,30-32,37-84,91-92
+.foreman/events/T-02-L-outcome.json
+  s_30bc31f46aebe1::t_b1d520001ae6cb 7
+  s_30bc31f46aebe1::t_4d48ab6198ff4f 1-6,8-12
+.foreman/evidence/T-04-verifier-pass.txt
+  s_30bc31f46aebe1::t_601ecb21622116 1-18
+.foreman/evidence/T-06-verifier-pass.txt
+  s_30bc31f46aebe1::t_fbf7d0fdadfb66 1-16
+.foreman/events/T-09-verification-pass.json
+  s_30bc31f46aebe1::t_2893421c0cb8f6 1-20
+.foreman/evidence/T-02-attempt-2-verifier-fail.txt
+  s_30bc31f46aebe1::t_104fa76daf54d4 1-16
+.foreman/events/T-01-recovery.json
+  s_30bc31f46aebe1::t_f88df9e088d197 1-8
+.foreman/events/T-01-outcome.json
+  s_30bc31f46aebe1::t_75ebbde42caa37 1-12
+.foreman/tickets/T-10.json
+  s_30bc31f46aebe1::t_4815f3e846ac7e 1-37
+Sources/BeLauncherCore/BELLanguageModelProvider.swift
+  s_30bc31f46aebe1::t_989f94dad2d99a 109,127,134-142
+  s_30bc31f46aebe1::t_460c0b91f363fe 143-144
+.foreman/events/T-11-verification-pass.json
+  s_30bc31f46aebe1::t_90ba25798dadca 1-20
+.foreman/routes/T-07.json
+  s_30bc31f46aebe1::t_9883f86eadc8bd 1-3
+.foreman/events/T-04-recovery.json
+  s_30bc31f46aebe1::t_5fa6e945bcfbad 1
+Sources/BeLauncherCore/ModelProviderRegistry.swift
+  s_30bc31f46aebe1::t_638fce1585bc11 14-21,54-59
+.foreman/evidence/T-14-attempt-1-lead.txt
+  s_30bc31f46aebe1::t_7a34bce8010247 1-24
+Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift
+  s_30bc31f46aebe1::t_43d7525e9e4562 47,50-65,93-110
+  s_30bc31f46aebe1::t_263ab4169a4b25 48-49
+  s_30bc31f46aebe1::t_10b4fbb92d08b5 111
+Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift
+  s_30bc31f46aebe1::t_ca4af2a22728d9 61-67,72-83,133-137
+  s_30bc31f46aebe1::t_38a678b86dfe4d 86-105,107-109
+  s_30bc31f46aebe1::t_7445e21043242c 84-85
+.foreman/events/T-14-verification-pass.json
+  s_30bc31f46aebe1::t_de61baea00909a 1
+.foreman/tickets/T-01.json
+  s_30bc31f46aebe1::t_f138aae8203560 1-27,30-32,35-37,40-42,45-65
+  s_30bc31f46aebe1::t_2e357e6c26f721 28-29,33-34,38-39,43-44
+.foreman/events/T-03-progress.json
+  s_30bc31f46aebe1::t_192a1b7fec73a0 1
+.foreman/events/T-04-attempt-2-outcome.json
+  s_30bc31f46aebe1::t_218fb018aa0183 1
+docs/plan-action-map-v2.md
+  s_30bc31f46aebe1::t_016bb10b32ebc4 95
+  s_30bc31f46aebe1::t_b9715d8a1a382d 26
+  s_30bc31f46aebe1::t_4c143a6a534b37 7-16,62,99,119-124
+  s_30bc31f46aebe1::t_2e3cfed78fc116 1-6,17-25,27-28,30-31,33-39,41-52,54-61,63-64,66-84,86-94,96-98,100-117,125-126
+  s_30bc31f46aebe1::t_93c78a8551afec 29
+  s_30bc31f46aebe1::t_246098ac3a5bfd 32,40,53,65,85,118
+.foreman/evidence/T-02-L-lead-receipt.txt
+  s_30bc31f46aebe1::t_4d48ab6198ff4f 1-17
+.foreman/evidence/T-08-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_f324640580c1fc 1-20
+.foreman/routes/T-01.json
+  s_30bc31f46aebe1::t_759422d3417905 1-13
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_122648343de7a4 2172-2174,2178,2334,2360,2370,2386,2397
+  s_30bc31f46aebe1::t_47ff7f980a8785 2401,2408-2415
+.foreman/events/T-06-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_7a3d6b0c518cc8 1
+.foreman/evidence/T-08-attempt-2-lead.txt
+  s_30bc31f46aebe1::t_1667ac1b6adab8 1-21
+.foreman/events/T-10-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_5a343fe5869a3f 1-12
+Tests/BeLauncherCoreTests/PhotoTests.swift
+  s_30bc31f46aebe1::t_008844f005e32f 56-70
+  s_30bc31f46aebe1::t_6d1e90db6e7e9c 10,15,22-23,33-34,40-55
+Tests/BeLauncherCoreTests/BELStructuredOutputTests.swift
+  s_30bc31f46aebe1::t_527195fadf6d52 13-18,39-43,103-152
+.foreman/evidence/T-15-verifier-pass.txt
+  s_30bc31f46aebe1::t_45fdef08234efb 1-36
+.foreman/evidence/T-03-verifier-pass.txt
+  s_30bc31f46aebe1::t_7f22cff7225822 1-16
+docs/audit/08-connectors.md
+  s_08ef237aa7b3d5::t_86b79d2fe9dba3 1-420
+.foreman/evidence/T-08-verifier-fail.txt
+  s_30bc31f46aebe1::t_7057f3f10100e3 1-17
+.foreman/events/T-08-attempt-2-outcome.json
+  s_30bc31f46aebe1::t_5756621944ea64 1-12
+.foreman/events/T-03-pilot-approved.json
+  s_30bc31f46aebe1::t_192a1b7fec73a0 1
+docs/audit/04-brain-search.md
+  s_38da3555cc953a::t_e4c484af45c664 1-332,334-386
+  s_38da3555cc953a::t_1b80aceeb08ba6 333
+docs/audit/07-privacy-security.md
+  s_3264108b2094c5::t_a4ab21ae50b345 1-315
+.foreman/routes/T-14.json
+  s_30bc31f46aebe1::t_d772fac192c6d2 1-19
+.foreman/evidence/T-09-verifier-pass.txt
+  s_30bc31f46aebe1::t_7057f3f10100e3 1-16
+.foreman/evidence/T-13-attempt-1-lead.txt
+  s_30bc31f46aebe1::t_58db9b3aa57b3d 1-30
+.foreman/events/T-02-replanned.json
+  s_30bc31f46aebe1::t_43598cc76141be 1-7
+Tests/BeLauncherAppTests/CommandViewUXTests.swift
+  s_30bc31f46aebe1::t_332178f382f8a3 1-47
+.foreman/routes/T-12.json
+  s_30bc31f46aebe1::t_223bbe65e4ff58 1-4,7-8,10-21
+  s_30bc31f46aebe1::t_8ca0a65ac64aa8 5-6,9
+.foreman/tickets/T-11.json
+  s_30bc31f46aebe1::t_4815f3e846ac7e 1-35
+.foreman/routes/T-16.json
+  s_30bc31f46aebe1::t_aa9f2cae1c782b 1-16
+Tests/BeLauncherCoreTests/RetrievalTests.swift
+  s_30bc31f46aebe1::t_e72133206e27e2 310,314-319
+  s_30bc31f46aebe1::t_71caf1eed0e7d5 231-239,241,247-250,252-253,257-309,311-313,320
+  s_30bc31f46aebe1::t_6faf503fc72957 321
+.foreman/evidence/T-16-attempt-1-lead.txt
+  s_30bc31f46aebe1::t_b69e5022977ddd 1-27
+.foreman/tickets/T-17.json
+  s_30bc31f46aebe1::t_883be315160b6d 1-40
+.foreman/evidence/T-17-verifier-pass.txt
+  s_30bc31f46aebe1::t_1244df4abe6311 1-40
+.foreman/events/final-progress.json
+  s_30bc31f46aebe1::t_3b9a9e7ae9cd69 1
+.foreman/events/T-10-verification-pass.json
+  s_30bc31f46aebe1::t_90ba25798dadca 1-20
+.foreman/events/T-14-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_de61baea00909a 1
+docs/release-0.32.53.md
+  s_30bc31f46aebe1::t_c507ff2a1842e4 1-23
+.foreman/tracker-reconciliation.md
+  s_30bc31f46aebe1::t_704e82b0150e3b 1-26
+Tests/BeLauncherCoreTests/LocalModelsTests.swift
+  s_30bc31f46aebe1::t_882127bfb292c8 56-57
+  s_30bc31f46aebe1::t_f83681c8a0c488 7-14,34-55,58-75
+  s_30bc31f46aebe1::t_ee424125e886f6 76
+.foreman/events/T-02-verification-fail.json
+  s_30bc31f46aebe1::t_cfab8e73c11c80 1-6,8-12,15-19
+  s_30bc31f46aebe1::t_75f353d8773a88 7,13-14
+.foreman/evidence/T-11-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_8abdc0040f0af6 1-23
+.foreman/final-reconciliation.md
+  s_30bc31f46aebe1::t_d82b1cf17a1e17 1-20
+.foreman/events/T-02-escalation-attempt-2.json
+  s_30bc31f46aebe1::t_18a5dd7f30319b 1-9
+.foreman/events/T-15-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_a937aeb9f7a1c4 1
+.foreman/routes/T-02-attempt-2.json
+  s_30bc31f46aebe1::t_657573db127a7c 1-14
+.foreman/tickets/T-12.json
+  s_30bc31f46aebe1::t_223bbe65e4ff58 1-3,5-40
+  s_30bc31f46aebe1::t_ac2f673ec08762 4
+Tests/BeLauncherCoreTests/SecretGuardTests.swift
+  s_30bc31f46aebe1::t_28caecc2cc1224 36-55
+.foreman/events/T-02-L-progress.json
+  s_30bc31f46aebe1::t_011b79eaf14dc1 1-20
+.foreman/routes/T-10.json
+  s_30bc31f46aebe1::t_4815f3e846ac7e 1-18
+.foreman/evidence/T-07-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_8d7ae7bd0f069b 1-19
+.foreman/events/T-04-verification-pass.json
+  s_30bc31f46aebe1::t_8b1b0d6b4a83b0 1
+.foreman/evidence/T-12-attempt-1-lead.txt
+  s_30bc31f46aebe1::t_58db9b3aa57b3d 1-28
+.foreman/events/T-12-verification-pass.json
+  s_30bc31f46aebe1::t_62dcc34014ce7c 1
+.foreman/events/program-completed.json
+  s_30bc31f46aebe1::t_3b9a9e7ae9cd69 1
+Sources/BeLauncherCore/Intelligence.swift
+  s_30bc31f46aebe1::t_b44bcda235e398 292,298-299,305,448-452,495
+  s_30bc31f46aebe1::t_638fce1585bc11 70-91
+.foreman/evidence/T-05-verifier-pass.txt
+  s_30bc31f46aebe1::t_601ecb21622116 1-16
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_122648343de7a4 621-622
+.foreman/evidence/T-01-attempt-2-worker.txt
+  s_30bc31f46aebe1::t_b08f603155b8bf 1-7
+.foreman/events/T-01-pilot-approved.json
+  s_30bc31f46aebe1::t_1402788b9de023 1-5
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_246098ac3a5bfd 13-15
+  s_30bc31f46aebe1::t_7b66b0ef45ddf7 6-12,16,163-165
+.foreman/events.jsonl
+  s_30bc31f46aebe1::t_6d844c66d3700b 39
+  s_30bc31f46aebe1::t_4d6ab909eb3900 33-34
+  s_30bc31f46aebe1::t_ee48f2e2ac4e38 35-38
+  s_30bc31f46aebe1::t_cac20b2531d59c 84
+  s_30bc31f46aebe1::t_d07fb2b222957b 85-86
+  s_30bc31f46aebe1::t_b0db858d33de40 10
+  s_30bc31f46aebe1::t_95a8dac0d35ad8 12
+  s_30bc31f46aebe1::t_d40d17559a58f8 17
+  s_30bc31f46aebe1::t_beb25b8c1d558f 52-53
+  s_30bc31f46aebe1::t_14f00d01fde236 48-49
+  s_30bc31f46aebe1::t_3a6cff87469c46 23
+  s_30bc31f46aebe1::t_e7e5f47a87a9af 27
+  s_30bc31f46aebe1::t_66a402767bcba1 40
+  s_30bc31f46aebe1::t_bb5b42a51e347d 29-30
+  s_30bc31f46aebe1::t_9a0e93ed0f6763 21-22
+  s_30bc31f46aebe1::t_42ad16c8e3b2e2 15
+  s_30bc31f46aebe1::t_8b32feebf9955d 58-59
+  s_30bc31f46aebe1::t_8df1d0561c13bd 11
+  s_30bc31f46aebe1::t_a7561a2a959a7c 7
+  s_30bc31f46aebe1::t_8695e9827a250d 54-55
+  s_30bc31f46aebe1::t_78ea90e78931d8 61
+  s_30bc31f46aebe1::t_0b09ff42051eab 64
+  s_30bc31f46aebe1::t_49bcf047ad1d61 50-51
+  s_30bc31f46aebe1::t_1b55a6ee608c35 65
+  s_30bc31f46aebe1::t_e0eb0b1a1123a3 74-77
+  s_30bc31f46aebe1::t_7f8b5ea1c69f7c 44
+  s_30bc31f46aebe1::t_c591960074c692 66-67
+  s_30bc31f46aebe1::t_1731e62f97ef28 79-80
+  s_30bc31f46aebe1::t_6657c0c1e7f17d 68-69
+  s_30bc31f46aebe1::t_8231318697f85b 26
+  s_30bc31f46aebe1::t_b1073905307313 18
+  s_30bc31f46aebe1::t_6ebfec2d94792a 4
+  s_30bc31f46aebe1::t_99b665b176b6c3 8
+  s_30bc31f46aebe1::t_12b3248fc7cfc3 6
+  s_30bc31f46aebe1::t_7045875c1d2d6d 14
+  s_30bc31f46aebe1::t_221459386a8599 60
+  s_30bc31f46aebe1::t_51c6cda94b7531 5
+  s_30bc31f46aebe1::t_a214c86a765681 72-73
+  s_30bc31f46aebe1::t_40da8738f5f067 82-83
+  s_30bc31f46aebe1::t_b235ccb3ccdcbf 81
+  s_30bc31f46aebe1::t_5a6399f8c32346 88-89
+  s_30bc31f46aebe1::t_f138aae8203560 1
+  s_30bc31f46aebe1::t_929ba68f4afaf7 41
+  s_30bc31f46aebe1::t_1de86474228f50 20
+  s_30bc31f46aebe1::t_a95345084ba985 13
+  s_30bc31f46aebe1::t_57efb50dfcdf2c 46-47
+  s_30bc31f46aebe1::t_846907007ca9df 9
+  s_30bc31f46aebe1::t_26860af370ffb0 45
+  s_30bc31f46aebe1::t_409604180f9e9c 42-43
+  s_30bc31f46aebe1::t_5312c90e5c6d50 62-63
+  s_30bc31f46aebe1::t_c244a3e1ad86e4 87
+  s_30bc31f46aebe1::t_1b951256f3d2e3 70-71
+  s_30bc31f46aebe1::t_6560624afad399 28
+  s_30bc31f46aebe1::t_f3f8cfdc365b34 90-91
+  s_30bc31f46aebe1::t_911826eaab2f92 3
+  s_30bc31f46aebe1::t_d6dd19100fb25b 31-32
+  s_30bc31f46aebe1::t_3f2b84b31823eb 19
+  s_30bc31f46aebe1::t_119286cfc333d4 56-57
+  s_30bc31f46aebe1::t_10c83fafd4043e 2
+  s_30bc31f46aebe1::t_1468cafc8f9cbe 16
+  s_30bc31f46aebe1::t_6a10d6358c57a0 78
+  s_30bc31f46aebe1::t_8d38231e2a95dd 24-25
+.foreman/events/T-02-recovery-attempt-2.json
+  s_30bc31f46aebe1::t_e50d6de9132117 1-9
+Tests/BeLauncherCoreTests/ModelProviderRegistryTests.swift
+  s_30bc31f46aebe1::t_638fce1585bc11 14,20-22,24-26
+.foreman/events/T-12-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_62dcc34014ce7c 1
+.foreman/events/T-08-attempt-2-verification-pass.json
+  s_30bc31f46aebe1::t_0803a149c28947 1-20
+.foreman/routes/T-13.json
+  s_30bc31f46aebe1::t_8ca0a65ac64aa8 5-6,9
+  s_30bc31f46aebe1::t_223bbe65e4ff58 1-4,7-8,10-18
+.foreman/routes/T-17.json
+  s_30bc31f46aebe1::t_883be315160b6d 1-21
+.foreman/routes/T-06.json
+  s_30bc31f46aebe1::t_9883f86eadc8bd 1-3
+.foreman/evidence/T-02-worker.txt
+  s_30bc31f46aebe1::t_f06b511a5d727d 1-3
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_acffde37e0199d 19,23,27-29
+  s_30bc31f46aebe1::t_06e47fb0780bec 43
+Sources/BeLauncherCore/SecretGuard.swift
+  s_30bc31f46aebe1::t_5012a7d56650fc 73-74,79-87
+  s_30bc31f46aebe1::t_f79a745e2a8d71 88-89
+.foreman/events/W2-W3-replanned.json
+  s_30bc31f46aebe1::t_5fa6e945bcfbad 1
+.foreman/events/T-02-blocked-progress.json
+  s_30bc31f46aebe1::t_25b8909f1987e7 1-20
+.foreman/routes/T-11.json
+  s_30bc31f46aebe1::t_4815f3e846ac7e 1-16
+.foreman/tickets/T-15.json
+  s_30bc31f46aebe1::t_0b535c007ceff7 17,25
+  s_30bc31f46aebe1::t_37997d344c0d46 26,31
+  s_30bc31f46aebe1::t_d772fac192c6d2 1-16,18-24,27-30,32-36
+.foreman/tickets/T-02-L.json
+  s_30bc31f46aebe1::t_146b51a8cf41cf 1-26
+.foreman/evidence/T-02-verifier-fail.txt
+  s_30bc31f46aebe1::t_cfab8e73c11c80 1-7
+.foreman/evidence/T-04-attempt-1-lifecycle.txt
+  s_30bc31f46aebe1::t_361facc55ae2f1 1-3
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_4a49ec910ea714 22-29,309,311-318,321-323,341-344,347-349
+  s_30bc31f46aebe1::t_84a7900052718b 32-42,149-192,195-196,199-202
+  s_30bc31f46aebe1::t_5ee0d17a0f29e2 193-194,197-198
+  s_30bc31f46aebe1::t_c134a8f3fe5168 3,203-204,284-308,310,319-320,324-340,345-346,350-355
+  s_30bc31f46aebe1::t_9beebba12f186c 205
+  s_30bc31f46aebe1::t_e6fc52e99f9bbc 356
+.foreman/routes/T-01-attempt-2.json
+  s_30bc31f46aebe1::t_13fda14765a7d7 1-14
+.foreman/events/T-04-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_e29306b3923684 1
+.foreman/events/T-02-L-pilot-approved.json
+  s_30bc31f46aebe1::t_011b79eaf14dc1 1-5
+.foreman/routes/T-04.json
+  s_30bc31f46aebe1::t_a7dc93da8864db 1-3
+Tests/BeLauncherCoreTests/WorkGraphTests.swift
+  s_30bc31f46aebe1::t_1253584df03091 355,361,363
+.foreman/tickets/T-07.json
+  s_30bc31f46aebe1::t_9883f86eadc8bd 1-35
+.foreman/routes/T-05.json
+  s_30bc31f46aebe1::t_be04769836c480 1-3
+.foreman/routes/T-08.json
+  s_30bc31f46aebe1::t_392536a088ef59 1-3
+.foreman/events/T-09-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_3fb2894a53c6ff 1
+Tests/BeLauncherCoreTests/IntelligenceTests.swift
+  s_30bc31f46aebe1::t_33a53db75117f2 100-119,201-221
+  s_30bc31f46aebe1::t_638fce1585bc11 339-348
+  s_30bc31f46aebe1::t_31f66894f19c99 135-160
+.foreman/evidence/T-08-attempt-2-verifier-pass.txt
+  s_30bc31f46aebe1::t_578c0967e3ab55 1-17
+.foreman/evidence/T-14-verifier-pass.txt
+  s_30bc31f46aebe1::t_7a34bce8010247 1-37
+.foreman/evidence/T-01-verifier-fail.txt
+  s_30bc31f46aebe1::t_f88df9e088d197 1-9
+.foreman/events/T-03-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_e29306b3923684 1
+Sources/BeLauncherCore/Photo.swift
+  s_30bc31f46aebe1::t_ccd3f672b16c4c 7-8,19
+  s_30bc31f46aebe1::t_1a1d27e1847cfa 18
+docs/audit/05-corpus.md
+  s_192a1bdade717a::t_8307e95c9a68ae 1-462,464-606
+  s_192a1bdade717a::t_dce88476f37758 463
+.foreman/events/T-02-attempt-2-outcome.json
+  s_30bc31f46aebe1::t_088a7877d64f20 1-6,12
+  s_30bc31f46aebe1::t_4c584fc5e05076 7-11
+.foreman/routes/T-15.json
+  s_30bc31f46aebe1::t_d772fac192c6d2 1-17
+docs/audit/03-flows.md
+  s_c95fefffce3b55::t_cdc16bd9fd2091 1-88,90-215
+  s_c95fefffce3b55::t_d566ec1ab5abe0 89
+.foreman/events/T-01-progress.json
+  s_30bc31f46aebe1::t_1402788b9de023 1-20
+.foreman/routes/T-02.json
+  s_30bc31f46aebe1::t_6883b71ad822c5 1-13
+.foreman/events/T-03-verification-pass.json
+  s_30bc31f46aebe1::t_5b940343dd5039 1
+.foreman/events/T-08-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_3fb2894a53c6ff 1
+.foreman/events/T-08-verification-fail.json
+  s_30bc31f46aebe1::t_2893421c0cb8f6 1-20
+.foreman/routes/T-08-attempt-2-lead.json
+  s_30bc31f46aebe1::t_fe32f695121b82 1-20
+.foreman/events/T-06-verification-pass.json
+  s_30bc31f46aebe1::t_c28df3120db3ac 1
+.foreman/evidence/T-11-verifier-pass.txt
+  s_30bc31f46aebe1::t_36a1a4889972dc 1-16
+.foreman/events/T-16-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_4a4291fbea01d2 1
+.foreman/events/T-16-verification-pass.json
+  s_30bc31f46aebe1::t_4a4291fbea01d2 1
+.foreman/events/T-17-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_6657a86cf73067 1
+.foreman/events/T-05-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_218fb018aa0183 1
+.foreman/events/T-13-attempt-1-outcome.json
+  s_30bc31f46aebe1::t_62dcc34014ce7c 1
+.foreman/events/T-05-verification-pass.json
+  s_30bc31f46aebe1::t_8b1b0d6b4a83b0 1
+.foreman/evidence/T-06-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_8d7ae7bd0f069b 1-20
+.foreman/events/T-07-verification-pass.json
+  s_30bc31f46aebe1::t_c28df3120db3ac 1
+.foreman/evidence/T-15-attempt-1-lead.txt
+  s_30bc31f46aebe1::t_45fdef08234efb 1-24
+.foreman/tickets/T-16.json
+  s_30bc31f46aebe1::t_aa9f2cae1c782b 1-35
+.foreman/evidence/T-09-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_f324640580c1fc 1-20
+.foreman/events/T-02-attempt-3-outcome.json
+  s_30bc31f46aebe1::t_d2af8e376e361a 1-8,10-14
+  s_30bc31f46aebe1::t_1d918818733dca 9
+.foreman/tickets/T-05.json
+  s_30bc31f46aebe1::t_be04769836c480 1-37
+.foreman/evidence/T-05-attempt-1-worker.txt
+  s_30bc31f46aebe1::t_0ef5915b338284 1-23
+.foreman/tickets/T-06.json
+  s_30bc31f46aebe1::t_9883f86eadc8bd 1-35
+.foreman/tickets/T-08.json
+  s_30bc31f46aebe1::t_392536a088ef59 1-35
+.foreman/events/T-17-verification-pass.json
+  s_30bc31f46aebe1::t_6657a86cf73067 1
+.foreman/evidence/T-03-attempt-1-lifecycle.txt
+  s_30bc31f46aebe1::t_361facc55ae2f1 1-3
+Sources/BeLauncher/ContactActionHandler.swift
+  s_30bc31f46aebe1::t_122648343de7a4 155,157-158,160-162,164,166-170,172-173,185-187,189-198,200-203,207-215
+  s_30bc31f46aebe1::t_dc7b2222bf38e9 37,45-47,51,54,83,89-91,96-98,156,159,163,165,171,174,188,199
+  s_30bc31f46aebe1::t_c134a8f3fe5168 38-39,41-44,48-50,55-56,60,94,175-184
+.foreman/scratch-T-02-attempt-3.txt
+  s_30bc31f46aebe1::t_c88eab297d4cf6 1-6
+.foreman/evidence/T-02-L-verifier-pass.txt
+  s_30bc31f46aebe1::t_8df6429110bf8e 1-14
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_84a7900052718b 43,45,51,53
+.foreman/evidence/T-01-verifier-pass.txt
+  s_30bc31f46aebe1::t_56085b5b82c8f4 1-8
+.foreman/events/T-01-verification-pass.json
+  s_30bc31f46aebe1::t_c29d7c129edea1 7,14-15
+  s_30bc31f46aebe1::t_56085b5b82c8f4 1-6,8-13,16-20
+.foreman/tickets/T-02.json
+  s_30bc31f46aebe1::t_f01c6f656de81e 1-9,11-17,19-24,26-33,36-48
+  s_30bc31f46aebe1::t_e50d6de9132117 10
+  s_30bc31f46aebe1::t_edec2b18b5b147 18,25,34-35
+.foreman/events/T-02-breaker-progress.json
+  s_30bc31f46aebe1::t_aadca0a92feed6 1-20
+.foreman/routes/T-09.json
+  s_30bc31f46aebe1::t_392536a088ef59 1-3
+.foreman/evidence/T-10-verifier-pass.txt
+  s_30bc31f46aebe1::t_36a1a4889972dc 1-18
+.foreman/evidence/T-12-verifier-pass.txt
+  s_30bc31f46aebe1::t_58db9b3aa57b3d 1-37
+.foreman/evidence/T-16-verifier-pass.txt
+  s_30bc31f46aebe1::t_b69e5022977ddd 1-37
+.foreman/evidence/T-02-attempt-3-transport.txt
+  s_30bc31f46aebe1::t_d2af8e376e361a 1-7
+.foreman/routes/T-02-L.json
+  s_30bc31f46aebe1::t_fc2f88f7891112 1-6
+.foreman/events/T-02-L-verification-pass.json
+  s_30bc31f46aebe1::t_8df6429110bf8e 1-7,9,12-20
+  s_30bc31f46aebe1::t_7690640c3e346e 8,10-11
+.foreman/ledger.md
+  s_30bc31f46aebe1::t_e3ad2144c6be53 7,15,33-34,58
+  s_30bc31f46aebe1::t_cac448b640e160 20-21,38-39,61
+  s_30bc31f46aebe1::t_976661fa5987b4 27,45,65
+  s_30bc31f46aebe1::t_74f809811fc5dd 26,44,64
+  s_30bc31f46aebe1::t_acd344b74fe847 18-19,36-37,60
+  s_30bc31f46aebe1::t_52be75fee9e3a3 28,46,66
+  s_30bc31f46aebe1::t_4c8b3af3081f22 29,47-48,67
+  s_30bc31f46aebe1::t_979af9e30471a1 16-17,35,59
+  s_30bc31f46aebe1::t_a49a9094cf3155 3,13-14,57
+  s_30bc31f46aebe1::t_8a9899c2833221 24-25,42-43,63
+  s_30bc31f46aebe1::t_fe0a737bc3e1f2 22-23,40-41,62
+  s_30bc31f46aebe1::t_f138aae8203560 1-2,4-6,8-12,30-32,49-56
+.foreman/events/T-03-attempt-2-outcome.json
+  s_30bc31f46aebe1::t_2f588ba690b017 1
+Tests/BeLauncherCoreTests/ModelRoutingTests.swift
+  s_30bc31f46aebe1::t_638fce1585bc11 193-197,201-218
+  s_30bc31f46aebe1::t_fc545797e6288e 198-200
+  s_30bc31f46aebe1::t_124e259b85bde2 68-165
+.foreman/events/T-15-verification-pass.json
+  s_30bc31f46aebe1::t_a937aeb9f7a1c4 1
+Tests/BeLauncherCoreTests/BELAIActionHandlerTests.swift
+  s_30bc31f46aebe1::t_ae89038a9690f2 20,37-38,61
+.foreman/events/T-08-recovery-attempt-2.json
+  s_30bc31f46aebe1::t_fe32f695121b82 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "581a6e6ea0b39dbb941eb8f0834976d81790696e",
+  "prompts": {},
+  "sessions": {
+    "s_08ef237aa7b3d5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d5a765b-ad65-4f59-a0f5-c17dc371624d",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    },
+    "s_192a1bdade717a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4a528b2c-8d4b-421b-b46d-85988be5fcc8",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    },
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    },
+    "s_3264108b2094c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d5ed3af7-bfa4-4595-9912-35664e0839e7",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    },
+    "s_38da3555cc953a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "93c9b623-4e5e-4ebf-8c39-2ac7419caa44",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    },
+    "s_c95fefffce3b55": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ba8cca64-5f0f-4c52-8336-03977cc961bf",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
