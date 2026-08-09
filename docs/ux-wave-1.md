@@ -133,8 +133,10 @@ ofrece detalle completo y copia del email o teléfono asociado usando su identif
 
 Photos se conecta mediante `Photos.framework` con permiso de lectura. `/photos` muestra metadatos
 locales sin descargar originales, y Enter abre Fotos; la búsqueda BEL devuelve el conteo real de
-elementos disponibles. Los identificadores de Photos no se presentan como rutas de Finder ni como
-previews falsos. Edición, álbumes y extracción de texto quedan pendientes de adapters con recibo.
+imágenes y videos. También entiende criterios deterministas como fecha, favoritos y video. El
+detalle conserva el identificador estable, dimensiones y tipo sin convertirlo en una ruta de
+Finder ni descargar un original. Edición, álbumes y extracción de texto quedan pendientes de
+adapters con recibo.
 
 ## Permisos de Wave 2
 

@@ -14,18 +14,26 @@ struct PhotoActionHandler: BELActionHandler {
         guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
             throw PhotoActionError.permission
         }
-        let assets = PHAsset.fetchAssets(with: .image, options: nil)
+        let imageResult = PHAsset.fetchAssets(with: .image, options: nil)
+        let videoResult = PHAsset.fetchAssets(with: .video, options: nil)
+        let assets = (0..<imageResult.count).map { imageResult.object(at: $0) }
+            + (0..<videoResult.count).map { videoResult.object(at: $0) }
         let normalized = criteria.trimmingCharacters(in: .whitespacesAndNewlines)
-        let count = assets.count
-        // Photos has no filename search API. For now, a date fragment is the only deterministic
-        // metadata query we can support without requesting original image data.
-        let matching = normalized.isEmpty ? count : (0..<count).reduce(into: 0) { total, index in
-            let asset = assets.object(at: index)
+        let matching = (0..<assets.count).reduce(into: [PHAsset]()) { found, index in
+            let asset = assets[index]
             let date = asset.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? ""
-            if date.localizedCaseInsensitiveContains(normalized) { total += 1 }
+            let asksFavorite = ["favorite", "favorites", "favorita", "favoritas"].contains(normalized)
+            let asksVideo = ["video", "videos"].contains(normalized)
+            let matches = normalized.isEmpty
+                || (asksFavorite && asset.isFavorite)
+                || (asksVideo && asset.mediaType == .video)
+                || date.localizedCaseInsensitiveContains(normalized)
+            if matches { found.append(asset) }
         }
-        guard matching > 0 else { throw PhotoActionError.noMatches }
-        return BELActionResult(text: L("%@ photos available locally", String(matching)), receipt: "photos:find")
+        guard !matching.isEmpty else { throw PhotoActionError.noMatches }
+        let first = matching.first?.localIdentifier ?? ""
+        return BELActionResult(text: L("%@ photos available locally", String(matching.count)),
+                               changed: first.isEmpty ? [] : [first], receipt: "photos:find")
     }
 }
 enum PhotoActionError: Error, Equatable { case permission, noMatches }

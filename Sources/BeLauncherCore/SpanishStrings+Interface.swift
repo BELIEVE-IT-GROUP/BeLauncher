@@ -58,6 +58,7 @@ extension SpanishStrings {
         "Open settings to create reminders": "Abre Ajustes para crear recordatorios",
         "Show contact details": "Mostrar detalles del contacto",
         "Copy email or phone": "Copiar email o teléfono",
+        "Photos on this Mac": "Fotos en este Mac",
         "Complete this reminder?": "¿Completar este recordatorio?",
         "This changes the reminder in macOS Reminders.": "Esto cambiará el recordatorio en Recordatorios de macOS.",
         "Completed: %@": "Completado: %@",

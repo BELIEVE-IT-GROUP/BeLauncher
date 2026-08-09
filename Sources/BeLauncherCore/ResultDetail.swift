@@ -208,7 +208,8 @@ public enum DetailBuilder {
         case .photo:
             return ResultDetail(body: result.title,
                                 metadata: [.init(label: L("Album"), value: result.subtitle),
-                                           .init(label: L("Local identifier"), value: result.payload)])
+                                           .init(label: L("Local identifier"), value: result.payload),
+                                           .init(label: L("Open with"), value: L("Photos on this Mac"))])
 
         case .window:
             return ResultDetail(body: result.title,

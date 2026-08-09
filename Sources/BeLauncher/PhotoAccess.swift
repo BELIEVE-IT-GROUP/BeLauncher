@@ -22,12 +22,19 @@ final class PhotoAccess {
         let options = PHFetchOptions()
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         options.fetchLimit = 500
-        let result = PHAsset.fetchAssets(with: .image, options: options)
+        let images = PHAsset.fetchAssets(with: .image, options: options)
+        let videos = PHAsset.fetchAssets(with: .video, options: options)
         var mapped: [PhotoItem] = []
-        result.enumerateObjects { asset, _, _ in
+        let assets = (0..<images.count).map { images.object(at: $0) }
+            + (0..<videos.count).map { videos.object(at: $0) }
+        for asset in assets {
             let date = asset.creationDate?.formatted(date: .abbreviated, time: .omitted) ?? L("Photo")
             mapped.append(PhotoItem(id: asset.localIdentifier, title: date,
-                                    album: L("Photo library")))
+                                    album: L("Photo library"),
+                                    creationDate: asset.creationDate,
+                                    width: asset.pixelWidth, height: asset.pixelHeight,
+                                    isFavorite: asset.isFavorite,
+                                    mediaType: asset.mediaType == .video ? "video" : "image"))
         }
         photos = mapped
     }
