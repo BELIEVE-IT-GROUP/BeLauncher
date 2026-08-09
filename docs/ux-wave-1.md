@@ -62,3 +62,10 @@ los quick actions de BeBrain permanecen encima cuando se abre la superficie norm
 numéricos de las tarjetas solo se muestran en el modo dedicado de portapapeles, donde realmente
 están conectados al teclado. En la vista mixta no se promete una tecla que podría ejecutar otra
 fila.
+
+### Pendiente inmediato: inspección completa del clip
+
+Una miniatura no basta para saber qué se copió. Cada tarjeta deberá ofrecer un estado hover
+reconocible y una acción `Quick Preview` que abra el contenido completo dentro del Launcher, sin
+cerrarlo ni reemplazar el contenido del portapapeles. El preview debe funcionar para texto largo,
+imágenes y archivos, y convivir con las acciones existentes de la tarjeta.
