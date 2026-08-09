@@ -1,0 +1,25 @@
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_ce2205933e1dfe 148-151
+Sources/BeLauncherCore/Capture.swift
+  s_30bc31f46aebe1::t_ce2205933e1dfe 71-83
+Tests/BeLauncherCoreTests/WorkGraphTests.swift
+  s_30bc31f46aebe1::t_4e7019ced38080 325-336
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_ce2205933e1dfe 502
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "9f87db9f2a75e5c2b7e4989b652aae9cdb0163eb",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
