@@ -19,7 +19,22 @@ struct BELActionResolverTests {
         let match = BELActionResolver.resolve("summarise esta nota")
         #expect(match?.actionID == "ai.verb.summarise")
         #expect(match?.argument == "esta nota")
+        #expect(match?.arguments["text"] == "esta nota")
         #expect(match?.confidence == 900)
+    }
+
+    @Test("unavailable seeds and incomplete required arguments do not resolve")
+    func unavailableAndIncompleteActionsAreRejected() {
+        #expect(BELActionResolver.resolve("system.open_app") == nil)
+        #expect(BELActionResolver.resolve("open file") == nil)
+        #expect(BELActionResolver.resolve("files.open") == nil)
+    }
+
+    @Test("a required path is only accepted as an explicit prefix argument")
+    func requiredArgumentIsMapped() {
+        let match = BELActionResolver.resolve("open file /tmp/notes.md")
+        #expect(match?.actionID == "files.open")
+        #expect(match?.arguments["path"] == "/tmp/notes.md")
     }
 
     @Test("unknown or ambiguous text is not turned into a side effect")

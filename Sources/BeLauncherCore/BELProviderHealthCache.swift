@@ -41,7 +41,8 @@ public actor BELProviderHealthCache {
                     let key = provider.transport == .directKey
                         ? keyLookup(provider.keychainAccount) : nil
                     let state = await probe(provider, key)
-                    return (provider.id, BELProviderHealth(state: state, model: models[provider.id]))
+                    return (provider.id, BELProviderHealth(state: state, model: models[provider.id],
+                                                           observedAt: now))
                 }
             }
             for await (id, health) in group {

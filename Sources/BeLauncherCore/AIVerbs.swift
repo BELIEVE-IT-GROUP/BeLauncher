@@ -145,13 +145,19 @@ public struct AIVerbRunner: Sendable {
         guard !trimmed.isEmpty else { throw IntelligenceError.emptyAnswer }
 
         let routedProviders: [IntelligenceProvider]
+        let definition = BELActionCatalog.named("ai.verb.\(verb.id)")
         if let healthCache {
             let health = await healthCache.snapshot(for: providers, models: models)
             routedProviders = try router.providers(for: verb.sensitivity, available: providers,
                                                    health: health,
-                                                   machine: MacCapabilityDetector.current())
+                                                   machine: MacCapabilityDetector.current(),
+                                                   routePolicy: definition?.routePolicy,
+                                                   freshness: definition?.freshness ?? .notRequired)
         } else {
-            routedProviders = try router.providers(for: verb.sensitivity, available: providers)
+            routedProviders = try router.providers(for: verb.sensitivity, available: providers,
+                                                   health: [:],
+                                                   routePolicy: definition?.routePolicy,
+                                                   freshness: definition?.freshness ?? .notRequired)
         }
         let request = IntelligenceRequest(
             system: AIVerbRunner.systemPrompt,

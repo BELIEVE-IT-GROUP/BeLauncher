@@ -5,6 +5,8 @@ public enum ModelCapability: String, Codable, Sendable, Equatable, CaseIterable 
     case chat
     case embeddings
     case transcription
+    /// A provider that can retrieve fresh external information, not merely generate text.
+    case web
 }
 
 public struct ModelProviderDescriptor: Codable, Sendable, Equatable, Identifiable {

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import BeLauncherCore
 
@@ -62,5 +63,41 @@ struct ModelRoutingTests {
         )
 
         #expect(routes.first?.providerID == "ollama")
+    }
+
+    @Test("a provider without the requested capability is never a route")
+    func capabilityMismatchIsExcluded() {
+        let provider = IntelligenceProvider(id: "text-only", name: "Text only",
+                                             transport: .local,
+                                             endpoint: "http://127.0.0.1:1/chat",
+                                             defaultModel: "text", capabilities: [.chat])
+        #expect(throws: IntelligenceError.noProviderConfigured) {
+            try ModelRouter(preferred: nil).rankedRoutes(
+                for: .personal, available: [provider],
+                health: ["text-only": BELProviderHealth(state: .ready)],
+                requiredCapabilities: [.transcription])
+        }
+    }
+
+    @Test("stale ready evidence is not accepted as current health")
+    func staleHealthIsExcluded() {
+        let old = Date(timeIntervalSinceNow: -31)
+        #expect(throws: IntelligenceError.noProviderConfigured) {
+            try ModelRouter(preferred: nil).rankedRoutes(
+                for: .personal, available: [local],
+                health: ["ollama": BELProviderHealth(state: .ready, observedAt: old)],
+                now: Date(), healthMaxAge: 30)
+        }
+    }
+
+    @Test("freshness-required routes refuse providers without a web capability")
+    func freshnessRequiresWebCapability() {
+        #expect(throws: IntelligenceError.noProviderConfigured) {
+            try ModelRouter(preferred: nil).rankedRoutes(
+                for: .ordinary, available: [local, cloud],
+                health: ["ollama": BELProviderHealth(state: .ready),
+                         "openai": BELProviderHealth(state: .ready)],
+                freshness: .required)
+        }
     }
 }
