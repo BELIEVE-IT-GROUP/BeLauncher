@@ -371,7 +371,13 @@ public enum ActionRegistry {
                                  shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
                     ResultAction(id: "album", title: L("Add to album"), symbol: "rectangle.stack.badge.plus",
                                  section: .manage,
-                                 intent: .systemCommand("bel:photos.add_to_album\u{1F}\(result.payload)"))]
+                                 intent: .systemCommand("bel:photos.add_to_album\u{1F}\(result.payload)")),
+                    ResultAction(id: "create-album", title: L("Create album with photo"), symbol: "rectangle.stack.badge.plus",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:photos.create_album\u{1F}\(result.payload)")),
+                    ResultAction(id: "ocr", title: L("Extract text from photo"), symbol: "text.viewfinder",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:photos.extract_text\u{1F}\(result.payload)"))]
 
         case .window:
             return [

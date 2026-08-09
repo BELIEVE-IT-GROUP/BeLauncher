@@ -2279,10 +2279,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case "contacts.update":
                 guard let edited = promptForContactEdit(contactID: argument) else { return }
                 input = try JSONEncoder().encode(edited)
-            case "photos.add_to_album":
+            case "photos.add_to_album", "photos.create_album":
                 guard let album = promptForPhotoAlbum() else { return }
                 input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument,
                                                                       albumName: album))
+            case "photos.extract_text":
+                input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument))
             default:
                 input = Data()
             }
@@ -2293,11 +2295,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             do {
                 let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
-                                 "reminders.change_due_date", "contacts.update", "photos.add_to_album"].contains(id)
+                                 "reminders.change_due_date", "contacts.update", "photos.add_to_album",
+                                 "photos.create_album"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
                                          : id == "contacts.update" ? L("Update this contact?")
+                                         : id == "photos.create_album" ? L("Create this album?")
                                          : id == "photos.add_to_album" ? L("Add this photo to the album?")
                                          : id == "reminders.change_due_date" ? L("Change this reminder's due date?")
                                          : L("Complete this reminder?"),
@@ -2305,19 +2309,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          ? L("This will add a reminder to macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
                                          : id == "contacts.update" ? L("This changes the contact in macOS Contacts.")
+                                         : id == "photos.create_album" ? L("This creates an album in your Photos library.")
                                          : id == "photos.add_to_album" ? L("This changes your Photos library.")
                                          : id == "reminders.change_due_date" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
                 guard !["reminders.complete", "reminders.create", "contacts.create",
-                        "reminders.change_due_date", "contacts.update", "photos.add_to_album"].contains(id) || confirmed else { return }
+                        "reminders.change_due_date", "contacts.update", "photos.add_to_album",
+                        "photos.create_album"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
                 report(L("Action completed"), result.text)
                 if ["reminders.complete", "reminders.create", "contacts.create",
-                    "reminders.change_due_date", "contacts.update"].contains(id) {
-                    _ = await refreshLocalSource(["contacts.create", "contacts.update"].contains(id) ? "contacts" : "reminders")
+                    "reminders.change_due_date", "contacts.update", "photos.add_to_album",
+                    "photos.create_album"].contains(id) {
+                    let source = ["contacts.create", "contacts.update"].contains(id) ? "contacts" :
+                        (["photos.add_to_album", "photos.create_album"].contains(id) ? "photos" : "reminders")
+                    _ = await refreshLocalSource(source)
                 }
             } catch {
                 report(L("The action could not be completed"), "\(error)")

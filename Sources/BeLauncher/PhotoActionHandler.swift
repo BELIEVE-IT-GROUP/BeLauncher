@@ -1,5 +1,7 @@
 import Foundation
 @preconcurrency import Photos
+import ImageIO
+import Vision
 import BeLauncherCore
 
 struct BELPhotoActionInput: Codable, Sendable {
@@ -16,7 +18,7 @@ struct BELPhotoActionInput: Codable, Sendable {
 struct PhotoActionHandler: BELActionHandler {
     let actionID: String
     init?(definition: BELActionDefinition) {
-        guard ["photos.find", "photos.add_to_album"].contains(definition.id),
+        guard ["photos.find", "photos.add_to_album", "photos.create_album", "photos.extract_text"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -25,12 +27,32 @@ struct PhotoActionHandler: BELActionHandler {
         guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
             throw PhotoActionError.permission
         }
-        if actionID == "photos.add_to_album" {
+        if actionID == "photos.add_to_album" || actionID == "photos.create_album" {
             guard let assetID = value.assetID, !assetID.isEmpty,
                   let albumName = value.albumName?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !albumName.isEmpty,
                   let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
             else { throw PhotoActionError.invalidInput }
+            if actionID == "photos.create_album" {
+                let existing = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
+                let alreadyExists = (0..<existing.count).contains {
+                    existing.object(at: $0).localizedTitle?.localizedCaseInsensitiveCompare(albumName) == .orderedSame
+                }
+                guard !alreadyExists else { throw PhotoActionError.albumAlreadyExists }
+                var createdID = ""
+                try await Self.performChanges {
+                    let request = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle: albumName)
+                    createdID = request.placeholderForCreatedAssetCollection.localIdentifier
+                }
+                guard let created = PHAssetCollection.fetchAssetCollections(withLocalIdentifiers: [createdID], options: nil).firstObject else {
+                    throw PhotoActionError.changeFailed
+                }
+                try await Self.performChanges {
+                    PHAssetCollectionChangeRequest(for: created)?.addAssets([asset] as NSArray)
+                }
+                return BELActionResult(text: L("Album created: %@", albumName),
+                                       changed: [assetID], receipt: "photos:create-album:\(createdID)")
+            }
             let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
             var album: PHAssetCollection?
             albums.enumerateObjects { candidate, _, stop in
@@ -45,6 +67,27 @@ struct PhotoActionHandler: BELActionHandler {
             }
             return BELActionResult(text: L("Added to album: %@", albumName),
                                    changed: [assetID], receipt: "photos:add-to-album:\(assetID)")
+        }
+        if actionID == "photos.extract_text" {
+            guard let assetID = value.assetID, !assetID.isEmpty,
+                  let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject,
+                  asset.mediaType == .image else { throw PhotoActionError.invalidInput }
+            let data = try await Self.imageData(for: asset)
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+                  let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+                throw PhotoActionError.imageUnavailable
+            }
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            request.recognitionLanguages = ["es-ES", "en-US"]
+            let handler = VNImageRequestHandler(cgImage: image, options: [:])
+            try handler.perform([request])
+            let text = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+                .joined(separator: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { throw PhotoActionError.noText }
+            return BELActionResult(text: text, changed: [assetID], receipt: "photos:extract-text:\(assetID)")
         }
         let criteria = value.criteria
         let imageResult = PHAsset.fetchAssets(with: .image, options: nil)
@@ -78,5 +121,24 @@ struct PhotoActionHandler: BELActionHandler {
             }
         }
     }
+
+    private static func imageData(for asset: PHAsset) async throws -> Data {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Error>) in
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.isNetworkAccessAllowed = false
+            PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, info in
+                if let data { continuation.resume(returning: data); return }
+                if let error = info?[PHImageErrorKey] as? Error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(throwing: PhotoActionError.imageUnavailable)
+                }
+            }
+        }
+    }
 }
-enum PhotoActionError: Error, Equatable { case permission, noMatches, albumNotFound, invalidInput, changeFailed }
+enum PhotoActionError: Error, Equatable {
+    case permission, noMatches, albumNotFound, albumAlreadyExists, invalidInput, changeFailed,
+         imageUnavailable, noText
+}

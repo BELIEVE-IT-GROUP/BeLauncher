@@ -142,11 +142,13 @@ Photos se conecta mediante `Photos.framework` con permiso de lectura. `/photos` 
 locales sin descargar originales, y Enter abre Fotos; la búsqueda BEL devuelve el conteo real de
 imágenes y videos. También entiende criterios deterministas como fecha, favoritos y video. El
 detalle conserva el identificador estable, dimensiones y tipo sin convertirlo en una ruta de
-Finder ni descargar un original. Un resultado seleccionado ofrece `Add to album`: pide el nombre
-exacto del álbum, no crea uno silenciosamente, confirma el cambio y usa
-`PHAssetCollectionChangeRequest` para añadir el asset por su `localIdentifier`. El resultado deja
-recibo y conserva Photos como fuente de verdad. Crear álbumes, OCR y abrir una foto concreta siguen
-pendientes; no se presentan como implementados.
+Finder ni descargar un original. Un resultado seleccionado ofrece `Add to album` y `Create album
+with photo`: pide el nombre exacto, confirma el cambio y usa `PHAssetCollectionChangeRequest` para
+trabajar por `localIdentifier`. No crea un álbum duplicado silenciosamente. También ofrece `Extract
+text from photo`, que carga el asset autorizado en memoria y usa Vision local con español e inglés;
+no persiste una copia ni envía la imagen a un modelo. Cada operación deja recibo. Abrir un asset
+concreto dentro de Photos sigue pendiente porque el esquema público no ofrece un deep link estable
+para ese `localIdentifier`.
 
 ## Permisos de Wave 2
 
