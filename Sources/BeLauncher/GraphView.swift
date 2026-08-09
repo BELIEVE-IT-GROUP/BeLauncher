@@ -20,6 +20,31 @@ enum BELBrainNavigationNotification {
 @MainActor
 @Observable
 final class GraphModel {
+    struct DailyBriefCard: Identifiable, Equatable {
+        enum Kind: String, Equatable {
+            case changed
+            case matters
+            case next
+        }
+
+        enum Action: Equatable {
+            case read(String)
+            case showGraph(String?)
+            case openInbox(String)
+            case newNote
+            case ask(String)
+        }
+
+        let kind: Kind
+        let title: String
+        let detail: String
+        let symbol: String
+        let actionTitle: String
+        let action: Action
+
+        var id: String { kind.rawValue }
+    }
+
 
     struct Evidence: Identifiable, Equatable {
         enum Route: Equatable {
@@ -147,6 +172,97 @@ final class GraphModel {
     var pulseSignals: [Pulse.Signal] {
         guard let vault = try? Vault(root: Vault.defaultRoot()) else { return [] }
         return Pulse.signals(for: vault.objects(), limit: 4)
+    }
+
+    func dailyBrief(inboxItems: [InboxItem], pulseSignals: [Pulse.Signal]) -> [DailyBriefCard] {
+        [
+            changedCard(),
+            mattersCard(pulseSignals: pulseSignals),
+            nextCard(inboxItems: inboxItems)
+        ]
+    }
+
+    private func changedCard() -> DailyBriefCard {
+        if let document = recentDocuments.first {
+            return DailyBriefCard(
+                kind: .changed, title: L("What changed"),
+                detail: L("Latest Brain file: %@", document.title),
+                symbol: "arrow.triangle.2.circlepath",
+                actionTitle: L("Read"),
+                action: .read(document.id))
+        }
+        if let node = recentNodes.first {
+            return DailyBriefCard(
+                kind: .changed, title: L("What changed"),
+                detail: L("Recent work: %@", node.name),
+                symbol: "waveform.path.ecg",
+                actionTitle: L("Open graph"),
+                action: .showGraph(node.id))
+        }
+        return DailyBriefCard(
+            kind: .changed, title: L("What changed"),
+            detail: L("Nothing has landed in the Brain yet today."),
+            symbol: "tray",
+            actionTitle: L("Write note"),
+            action: .newNote)
+    }
+
+    private func mattersCard(pulseSignals: [Pulse.Signal]) -> DailyBriefCard {
+        if let signal = pulseSignals.first {
+            return DailyBriefCard(
+                kind: .matters, title: L("What matters"),
+                detail: signal.headline,
+                symbol: "exclamationmark.bubble",
+                actionTitle: L("Ask"),
+                action: .ask("what should we do about \(signal.headline)"))
+        }
+        if let node = recentNodes.first {
+            return DailyBriefCard(
+                kind: .matters, title: L("What matters"),
+                detail: L("Most recent active thread: %@", node.name),
+                symbol: "target",
+                actionTitle: L("Focus"),
+                action: .showGraph(node.id))
+        }
+        return DailyBriefCard(
+            kind: .matters, title: L("What matters"),
+            detail: L("Pulse has nothing urgent yet."),
+            symbol: "checkmark.seal",
+            actionTitle: L("Ask"),
+            action: .ask("what should I look at today?"))
+    }
+
+    private func nextCard(inboxItems: [InboxItem]) -> DailyBriefCard {
+        if let item = inboxItems.first(where: { $0.state == .needsTranscription }) {
+            return DailyBriefCard(
+                kind: .next, title: L("What you can do now"),
+                detail: L("Transcribe: %@", item.title),
+                symbol: "waveform",
+                actionTitle: L("Open"),
+                action: .openInbox(item.id))
+        }
+        if let item = inboxItems.first {
+            return DailyBriefCard(
+                kind: .next, title: L("What you can do now"),
+                detail: L("Review: %@", item.title),
+                symbol: "tray.and.arrow.down",
+                actionTitle: L("Review"),
+                action: .openInbox(item.id))
+        }
+        if let document = recentDocuments.first {
+            return DailyBriefCard(
+                kind: .next, title: L("What you can do now"),
+                detail: L("Ask the Brain about %@", document.title),
+                symbol: "bubble.left.and.text.bubble.right",
+                actionTitle: L("Ask"),
+                action: .ask("what changed in \(document.title)?"))
+        }
+        return DailyBriefCard(
+            kind: .next, title: L("What you can do now"),
+            detail: L("Write a note or import a file to give the Brain something useful."),
+            symbol: "square.and.pencil",
+            actionTitle: L("New note"),
+            action: .newNote)
     }
 
     /// Opening a node's Markdown. Injected because the reader is a window and the model is not
@@ -1361,6 +1477,12 @@ private struct BrainOverview: View {
                 }
                 .controlSize(.small)
 
+                HStack(alignment: .top, spacing: 10) {
+                    ForEach(model.dailyBrief(inboxItems: inboxItems, pulseSignals: pulseSignals)) { card in
+                        dailyCard(card)
+                    }
+                }
+
                 HStack(spacing: 10) {
                     stat(L("Remembered"), value: model.nodeCount, symbol: "circle.grid.2x2")
                     stat(L("Connections"), value: model.relationCount, symbol: "arrow.triangle.branch")
@@ -1576,6 +1698,63 @@ private struct BrainOverview: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(.white.opacity(0.035), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func dailyCard(_ card: GraphModel.DailyBriefCard) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: card.symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(dailyTint(card.kind))
+                Text(card.title)
+                    .font(.system(size: 12, weight: .semibold))
+                Spacer(minLength: 0)
+            }
+            Text(card.detail)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .frame(minHeight: 32, alignment: .topLeading)
+            Button(card.actionTitle) { runDailyAction(card.action) }
+                .buttonStyle(.borderless)
+                .font(.system(size: 11, weight: .medium))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(
+            LinearGradient(colors: [dailyTint(card.kind).opacity(0.13), .white.opacity(0.035)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private func dailyTint(_ kind: GraphModel.DailyBriefCard.Kind) -> Color {
+        switch kind {
+        case .changed: Theme.cyan
+        case .matters: Theme.accent
+        case .next: Color(red: 0.62, green: 0.78, blue: 1)
+        }
+    }
+
+    private func runDailyAction(_ action: GraphModel.DailyBriefCard.Action) {
+        switch action {
+        case .read(let id):
+            openReader(id)
+        case .showGraph(let id):
+            if let id { model.selected = id }
+            showGraph()
+        case .openInbox(let id):
+            guard let item = inboxItems.first(where: { $0.id == id }) else { return }
+            openInbox(item)
+        case .newNote:
+            newNote()
+        case .ask(let question):
+            runIntent(question)
+        }
     }
 
     private func stamp(_ date: Date) -> String {

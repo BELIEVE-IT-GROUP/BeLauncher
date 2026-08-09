@@ -323,6 +323,54 @@ struct GraphCorrectionsTests {
         #expect(evidence.contains { $0.passage.source.id == "atlas-note" })
     }
 
+    @Test("El Brain diario resume cambio, atención y siguiente acción")
+    func dailyBriefTurnsBrainStateIntoThreeActions() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let corpusRoot = (root as NSString).appendingPathComponent("corpus")
+        let folder = try CorpusFolder(root: corpusRoot)
+        let document = CorpusDocument(kind: .episode, id: "episode:atlas",
+                                      title: "Atlas pricing call",
+                                      occurredAt: noon,
+                                      body: "Se revisó pricing.",
+                                      lists: ["links": []])
+        _ = try folder.save(document)
+        store.upsertNode(WorkNode(id: "project:atlas", kind: .project, name: "Atlas",
+                                  lastSeen: noon, weight: 4))
+        let inbox = InboxItem(record: QuickNote.Record(
+            id: "/tmp/call.md", title: "Call awaiting transcription",
+            excerpt: "pending", path: "/tmp/call.md", reviewed: false,
+            kind: .evidence, state: .needsTranscription,
+            createdAt: noon, sourcePath: "/tmp/call.m4a", attachmentPath: nil))
+        let pulse = Pulse.Signal(kind: .overdue, headline: "Overdue commitment",
+                                 detail: "Atlas needs follow-up", weight: 90, objects: [])
+
+        let model = GraphModel(store: store, corpus: folder, now: noon)
+        let cards = model.dailyBrief(inboxItems: [inbox], pulseSignals: [pulse])
+
+        #expect(cards.map(\.kind) == [.changed, .matters, .next])
+        #expect(cards[0].detail.contains("Atlas pricing call"))
+        #expect(cards[0].action == .read(document.id))
+        #expect(cards[1].detail == "Overdue commitment")
+        #expect(cards[2].action == .openInbox(inbox.id))
+    }
+
+    @Test("El Brain diario vacío dice qué falta en vez de fingir actividad")
+    func dailyBriefEmptyStateIsActionable() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+
+        let model = GraphModel(store: store, corpus: nil, now: noon)
+        let cards = model.dailyBrief(inboxItems: [], pulseSignals: [])
+
+        #expect(cards.count == 3)
+        #expect(cards[0].action == .newNote)
+        #expect(cards[1].action == .ask("what should I look at today?"))
+        #expect(cards[2].action == .newNote)
+    }
+
     @Test("Filtrar no congela la ventana")
     func filteringDoesNotBlockTheWindow() async throws {
         let root = temporaryRoot()
