@@ -71,6 +71,13 @@ struct TranscriptionTests {
         #expect(!QwenASRInstaller.modelDownloadScript.contains("from_pretrained"))
     }
 
+    @Test("Qwen progress output never becomes a voice transcription")
+    func qwenDropsProgressLines() {
+        let output = "Fetching 11 files: 100%|##########| 11/11 [00:00<00:00, 4242.12it/s]\nHola, esta es la nota"
+        #expect(QwenASRRuntime.transcriptText(from: output) == "Hola, esta es la nota")
+        #expect(QwenASRRuntime.transcriptText(from: "Fetching 11 files: 100%|##########|").isEmpty)
+    }
+
     @Test("Qwen convierte los contenedores de macOS a WAV antes de invocar Python")
     func qwenNormalizesMacAudio() throws {
         let source = FileManager.default.temporaryDirectory

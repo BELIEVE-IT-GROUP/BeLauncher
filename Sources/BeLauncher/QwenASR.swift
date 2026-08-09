@@ -596,11 +596,31 @@ enum QwenASRRuntime {
             if wav != url { try? FileManager.default.removeItem(at: wav) }
         }
         let code = "import sys; from qwen3_asr_mlx import Qwen3ASR; print(Qwen3ASR.from_pretrained(sys.argv[2]).transcribe(sys.argv[1]).text)"
+        var environment = QwenASRInstaller.runtimeEnvironment(root: root)
+        // Hugging Face/tqdm can write download progress to stdout. That stream is not a
+        // transcript: keep progress disabled and sanitize defensively before saving a note.
+        environment["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+        environment["TQDM_DISABLE"] = "1"
+        environment["PYTHONUNBUFFERED"] = "1"
         let output = try await run(python.path, ["-c", code, wav.path, model],
-                                   environment: QwenASRInstaller.runtimeEnvironment(root: root))
-        let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
+                                   environment: environment)
+        let text = transcriptText(from: output)
         guard !text.isEmpty else { throw Failure.empty }
         return text
+    }
+
+    static func transcriptText(from output: String) -> String {
+        output
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { line in
+                let lower = line.lowercased()
+                let progress = lower.hasPrefix("fetching ") && lower.contains(" files:")
+                let bar = line.contains("%|") && (lower.contains("fetch") || lower.contains("download"))
+                return !line.isEmpty && !progress && !bar
+            }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// qwen3-asr-mlx reads PCM WAV directly. AVAudioRecorder writes AAC M4A and the call
