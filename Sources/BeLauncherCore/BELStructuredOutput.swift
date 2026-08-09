@@ -89,8 +89,40 @@ public struct BELJSONSchema: Sendable, Equatable {
     }
 }
 
+/// Resource limits applied before a model response is accepted as structured data.
+///
+/// The defaults are deliberately finite: model output is an untrusted input boundary,
+/// even when it came from a local provider. Callers can use a smaller profile for a
+/// particular tool, but should not disable these checks by parsing the response first.
+public struct BELStructuredOutputLimits: Sendable, Equatable {
+    public let maxBytes: Int
+    public let maxDepth: Int
+    public let maxObjectFields: Int
+    public let maxArrayItems: Int
+    public let maxStringCharacters: Int
+
+    public init(maxBytes: Int = 128_000,
+                maxDepth: Int = 12,
+                maxObjectFields: Int = 64,
+                maxArrayItems: Int = 256,
+                maxStringCharacters: Int = 32_000) {
+        self.maxBytes = maxBytes
+        self.maxDepth = maxDepth
+        self.maxObjectFields = maxObjectFields
+        self.maxArrayItems = maxArrayItems
+        self.maxStringCharacters = maxStringCharacters
+    }
+
+    public static let `default` = BELStructuredOutputLimits()
+}
+
 public enum BELStructuredOutputError: Error, Equatable, CustomStringConvertible {
     case invalidJSON
+    case inputTooLarge(maxBytes: Int)
+    case depthExceeded(maxDepth: Int)
+    case objectTooLarge(maxFields: Int)
+    case arrayTooLarge(maxItems: Int)
+    case stringTooLong(maxCharacters: Int)
     case notAnObject
     case missingField(String)
     case unknownField(String)
@@ -101,6 +133,11 @@ public enum BELStructuredOutputError: Error, Equatable, CustomStringConvertible 
     public var description: String {
         switch self {
         case .invalidJSON: "The model returned invalid JSON."
+        case .inputTooLarge(let maxBytes): "The model response exceeded the \(maxBytes)-byte limit."
+        case .depthExceeded(let maxDepth): "The model response exceeded the \(maxDepth)-level nesting limit."
+        case .objectTooLarge(let maxFields): "The model response exceeded the \(maxFields)-field object limit."
+        case .arrayTooLarge(let maxItems): "The model response exceeded the \(maxItems)-item array limit."
+        case .stringTooLong(let maxCharacters): "The model response exceeded the \(maxCharacters)-character string limit."
         case .notAnObject: "The model returned JSON, but not an object."
         case .missingField(let field): "The model omitted required field \(field)."
         case .unknownField(let field): "The model returned unknown field \(field)."
@@ -113,13 +150,21 @@ public enum BELStructuredOutputError: Error, Equatable, CustomStringConvertible 
 
 public enum BELStructuredOutputValidator {
     /// Parses a bounded JSON response. Markdown fences are tolerated because models add them
-    /// routinely; prose around the object is rejected rather than guessed around.
-    public static func validate(_ raw: String, against schema: BELJSONSchema) throws -> BELJSONValue {
+    /// routinely; prose, unclosed fences, and truncation are rejected rather than repaired.
+    public static func validate(_ raw: String, against schema: BELJSONSchema,
+                                limits: BELStructuredOutputLimits = .default) throws -> BELJSONValue {
+        guard raw.utf8.count <= limits.maxBytes else {
+            throw BELStructuredOutputError.inputTooLarge(maxBytes: limits.maxBytes)
+        }
         let text = cleaned(raw)
+        guard preflightDepth(of: text, maximum: limits.maxDepth) else {
+            throw BELStructuredOutputError.depthExceeded(maxDepth: limits.maxDepth)
+        }
         guard let data = text.data(using: .utf8),
               let value = try? JSONDecoder().decode(BELJSONValue.self, from: data) else {
             throw BELStructuredOutputError.invalidJSON
         }
+        try validateLimits(value, depth: 1, limits: limits)
         guard let object = value.objectValue else { throw BELStructuredOutputError.notAnObject }
         let fields = Dictionary(uniqueKeysWithValues: schema.fields.map { ($0.name, $0) })
         for field in schema.fields where field.required && object[field.name] == nil {
@@ -142,12 +187,13 @@ public enum BELStructuredOutputValidator {
     /// Validates a model tool-call envelope before any handler sees its arguments. The tool name is
     /// checked exactly and the nested argument object is validated with the handler's schema.
     public static func validateToolCall(_ raw: String, toolName: String,
-                                        arguments schema: BELJSONSchema) throws -> BELJSONValue {
+                                        arguments schema: BELJSONSchema,
+                                        limits: BELStructuredOutputLimits = .default) throws -> BELJSONValue {
         let envelope = BELJSONSchema(fields: [
             BELJSONField("name", .string, required: true),
             BELJSONField("arguments", .object, required: true),
         ])
-        let value = try validate(raw, against: envelope)
+        let value = try validate(raw, against: envelope, limits: limits)
         let object = value.objectValue ?? [:]
         guard case .string(let name) = object["name"], name == toolName else {
             let name = object["name"].flatMap { value -> String? in
@@ -159,13 +205,16 @@ public enum BELStructuredOutputValidator {
         guard case .object(let arguments) = object["arguments"] else {
             throw BELStructuredOutputError.invalidToolArguments
         }
-        let checked = try validateObject(arguments, against: schema)
+        let checked = try validateObject(arguments, against: schema, limits: limits, depth: 2)
         return .object(checked)
     }
 
     private static func validateObject(_ object: [String: BELJSONValue],
-                                       against schema: BELJSONSchema) throws
+                                       against schema: BELJSONSchema,
+                                       limits: BELStructuredOutputLimits,
+                                       depth: Int) throws
         -> [String: BELJSONValue] {
+        try validateLimits(.object(object), depth: depth, limits: limits)
         let fields = Dictionary(uniqueKeysWithValues: schema.fields.map { ($0.name, $0) })
         for field in schema.fields where field.required && object[field.name] == nil {
             throw BELStructuredOutputError.missingField(field.name)
@@ -188,9 +237,66 @@ public enum BELStructuredOutputValidator {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("```") else { return trimmed }
         var lines = trimmed.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
-        if lines.first?.hasPrefix("```") == true { lines.removeFirst() }
-        if lines.last?.trimmingCharacters(in: .whitespaces) == "```" { lines.removeLast() }
+        guard lines.first?.hasPrefix("```") == true,
+              lines.last?.trimmingCharacters(in: .whitespaces) == "```" else {
+            return trimmed
+        }
+        lines.removeFirst()
+        lines.removeLast()
         return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Counts container nesting without decoding. This keeps deeply nested input away from
+    /// JSONDecoder and deliberately leaves syntax validation to the decoder itself.
+    private static func preflightDepth(of text: String, maximum: Int) -> Bool {
+        var depth = 0
+        var escaped = false
+        var inString = false
+        for byte in text.utf8 {
+            if inString {
+                if escaped { escaped = false }
+                else if byte == 92 { escaped = true }
+                else if byte == 34 { inString = false }
+                continue
+            }
+            if byte == 34 { inString = true }
+            else if byte == 123 || byte == 91 {
+                depth += 1
+                if depth > maximum { return false }
+            } else if byte == 125 || byte == 93 {
+                depth = max(0, depth - 1)
+            }
+        }
+        return true
+    }
+
+    private static func validateLimits(_ value: BELJSONValue, depth: Int,
+                                       limits: BELStructuredOutputLimits) throws {
+        guard depth <= limits.maxDepth else {
+            throw BELStructuredOutputError.depthExceeded(maxDepth: limits.maxDepth)
+        }
+        switch value {
+        case .object(let object):
+            guard object.count <= limits.maxObjectFields else {
+                throw BELStructuredOutputError.objectTooLarge(maxFields: limits.maxObjectFields)
+            }
+            for child in object.values {
+                try validateLimits(child, depth: depth + 1, limits: limits)
+            }
+        case .array(let array):
+            guard array.count <= limits.maxArrayItems else {
+                throw BELStructuredOutputError.arrayTooLarge(maxItems: limits.maxArrayItems)
+            }
+            for child in array {
+                try validateLimits(child, depth: depth + 1, limits: limits)
+            }
+        case .string(let string):
+            guard string.count <= limits.maxStringCharacters else {
+                throw BELStructuredOutputError.stringTooLong(maxCharacters: limits.maxStringCharacters)
+            }
+        case .number, .bool, .null:
+            break
+        }
     }
 
     private static func matches(_ value: BELJSONValue, _ kind: BELJSONField.Kind) -> Bool {

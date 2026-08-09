@@ -132,6 +132,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if canImport(AppIntents)
         let center = NotificationCenter.default
         appIntentObservers = [
+            center.addObserver(forName: BELAppIntentNotification.runCommand, object: nil,
+                               queue: .main) { [weak self] note in
+                let command = note.userInfo?[BELAppIntentUserInfo.command] as? String ?? ""
+                Task { @MainActor in self?.primeLauncher(with: command) }
+            },
             center.addObserver(forName: BELAppIntentNotification.openBrain, object: nil,
                                queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.openGraph() }
@@ -210,6 +215,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
         ]
         #endif
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls { handleDeepLink(url) }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard let actionID = BELAppIntentCatalog.actionID(from: url),
+              let definition = BELAppIntentCatalog.definition(id: actionID) else { return }
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+            .first(where: { $0.name == "q" })?.value
+        let command = query.flatMap { $0.isEmpty ? nil : $0 } ?? definition.command
+        guard !command.isEmpty else { return }
+        primeLauncher(with: command)
     }
 
     private func finishLaunch(store: Store) {

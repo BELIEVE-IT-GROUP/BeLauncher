@@ -37,4 +37,56 @@ struct BELStructuredOutputTests {
             try BELStructuredOutputValidator.validate("{\"statement\":42}", against: schema)
         }
     }
+
+    @Test("bounded input rejects oversized, deep, wide, and long values")
+    func resourceLimits() {
+        let limits = BELStructuredOutputLimits(
+            maxBytes: 100,
+            maxDepth: 2,
+            maxObjectFields: 1,
+            maxArrayItems: 2,
+            maxStringCharacters: 4
+        )
+
+        #expect(throws: BELStructuredOutputError.inputTooLarge(maxBytes: 100)) {
+            try BELStructuredOutputValidator.validate(
+                "{\"statement\":\"" + String(repeating: "x", count: 100) + "\"}",
+                against: schema, limits: limits)
+        }
+        #expect(throws: BELStructuredOutputError.depthExceeded(maxDepth: 2)) {
+            try BELStructuredOutputValidator.validate(
+                "{\"statement\":{\"nested\":{\"value\":true}}}",
+                against: BELJSONSchema(fields: [BELJSONField("statement", .object, required: true)]),
+                limits: limits)
+        }
+        #expect(throws: BELStructuredOutputError.objectTooLarge(maxFields: 1)) {
+            try BELStructuredOutputValidator.validate(
+                "{\"statement\":\"ok\",\"kind\":\"note\"}",
+                against: schema, limits: BELStructuredOutputLimits(maxObjectFields: 1))
+        }
+        #expect(throws: BELStructuredOutputError.arrayTooLarge(maxItems: 2)) {
+            try BELStructuredOutputValidator.validate(
+                "{\"statement\":[1,2,3]}",
+                against: BELJSONSchema(fields: [BELJSONField("statement", .array, required: true)]),
+                limits: limits)
+        }
+        #expect(throws: BELStructuredOutputError.stringTooLong(maxCharacters: 4)) {
+            try BELStructuredOutputValidator.validate(
+                "{\"statement\":\"12345\"}", against: schema, limits: limits)
+        }
+    }
+
+    @Test("unclosed markdown fences and truncated tool calls are rejected")
+    func boundedRepairOnly() {
+        #expect(throws: BELStructuredOutputError.invalidJSON) {
+            try BELStructuredOutputValidator.validate(
+                "```json\n{\"statement\":\"ok\"}", against: schema)
+        }
+        #expect(throws: BELStructuredOutputError.invalidJSON) {
+            try BELStructuredOutputValidator.validateToolCall(
+                "{\"name\":\"save\",\"arguments\":{\"text\":",
+                toolName: "save",
+                arguments: BELJSONSchema(fields: [BELJSONField("text", .string, required: true)]))
+        }
+    }
 }

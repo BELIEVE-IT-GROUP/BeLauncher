@@ -197,6 +197,21 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("curated App Intent catalog is stable and deep links are reversible")
+    func appIntentCatalog() throws {
+        #expect(BELAppIntentCatalog.curated.count == 16)
+        #expect(Set(BELAppIntentCatalog.curated.map(\.id)).count == 16)
+        for definition in BELAppIntentCatalog.curated {
+            let url = try #require(BELAppIntentCatalog.deepLink(actionID: definition.id,
+                                                                 query: "review & run"))
+            #expect(BELAppIntentCatalog.actionID(from: url) == definition.id)
+            #expect(url.absoluteString.contains("review%20%26%20run"))
+            #expect(definition.executionMode == .foreground)
+        }
+        #expect(BELAppIntentCatalog.deepLink(actionID: "unknown") == nil)
+        #expect(BELAppIntentCatalog.actionID(from: URL(string: "belauncher://intent/unknown")!) == nil)
+    }
+
     @Test("every unavailable inventory seed is blocked before execution")
     func unavailableSeedsCannotExecute() async throws {
         let runtime = BELActionRuntime()
