@@ -1,0 +1,35 @@
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_38ef7f67927841 201-204
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_38ef7f67927841 2308-2309
+Sources/BeLauncherCore/ResultAction.swift
+  s_30bc31f46aebe1::t_38ef7f67927841 365-367
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_38ef7f67927841 57-59
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_38ef7f67927841 421-422
+Sources/BeLauncher/BELActionRuntime.swift
+  s_30bc31f46aebe1::t_38ef7f67927841 59
+Tests/BeLauncherCoreTests/KeyboardWorkflowTests.swift
+  s_30bc31f46aebe1::t_21a47adb5c4814 135-137
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_3dfb63c2cf47d8 138-139
+Sources/BeLauncher/ReminderActionHandler.swift
+  s_30bc31f46aebe1::t_96fdc70dacb99b 2,256-300
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "018217a37e3fb2bdcadd4e841f3b8008dc1f9499",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
