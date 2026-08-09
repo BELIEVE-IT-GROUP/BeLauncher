@@ -496,6 +496,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "calendar":
             guard calendar.isAuthorised else { return false }
             calendar.refresh()
+            recordLocalSourceSync("calendar", count: calendar.events.count)
         case "reminders":
             guard reminders.isAuthorised else { return false }
             await reminders.refresh()
@@ -504,6 +505,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .map(\.id).filter { $0.hasPrefix("commitment:reminder:") })
             store?.removeWorkNodes(ids: old.subtracting(current))
             rememberAll(Capture.reminders(reminders.reminders))
+            recordLocalSourceSync("reminders", count: reminders.reminders.count)
         case "contacts":
             guard contacts.isAuthorised else { return false }
             await contacts.refresh()
@@ -512,14 +514,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 .map(\.id).filter { $0.hasPrefix("person:contact:") })
             store?.removeWorkNodes(ids: old.subtracting(current))
             rememberAll(Capture.contacts(contacts.contacts))
+            recordLocalSourceSync("contacts", count: contacts.contacts.count)
         case "photos":
             guard photos.isAuthorised else { return false }
             photos.refresh()
+            recordLocalSourceSync("photos", count: photos.photos.count)
         default:
             return false
         }
         launcherInputCache = nil
         return true
+    }
+
+    private func recordLocalSourceSync(_ id: String, count: Int) {
+        guard let store else { return }
+        store.setSetting("source_last_sync_\(id)", String(Date.now.timeIntervalSince1970))
+        store.setSetting("source_last_count_\(id)", String(count))
+        store.setSetting("source_last_problem_\(id)", "")
     }
 
     private func reviewInterruptedAction(_ id: String) {

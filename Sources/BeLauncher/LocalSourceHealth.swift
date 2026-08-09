@@ -21,6 +21,8 @@ enum LocalSourceHealth {
             let hasEvidence = store.nodes(limit: 500).contains { $0.kind == .application }
             return store.setting("graph_enabled", default: false)
                 && store.privacyState.isCapturing() && hasEvidence ? .connected : .available
+        case "calendar", "reminders", "contacts", "photos":
+            return successfulSync(source.id, store: store) ? .connected : .available
         default:
             return source.state
         }

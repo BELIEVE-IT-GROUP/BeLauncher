@@ -49,4 +49,23 @@ struct LocalSourceConnectorTests {
         try FileManager.default.removeItem(at: db)
         #expect(!LocalSourceHealth.successfulSync("messages", store: store, home: home.path))
     }
+
+    @Test("permiso concedido no pinta una fuente verde antes de una lectura real")
+    @MainActor
+    func localSourceNeedsSuccessfulRead() throws {
+        let path = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString).path
+        let store = try Store(path: path)
+        let source = KnowledgeSource(id: "photos", title: "Photos", scope: "metadata",
+                                     state: .available, symbol: "photo")
+
+        #expect(LocalSourceHealth.state(for: source, store: store) == .available)
+        store.setSetting("source_last_sync_photos", String(Date.now.timeIntervalSince1970))
+        store.setSetting("source_last_count_photos", "12")
+        store.setSetting("source_last_problem_photos", "")
+        #expect(LocalSourceHealth.state(for: source, store: store) == .connected)
+
+        store.setSetting("source_last_problem_photos", "read failed")
+        #expect(LocalSourceHealth.state(for: source, store: store) == .available)
+    }
 }

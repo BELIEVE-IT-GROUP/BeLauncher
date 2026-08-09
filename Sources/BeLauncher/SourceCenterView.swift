@@ -187,13 +187,13 @@ private struct SourceRow: View {
     private var effectiveState: KnowledgeSource.State {
         switch source.id {
         case "calendar":
-            return model.calendarGranted ? .connected : .available
+            return model.calendarGranted && model.sourceHasSuccessfulSync("calendar") ? .connected : .available
         case "reminders":
-            return model.remindersGranted ? .connected : .available
+            return model.remindersGranted && model.sourceHasSuccessfulSync("reminders") ? .connected : .available
         case "contacts":
-            return model.contactsGranted ? .connected : .available
+            return model.contactsGranted && model.sourceHasSuccessfulSync("contacts") ? .connected : .available
         case "photos":
-            return model.photosGranted ? .connected : .available
+            return model.photosGranted && model.sourceHasSuccessfulSync("photos") ? .connected : .available
         default:
             return LocalSourceHealth.state(for: source, store: model.store)
         }
