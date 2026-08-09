@@ -166,6 +166,9 @@ struct BELSystemCommandHandlerTests {
             #expect(runtime.handler(for: definition)?.actionID == id)
         }
         #expect(BELActionCatalog.named("reminders.create")?.availability == .implemented)
+        let createList = try #require(BELActionCatalog.named("reminders.create_list"))
+        #expect(createList.availability == .implemented)
+        #expect(BELActionRuntime().handler(for: createList)?.actionID == createList.id)
         let reminders = try #require(BELActionCatalog.named("reminders.find"))
         #expect(reminders.availability == .implemented)
         #expect(BELActionRuntime().handler(for: reminders)?.actionID == reminders.id)

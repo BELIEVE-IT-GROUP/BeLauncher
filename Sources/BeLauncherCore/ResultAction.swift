@@ -279,6 +279,11 @@ public enum ActionRegistry {
             ]
 
         case .answer:
+            if result.id == "reminder-list-create" {
+                return [ResultAction(id: "create-list", title: L("Create reminder list"), symbol: "folder.badge.plus",
+                                     shortcut: .enter, section: .manage,
+                                     intent: .systemCommand("bel:reminders.create_list\u{1F}\(result.payload)"))]
+            }
             if result.id == "reminder-create" {
                 return [ResultAction(id: "create", title: L("Create reminder"), symbol: "checklist",
                                      shortcut: .enter, section: .manage,

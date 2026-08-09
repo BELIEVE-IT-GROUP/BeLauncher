@@ -145,6 +145,16 @@ struct KeyboardWorkflowTests {
                 == .systemCommand("bel:reminders.show_list\u{1F}Trabajo"))
     }
 
+    @Test("creating a reminder list is explicit and carries the full name")
+    func createReminderListCommand() throws {
+        let result = try #require(SearchEngine.search("/reminders new list Proyectos 2026",
+                                                       in: SearchInput(remindersAuthorised: true)).first)
+        #expect(result.id == "reminder-list-create")
+        #expect(result.payload == "Proyectos 2026")
+        #expect(ActionRegistry.actions(for: result).first?.intent
+                == .systemCommand("bel:reminders.create_list\u{1F}Proyectos 2026"))
+    }
+
     @Test("an explicit reminder command creates a confirmed action")
     func createReminderCommand() {
         let input = SearchInput(remindersAuthorised: true)

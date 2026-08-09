@@ -6,14 +6,17 @@ struct BELReminderActionInput: Codable, Sendable {
     let query: String
     let reminderID: String?
     let title: String?
+    let name: String?
     let list: String?
     let dueDate: Date?
     let notes: String?
     let priority: Int?
     init(query: String = "", reminderID: String? = nil, title: String? = nil,
+         name: String? = nil,
          list: String? = nil, dueDate: Date? = nil, notes: String? = nil,
          priority: Int? = nil) {
         self.query = query; self.reminderID = reminderID; self.title = title
+        self.name = name
         self.list = list; self.dueDate = dueDate; self.notes = notes; self.priority = priority
     }
 }
@@ -23,7 +26,7 @@ struct ReminderActionHandler: BELActionHandler {
     let actionID: String
 
     init?(definition: BELActionDefinition) {
-        guard ["reminders.find", "reminders.create", "reminders.complete",
+        guard ["reminders.find", "reminders.create", "reminders.create_list", "reminders.complete",
                "reminders.change_due_date", "reminders.show_list", "reminders.change_list",
                "reminders.add_notes", "reminders.set_priority"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
@@ -36,6 +39,24 @@ struct ReminderActionHandler: BELActionHandler {
             throw ReminderActionError.permission
         }
         let store = EKEventStore()
+        if actionID == "reminders.create_list" {
+            let name = value.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !name.isEmpty else { throw ReminderActionError.invalidInput }
+            guard !store.calendars(for: .reminder).contains(where: {
+                $0.title.localizedCaseInsensitiveCompare(name) == .orderedSame
+            }) else { throw ReminderActionError.listExists }
+
+            let calendar = EKCalendar(for: .reminder, eventStore: store)
+            calendar.title = name
+            guard let source = store.defaultCalendarForNewReminders()?.source ?? store.sources.first else {
+                throw ReminderActionError.noSource
+            }
+            calendar.source = source
+            try store.saveCalendar(calendar, commit: true)
+            return BELActionResult(text: L("Reminder list created: %@", name),
+                                   changed: [calendar.calendarIdentifier],
+                                   receipt: "reminders:list-create:\(calendar.calendarIdentifier)")
+        }
         if actionID == "reminders.create" {
             let title = value.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !title.isEmpty else { throw ReminderActionError.invalidInput }
@@ -161,6 +182,8 @@ enum ReminderActionError: Error, Equatable {
     case permission
     case noMatches
     case noList
+    case listExists
+    case noSource
     case invalidInput
 }
 

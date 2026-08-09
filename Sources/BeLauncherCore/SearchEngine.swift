@@ -286,6 +286,18 @@ public enum SearchEngine {
         if query.hasPrefix("/") {
             let rawSlash = String(query.dropFirst())
             let slash = rawSlash.lowercased()
+            if slash.hasPrefix("reminders new list ") || slash.hasPrefix("recordatorios nueva lista ") {
+                let name = String(rawSlash.split(separator: " ", maxSplits: 3).dropFirst(3)
+                    .first.map(String.init) ?? "")
+                guard input.remindersAuthorised else {
+                    return [permissionResult(source: "reminders", title: L("Allow Reminders"),
+                                             detail: L("Open settings to create reminder lists"))]
+                }
+                guard !name.isEmpty else { return [] }
+                return [SearchResult(id: "reminder-list-create", kind: .answer,
+                                     title: L("Create reminder list"), subtitle: name,
+                                     score: 100_000, matched: [], payload: name)]
+            }
             if slash.hasPrefix("reminders list ") || slash.hasPrefix("recordatorios lista ") {
                 let list = String(rawSlash.split(separator: " ", maxSplits: 2).dropFirst(2)
                     .first.map(String.init) ?? "")

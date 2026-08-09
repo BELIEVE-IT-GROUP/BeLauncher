@@ -2300,6 +2300,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELReminderActionInput(query: argument))
             case "reminders.create":
                 input = try JSONEncoder().encode(BELReminderActionInput(title: argument))
+            case "reminders.create_list":
+                input = try JSONEncoder().encode(BELReminderActionInput(name: argument))
             case "reminders.complete":
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
             case "reminders.change_due_date":
@@ -2343,12 +2345,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task { @MainActor in
             do {
-                let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
+                let confirmed = ["reminders.complete", "reminders.create", "reminders.create_list", "contacts.create",
                                  "reminders.change_due_date", "reminders.change_list",
                                  "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                                  "photos.create_album", "photos.remember"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
+                                         : id == "reminders.create_list" ? L("Create this reminder list?")
                                          : id == "contacts.create" ? L("Create this contact?")
                                          : id == "contacts.update" ? L("Update this contact?")
                                          : id == "photos.create_album" ? L("Create this album?")
@@ -2361,6 +2364,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
+                                         : id == "reminders.create_list" ? L("This will add a list to macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
                                          : id == "contacts.update" ? L("This changes the contact in macOS Contacts.")
                                          : id == "photos.create_album" ? L("This creates an album in your Photos library.")
@@ -2372,7 +2376,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "reminders.set_priority" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
-                guard !["reminders.complete", "reminders.create", "contacts.create",
+                guard !["reminders.complete", "reminders.create", "reminders.create_list", "contacts.create",
                         "reminders.change_due_date", "reminders.change_list",
                         "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                         "photos.create_album", "photos.remember"].contains(id) || confirmed else { return }
@@ -2388,7 +2392,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     remember(Capture.photo(photo))
                 }
                 report(L("Action completed"), result.text)
-                if ["reminders.complete", "reminders.create", "contacts.create",
+                if ["reminders.complete", "reminders.create", "reminders.create_list", "contacts.create",
                     "reminders.change_due_date", "reminders.change_list",
                     "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                     "photos.create_album", "photos.remember"].contains(id) {

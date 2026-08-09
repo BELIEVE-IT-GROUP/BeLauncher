@@ -125,6 +125,9 @@ antes de escribir en EventKit y refresca el recordatorio después del guardado. 
 se interpreta ni se ejecuta.
 Para consultar una lista concreta sin crear nada, `/reminders list Trabajo` es una orden distinta:
 lee solo los recordatorios pendientes de esa lista y devuelve un recibo de lectura.
+También se puede crear una lista desde el mismo lenguaje explícito con `/reminders new list Proyectos`.
+La app rechaza nombres vacíos o duplicados, pide confirmación antes de escribir en EventKit, devuelve
+el identificador de la lista creada y refresca Reminders y su proyección del Brain.
 Un recordatorio seleccionado también permite añadir notas, moverlo a otra lista o cambiar su
 prioridad. Cada operación muestra un resumen, pide confirmación, guarda mediante EventKit y vuelve
 a leer la fuente antes de reportar el resultado.
