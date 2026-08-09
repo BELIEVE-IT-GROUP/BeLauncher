@@ -1097,6 +1097,19 @@ struct ClipboardCarousel: View {
         entries ?? Array(model.results.enumerated()).map { ($0.offset, $0.element) }
     }
 
+    private func fallbackDetail(for result: SearchResult) -> ResultDetail {
+        let hasPreview = !result.previewPath.isEmpty
+        return ResultDetail(
+            body: hasPreview ? (result.previewPath as NSString).lastPathComponent : result.payload,
+            isMonospaced: !hasPreview && (result.payload.hasPrefix("{") || result.payload.hasPrefix("[") || result.payload.hasPrefix("<")),
+            metadata: [
+                .init(label: L("From"), value: result.subtitle.isEmpty ? L("Unknown") : result.subtitle),
+                .init(label: L("Length"), value: L("%@ characters", String(result.payload.count)))
+            ],
+            previewPath: result.previewPath
+        )
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
@@ -1140,13 +1153,21 @@ struct ClipboardCarousel: View {
                 if expandedClipID != model.selected?.id { expandedClipID = nil }
                 withAnimation(.easeOut(duration: 0.16)) { proxy.scrollTo(new, anchor: .center) }
             }
-            if expandedClipID != nil,
-               let detail = model.detail,
-               model.selected?.kind == .clipboard {
+            if let expandedClipID,
+               let entry = visibleEntries.first(where: { $0.result.id == expandedClipID }),
+               entry.result.kind == .clipboard {
                 Divider().overlay(.white.opacity(0.07))
-                DetailPane(detail: detail)
-                    .frame(height: 300)
-                    .transition(.opacity)
+                VStack(alignment: .leading, spacing: 0) {
+                    Label(L("Quick Preview"), systemImage: "eye")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Theme.cyan)
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
+
+                    DetailPane(detail: model.detail ?? fallbackDetail(for: entry.result))
+                        .frame(height: 286)
+                }
+                .transition(.opacity)
             }
         }
         .frame(height: expandedClipID == nil ? Self.cardHeight + 24 : Self.cardHeight + 336)
@@ -1224,6 +1245,7 @@ private struct ClipCard: View {
             .accessibilityLabel(L("Quick Preview"))
             .padding(7)
         }
+        .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
         .onHover { inside in
             hovering = inside
             hoverToken = UUID()
@@ -1232,7 +1254,7 @@ private struct ClipCard: View {
             // Hover is a preview affordance, not just a selection highlight. The small delay
             // keeps the rail usable while moving across cards without opening every card.
             let token = hoverToken
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
                 guard hovering, token == hoverToken else { return }
                 preview()
             }
@@ -1297,4 +1319,5 @@ private struct ClipCard: View {
         guard let loaded = NSImage(contentsOf: url), loaded.isValid else { return }
         image = loaded
     }
+
 }
