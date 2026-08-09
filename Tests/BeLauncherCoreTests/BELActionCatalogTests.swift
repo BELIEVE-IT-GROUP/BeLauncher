@@ -62,4 +62,20 @@ struct BELActionCatalogTests {
         #expect(BELActionCatalog.validate([invalid]).contains(.missingAlias("broken")))
         #expect(BELActionCatalog.validate([invalid]).contains(.implementedWithoutAdapter("broken")))
     }
+
+    @Test("Shortcut fallback mappings have stable IDs and safe names")
+    func shortcutMappingsAreSafe() throws {
+        let mappings = [
+            BELShortcutMapping(actionID: "calendar.upcoming", shortcutName: "BEL • Upcoming meetings"),
+            BELShortcutMapping(actionID: "screen.read_context", shortcutName: "BEL • Read screen"),
+        ]
+        #expect(BELShortcutMapping.validate(mappings).isEmpty)
+        #expect(BELShortcutMapping.validate([
+            BELShortcutMapping(actionID: "calendar.upcoming", shortcutName: "BEL • One"),
+            BELShortcutMapping(actionID: "calendar.upcoming", shortcutName: "BEL • Two"),
+        ]) == ["duplicate:calendar.upcoming"])
+        let roundTrip = try JSONDecoder().decode([BELShortcutMapping].self,
+                                                  from: JSONEncoder().encode(mappings))
+        #expect(roundTrip == mappings)
+    }
 }

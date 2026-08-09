@@ -144,6 +144,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                queue: .main) { [weak self] _ in
                 Task { @MainActor in self?.openSettings() }
             },
+            center.addObserver(forName: BELAppIntentNotification.recordVoice, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.audioCapture?.toggleVoiceNote() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.dictate, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.audioCapture?.toggleDictation() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.readScreen, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.readScreenAndOffer() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.quickNote, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.openQuickNoteEditor() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.recordCall, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.callCapture?.toggle() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.searchBrain, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.primeLauncher(with: "") }
+            },
+            center.addObserver(forName: BELAppIntentNotification.upcomingMeetings, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.primeLauncher(with: "upcoming meetings") }
+            },
+            center.addObserver(forName: BELAppIntentNotification.focus, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.primeLauncher(with: "focus") }
+            },
+            center.addObserver(forName: BELAppIntentNotification.prepareMeeting, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.primeLauncher(with: "prepare meeting") }
+            },
+            center.addObserver(forName: BELAppIntentNotification.openNotes, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.primeLauncher(with: "my notes") }
+            },
+            center.addObserver(forName: BELAppIntentNotification.openGraph, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.openGraph() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.transcribeLastVoice, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.openGraph() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.openLauncher, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.togglePanel(mode: .all) }
+            },
         ]
         #endif
     }

@@ -51,6 +51,21 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("stable Shortcut mappings survive persistence and resolve by BEL ID")
+    @MainActor
+    func shortcutMappingPersistence() throws {
+        let key = "bel_shortcut_mappings"
+        let old = UserDefaults.standard.data(forKey: key)
+        defer {
+            if let old { UserDefaults.standard.set(old, forKey: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        try Shortcuts.saveMapping(BELShortcutMapping(
+            actionID: "calendar.upcoming", shortcutName: "BEL • Upcoming meetings"))
+        #expect(ShortcutMappingStore.name(for: "calendar.upcoming") == "BEL • Upcoming meetings")
+        #expect(ShortcutMappingStore.name(for: "missing.action") == nil)
+    }
+
     @Test("public API actions are wired to concrete handlers")
     func publicAdaptersAreRegistered() throws {
         let runtime = BELActionRuntime()
@@ -75,7 +90,7 @@ struct BELSystemCommandHandlerTests {
     }
 
     #if canImport(AppIntents)
-    @Test("App Intents publish commands for the running app")
+    @Test("App Intents publish the complete curated command surface")
     @MainActor
     func appIntentsBridge() async throws {
         var received: Set<String> = []
@@ -84,6 +99,19 @@ struct BELSystemCommandHandlerTests {
             BELAppIntentNotification.openBrain,
             BELAppIntentNotification.showClipboard,
             BELAppIntentNotification.openSettings,
+            BELAppIntentNotification.recordVoice,
+            BELAppIntentNotification.dictate,
+            BELAppIntentNotification.readScreen,
+            BELAppIntentNotification.quickNote,
+            BELAppIntentNotification.recordCall,
+            BELAppIntentNotification.searchBrain,
+            BELAppIntentNotification.upcomingMeetings,
+            BELAppIntentNotification.focus,
+            BELAppIntentNotification.prepareMeeting,
+            BELAppIntentNotification.openNotes,
+            BELAppIntentNotification.openGraph,
+            BELAppIntentNotification.transcribeLastVoice,
+            BELAppIntentNotification.openLauncher,
         ]
         let observers = names.map { name in
             center.addObserver(forName: name, object: nil, queue: .main) { _ in
@@ -95,8 +123,22 @@ struct BELSystemCommandHandlerTests {
         _ = try await OpenBrainIntent().perform()
         _ = try await ShowClipboardIntent().perform()
         _ = try await OpenBeLauncherSettingsIntent().perform()
+        _ = try await RecordVoiceNoteIntent().perform()
+        _ = try await DictateIntoCurrentAppIntent().perform()
+        _ = try await ReadScreenIntent().perform()
+        _ = try await WriteQuickNoteIntent().perform()
+        _ = try await RecordCallIntent().perform()
+        _ = try await SearchBrainIntent().perform()
+        _ = try await UpcomingMeetingsIntent().perform()
+        _ = try await StartFocusIntent().perform()
+        _ = try await PrepareMeetingIntent().perform()
+        _ = try await OpenNotesIntent().perform()
+        _ = try await OpenGraphIntent().perform()
+        _ = try await TranscribeLastVoiceIntent().perform()
+        _ = try await OpenLauncherIntent().perform()
 
         #expect(received.count == names.count)
+        #expect(BeLauncherShortcuts.appShortcuts.count == 16)
     }
     #endif
 }

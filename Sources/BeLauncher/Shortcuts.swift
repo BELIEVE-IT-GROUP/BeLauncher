@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import UserNotifications
+import BeLauncherCore
 
 /// Bridge to Apple's Shortcuts app.
 ///
@@ -10,6 +11,22 @@ import UserNotifications
 /// a command, and BeLauncher never creates, edits or imports shortcuts.
 @MainActor
 enum Shortcuts {
+    static func saveMapping(_ mapping: BELShortcutMapping) throws {
+        guard mapping.isWellFormed else { throw ShortcutMappingError.invalid(mapping.actionID) }
+        var values = mappings()
+        values.removeAll { $0.actionID == mapping.actionID }
+        values.append(mapping)
+        let data = try JSONEncoder().encode(values.sorted { $0.actionID < $1.actionID })
+        UserDefaults.standard.set(data, forKey: "bel_shortcut_mappings")
+    }
+
+    static func mappings() -> [BELShortcutMapping] {
+        guard let data = UserDefaults.standard.data(forKey: "bel_shortcut_mappings"),
+              let values = try? JSONDecoder().decode([BELShortcutMapping].self, from: data),
+              BELShortcutMapping.validate(values).isEmpty else { return [] }
+        return values.filter(\.enabled)
+    }
+
     static func run(named name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -44,6 +61,20 @@ enum Shortcuts {
             .filter { !$0.isEmpty }
             .sorted()
     }
+}
+
+enum ShortcutMappingStore {
+    static func name(for actionID: String?) -> String? {
+        guard let actionID else { return nil }
+        guard let data = UserDefaults.standard.data(forKey: "bel_shortcut_mappings"),
+              let values = try? JSONDecoder().decode([BELShortcutMapping].self, from: data),
+              BELShortcutMapping.validate(values).isEmpty else { return nil }
+        return values.first { $0.actionID == actionID && $0.enabled }?.shortcutName
+    }
+}
+
+enum ShortcutMappingError: Error, Equatable {
+    case invalid(String)
 }
 
 /// Local timers for the `timer` flow step. Notifications are requested the first time a flow
