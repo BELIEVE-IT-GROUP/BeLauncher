@@ -284,9 +284,10 @@ public enum SearchEngine {
         // and guessing from the words is how an agent fires because somebody typed a noun.
         let commands = input.packs.map(\.command)
         if query.hasPrefix("/") {
-            let slash = query.dropFirst().lowercased()
+            let rawSlash = String(query.dropFirst())
+            let slash = rawSlash.lowercased()
             if slash.hasPrefix("reminder ") || slash.hasPrefix("recordatorio ") {
-                let title = String(slash.split(separator: " ", maxSplits: 1).dropFirst()
+                let title = String(rawSlash.split(separator: " ", maxSplits: 1).dropFirst()
                     .first.map(String.init) ?? "")
                 guard input.remindersAuthorised else {
                     return [permissionResult(source: "reminders", title: L("Allow Reminders"),
@@ -296,6 +297,18 @@ public enum SearchEngine {
                 return [SearchResult(id: "reminder-create", kind: .answer,
                                      title: L("Create reminder"),
                                      subtitle: title, score: 100_000, matched: [], payload: title)]
+            }
+            if slash.hasPrefix("contact add ") || slash.hasPrefix("contacto agregar ") {
+                let title = String(rawSlash.split(separator: " ", maxSplits: 2).dropFirst(2)
+                    .first.map(String.init) ?? "")
+                guard input.contactsAuthorised else {
+                    return [permissionResult(source: "contacts", title: L("Allow Contacts"),
+                                             detail: L("Open settings to create contacts"))]
+                }
+                guard !title.isEmpty else { return [] }
+                return [SearchResult(id: "contact-create", kind: .answer,
+                                     title: L("Create contact"), subtitle: title,
+                                     score: 100_000, matched: [], payload: title)]
             }
             if slash == "nota" || slash == "note" || slash.hasPrefix("nota ") || slash.hasPrefix("note ") {
                 let argument = slash.split(separator: " ", maxSplits: 1).dropFirst().first.map(String.init) ?? ""

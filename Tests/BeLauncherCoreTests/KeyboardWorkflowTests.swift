@@ -144,6 +144,16 @@ struct KeyboardWorkflowTests {
         #expect(ActionRegistry.actions(for: result!).first?.isDestructive == false)
     }
 
+    @Test("contact creation is explicit and permission-aware")
+    func createContactCommand() throws {
+        let input = SearchInput(contactsAuthorised: true)
+        let result = try #require(SearchEngine.search("/contact add Ada Lovelace", in: input).first)
+        #expect(result.id == "contact-create")
+        #expect(result.payload == "Ada Lovelace")
+        #expect(ActionRegistry.actions(for: result).first?.intent
+                == .systemCommand("bel:contacts.create\u{1F}Ada Lovelace"))
+    }
+
     @Test("an unavailable local source explains how to unlock it")
     func sourcePermissionResultIsActionable() {
         let result = SearchEngine.search("/contacts", in: SearchInput()).first

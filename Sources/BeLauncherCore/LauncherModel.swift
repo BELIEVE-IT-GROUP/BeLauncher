@@ -666,6 +666,10 @@ public final class LauncherModel {
                 perform(.systemCommand("bel:reminders.create\u{1F}\(result.payload)"))
                 return true
             }
+            if result.id == "contact-create" {
+                perform(.systemCommand("bel:contacts.create\u{1F}\(result.payload)"))
+                return true
+            }
             if result.id.hasPrefix("source-permission-") {
                 perform(.openSettings)
                 return true

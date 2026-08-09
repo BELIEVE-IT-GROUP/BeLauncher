@@ -125,9 +125,11 @@ actualizan la proyección del Brain y dejan un recibo con el identificador de Ev
 
 Contacts tiene ahora un puente de lectura local mediante `Contacts.framework`: Settings muestra el
 permiso, `/contacts` lista la libreta y una búsqueda por nombre, correo o teléfono devuelve un
-resultado que se puede inspeccionar y copiar. Crear, editar y compartir contactos siguen fuera de
-este corte para no convertir una lectura en una mutación sin confirmación. Un contacto seleccionado
+resultado que se puede inspeccionar y copiar. Editar y compartir contactos siguen fuera de este
+corte para no convertir una lectura en una mutación sin confirmación. Un contacto seleccionado
 ofrece detalle completo y copia del email o teléfono asociado usando su identificador estable.
+`/contact add Ada Lovelace` es la única entrada de creación: requiere permiso, confirmación y escribe
+mediante `CNSaveRequest`, dejando recibo local y refrescando el snapshot.
 
 ## Wave 2: Photos
 

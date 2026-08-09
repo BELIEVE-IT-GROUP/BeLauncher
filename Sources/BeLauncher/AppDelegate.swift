@@ -2259,6 +2259,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELContactActionInput(query: argument))
             case "contacts.get_details", "contacts.copy_email":
                 input = try JSONEncoder().encode(BELContactActionInput(contactID: argument))
+            case "contacts.create":
+                input = try JSONEncoder().encode(BELContactActionInput(name: argument))
             default:
                 input = Data()
             }
@@ -2268,21 +2270,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task { @MainActor in
             do {
-                let confirmed = ["reminders.complete", "reminders.create"].contains(id)
+                let confirmed = ["reminders.complete", "reminders.create", "contacts.create"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
+                                         : id == "contacts.create" ? L("Create this contact?")
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
+                                         : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
-                guard !["reminders.complete", "reminders.create"].contains(id) || confirmed else { return }
+                guard !["reminders.complete", "reminders.create", "contacts.create"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
                 report(L("Action completed"), result.text)
-                if ["reminders.complete", "reminders.create"].contains(id) {
-                    _ = await refreshLocalSource("reminders")
+                if ["reminders.complete", "reminders.create", "contacts.create"].contains(id) {
+                    _ = await refreshLocalSource(id == "contacts.create" ? "contacts" : "reminders")
                 }
             } catch {
                 report(L("The action could not be completed"), "\(error)")
