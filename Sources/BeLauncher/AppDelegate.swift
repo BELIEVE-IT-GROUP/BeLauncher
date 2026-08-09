@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Whoever was in front when the launcher was summoned.
     private var appBeforePanel: NSRunningApplication?
     private var applicationActivityObserver: NSObjectProtocol?
+    private var appIntentObservers: [NSObjectProtocol] = []
     private var clipboard: ClipboardWatcher?
     private var settingsWindow: NSWindow?
     private var settingsModel: SettingsModel?
@@ -98,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         self.store = store
+        installAppIntentObservers()
         // Before a single label is drawn. Reading it later means the first window renders in the
         // system language and then changes under the person, which looks like a bug even when the
         // final state is right.
@@ -124,6 +126,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.seedIfEmpty()
         store.ensureQuickCommands()
         finishLaunch(store: store)
+    }
+
+    private func installAppIntentObservers() {
+        #if canImport(AppIntents)
+        let center = NotificationCenter.default
+        appIntentObservers = [
+            center.addObserver(forName: BELAppIntentNotification.openBrain, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.openGraph() }
+            },
+            center.addObserver(forName: BELAppIntentNotification.showClipboard, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.togglePanel(mode: .clipboard) }
+            },
+            center.addObserver(forName: BELAppIntentNotification.openSettings, object: nil,
+                               queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.openSettings() }
+            },
+        ]
+        #endif
     }
 
     private func finishLaunch(store: Store) {

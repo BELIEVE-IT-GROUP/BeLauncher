@@ -50,4 +50,30 @@ struct BELSystemCommandHandlerTests {
             try await runtime.execute(definition, input: input, capabilities: .allGranted)
         }
     }
+
+    #if canImport(AppIntents)
+    @Test("App Intents publish commands for the running app")
+    @MainActor
+    func appIntentsBridge() async throws {
+        var received: Set<String> = []
+        let center = NotificationCenter.default
+        let names = [
+            BELAppIntentNotification.openBrain,
+            BELAppIntentNotification.showClipboard,
+            BELAppIntentNotification.openSettings,
+        ]
+        let observers = names.map { name in
+            center.addObserver(forName: name, object: nil, queue: .main) { _ in
+                received.insert(name.rawValue)
+            }
+        }
+        defer { observers.forEach(center.removeObserver) }
+
+        _ = try await OpenBrainIntent().perform()
+        _ = try await ShowClipboardIntent().perform()
+        _ = try await OpenBeLauncherSettingsIntent().perform()
+
+        #expect(received.count == names.count)
+    }
+    #endif
 }
