@@ -1143,10 +1143,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let folder = try? CorpusFolder(root: CorpusFolder.defaultRoot())
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1120, height: 720),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false
         )
         window.title = L("Your brain")
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.appearance = NSAppearance(named: .darkAqua)
         let model = GraphModel(store: store, corpus: folder)
         graphModel = model
         model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }

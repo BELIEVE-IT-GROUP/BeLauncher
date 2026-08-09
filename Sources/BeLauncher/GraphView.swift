@@ -2242,9 +2242,12 @@ private struct CaptureRow: View {
 /// The window's background. Dark and quiet, so the graph is the only thing with colour in it.
 private struct Backdrop: View {
     var body: some View {
-        LinearGradient(colors: [Color(red: 0.05, green: 0.06, blue: 0.11),
-                                Color(red: 0.03, green: 0.04, blue: 0.07)],
-                       startPoint: .topLeading, endPoint: .bottomTrailing)
+        ZStack {
+            GlassBackground()
+            LinearGradient(colors: [Color(red: 0.03, green: 0.04, blue: 0.08).opacity(0.86),
+                                    Color(red: 0.015, green: 0.02, blue: 0.045).opacity(0.94)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
         .ignoresSafeArea()
     }
 }
