@@ -1,0 +1,21 @@
+Sources/BeLauncher/CommandView.swift
+  s_30bc31f46aebe1::t_5887ba497260a7 1100-1103,1105-1112
+  s_30bc31f46aebe1::t_8e72c3fc6ef4cf 1104
+  s_30bc31f46aebe1::t_783e3e651f8aeb 1156-1158,1160-1170,1248,1257,1322
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "2c7cdc2612998e86d37cef4a41019afcd5fcb82d",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
