@@ -15,13 +15,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.32.33</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>14.0</string>
-	<key>LSUIElement</key>
-	<true/>
+	<string>0.32.34</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -30,25 +24,33 @@
 			<key>CFBundleURLName</key>
 			<string>com.believe.belauncher.intent</string>
 			<key>CFBundleURLSchemes</key>
-			<array><string>belauncher</string></array>
+			<array>
+				<string>belauncher</string>
+			</array>
 		</dict>
 	</array>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>BeLauncher usa esto para los comandos de sistema y los flujos: silenciar notificaciones, poner el Mac en reposo, vaciar la papelera, expulsar discos, cambiar a modo oscuro. Solo cuando tú ejecutas uno. No lee ni controla el contenido de tus apps.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>BeLauncher captura el audio del sistema solo cuando tú inicias una grabación de llamada.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>BeLauncher lee tus próximos eventos solo cuando preparas una reunión o activas el calendario del Brain.</string>
-	<key>NSRemindersUsageDescription</key>
-	<string>BeLauncher lee tus recordatorios pendientes solo cuando buscas en ellos o activas Recordatorios en el Brain.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>BeLauncher busca tus contactos localmente solo cuando tú lo pides.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>BeLauncher busca fotos locales solo cuando tú lo pides y conserva el enlace al original.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Local-only launcher. No accounts, no telemetry.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BeLauncher usa el micrófono solo cuando tú inicias una nota de voz, un dictado o una grabación de llamada.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BeLauncher busca fotos locales solo cuando tú lo pides y conserva el enlace al original.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>BeLauncher lee tus recordatorios pendientes solo cuando buscas en ellos o activas Recordatorios en el Brain.</string>
 	<key>NSServices</key>
 	<array>
 		<dict>
