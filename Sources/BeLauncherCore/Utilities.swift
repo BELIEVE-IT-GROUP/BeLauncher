@@ -108,7 +108,11 @@ public enum QuickNote {
         public let attachmentPath: String?
     }
 
-    public static let triggers = ["nota", "apunta", "anota", "note", "quick note"]
+    public static let triggers = [
+        "nota rapida", "nota rápida", "crear nota", "nueva nota",
+        "quick note", "new note", "write note", "note to self",
+        "nota", "apunta", "anota", "note",
+    ]
 
     public static func isTrigger(_ query: String) -> Bool {
         let folded = query.trimmingCharacters(in: .whitespaces)
@@ -121,7 +125,8 @@ public enum QuickNote {
         let folded = trimmed
             .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
 
-        for trigger in triggers.map({ $0 + " " }) where folded.hasPrefix(trigger) {
+        for trigger in triggers.sorted(by: { $0.count > $1.count }).map({ $0 + " " })
+        where folded.hasPrefix(trigger) {
             let text = String(trimmed.dropFirst(trigger.count)).trimmingCharacters(in: .whitespaces)
             return text.isEmpty ? nil : text
         }

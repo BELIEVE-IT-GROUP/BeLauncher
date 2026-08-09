@@ -121,6 +121,22 @@ struct ActionPanelTests {
         #expect(!model.isActionPanelOpen)
     }
 
+    @Test("quick note actions save or open the note editor, never copy as an answer")
+    func noteActionsAreHuman() {
+        let note = SearchResult(id: "note", kind: .answer, title: "Save the note",
+                                subtitle: "llamar a Ana", score: 1, matched: [],
+                                payload: "llamar a Ana")
+        let actions = ActionRegistry.actions(for: note)
+
+        #expect(actions.first?.id == "save-note")
+        #expect(actions.first?.shortcut?.display == "↩")
+        #expect(actions.first?.intent == .writeNote(text: "llamar a Ana"))
+        #expect(actions.contains {
+            $0.intent == .openQuickNoteEditor(initialText: "llamar a Ana")
+        })
+        #expect(!actions.contains { $0.id == "copy" })
+    }
+
     @Test("Command-Return runs the secondary action without opening the panel")
     func secondaryShortcut() {
         var performed: [LauncherModel.Action] = []

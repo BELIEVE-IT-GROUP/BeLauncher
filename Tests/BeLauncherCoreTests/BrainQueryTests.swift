@@ -214,6 +214,39 @@ struct BrainInLauncherTests {
         })
     }
 
+    @Test("writing a note in the launcher saves it without needing the clipboard")
+    func quickNoteByTyping() {
+        var performed: [LauncherModel.Action] = []
+        let model = LauncherModel(dataSource: { SearchInput() }, perform: { performed.append($0) })
+        model.activate()
+        model.query = "crear nota llamar a Ana sobre contrato"
+
+        #expect(model.selected?.id == "note")
+        #expect(model.selected?.title == "Save the note")
+        model.handle(.enter)
+        #expect(performed == [.writeNote(text: "llamar a Ana sobre contrato")])
+    }
+
+    @Test("slash note with text saves directly, empty slash note opens the editor")
+    func slashNoteIsExplicit() {
+        let save = SearchEngine.search("/nota llamar a Ana", in: SearchInput())
+        #expect(save.first?.id == "note")
+        #expect(save.first?.payload == "llamar a Ana")
+
+        let edit = SearchEngine.search("/nota", in: SearchInput())
+        #expect(edit.first?.id == "new-note")
+        #expect(edit.first?.completion == "/nota ")
+    }
+
+    @Test("ordinary app search is not hijacked by quick notes")
+    func ordinarySearchIsNotHijackedByNotes() {
+        let input = SearchInput(applications: [
+            Application(name: "Notion", path: "/Applications/Notion.app"),
+        ])
+        let results = SearchEngine.search("notion", in: input)
+        #expect(results.first?.kind != .answer)
+    }
+
     @Test("typing brain shows the usable doors, not only the graph window")
     func brainLaunchpadIsDiscoverable() {
         let results = SearchEngine.search("brain", in: SearchInput())

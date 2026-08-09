@@ -305,6 +305,7 @@ struct LocalizationTests {
             "salir", "cerrar sesión", "que no se duerma", "nº de factura", "cerebro", "memoria",
             "grafo", "asunto:",
             "pantalla", "papelera", "carpeta escritorio", "portapapeles", "nota ", "nota", "/nota ",
+            "nota rapida", "nota rápida", "crear nota", "nueva nota",
             "cpu · memoria", "espacio trabajo · espacios",
             "que consume", "que esta lento", "un abrazo", "con-guiones", "con_guiones_bajos",
             "con espacios",

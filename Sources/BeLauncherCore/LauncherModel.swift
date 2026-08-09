@@ -341,6 +341,12 @@ public final class LauncherModel {
             perform(.moveToTrash(path: path))
         case .systemCommand(let kind):
             perform(.systemCommand(kind))
+        case .writeNote(let text):
+            perform(.writeNote(text: text))
+            return true
+        case .openQuickNoteEditor(let initialText):
+            perform(.openQuickNoteEditor(initialText: initialText))
+            return true
         case .remember(let text, let source):
             perform(.remember(text: text, source: source))
             return true

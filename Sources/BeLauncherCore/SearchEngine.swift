@@ -356,7 +356,13 @@ public enum SearchEngine {
                                      score: 100_000, matched: [], payload: title)]
             }
             if slash == "nota" || slash == "note" || slash.hasPrefix("nota ") || slash.hasPrefix("note ") {
-                let argument = slash.split(separator: " ", maxSplits: 1).dropFirst().first.map(String.init) ?? ""
+                let argument = rawSlash.split(separator: " ", maxSplits: 1).dropFirst().first.map(String.init) ?? ""
+                if !argument.isEmpty {
+                    return [SearchResult(id: "note", kind: .answer,
+                                         title: L("Save the note"),
+                                         subtitle: argument, score: 100_000,
+                                         matched: [], payload: argument)]
+                }
                 return [SearchResult(id: "new-note", kind: .answer,
                                      title: L("Write a quick note"),
                                      subtitle: L("Open the Markdown note editor"), score: 100_000,

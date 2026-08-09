@@ -73,6 +73,8 @@ public struct ResultAction: Sendable, Equatable, Identifiable {
         case moveToTrash(path: String)
         case systemCommand(String)
         case assignAlias(target: String, suggestion: String)
+        case writeNote(text: String)
+        case openQuickNoteEditor(initialText: String)
         /// Ends a process the hard way. Separate from `run` so it can never be the Enter key.
         case forceQuit(pid: String)
         case openActivityMonitor
@@ -307,6 +309,22 @@ public enum ActionRegistry {
                 return [
                     ResultAction(id: "start", title: L("Start typing this"), symbol: "text.cursor",
                                  shortcut: .enter, intent: .completeKeyword(completion)),
+                ]
+            }
+            if result.id == "note" {
+                return [
+                    ResultAction(id: "save-note", title: L("Save the note"), symbol: "tray.and.arrow.down",
+                                 shortcut: .enter, intent: .writeNote(text: result.payload)),
+                    ResultAction(id: "edit-note", title: L("Open the Markdown note editor"),
+                                 symbol: "note.text", section: .manage,
+                                 intent: .openQuickNoteEditor(initialText: result.payload)),
+                ]
+            }
+            if result.id == "new-note" || result.id == "brain-note" {
+                return [
+                    ResultAction(id: "open-note-editor", title: L("Open the Markdown note editor"),
+                                 symbol: "note.text.badge.plus", shortcut: .enter,
+                                 intent: .openQuickNoteEditor(initialText: result.payload)),
                 ]
             }
             return [

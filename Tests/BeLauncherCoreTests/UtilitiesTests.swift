@@ -158,8 +158,14 @@ struct QuickNoteTests {
     @Test("se reconoce como se escribe")
     func recognisesTyping() {
         #expect(QuickNote.text(from: "nota llamar a Andrés") == "llamar a Andrés")
+        #expect(QuickNote.text(from: "crear nota llamar a Andrés") == "llamar a Andrés")
+        #expect(QuickNote.text(from: "nueva nota revisar contrato") == "revisar contrato")
+        #expect(QuickNote.text(from: "nota rápida idea del carrusel") == "idea del carrusel")
         #expect(QuickNote.text(from: "apunta comprar café") == "comprar café")
         #expect(QuickNote.text(from: "anota la idea del carrusel") == "la idea del carrusel")
+        #expect(QuickNote.text(from: "new note follow up with Acme") == "follow up with Acme")
+        #expect(QuickNote.text(from: "write note send proposal") == "send proposal")
+        #expect(QuickNote.text(from: "note to self call Ana") == "call Ana")
         // Sin texto detrás no hay nota que guardar.
         #expect(QuickNote.text(from: "nota") == nil)
         #expect(QuickNote.text(from: "nota   ") == nil)
