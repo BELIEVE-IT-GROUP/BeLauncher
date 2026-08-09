@@ -1,0 +1,27 @@
+Scripts/spike-litert-lm-x1.sh
+  s_30bc31f46aebe1::t_0a53db873d5082 1-7,10-23,32-44,50-53
+  s_30bc31f46aebe1::t_a212b7d80d7843 9
+  s_30bc31f46aebe1::t_c0e6210e66a301 45-49
+  s_30bc31f46aebe1::t_6cba6178c061de 8
+  s_30bc31f46aebe1::t_9d2c4e38707f9b 24-31
+docs/release-0.32.33.md
+  s_30bc31f46aebe1::t_fecf1c05c307ad 7,9,23-26
+docs/spikes/litert-lm-x1.md
+  s_30bc31f46aebe1::t_0a53db873d5082 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "d35981a373e6fb692d97577ace26add8c10dcc9f",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
