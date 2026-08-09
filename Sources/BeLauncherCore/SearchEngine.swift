@@ -131,6 +131,9 @@ public struct SearchInput: Sendable {
     public var pendingCommits: [MemoryCommit]
     public var events: [CalendarEvent]
     public var reminders: [ReminderItem]
+    /// Completed reminders are kept out of normal search and Brain capture, but remain available
+    /// through the explicit history command so an accidental completion can be undone.
+    public var completedReminders: [ReminderItem]
     public var contacts: [ContactItem]
     public var photos: [PhotoItem]
     public var remindersAuthorised: Bool
@@ -156,6 +159,7 @@ public struct SearchInput: Sendable {
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
                 reminders: [ReminderItem] = [],
+                completedReminders: [ReminderItem] = [],
                 contacts: [ContactItem] = [],
                 photos: [PhotoItem] = [],
                 remindersAuthorised: Bool = false, contactsAuthorised: Bool = false,
@@ -176,6 +180,7 @@ public struct SearchInput: Sendable {
         self.pendingCommits = pendingCommits
         self.events = events
         self.reminders = reminders
+        self.completedReminders = completedReminders
         self.contacts = contacts
         self.photos = photos
         self.remindersAuthorised = remindersAuthorised
@@ -297,6 +302,18 @@ public enum SearchEngine {
                 return [SearchResult(id: "reminder-list-create", kind: .answer,
                                      title: L("Create reminder list"), subtitle: name,
                                      score: 100_000, matched: [], payload: name)]
+            }
+            if slash == "reminders completed" || slash == "recordatorios completados" {
+                guard input.remindersAuthorised else {
+                    return [permissionResult(source: "reminders", title: L("Allow Reminders"),
+                                             detail: L("Open settings to see completed reminders"))]
+                }
+                return input.completedReminders.prefix(limit).enumerated().map { index, reminder in
+                    SearchResult(id: "completed-reminder-\(reminder.id)", kind: .reminder,
+                                 title: reminder.title,
+                                 subtitle: "\(reminder.list) · \(reminder.displayDueDate)",
+                                 score: 100_000 - index, matched: [], payload: reminder.id)
+                }
             }
             if slash.hasPrefix("reminders list ") || slash.hasPrefix("recordatorios lista ") {
                 let list = String(rawSlash.split(separator: " ", maxSplits: 2).dropFirst(2)

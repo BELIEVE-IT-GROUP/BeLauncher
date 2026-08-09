@@ -285,6 +285,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     events: needs.needsCalendar ? self.calendar.events : [],
                     packs: needs.needsPacks ? store.availablePacks() : [],
                     reminders: needs.needsReminders ? self.reminders.reminders : [],
+                    completedReminders: needs.needsReminders ? self.reminders.completedReminders : [],
                     contacts: needs.needsContacts ? self.contacts.contacts : [],
                     photos: needs.needsPhotos ? self.photos.photos : [],
                     remindersAuthorised: self.reminders.isAuthorised,
@@ -2304,6 +2305,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELReminderActionInput(name: argument))
             case "reminders.complete":
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
+            case "reminders.uncomplete":
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
             case "reminders.delete":
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
             case "reminders.change_due_date":
@@ -2347,12 +2350,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task { @MainActor in
             do {
-                let confirmed = ["reminders.complete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
+                let confirmed = ["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
                                  "reminders.change_due_date", "reminders.change_list",
                                  "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                                  "photos.create_album", "photos.remember"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
+                                         : id == "reminders.uncomplete" ? L("Undo completion for this reminder?")
                                          : id == "reminders.create_list" ? L("Create this reminder list?")
                                          : id == "reminders.delete" ? L("Delete this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
@@ -2367,6 +2371,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
+                                         : id == "reminders.uncomplete" ? L("This will return the reminder to your pending list.")
                                          : id == "reminders.create_list" ? L("This will add a list to macOS Reminders.")
                                          : id == "reminders.delete" ? L("This removes the reminder from macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
@@ -2380,7 +2385,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "reminders.set_priority" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
-                guard !["reminders.complete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
+                guard !["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
                         "reminders.change_due_date", "reminders.change_list",
                         "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                         "photos.create_album", "photos.remember"].contains(id) || confirmed else { return }
@@ -2396,7 +2401,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     remember(Capture.photo(photo))
                 }
                 report(L("Action completed"), result.text)
-                if ["reminders.complete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
+                if ["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
                     "reminders.change_due_date", "reminders.change_list",
                     "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                     "photos.create_album", "photos.remember"].contains(id) {

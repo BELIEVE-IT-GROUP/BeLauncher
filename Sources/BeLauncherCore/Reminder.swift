@@ -1,6 +1,6 @@
 import Foundation
 
-/// A small, UI- and EventKit-independent representation of a pending reminder.
+/// A small, UI- and EventKit-independent representation of a reminder.
 /// Keeping this in Core makes search and formatting testable without a user's database.
 public struct ReminderItem: Sendable, Equatable, Identifiable {
     public let id: String

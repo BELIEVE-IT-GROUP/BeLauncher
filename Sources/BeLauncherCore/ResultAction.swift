@@ -350,6 +350,15 @@ public enum ActionRegistry {
             ]
 
         case .reminder:
+            if result.id.hasPrefix("completed-reminder-") {
+                return [
+                    ResultAction(id: "copy", title: L("Copy the reminder"), symbol: "doc.on.clipboard",
+                                 shortcut: .enter, intent: .copy(text: result.title)),
+                    ResultAction(id: "uncomplete", title: L("Undo completion"), symbol: "arrow.uturn.backward.circle",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:reminders.uncomplete\u{1F}\(result.payload)")),
+                ]
+            }
             return [
                 ResultAction(id: "copy", title: L("Copy the reminder"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .copy(text: result.title)),

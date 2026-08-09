@@ -187,6 +187,9 @@ struct BELSystemCommandHandlerTests {
         #expect(delete.availability == .implemented)
         #expect(delete.risk == .r3)
         #expect(BELActionRuntime().handler(for: delete)?.actionID == delete.id)
+        let uncomplete = try #require(BELActionCatalog.named("reminders.uncomplete"))
+        #expect(uncomplete.availability == .implemented)
+        #expect(BELActionRuntime().handler(for: uncomplete)?.actionID == uncomplete.id)
     }
 
     @Test("completing a reminder cannot bypass confirmation")

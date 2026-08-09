@@ -28,7 +28,8 @@ struct ReminderActionHandler: BELActionHandler {
     init?(definition: BELActionDefinition) {
         guard ["reminders.find", "reminders.create", "reminders.create_list", "reminders.complete",
                "reminders.change_due_date", "reminders.show_list", "reminders.change_list",
-               "reminders.add_notes", "reminders.set_priority", "reminders.delete"].contains(definition.id),
+               "reminders.add_notes", "reminders.set_priority", "reminders.delete",
+               "reminders.uncomplete"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -86,6 +87,16 @@ struct ReminderActionHandler: BELActionHandler {
             try store.save(reminder, commit: true)
             return BELActionResult(text: L("Completed: %@", reminder.title ?? L("Untitled")),
                                    changed: [id], receipt: "reminders:complete:\(id)")
+        }
+        if actionID == "reminders.uncomplete" {
+            guard let id = value.reminderID,
+                  let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else {
+                throw ReminderActionError.noMatches
+            }
+            reminder.isCompleted = false
+            try store.save(reminder, commit: true)
+            return BELActionResult(text: L("Completion undone: %@", reminder.title ?? L("Untitled")),
+                                   changed: [id], receipt: "reminders:uncomplete:\(id)")
         }
         if actionID == "reminders.delete" {
             guard let id = value.reminderID,

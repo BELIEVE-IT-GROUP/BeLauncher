@@ -145,6 +145,19 @@ struct KeyboardWorkflowTests {
                 == .systemCommand("bel:reminders.show_list\u{1F}Trabajo"))
     }
 
+    @Test("completed reminders are opt-in and offer undo instead of completion")
+    func browseCompletedReminders() throws {
+        let completed = ReminderItem(id: "done-1", title: "Enviar factura", list: "Trabajo")
+        let results = SearchEngine.search("/reminders completed",
+                                          in: SearchInput(completedReminders: [completed],
+                                                          remindersAuthorised: true))
+        let result = try #require(results.first)
+        #expect(result.id == "completed-reminder-done-1")
+        #expect(ActionRegistry.actions(for: result).map(\.title).contains("Undo completion"))
+        #expect(ActionRegistry.actions(for: result).last?.intent
+                == .systemCommand("bel:reminders.uncomplete\u{1F}done-1"))
+    }
+
     @Test("creating a reminder list is explicit and carries the full name")
     func createReminderListCommand() throws {
         let result = try #require(SearchEngine.search("/reminders new list Proyectos 2026",

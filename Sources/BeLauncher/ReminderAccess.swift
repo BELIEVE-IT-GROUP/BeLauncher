@@ -7,6 +7,7 @@ import BeLauncherCore
 final class ReminderAccess {
     private let store = EKEventStore()
     private(set) var reminders: [ReminderItem] = []
+    private(set) var completedReminders: [ReminderItem] = []
     private(set) var lastError: String?
     private var hasAsked = false
 
@@ -29,11 +30,9 @@ final class ReminderAccess {
     func refresh() async {
         guard isAuthorised else { return }
         let predicate = store.predicateForReminders(in: nil)
-        reminders = await withCheckedContinuation { continuation in
+        let result: ([ReminderItem], [ReminderItem]) = await withCheckedContinuation { continuation in
             store.fetchReminders(matching: predicate) { items in
-                let mapped = (items ?? [])
-                    .filter { !$0.isCompleted }
-                    .compactMap { item -> ReminderItem? in
+                let map: (EKReminder) -> ReminderItem? = { item in
                         guard let title = item.title, !title.isEmpty else { return nil }
                         return ReminderItem(
                             id: item.calendarItemIdentifier,
@@ -42,11 +41,17 @@ final class ReminderAccess {
                             dueDate: item.dueDateComponents.flatMap { Calendar.current.date(from: $0) },
                             notes: item.notes ?? ""
                         )
-                    }
+                }
+                let pending = (items ?? []).filter { !$0.isCompleted }.compactMap(map)
                     .sorted { ($0.dueDate ?? .distantFuture, $0.title) <
                               ($1.dueDate ?? .distantFuture, $1.title) }
-                continuation.resume(returning: mapped)
+                let completed = (items ?? []).filter(\.isCompleted).compactMap(map)
+                    .sorted { ($0.dueDate ?? .distantFuture, $0.title) <
+                              ($1.dueDate ?? .distantFuture, $1.title) }
+                continuation.resume(returning: (pending, completed))
             }
         }
+        reminders = result.0
+        completedReminders = result.1
     }
 }
