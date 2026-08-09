@@ -128,9 +128,11 @@ se interpreta ni se ejecuta.
 
 Contacts tiene ahora un puente de lectura local mediante `Contacts.framework`: Settings muestra el
 permiso, `/contacts` lista la libreta y una búsqueda por nombre, correo o teléfono devuelve un
-resultado que se puede inspeccionar y copiar. Editar y compartir contactos siguen fuera de este
-corte para no convertir una lectura en una mutación sin confirmación. Un contacto seleccionado
-ofrece detalle completo y copia del email o teléfono asociado usando su identificador estable.
+resultado que se puede inspeccionar y copiar. Un contacto seleccionado ofrece detalle completo,
+copia del email o teléfono asociado y `Edit contact` usando su identificador estable. La edición
+abre nombre, email y teléfono; los campos vacíos conservan su valor actual. Requiere confirmación
+`r2`, escribe con `CNSaveRequest`, deja recibo y refresca Contacts y su proyección operativa del
+Brain. Compartir el contacto y abrir una ficha concreta fuera de BeLauncher siguen pendientes.
 `/contact add Ada Lovelace` es la única entrada de creación: requiere permiso, confirmación y escribe
 mediante `CNSaveRequest`, dejando recibo local y refrescando el snapshot.
 

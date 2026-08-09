@@ -22,12 +22,19 @@ struct BELContactActionInput: Codable, Sendable {
         self.email = email
         self.phone = phone
     }
+    init(contactID: String, name: String?, email: String?, phone: String?) {
+        self.query = ""
+        self.contactID = contactID
+        self.name = name
+        self.email = email
+        self.phone = phone
+    }
 }
 
 struct ContactActionHandler: BELActionHandler {
     let actionID: String
     init?(definition: BELActionDefinition) {
-        guard ["contacts.find", "contacts.get_details", "contacts.copy_email", "contacts.create"].contains(definition.id),
+        guard ["contacts.find", "contacts.get_details", "contacts.copy_email", "contacts.create", "contacts.update"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -70,6 +77,30 @@ struct ContactActionHandler: BELActionHandler {
                 if contact.identifier == id { found = contact; stop.pointee = true }
             }
             guard let contact = found else { throw ContactActionError.noMatches }
+            if actionID == "contacts.update" {
+                let edited = contact.mutableCopy() as! CNMutableContact
+                if let name = value.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+                    let parts = name.split(separator: " ", maxSplits: 1).map(String.init)
+                    edited.givenName = parts.first ?? name
+                    edited.familyName = parts.count > 1 ? parts[1] : ""
+                }
+                if let email = value.email?.trimmingCharacters(in: .whitespacesAndNewlines), !email.isEmpty {
+                    edited.emailAddresses = [CNLabeledValue(label: CNLabelWork, value: email as NSString)]
+                }
+                if let phone = value.phone?.trimmingCharacters(in: .whitespacesAndNewlines), !phone.isEmpty {
+                    edited.phoneNumbers = [CNLabeledValue(label: CNLabelPhoneNumberMobile,
+                                                          value: CNPhoneNumber(stringValue: phone))]
+                }
+                guard value.name != nil || value.email != nil || value.phone != nil else {
+                    throw ContactActionError.invalidInput
+                }
+                let request = CNSaveRequest()
+                request.update(edited)
+                try store.execute(request)
+                let updatedName = CNContactFormatter.string(from: edited, style: .fullName) ?? L("Untitled")
+                return BELActionResult(text: L("Contact updated: %@", updatedName),
+                                       changed: [id], receipt: "contacts:update:\(id)")
+            }
             let name = CNContactFormatter.string(from: contact, style: .fullName) ?? L("Untitled")
             let email = contact.emailAddresses.first?.value as String? ?? ""
             let phone = contact.phoneNumbers.first?.value.stringValue ?? ""

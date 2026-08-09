@@ -2265,6 +2265,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELContactActionInput(contactID: argument))
             case "contacts.create":
                 input = try JSONEncoder().encode(BELContactActionInput(name: argument))
+            case "contacts.update":
+                guard let edited = promptForContactEdit(contactID: argument) else { return }
+                input = try JSONEncoder().encode(edited)
             default:
                 input = Data()
             }
@@ -2275,27 +2278,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             do {
                 let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
-                                 "reminders.change_due_date"].contains(id)
+                                 "reminders.change_due_date", "contacts.update"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
+                                         : id == "contacts.update" ? L("Update this contact?")
                                          : id == "reminders.change_due_date" ? L("Change this reminder's due date?")
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
+                                         : id == "contacts.update" ? L("This changes the contact in macOS Contacts.")
                                          : id == "reminders.change_due_date" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
                 guard !["reminders.complete", "reminders.create", "contacts.create",
-                        "reminders.change_due_date"].contains(id) || confirmed else { return }
+                        "reminders.change_due_date", "contacts.update"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
                 report(L("Action completed"), result.text)
                 if ["reminders.complete", "reminders.create", "contacts.create",
-                    "reminders.change_due_date"].contains(id) {
-                    _ = await refreshLocalSource(id == "contacts.create" ? "contacts" : "reminders")
+                    "reminders.change_due_date", "contacts.update"].contains(id) {
+                    _ = await refreshLocalSource(["contacts.create", "contacts.update"].contains(id) ? "contacts" : "reminders")
                 }
             } catch {
                 report(L("The action could not be completed"), "\(error)")
@@ -2324,6 +2329,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: L("Cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return nil }
         return ReminderDateParser.parse(field.stringValue)
+    }
+
+    private func promptForContactEdit(contactID: String) -> BELContactActionInput? {
+        let name = NSTextField()
+        name.placeholderString = L("Name")
+        let email = NSTextField()
+        email.placeholderString = L("Email")
+        let phone = NSTextField()
+        phone.placeholderString = L("Phone")
+        let stack = NSStackView(views: [name, email, phone])
+        stack.orientation = .vertical
+        stack.spacing = 8
+        stack.alignment = .leading
+        stack.setHuggingPriority(.defaultLow, for: .horizontal)
+        let width: CGFloat = 300
+        for field in [name, email, phone] { field.frame.size.width = width }
+
+        let alert = NSAlert()
+        alert.messageText = L("Edit contact")
+        alert.informativeText = L("Leave a field blank to keep its current value.")
+        alert.accessoryView = stack
+        alert.addButton(withTitle: L("Continue"))
+        alert.addButton(withTitle: L("Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        let values = [name.stringValue, email.stringValue, phone.stringValue]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        guard values.contains(where: { !$0.isEmpty }) else { return nil }
+        return BELContactActionInput(contactID: contactID,
+                                     name: values[0].isEmpty ? nil : values[0],
+                                     email: values[1].isEmpty ? nil : values[1],
+                                     phone: values[2].isEmpty ? nil : values[2])
     }
 
     /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole
