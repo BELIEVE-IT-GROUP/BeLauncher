@@ -377,7 +377,10 @@ public enum ActionRegistry {
                                  intent: .systemCommand("bel:photos.create_album\u{1F}\(result.payload)")),
                     ResultAction(id: "ocr", title: L("Extract text from photo"), symbol: "text.viewfinder",
                                  section: .manage,
-                                 intent: .systemCommand("bel:photos.extract_text\u{1F}\(result.payload)"))]
+                                 intent: .systemCommand("bel:photos.extract_text\u{1F}\(result.payload)")),
+                    ResultAction(id: "remember", title: L("Keep in Brain"), symbol: "brain.head.profile",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:photos.remember\u{1F}\(result.payload)"))]
 
         case .window:
             return [

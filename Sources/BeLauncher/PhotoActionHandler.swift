@@ -18,7 +18,7 @@ struct BELPhotoActionInput: Codable, Sendable {
 struct PhotoActionHandler: BELActionHandler {
     let actionID: String
     init?(definition: BELActionDefinition) {
-        guard ["photos.find", "photos.add_to_album", "photos.create_album", "photos.extract_text"].contains(definition.id),
+        guard ["photos.find", "photos.add_to_album", "photos.create_album", "photos.extract_text", "photos.remember"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
     }
@@ -26,6 +26,13 @@ struct PhotoActionHandler: BELActionHandler {
         let value = try JSONDecoder().decode(BELPhotoActionInput.self, from: input)
         guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
             throw PhotoActionError.permission
+        }
+        if actionID == "photos.remember" {
+            guard let assetID = value.assetID, !assetID.isEmpty,
+                  PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject != nil
+            else { throw PhotoActionError.invalidInput }
+            return BELActionResult(text: L("Photo kept in Brain"), changed: [assetID],
+                                   receipt: "photos:remember:\(assetID)")
         }
         if actionID == "photos.add_to_album" || actionID == "photos.create_album" {
             guard let assetID = value.assetID, !assetID.isEmpty,

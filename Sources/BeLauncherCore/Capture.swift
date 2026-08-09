@@ -98,6 +98,20 @@ public enum Capture {
         }
     }
 
+    /// A photo enters the graph only when the person explicitly keeps it. The original stays in
+    /// Photos; the Brain receives metadata and a stable local reference, never the image bytes.
+    public static func photo(_ photo: PhotoItem, at date: Date = .now) -> Event {
+        let dimensions = photo.width > 0 && photo.height > 0
+            ? "\(photo.width) × \(photo.height)" : ""
+        let detail = [photo.album, photo.mediaType, dimensions,
+                      photo.isFavorite ? L("Favorite") : ""]
+            .filter { !$0.isEmpty }.joined(separator: " · ")
+        return Event(node: WorkNode(
+            id: "photo:\(photo.id)", kind: .file, name: photo.title,
+            detail: detail, target: "bel://photos/\(photo.id)", lastSeen: photo.creationDate ?? date
+        ))
+    }
+
     static let freeMailDomains: Set<String> = [
         "gmail.com", "googlemail.com", "icloud.com", "me.com", "mac.com", "outlook.com",
         "hotmail.com", "live.com", "yahoo.com", "proton.me", "protonmail.com", "aol.com",

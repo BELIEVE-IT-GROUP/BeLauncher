@@ -349,6 +349,18 @@ struct CaptureWiringTests {
         #expect(events[0].node.target == "bel://reminders/r1")
     }
 
+    @Test("a photo enters the graph only as metadata with a stable Photos reference")
+    func photoBecomesSelectiveSourceNode() {
+        let photo = PhotoItem(id: "asset-1", title: "Aug 8, 2026", album: "Receipts",
+                              creationDate: Date(timeIntervalSince1970: 1_700_000_000),
+                              width: 1200, height: 800, isFavorite: true)
+        let event = Capture.photo(photo)
+        #expect(event.node.kind == .file)
+        #expect(event.node.target == "bel://photos/asset-1")
+        #expect(event.node.detail.contains("Receipts"))
+        #expect(event.node.detail.contains("Favorita") || event.node.detail.contains("Favorite"))
+    }
+
     @Test("a file remembers where it can be opened from")
     func filesAreOpenable() {
         let event = Capture.file(at: "/Users/x/Clientes/Acme/propuesta.pdf")

@@ -148,7 +148,9 @@ trabajar por `localIdentifier`. No crea un álbum duplicado silenciosamente. Tam
 text from photo`, que carga el asset autorizado en memoria y usa Vision local con español e inglés;
 no persiste una copia ni envía la imagen a un modelo. Cada operación deja recibo. Abrir un asset
 concreto dentro de Photos sigue pendiente porque el esquema público no ofrece un deep link estable
-para ese `localIdentifier`.
+para ese `localIdentifier`. `Keep in Brain` es la entrada selectiva: solo aparece con el Brain
+activado, pide confirmación y guarda metadata más la referencia `bel://photos/...`; la fototeca
+completa no se proyecta automáticamente.
 
 ## Permisos de Wave 2
 

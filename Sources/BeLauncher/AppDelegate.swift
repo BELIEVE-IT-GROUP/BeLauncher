@@ -1268,6 +1268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         switch kind {
         case "contacts": bundleID = "com.apple.AddressBook"
         case "reminders": bundleID = "com.apple.reminders"
+        case "photos": bundleID = "com.apple.Photos"
         default: bundleID = nil
         }
         guard let bundleID, let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
@@ -2269,6 +2270,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             report(L("The action is unavailable"), id)
             return
         }
+        if id == "photos.remember", store?.setting("graph_enabled", default: false) != true {
+            report(L("The action could not be completed"), L("Turn on the Brain before keeping a photo."))
+            return
+        }
         let input: Data
         do {
             switch id {
@@ -2301,6 +2306,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                                                       albumName: album))
             case "photos.extract_text":
                 input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument))
+            case "photos.remember":
+                input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument))
             default:
                 input = Data()
             }
@@ -2312,13 +2319,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
                                  "reminders.change_due_date", "contacts.update", "photos.add_to_album",
-                                 "photos.create_album"].contains(id)
+                                 "photos.create_album", "photos.remember"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
                                          : id == "contacts.update" ? L("Update this contact?")
                                          : id == "photos.create_album" ? L("Create this album?")
                                          : id == "photos.add_to_album" ? L("Add this photo to the album?")
+                                         : id == "photos.remember" ? L("Keep this photo in Brain?")
                                          : id == "reminders.change_due_date" ? L("Change this reminder's due date?")
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
@@ -2327,21 +2335,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "contacts.update" ? L("This changes the contact in macOS Contacts.")
                                          : id == "photos.create_album" ? L("This creates an album in your Photos library.")
                                          : id == "photos.add_to_album" ? L("This changes your Photos library.")
+                                         : id == "photos.remember" ? L("Only this photo's metadata and a link to Photos will be kept.")
                                          : id == "reminders.change_due_date" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
                 guard !["reminders.complete", "reminders.create", "contacts.create",
                         "reminders.change_due_date", "contacts.update", "photos.add_to_album",
-                        "photos.create_album"].contains(id) || confirmed else { return }
+                        "photos.create_album", "photos.remember"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
+                if id == "photos.remember", let photo = photos.photos.first(where: { $0.id == argument }) {
+                    remember(Capture.photo(photo))
+                }
                 report(L("Action completed"), result.text)
                 if ["reminders.complete", "reminders.create", "contacts.create",
                     "reminders.change_due_date", "contacts.update", "photos.add_to_album",
-                    "photos.create_album"].contains(id) {
+                    "photos.create_album", "photos.remember"].contains(id) {
                     let source = ["contacts.create", "contacts.update"].contains(id) ? "contacts" :
-                        (["photos.add_to_album", "photos.create_album"].contains(id) ? "photos" : "reminders")
+                        (["photos.add_to_album", "photos.create_album", "photos.remember"].contains(id) ? "photos" : "reminders")
                     _ = await refreshLocalSource(source)
                 }
             } catch {
