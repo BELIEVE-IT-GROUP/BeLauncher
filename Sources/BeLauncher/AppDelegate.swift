@@ -2337,6 +2337,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let album = promptForPhotoAlbum() else { return }
                 input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument,
                                                                       albumName: album))
+            case "photos.open":
+                input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument))
             case "photos.extract_text":
                 input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument))
             case "photos.remember":

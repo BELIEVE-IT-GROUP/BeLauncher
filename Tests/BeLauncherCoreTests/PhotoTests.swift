@@ -23,4 +23,14 @@ struct PhotoTests {
         #expect(result.kind == .photo)
         #expect(result.payload == "asset-1")
     }
+
+    @Test("opening a photo uses its stable asset identifier")
+    func openUsesStableAssetIdentity() throws {
+        let input = SearchInput(
+            photos: [PhotoItem(id: "asset-1", title: "Aug 8, 2026", album: "Photo library")],
+            photosAuthorised: true)
+        let result = try #require(SearchEngine.search("/photos", in: input).first)
+        #expect(ActionRegistry.actions(for: result).first?.intent
+                == .systemCommand("bel:photos.open\u{1F}asset-1"))
+    }
 }

@@ -400,7 +400,8 @@ public enum ActionRegistry {
 
         case .photo:
             return [ResultAction(id: "open", title: L("Open photo"), symbol: "photo",
-                                 shortcut: .enter, intent: .run),
+                                 shortcut: .enter,
+                                 intent: .systemCommand("bel:photos.open\u{1F}\(result.payload)")),
                     ResultAction(id: "copy", title: L("Copy path"), symbol: "doc.on.doc",
                                  shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
                     ResultAction(id: "album", title: L("Add to album"), symbol: "rectangle.stack.badge.plus",

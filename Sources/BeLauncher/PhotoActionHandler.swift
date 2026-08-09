@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 @preconcurrency import Photos
 import ImageIO
 import Vision
@@ -146,6 +147,53 @@ struct PhotoActionHandler: BELActionHandler {
         }
     }
 }
+
+/// Uses Photos' documented `spotlight` command, which accepts a media item, instead of the
+/// unsupported `photos://<localIdentifier>` guess. The identifier is opaque and escaped before
+/// entering the fixed script template.
+struct PhotoOpenActionHandler: BELActionHandler {
+    let actionID = "photos.open"
+
+    init?(definition: BELActionDefinition) {
+        guard definition.id == "photos.open", definition.adapter == .appleScript else { return nil }
+    }
+
+    func perform(input: Data) async throws -> BELActionResult {
+        let value = try JSONDecoder().decode(BELPhotoActionInput.self, from: input)
+        guard let id = value.assetID?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty else {
+            throw PhotoOpenActionError.invalidInput
+        }
+        let escapedID = id.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Photos"
+            activate
+            set matches to (every media item whose id is "\(escapedID)")
+            if (count of matches) is 0 then error number -1728
+            spotlight item 1 of matches
+        end tell
+        """
+        let failure: PhotoOpenActionError? = await MainActor.run {
+            var error: NSDictionary?
+            NSAppleScript(source: script)?.executeAndReturnError(&error)
+            guard let error else { return nil }
+            let code = error[NSAppleScript.errorNumber] as? Int ?? 0
+            if code == -1728 { return .noMatches }
+            if code == -1743 { return .automationPermission }
+            return .scriptFailed(error[NSAppleScript.errorMessage] as? String ?? L("The photo could not be opened."))
+        }
+        if let failure { throw failure }
+        return BELActionResult(text: L("Photo opened"), receipt: "photos:open:\(id)")
+    }
+}
+
+enum PhotoOpenActionError: Error, Equatable {
+    case invalidInput
+    case noMatches
+    case automationPermission
+    case scriptFailed(String)
+}
+
 enum PhotoActionError: Error, Equatable {
     case permission, noMatches, albumNotFound, albumAlreadyExists, invalidInput, changeFailed,
          imageUnavailable, noText

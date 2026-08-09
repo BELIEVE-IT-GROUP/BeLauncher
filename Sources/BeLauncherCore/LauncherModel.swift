@@ -749,8 +749,7 @@ public final class LauncherModel {
             perform(.dismiss)
 
         case .photo:
-            perform(.openURL(URL(string: "photos://")!))
-            perform(.dismiss)
+            perform(.systemCommand("bel:photos.open\u{1F}\(result.payload)"))
 
         case .file:
             perform(.openFile(path: result.payload))

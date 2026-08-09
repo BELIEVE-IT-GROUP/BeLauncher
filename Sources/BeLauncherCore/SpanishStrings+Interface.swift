@@ -116,6 +116,8 @@ extension SpanishStrings {
         "Show contact details": "Mostrar detalles del contacto",
         "Open contact": "Abrir contacto",
         "Contact opened": "Contacto abierto",
+        "Photo opened": "Foto abierta",
+        "The photo could not be opened.": "No se pudo abrir la foto.",
         "The contact could not be opened.": "No se pudo abrir el contacto.",
         "Copy email or phone": "Copiar email o teléfono",
         "Photos on this Mac": "Fotos en este Mac",

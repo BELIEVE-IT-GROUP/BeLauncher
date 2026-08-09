@@ -194,6 +194,10 @@ struct BELSystemCommandHandlerTests {
         #expect(openContact.availability == .implemented)
         #expect(openContact.adapter == .appleScript)
         #expect(BELActionRuntime().handler(for: openContact)?.actionID == openContact.id)
+        let openPhoto = try #require(BELActionCatalog.named("photos.open"))
+        #expect(openPhoto.availability == .implemented)
+        #expect(openPhoto.adapter == .appleScript)
+        #expect(BELActionRuntime().handler(for: openPhoto)?.actionID == openPhoto.id)
     }
 
     @Test("completing a reminder cannot bypass confirmation")
