@@ -2268,6 +2268,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case "contacts.update":
                 guard let edited = promptForContactEdit(contactID: argument) else { return }
                 input = try JSONEncoder().encode(edited)
+            case "photos.add_to_album":
+                guard let album = promptForPhotoAlbum() else { return }
+                input = try JSONEncoder().encode(BELPhotoActionInput(assetID: argument,
+                                                                      albumName: album))
             default:
                 input = Data()
             }
@@ -2278,22 +2282,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { @MainActor in
             do {
                 let confirmed = ["reminders.complete", "reminders.create", "contacts.create",
-                                 "reminders.change_due_date", "contacts.update"].contains(id)
+                                 "reminders.change_due_date", "contacts.update", "photos.add_to_album"].contains(id)
                     ? confirmStableAction(id == "reminders.create"
                                          ? L("Create this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
                                          : id == "contacts.update" ? L("Update this contact?")
+                                         : id == "photos.add_to_album" ? L("Add this photo to the album?")
                                          : id == "reminders.change_due_date" ? L("Change this reminder's due date?")
                                          : L("Complete this reminder?"),
                                          detail: id == "reminders.create"
                                          ? L("This will add a reminder to macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
                                          : id == "contacts.update" ? L("This changes the contact in macOS Contacts.")
+                                         : id == "photos.add_to_album" ? L("This changes your Photos library.")
                                          : id == "reminders.change_due_date" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
                 guard !["reminders.complete", "reminders.create", "contacts.create",
-                        "reminders.change_due_date", "contacts.update"].contains(id) || confirmed else { return }
+                        "reminders.change_due_date", "contacts.update", "photos.add_to_album"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
                                                                   capabilities: .allGranted,
                                                                   confirmed: confirmed)
@@ -2360,6 +2366,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                      name: values[0].isEmpty ? nil : values[0],
                                      email: values[1].isEmpty ? nil : values[1],
                                      phone: values[2].isEmpty ? nil : values[2])
+    }
+
+    private func promptForPhotoAlbum() -> String? {
+        let field = NSTextField(string: "")
+        field.placeholderString = L("Album name")
+        field.frame = NSRect(x: 0, y: 0, width: 300, height: 24)
+        let alert = NSAlert()
+        alert.messageText = L("Which album should receive this photo?")
+        alert.accessoryView = field
+        alert.addButton(withTitle: L("Continue"))
+        alert.addButton(withTitle: L("Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        let value = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 
     /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole

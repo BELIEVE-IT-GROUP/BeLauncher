@@ -2,18 +2,51 @@ import Foundation
 @preconcurrency import Photos
 import BeLauncherCore
 
-struct BELPhotoActionInput: Codable, Sendable { let criteria: String }
+struct BELPhotoActionInput: Codable, Sendable {
+    let criteria: String
+    let assetID: String?
+    let albumName: String?
+    init(criteria: String = "", assetID: String? = nil, albumName: String? = nil) {
+        self.criteria = criteria
+        self.assetID = assetID
+        self.albumName = albumName
+    }
+}
 
 struct PhotoActionHandler: BELActionHandler {
-    let actionID = "photos.find"
+    let actionID: String
     init?(definition: BELActionDefinition) {
-        guard definition.id == actionID, definition.adapter == .publicAPI else { return nil }
+        guard ["photos.find", "photos.add_to_album"].contains(definition.id),
+              definition.adapter == .publicAPI else { return nil }
+        actionID = definition.id
     }
     func perform(input: Data) async throws -> BELActionResult {
-        let criteria = try JSONDecoder().decode(BELPhotoActionInput.self, from: input).criteria
+        let value = try JSONDecoder().decode(BELPhotoActionInput.self, from: input)
         guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
             throw PhotoActionError.permission
         }
+        if actionID == "photos.add_to_album" {
+            guard let assetID = value.assetID, !assetID.isEmpty,
+                  let albumName = value.albumName?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !albumName.isEmpty,
+                  let asset = PHAsset.fetchAssets(withLocalIdentifiers: [assetID], options: nil).firstObject
+            else { throw PhotoActionError.invalidInput }
+            let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
+            var album: PHAssetCollection?
+            albums.enumerateObjects { candidate, _, stop in
+                if candidate.localizedTitle?.localizedCaseInsensitiveCompare(albumName) == .orderedSame {
+                    album = candidate
+                    stop.pointee = true
+                }
+            }
+            guard let album else { throw PhotoActionError.albumNotFound }
+            try await Self.performChanges {
+                PHAssetCollectionChangeRequest(for: album)?.addAssets([asset] as NSArray)
+            }
+            return BELActionResult(text: L("Added to album: %@", albumName),
+                                   changed: [assetID], receipt: "photos:add-to-album:\(assetID)")
+        }
+        let criteria = value.criteria
         let imageResult = PHAsset.fetchAssets(with: .image, options: nil)
         let videoResult = PHAsset.fetchAssets(with: .video, options: nil)
         let assets = (0..<imageResult.count).map { imageResult.object(at: $0) }
@@ -35,5 +68,15 @@ struct PhotoActionHandler: BELActionHandler {
         return BELActionResult(text: L("%@ photos available locally", String(matching.count)),
                                changed: first.isEmpty ? [] : [first], receipt: "photos:find")
     }
+
+    private static func performChanges(_ changes: @escaping () -> Void) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            PHPhotoLibrary.shared().performChanges(changes) { success, error in
+                if let error { continuation.resume(throwing: error) }
+                else if success { continuation.resume() }
+                else { continuation.resume(throwing: PhotoActionError.changeFailed) }
+            }
+        }
+    }
 }
-enum PhotoActionError: Error, Equatable { case permission, noMatches }
+enum PhotoActionError: Error, Equatable { case permission, noMatches, albumNotFound, invalidInput, changeFailed }
