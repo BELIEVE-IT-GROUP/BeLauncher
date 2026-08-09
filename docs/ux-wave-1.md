@@ -54,3 +54,11 @@ ejecución y recibo.
 
 Esto conserva el límite de confianza: escribir una misión no ejecuta nada, y el plan se puede leer
 antes de que una acción cambie el Mac.
+
+## Primer corte del Launcher
+
+El carrusel conserva todos los clips retenidos por el almacén y se puede recorrer horizontalmente;
+los quick actions de BeBrain permanecen encima cuando se abre la superficie normal. Los atajos
+numéricos de las tarjetas solo se muestran en el modo dedicado de portapapeles, donde realmente
+están conectados al teclado. En la vista mixta no se promete una tecla que podría ejecutar otra
+fila.

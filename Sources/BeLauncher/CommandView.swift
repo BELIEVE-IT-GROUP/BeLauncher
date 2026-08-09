@@ -953,6 +953,7 @@ struct ClipboardCarousel: View {
                         let result = entry.result
                         ClipCard(result: result,
                                  index: position,
+                                 showsShortcut: model.mode == .clipboard,
                                  selected: index == model.selection)
                             .id(index)
                             .onTapGesture {
@@ -988,6 +989,7 @@ struct ClipboardCarousel: View {
 private struct ClipCard: View {
     let result: SearchResult
     let index: Int
+    let showsShortcut: Bool
     let selected: Bool
 
     @State private var image: NSImage?
@@ -1015,7 +1017,7 @@ private struct ClipCard: View {
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
-                if index < 10 {
+                if showsShortcut, index < 10 {
                     Text("⌃⌘\(index)")
                         .font(.system(size: 9, weight: .medium, design: .rounded))
                         .padding(.horizontal, 4).padding(.vertical, 2)
