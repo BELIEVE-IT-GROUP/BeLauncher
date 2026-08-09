@@ -332,7 +332,7 @@ struct CaptureWiringTests {
         #expect(events[0].node.name == "Ana López")
         #expect(events[0].node.detail == "ana@example.com")
         #expect(events[0].node.id == "person:contact:c1")
-        #expect(events[0].node.target.isEmpty)
+        #expect(events[0].node.target == "bel://contacts/c1")
     }
 
     @Test("pending reminders project into operational commitments, not confirmed memories")
@@ -346,6 +346,7 @@ struct CaptureWiringTests {
         #expect(events[0].node.name == "Enviar propuesta")
         #expect(events[0].node.id.contains("reminder:r1"))
         #expect(events[0].node.detail.contains("Trabajo"))
+        #expect(events[0].node.target == "bel://reminders/r1")
     }
 
     @Test("a file remembers where it can be opened from")

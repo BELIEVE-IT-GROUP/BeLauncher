@@ -1226,6 +1226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let model = GraphModel(store: store, corpus: folder)
         graphModel = model
         model.onRead = { [weak self] id in self?.openCorpusReader(selecting: id) }
+        model.onOpenSource = { [weak self] target in self?.openGraphSource(target) }
         model.onPrimeLauncher = { [weak self] text in self?.primeLauncher(with: text) }
         window.contentViewController = NSHostingController(rootView: GraphView(
             model: model,
@@ -1258,6 +1259,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
+    }
+
+    private func openGraphSource(_ reference: String) {
+        guard let url = URL(string: reference), let kind = url.host,
+              url.pathComponents.count > 1 else { return }
+        let bundleID: String?
+        switch kind {
+        case "contacts": bundleID = "com.apple.AddressBook"
+        case "reminders": bundleID = "com.apple.reminders"
+        default: bundleID = nil
+        }
+        guard let bundleID, let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            return
+        }
+        NSWorkspace.shared.openApplication(at: app, configuration: NSWorkspace.OpenConfiguration())
     }
 
     /// Reads the corpus as what it is on disk: Markdown files the person owns.

@@ -178,3 +178,6 @@ Los recordatorios pendientes también se proyectan como `Commitment` operativos 
 fuente; no entran como memoria confirmada y su fuente sigue siendo Reminders.
 Los compromisos que ya no devuelve una lectura autorizada se retiran solo si llevan el prefijo de
 Reminders; un fallo de lectura nunca dispara esa limpieza.
+Contacts y Reminders conservan además una referencia estable `bel://` en cada nodo. En el inspector
+del grafo, `Read here` materializa la representación Markdown del Brain y `Open source` abre la app
+nativa correspondiente; ya no aparece una segunda ventana vacía por no tener `target`.

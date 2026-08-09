@@ -76,7 +76,8 @@ public enum Capture {
                 .joined(separator: " · ")
             return Event(node: WorkNode(
                 id: "person:contact:\(contact.id)",
-                kind: .person, name: contact.name, detail: detail, lastSeen: date
+                kind: .person, name: contact.name, detail: detail,
+                target: "bel://contacts/\(contact.id)", lastSeen: date
             ))
         }
     }
@@ -91,6 +92,7 @@ public enum Capture {
                 name: reminder.title,
                 detail: [reminder.list, reminder.displayDueDate]
                     .filter { !$0.isEmpty }.joined(separator: " · "),
+                target: "bel://reminders/\(reminder.id)",
                 lastSeen: reminder.dueDate ?? date
             ))
         }

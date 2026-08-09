@@ -154,6 +154,9 @@ final class GraphModel {
     /// the reader" with no way to get there, which is the connection between the drawing and the
     /// files it draws.
     var onRead: ((String) -> Void)?
+    /// Opens a non-file local source such as a Contacts or Reminders item. The model keeps the
+    /// stable reference; AppKit owns the decision about which native app to foreground.
+    var onOpenSource: ((String) -> Void)?
     var onPrimeLauncher: ((String) -> Void)?
 
     init(store: Store, corpus: CorpusFolder?, now: Date = .now) {
@@ -718,6 +721,8 @@ final class GraphModel {
         }
         if node.target.hasPrefix("http"), let url = URL(string: node.target) {
             NSWorkspace.shared.open(url)
+        } else if node.target.hasPrefix("bel://") {
+            onOpenSource?(node.target)
         } else {
             NSWorkspace.shared.open(URL(fileURLWithPath: node.target))
         }
