@@ -1,0 +1,29 @@
+Sources/BeLauncher/SourceCenterView.swift
+  s_30bc31f46aebe1::t_3d77aa73fda1b9 137-147
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_a7b6c7d85a112f 491-511
+  s_30bc31f46aebe1::t_cddf66c5438540 1145-1147
+  s_30bc31f46aebe1::t_8749970c98e8f7 1858-1860
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_a9bd62dd824a3d 144-147
+Sources/BeLauncher/SettingsModel.swift
+  s_30bc31f46aebe1::t_3d77aa73fda1b9 860,1265-1266,1271-1279
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_3d77aa73fda1b9 1018-1020
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "f1f76626a61b44a84ef08e27a6417c95199c0f90",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
