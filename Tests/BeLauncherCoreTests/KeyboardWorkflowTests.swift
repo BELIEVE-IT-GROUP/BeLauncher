@@ -135,6 +135,7 @@ struct KeyboardWorkflowTests {
         model.activate()
         model.query = "resume esto"
         #expect(model.selected?.id == "verb-summarise")
+        #expect(model.results.filter { $0.id == "verb-summarise" }.count == 1)
         model.handle(.enter)
         #expect(recorder.actions == [
             .runVerb(id: "summarise", text: "A long note that needs a useful summary.")

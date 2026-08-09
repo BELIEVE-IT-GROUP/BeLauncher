@@ -488,7 +488,8 @@ public enum SearchEngine {
             // One catalogue resolves both native and AI actions. The payload keeps the existing
             // execution format until LauncherModel is fully migrated; actionID is the stable
             // identity used by new UI, receipts and later App Intents.
-            if !collides, let match = BELActionResolver.resolve(query),
+            if !collides, AIVerb.typed(query) == nil,
+               let match = BELActionResolver.resolve(query),
                let definition = BELActionCatalog.named(match.actionID),
                definition.availability == .implemented,
                !pinned.contains(where: { $0.actionID == definition.id }) {
