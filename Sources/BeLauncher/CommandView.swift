@@ -12,6 +12,7 @@ struct CommandView: View {
     let dictate: () -> Void
 
     @FocusState private var focus: Field?
+    @State private var expandedClipID: String?
 
     enum Field: Hashable { case search, actions }
 
@@ -28,12 +29,7 @@ struct CommandView: View {
                     // would fit two and a half of them. The preview keeps its place, just below
                     // rather than beside.
                     VStack(spacing: 0) {
-                        ClipboardCarousel(model: model)
-                        if let detail = model.detail {
-                            Divider().overlay(.white.opacity(0.07))
-                            DetailPane(detail: detail)
-                                .frame(height: 172)
-                        }
+                        ClipboardCarousel(model: model, expandedClipID: $expandedClipID)
                     }
                 } else {
                 HStack(spacing: 0) {
@@ -75,7 +71,10 @@ struct CommandView: View {
         .shadow(color: .black.opacity(0.45), radius: 24, y: 14)
         .padding(Theme.shadowPadding)
         .onAppear { focusSearchSoon() }
-        .onChange(of: model.focusToken) { focusSearchSoon() }
+        .onChange(of: model.focusToken) {
+            expandedClipID = nil
+            focusSearchSoon()
+        }
         .onChange(of: model.state) {
             if !model.isActionPanelOpen { focusSearchSoon() }
         }
@@ -339,7 +338,7 @@ struct CommandView: View {
                 Divider().overlay(.white.opacity(0.07))
                 sectionHeader(L("CLIPBOARD HISTORY"))
                     .padding(.top, 2)
-                ClipboardCarousel(model: model, entries: clipEntries)
+                ClipboardCarousel(model: model, entries: clipEntries, expandedClipID: $expandedClipID)
             }
         }
         .scrollIndicators(.never)
@@ -931,10 +930,14 @@ private struct QuickAction: View {
 struct ClipboardCarousel: View {
     @Bindable var model: LauncherModel
     let entries: [(index: Int, result: SearchResult)]?
+    @Binding var expandedClipID: String?
 
-    init(model: LauncherModel, entries: [(index: Int, result: SearchResult)]? = nil) {
+    init(model: LauncherModel,
+         entries: [(index: Int, result: SearchResult)]? = nil,
+         expandedClipID: Binding<String?> = .constant(nil)) {
         self.model = model
         self.entries = entries
+        _expandedClipID = expandedClipID
     }
 
     static let cardWidth: CGFloat = 168
@@ -954,7 +957,11 @@ struct ClipboardCarousel: View {
                         ClipCard(result: result,
                                  index: position,
                                  showsShortcut: model.mode == .clipboard,
-                                 selected: index == model.selection)
+                                 selected: index == model.selection,
+                                 preview: {
+                                     model.select(index)
+                                     expandedClipID = result.id
+                                 })
                             .id(index)
                             .onTapGesture {
                                 model.select(index)
@@ -977,10 +984,20 @@ struct ClipboardCarousel: View {
             }
             .onChange(of: model.selection) { _, new in
                 guard visibleEntries.contains(where: { $0.index == new }) else { return }
+                if expandedClipID != model.selected?.id { expandedClipID = nil }
                 withAnimation(.easeOut(duration: 0.16)) { proxy.scrollTo(new, anchor: .center) }
             }
+            if expandedClipID != nil,
+               let detail = model.detail,
+               model.selected?.kind == .clipboard {
+                Divider().overlay(.white.opacity(0.07))
+                DetailPane(detail: detail)
+                    .frame(height: 300)
+                    .transition(.opacity)
+            }
         }
-        .frame(height: Self.cardHeight + 24)
+        .frame(height: expandedClipID == nil ? Self.cardHeight + 24 : Self.cardHeight + 336)
+        .animation(.easeOut(duration: 0.16), value: expandedClipID)
     }
 }
 
@@ -991,8 +1008,10 @@ private struct ClipCard: View {
     let index: Int
     let showsShortcut: Bool
     let selected: Bool
+    let preview: () -> Void
 
     @State private var image: NSImage?
+    @State private var hovering = false
 
     private var previewPath: String { result.previewPath }
 
@@ -1036,6 +1055,20 @@ private struct ClipCard: View {
                 .strokeBorder(selected ? Theme.cyan : .white.opacity(0.07),
                               lineWidth: selected ? 1.6 : 1)
         )
+        .overlay(alignment: .topTrailing) {
+            if hovering || selected {
+                Button(action: preview) {
+                    Image(systemName: "eye")
+                        .font(.system(size: 10, weight: .semibold))
+                        .frame(width: 24, height: 22)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .help(L("Quick Preview"))
+                .padding(7)
+            }
+        }
+        .onHover { hovering = $0 }
         .task(id: previewPath) { await loadImage() }
     }
 

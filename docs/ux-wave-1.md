@@ -63,9 +63,9 @@ numéricos de las tarjetas solo se muestran en el modo dedicado de portapapeles,
 están conectados al teclado. En la vista mixta no se promete una tecla que podría ejecutar otra
 fila.
 
-### Pendiente inmediato: inspección completa del clip
+### Inspección completa del clip
 
-Una miniatura no basta para saber qué se copió. Cada tarjeta deberá ofrecer un estado hover
-reconocible y una acción `Quick Preview` que abra el contenido completo dentro del Launcher, sin
-cerrarlo ni reemplazar el contenido del portapapeles. El preview debe funcionar para texto largo,
-imágenes y archivos, y convivir con las acciones existentes de la tarjeta.
+Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover
+reconocible y una acción `Quick Preview` que expande el contenido completo dentro del Launcher, sin
+cerrarlo ni reemplazar el contenido del portapapeles. El preview reutiliza el detalle real y funciona
+para texto largo, imágenes y archivos, junto con las acciones existentes de la tarjeta.

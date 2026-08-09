@@ -20,6 +20,7 @@ extension SpanishStrings {
         "Clear": "Borrar",
         "Connected: %@": "Conectado: %@",
         "Plan a task": "Planear una tarea",
+        "Quick Preview": "Vista previa rápida",
         "Describe what you want done, in your own words.": "Describe con tus palabras qué quieres hacer.",
         "For example: get me working, close the day, or tidy Downloads.": "Por ejemplo: iniciar concentración, cerrar el día u ordenar Descargas.",
         "You will review the plan before anything changes.": "Revisarás el plan antes de que cambie nada.",
