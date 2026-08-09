@@ -1,0 +1,42 @@
+Scripts/Info.plist
+  s_30bc31f46aebe1::t_48104f1779d566 18
+  s_30bc31f46aebe1::t_927fc7d721d808 25-35
+Tests/BeLauncherCoreTests/BELStructuredOutputTests.swift
+  s_30bc31f46aebe1::t_6e17a5bb55aa72 53
+  s_30bc31f46aebe1::t_0e46ab7f026676 40-52,54-91
+Sources/BeLauncherCore/BELAppIntentCatalog.swift
+  s_30bc31f46aebe1::t_927fc7d721d808 1-76
+Sources/BeLauncher/AppIntents.swift
+  s_30bc31f46aebe1::t_21c649f531464e 29,147-282,284-289,292-307
+  s_30bc31f46aebe1::t_51c59f286c86bb 4
+  s_30bc31f46aebe1::t_927fc7d721d808 7,26-28
+  s_30bc31f46aebe1::t_9ff681e3fccd26 283
+  s_30bc31f46aebe1::t_21fb0639eb5ce9 30
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_927fc7d721d808 135-139,220-232
+  s_30bc31f46aebe1::t_104e2a0ffd617d 233
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_927fc7d721d808 200-214
+Sources/BeLauncherCore/BELStructuredOutput.swift
+  s_30bc31f46aebe1::t_6e17a5bb55aa72 136-140
+  s_30bc31f46aebe1::t_0e46ab7f026676 92-118,121-125,153-158,160-162,167,190-191,196,208,213-215,217,240-245,249-300
+  s_30bc31f46aebe1::t_d35c7e33715007 301
+docs/release-0.32.33.md
+  s_30bc31f46aebe1::t_48104f1779d566 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "4bb876631cc23aa399d0b98739451588670b546b",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
