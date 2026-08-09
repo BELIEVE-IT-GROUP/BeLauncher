@@ -1,0 +1,27 @@
+Sources/BeLauncher/BrainWindowSizing.swift
+  s_30bc31f46aebe1::t_7acb16ad2fc8a9 1-31
+Tests/BeLauncherAppTests/BrainWindowSizingTests.swift
+  s_30bc31f46aebe1::t_1ff54987fc5796 1-49
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_618efea0b5af38 2837-2838
+  s_30bc31f46aebe1::t_abf38014cc8adf 1217,1225,1227,1231,1263,2817,2826-2836,2839-2843
+  s_30bc31f46aebe1::t_a866c12db1028e 2844
+docs/release-0.32.65.md
+  s_30bc31f46aebe1::t_f53a16961df0d8 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "29fae01384fa3da757b1297a5b4423c30c7cc6e9",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
