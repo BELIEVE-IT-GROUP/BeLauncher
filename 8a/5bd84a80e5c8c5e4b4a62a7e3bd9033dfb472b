@@ -1,0 +1,22 @@
+docs/release-0.32.20.md
+  s_30bc31f46aebe1::t_0a3b4abb8f1473 1-171
+Scripts/release.sh
+  s_30bc31f46aebe1::t_fb8895b8f6d9b3 18,23
+  s_30bc31f46aebe1::t_1c3c1a60944b0c 14-17,19-22,24-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8a5bd84a80e5c8c5e4b4a62a7e3bd9033dfb472b",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
