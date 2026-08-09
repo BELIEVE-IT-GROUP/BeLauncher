@@ -2249,6 +2249,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELPDFActionInput(path: argument))
             case "calendar.upcoming":
                 input = try JSONEncoder().encode(BELCalendarActionInput())
+            case "reminders.find":
+                input = try JSONEncoder().encode(BELReminderActionInput(query: argument))
+            case "reminders.create":
+                input = try JSONEncoder().encode(BELReminderActionInput(title: argument))
+            case "reminders.complete":
+                input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument))
+            case "contacts.find":
+                input = try JSONEncoder().encode(BELContactActionInput(query: argument))
+            case "contacts.get_details", "contacts.copy_email":
+                input = try JSONEncoder().encode(BELContactActionInput(contactID: argument))
             default:
                 input = Data()
             }
@@ -2258,13 +2268,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task { @MainActor in
             do {
+                let confirmed = ["reminders.complete", "reminders.create"].contains(id)
+                    ? confirmStableAction(id == "reminders.create"
+                                         ? L("Create this reminder?")
+                                         : L("Complete this reminder?"),
+                                         detail: id == "reminders.create"
+                                         ? L("This will add a reminder to macOS Reminders.")
+                                         : L("This changes the reminder in macOS Reminders."))
+                    : false
+                guard !["reminders.complete", "reminders.create"].contains(id) || confirmed else { return }
                 let result = try await BELActionRuntime().execute(definition, input: input,
-                                                                  capabilities: .allGranted)
+                                                                  capabilities: .allGranted,
+                                                                  confirmed: confirmed)
                 report(L("Action completed"), result.text)
+                if ["reminders.complete", "reminders.create"].contains(id) {
+                    _ = await refreshLocalSource("reminders")
+                }
             } catch {
                 report(L("The action could not be completed"), "\(error)")
             }
         }
+    }
+
+    private func confirmStableAction(_ title: String, detail: String) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = detail
+        alert.addButton(withTitle: L("Continue"))
+        alert.addButton(withTitle: L("Cancel"))
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     /// Walks a planned flow, honouring `.wait` between steps. Sequential on purpose: the whole

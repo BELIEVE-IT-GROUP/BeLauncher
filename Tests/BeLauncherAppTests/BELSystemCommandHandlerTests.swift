@@ -165,12 +165,23 @@ struct BELSystemCommandHandlerTests {
             #expect(definition.availability == .implemented)
             #expect(runtime.handler(for: definition)?.actionID == id)
         }
-        for id in ["reminders.create"] {
-            #expect(BELActionCatalog.named(id)?.availability == .unavailable)
-        }
+        #expect(BELActionCatalog.named("reminders.create")?.availability == .implemented)
         let reminders = try #require(BELActionCatalog.named("reminders.find"))
         #expect(reminders.availability == .implemented)
         #expect(BELActionRuntime().handler(for: reminders)?.actionID == reminders.id)
+        let complete = try #require(BELActionCatalog.named("reminders.complete"))
+        #expect(complete.availability == .implemented)
+        #expect(BELActionRuntime().handler(for: complete)?.actionID == complete.id)
+    }
+
+    @Test("completing a reminder cannot bypass confirmation")
+    func reminderCompletionUsesGate() async throws {
+        let definition = try #require(BELActionCatalog.named("reminders.complete"))
+        let input = try JSONEncoder().encode(BELReminderActionInput(reminderID: "missing"))
+        await #expect(throws: BELActionExecutionError.confirmationRequired) {
+            try await BELActionRuntime().execute(definition, input: input,
+                                                 capabilities: .allGranted)
+        }
     }
 
     @Test("public app actions validate identifiers and settings without opening the host")

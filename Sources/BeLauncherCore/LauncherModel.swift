@@ -662,6 +662,10 @@ public final class LauncherModel {
             return true
 
         case .answer:
+            if result.id == "reminder-create" {
+                perform(.systemCommand("bel:reminders.create\u{1F}\(result.payload)"))
+                return true
+            }
             if result.id.hasPrefix("source-permission-") {
                 perform(.openSettings)
                 return true

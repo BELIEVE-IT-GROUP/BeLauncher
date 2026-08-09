@@ -279,6 +279,11 @@ public enum ActionRegistry {
             ]
 
         case .answer:
+            if result.id == "reminder-create" {
+                return [ResultAction(id: "create", title: L("Create reminder"), symbol: "checklist",
+                                     shortcut: .enter, section: .manage,
+                                     intent: .systemCommand("bel:reminders.create\u{1F}\(result.payload)"))]
+            }
             if result.id.hasPrefix("source-permission-") {
                 return [ResultAction(id: "settings", title: L("Open settings"), symbol: "gearshape",
                                      shortcut: .enter, intent: .openSettings)]
@@ -333,11 +338,20 @@ public enum ActionRegistry {
             return [
                 ResultAction(id: "copy", title: L("Copy the reminder"), symbol: "doc.on.clipboard",
                              shortcut: .enter, intent: .copy(text: result.title)),
+                ResultAction(id: "complete", title: L("Complete reminder"), symbol: "checkmark.circle",
+                             section: .manage, isDestructive: true,
+                             intent: .systemCommand("bel:reminders.complete\u{1F}\(result.payload)")),
             ]
 
         case .contact:
             return [ResultAction(id: "copy", title: L("Copy contact"), symbol: "doc.on.clipboard",
-                                 shortcut: .enter, intent: .copy(text: result.subtitle))]
+                                 shortcut: .enter, intent: .copy(text: result.subtitle)),
+                    ResultAction(id: "details", title: L("Show contact details"), symbol: "person.text.rectangle",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:contacts.get_details\u{1F}\(result.payload)")),
+                    ResultAction(id: "copy-detail", title: L("Copy email or phone"), symbol: "doc.on.doc",
+                                 section: .copy,
+                                 intent: .systemCommand("bel:contacts.copy_email\u{1F}\(result.payload)"))]
 
         case .photo:
             return [ResultAction(id: "open", title: L("Open photo"), symbol: "photo",

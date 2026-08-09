@@ -115,16 +115,19 @@ EventKit con el catálogo BEL y permite leer solo los recordatorios pendientes, 
 lista y abrir `/reminders` desde el launcher. Settings muestra el estado `Allow`/conectado y el
 bundle explica por qué se solicita el permiso.
 
-La entrada es deliberadamente de solo lectura: buscar no modifica nada y Enter copia el recordatorio
-seleccionado. Crear, completar, editar y borrar quedan fuera de este corte hasta tener sus propios
-tests de confirmación y recibo; siguen marcados como no disponibles en el catálogo.
+La búsqueda no modifica nada y Enter copia el recordatorio seleccionado. Además, `/reminder comprar
+leche` abre una intención explícita y, tras confirmación, crea el recordatorio en EventKit. Un
+recordatorio seleccionado ofrece `Complete reminder`; la acción está detrás del gate central `r2`,
+por lo que ninguna ruta puede completarlo silenciosamente. Crear y completar refrescan el snapshot,
+actualizan la proyección del Brain y dejan un recibo con el identificador de EventKit.
 
 ## Wave 2: Contacts
 
 Contacts tiene ahora un puente de lectura local mediante `Contacts.framework`: Settings muestra el
 permiso, `/contacts` lista la libreta y una búsqueda por nombre, correo o teléfono devuelve un
 resultado que se puede inspeccionar y copiar. Crear, editar y compartir contactos siguen fuera de
-este corte para no convertir una lectura en una mutación sin confirmación.
+este corte para no convertir una lectura en una mutación sin confirmación. Un contacto seleccionado
+ofrece detalle completo y copia del email o teléfono asociado usando su identificador estable.
 
 ## Wave 2: Photos
 

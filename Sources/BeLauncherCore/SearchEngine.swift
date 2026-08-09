@@ -285,6 +285,18 @@ public enum SearchEngine {
         let commands = input.packs.map(\.command)
         if query.hasPrefix("/") {
             let slash = query.dropFirst().lowercased()
+            if slash.hasPrefix("reminder ") || slash.hasPrefix("recordatorio ") {
+                let title = String(slash.split(separator: " ", maxSplits: 1).dropFirst()
+                    .first.map(String.init) ?? "")
+                guard input.remindersAuthorised else {
+                    return [permissionResult(source: "reminders", title: L("Allow Reminders"),
+                                             detail: L("Open settings to create reminders"))]
+                }
+                guard !title.isEmpty else { return [] }
+                return [SearchResult(id: "reminder-create", kind: .answer,
+                                     title: L("Create reminder"),
+                                     subtitle: title, score: 100_000, matched: [], payload: title)]
+            }
             if slash == "nota" || slash == "note" || slash.hasPrefix("nota ") || slash.hasPrefix("note ") {
                 let argument = slash.split(separator: " ", maxSplits: 1).dropFirst().first.map(String.init) ?? ""
                 return [SearchResult(id: "new-note", kind: .answer,
