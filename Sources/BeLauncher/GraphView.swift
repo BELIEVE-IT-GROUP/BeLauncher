@@ -812,6 +812,7 @@ struct GraphView: View {
     var body: some View {
         HStack(spacing: 0) {
             VerbRail(model: model,
+                     selectedSurface: surface.rawValue,
                      showOverview: { surface = .overview },
                      showNotes: { surface = .notes },
                      showGraph: { surface = .graph })
@@ -1301,6 +1302,10 @@ private struct BrainOverview: View {
                         Label(L("Ask Brain"), systemImage: "bubble.left.and.text.bubble.right")
                     }
                     .buttonStyle(.bordered)
+                    Button { runIntent("create a mission") } label: {
+                        Label(L("Plan a task"), systemImage: "checklist")
+                    }
+                    .buttonStyle(.bordered)
                     Spacer()
                     Text(L("Everything stays on this Mac"))
                         .font(.caption)
@@ -1309,12 +1314,12 @@ private struct BrainOverview: View {
                 .controlSize(.small)
 
                 HStack(spacing: 10) {
-                    stat(L("Nodes"), value: model.nodeCount, symbol: "circle.grid.2x2")
-                    stat(L("Relations"), value: model.relationCount, symbol: "arrow.triangle.branch")
+                    stat(L("Remembered"), value: model.nodeCount, symbol: "circle.grid.2x2")
+                    stat(L("Connections"), value: model.relationCount, symbol: "arrow.triangle.branch")
                     stat(L("Notes"), value: model.documentCount, symbol: "doc.text")
                 }
 
-                section(title: L("Capture status"), symbol: "arrow.triangle.2.circlepath") {
+                section(title: L("Brain updates"), symbol: "arrow.triangle.2.circlepath") {
                     HStack(alignment: .top, spacing: 9) {
                         Image(systemName: captureSymbol)
                             .foregroundStyle(corpusRunner.phase == .failed ? .orange : Theme.cyan)
@@ -1325,7 +1330,7 @@ private struct BrainOverview: View {
                     }
                 }
 
-                section(title: L("Knowledge sources"), symbol: "square.stack.3d.up") {
+                section(title: L("Where your Brain looks"), symbol: "square.stack.3d.up") {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(KnowledgeSourceCatalog.current) { source in
                             let state = LocalSourceHealth.state(for: source, store: model.sourceStore)
@@ -1347,7 +1352,7 @@ private struct BrainOverview: View {
                     }
                 }
 
-                section(title: L("Needs attention"), symbol: "waveform.path.ecg") {
+                section(title: L("Worth your attention"), symbol: "waveform.path.ecg") {
                     if pulseSignals.isEmpty {
                         Text(L("Nothing needs attention right now."))
                             .font(.system(size: 12)).foregroundStyle(.secondary)
@@ -1370,7 +1375,7 @@ private struct BrainOverview: View {
                 }
 
                 HStack(alignment: .top, spacing: 16) {
-                    section(title: L("Recent knowledge"), symbol: "clock") {
+                    section(title: L("Recent notes"), symbol: "clock") {
                         if model.recentDocuments.isEmpty {
                             Text(L("Your Brain has no readable notes yet."))
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
@@ -1393,7 +1398,7 @@ private struct BrainOverview: View {
                             }
                         }
                     }
-                    section(title: L("Recent activity"), symbol: "waveform.path.ecg") {
+                    section(title: L("Recent work"), symbol: "waveform.path.ecg") {
                         if model.recentNodes.isEmpty {
                             Text(L("The graph will appear here as the Brain learns."))
                                 .font(.system(size: 12)).foregroundStyle(.secondary)
@@ -2018,6 +2023,7 @@ private struct BeBrainVerb: Identifiable {
 @MainActor
 private struct VerbRail: View {
     @Bindable var model: GraphModel
+    let selectedSurface: String
     let showOverview: () -> Void
     let showNotes: () -> Void
     let showGraph: () -> Void
@@ -2025,16 +2031,14 @@ private struct VerbRail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             railHeader
-            HStack(spacing: 6) {
-                BrainChip(text: L("local graph"))
-                BrainChip(text: "RAG")
-                BrainChip(text: L("vectors"))
-                BrainChip(text: L("chunks"))
-            }
+            localStatus
             VStack(spacing: 3) {
-                navigationButton(L("Overview"), symbol: "square.grid.2x2", action: showOverview)
-                navigationButton(L("My notes"), symbol: "note.text", action: showNotes)
-                navigationButton(L("Graph"), symbol: "circle.grid.cross", action: showGraph)
+                navigationButton(L("Overview"), symbol: "square.grid.2x2",
+                                 selected: selectedSurface == "overview", action: showOverview)
+                navigationButton(L("My notes"), symbol: "note.text",
+                                 selected: selectedSurface == "notes", action: showNotes)
+                navigationButton(L("Graph"), symbol: "circle.grid.cross",
+                                 selected: selectedSurface == "graph", action: showGraph)
             }
             Divider().opacity(0.35)
             VStack(spacing: 6) {
@@ -2044,7 +2048,6 @@ private struct VerbRail: View {
                 }
             }
             Divider().opacity(0.35)
-            TruthLadder(compact: true)
             Spacer(minLength: 0)
             graphCommands
         }
@@ -2061,11 +2064,36 @@ private struct VerbRail: View {
                 BeLauncherMark(side: 20)
                 Text("BeBrain").font(.system(size: 16, weight: .semibold))
             }
-            Text(L("The search bar is the surface. Behind it is a local brain that remembers, knows what still stands and acts."))
+            Text(L("Your private memory for finding, understanding and doing."))
                 .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var localStatus: some View {
+        HStack(alignment: .top, spacing: 9) {
+            ZStack {
+                Circle().fill(Color.green.opacity(0.16))
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.green)
+            }
+            .frame(width: 24, height: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("Private on this Mac"))
+                    .font(.system(size: 11.5, weight: .semibold))
+                Text(L("%@ things · %@ connections",
+                       String(model.web.nodes.count), String(model.web.links.count)))
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .strokeBorder(.white.opacity(0.07)))
     }
 
     private var graphCommands: some View {
@@ -2092,7 +2120,7 @@ private struct VerbRail: View {
         if let phrase = verb.phrase { model.primeLauncher(phrase) }
     }
 
-    private func navigationButton(_ title: String, symbol: String,
+    private func navigationButton(_ title: String, symbol: String, selected: Bool,
                                   action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
@@ -2100,6 +2128,9 @@ private struct VerbRail: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
+                .foregroundStyle(selected ? Color.primary : Color.secondary)
+                .background(selected ? Theme.accent.opacity(0.16) : .clear,
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
@@ -2153,19 +2184,6 @@ private struct RailCommand: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 8)
         .background(.black.opacity(0.14), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-    }
-}
-
-private struct BrainChip: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 9.5, weight: .medium))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 4)
-            .background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 
