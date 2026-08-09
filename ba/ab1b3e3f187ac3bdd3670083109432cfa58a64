@@ -1,0 +1,52 @@
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_c37922bf2038d7 288-299
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_0f789f5924c2de 118-122,129-130
+Sources/BeLauncherCore/ResultAction.swift
+  s_30bc31f46aebe1::t_472c020cd50202 348-354
+  s_30bc31f46aebe1::t_c37922bf2038d7 282-286
+  s_30bc31f46aebe1::t_1ca68a71646b15 341-343
+Sources/BeLauncher/ContactActionHandler.swift
+  s_30bc31f46aebe1::t_472c020cd50202 72
+  s_30bc31f46aebe1::t_cc9040614e3e95 5-12,15,17-19,22,25-56
+Sources/BeLauncher/ReminderActionHandler.swift
+  s_30bc31f46aebe1::t_1ae3014d9cbd9b 23
+  s_30bc31f46aebe1::t_c37922bf2038d7 8-14,34-53,88-89
+  s_30bc31f46aebe1::t_1ca68a71646b15 7,15,18,20,24-25,54-63
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_7199e7819a5ccf 172-184
+  s_30bc31f46aebe1::t_1ae3014d9cbd9b 168
+Sources/BeLauncherCore/LauncherModel.swift
+  s_30bc31f46aebe1::t_c37922bf2038d7 665-668
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_472c020cd50202 2258-2261
+  s_30bc31f46aebe1::t_1ca68a71646b15 2252-2253,2256-2257,2278,2281-2282,2286,2293-2299
+  s_30bc31f46aebe1::t_c37922bf2038d7 2254-2255,2271-2277,2279,2284
+  s_30bc31f46aebe1::t_52379e51b0b635 2285
+  s_30bc31f46aebe1::t_64dcdc70415fbc 2300-2301
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_ffb9eabe40bc8d 53,61-63
+  s_30bc31f46aebe1::t_41146d49be9920 54,56-57
+  s_30bc31f46aebe1::t_6fbb78e228c84c 55,58-60
+Sources/BeLauncherCore/BELActionCatalog.swift
+  s_30bc31f46aebe1::t_c37922bf2038d7 406-407
+  s_30bc31f46aebe1::t_1ca68a71646b15 427
+  s_30bc31f46aebe1::t_472c020cd50202 601-602,621-622
+  s_30bc31f46aebe1::t_b88cc44a5f1c84 426
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "baab1b3e3f187ac3bdd3670083109432cfa58a64",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
