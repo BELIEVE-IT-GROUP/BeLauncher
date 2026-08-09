@@ -43,3 +43,14 @@ cuentan como UX terminada si no llevan a una operación real.
 El Inbox ya ofrece la bifurcación explícita `Keep in Brain` o `Mark as reviewed`. La primera usa la
 propuesta de memoria existente y conserva la confirmación humana; la segunda limpia la cola sin
 convertir el contenido en memoria.
+
+## Segundo corte: misiones desde el Brain
+
+El botón `Plan a task` ya no dispara una orden ambigua hacia el Launcher. Abre un compositor dentro
+del Brain donde la persona escribe la intención en lenguaje natural. `Show plan` la entrega al
+catálogo real de `MissionPlanner`; si no existe una capacidad compatible, el diálogo lo dice y no
+crea una misión falsa. Cuando sí existe, se abre el flujo ya implementado de plan, aprobación,
+ejecución y recibo.
+
+Esto conserva el límite de confianza: escribir una misión no ejecuta nada, y el plan se puede leer
+antes de que una acción cambie el Mac.

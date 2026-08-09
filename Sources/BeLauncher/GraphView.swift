@@ -801,7 +801,9 @@ struct GraphView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reader: CorpusReaderModel?
     @State private var mission: Mission?
+    @State private var showingMissionComposer = false
     @State private var noteDraft = ""
+    @State private var missionDraft = ""
     @State private var showingNoteComposer = false
     @State private var surface: Surface = .overview
     @State private var inboxRecords = QuickNote.records(inVaultAt: Vault.defaultRoot()).filter { !$0.reviewed }
@@ -830,6 +832,7 @@ struct GraphView: View {
                     BrainOverview(model: model,
                                   corpusRunner: corpusRunner,
                                   newNote: beginNewNote,
+                                  beginMission: beginMission,
                                   importFile: importFile,
                                   runIntent: runIntent,
                                   inboxItems: inboxItems,
@@ -915,6 +918,14 @@ struct GraphView: View {
             BrainMissionView(mission: mission,
                              run: { completion in runMission(mission, completion) },
                              cancel: { cancelMission(mission) })
+        }
+        .sheet(isPresented: $showingMissionComposer) {
+            BrainMissionComposer(initialText: missionDraft) { text in
+                guard let planned = MissionPlanner.plan(text) else { return false }
+                mission = planned
+                showingMissionComposer = false
+                return true
+            }
         }
         .sheet(isPresented: $showingNoteComposer) {
             BrainNoteComposer(initialText: noteDraft) { text in
@@ -1244,6 +1255,11 @@ private struct BrainReaderSurface: View {
         showingNoteComposer = true
     }
 
+    private func beginMission() {
+        missionDraft = ""
+        showingMissionComposer = true
+    }
+
     private func prepareMission(_ answer: String) {
         let brief = answer.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !brief.isEmpty else { return }
@@ -1271,6 +1287,7 @@ private struct BrainOverview: View {
     @Bindable var model: GraphModel
     @Bindable var corpusRunner: CorpusRunner
     let newNote: () -> Void
+    let beginMission: () -> Void
     let importFile: @MainActor (URL) -> Void
     let runIntent: @MainActor (String) -> Void
     let inboxItems: [InboxItem]
@@ -1323,7 +1340,7 @@ private struct BrainOverview: View {
                         Label(L("Ask Brain"), systemImage: "bubble.left.and.text.bubble.right")
                     }
                     .buttonStyle(.bordered)
-                    Button { runIntent("create a mission") } label: {
+                    Button { beginMission() } label: {
                         Label(L("Plan a task"), systemImage: "checklist")
                     }
                     .buttonStyle(.bordered)
@@ -2006,6 +2023,78 @@ private struct BrainMissionView: View {
             .padding(14)
         }
         .frame(width: 560, height: 420)
+    }
+}
+
+@MainActor
+private struct BrainMissionComposer: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var text: String
+    @State private var error: String?
+    let create: (String) -> Bool
+
+    init(initialText: String, create: @escaping (String) -> Bool) {
+        _text = State(initialValue: initialText)
+        self.create = create
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "checklist").foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Plan a task")).font(.headline)
+                    Text(L("Describe what you want done, in your own words.")).font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(20)
+            Divider()
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $text)
+                    .font(.system(size: 15))
+                    .scrollContentBackground(.hidden)
+                    .padding(12)
+                if text.isEmpty {
+                    Text(L("For example: get me working, close the day, or tidy Downloads."))
+                        .font(.system(size: 15))
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 17)
+                        .padding(.vertical, 20)
+                        .allowsHitTesting(false)
+                }
+            }
+            if let error {
+                Label(error, systemImage: "exclamationmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 10)
+            }
+            Divider()
+            HStack {
+                Text(L("You will review the plan before anything changes."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(L("Cancel")) { dismiss() }
+                Button(L("Show plan")) { submit() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(14)
+        }
+        .frame(width: 620, height: 390)
+    }
+
+    private func submit() {
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        if !create(value) {
+            error = L("I do not know how to do that yet. Try one of the examples below.")
+        }
     }
 }
 
