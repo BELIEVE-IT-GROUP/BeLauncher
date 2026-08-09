@@ -1,0 +1,28 @@
+Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift
+  s_30bc31f46aebe1::t_b59006cc68fc69 53-78
+Sources/BeLauncher/AppIntents.swift
+  s_30bc31f46aebe1::t_33e65a240a2050 1-11,14-23,26-35,38-48,50-51,53-54,57,59-61
+  s_30bc31f46aebe1::t_f47af0fa772100 49,56,58
+  s_30bc31f46aebe1::t_555976f27d4d89 12-13,24-25,36-37
+  s_30bc31f46aebe1::t_a8f6a21b60498b 52,55
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_9d9fb126d32389 136-138,141,144-146
+  s_30bc31f46aebe1::t_33e65a240a2050 42,102,131-135,139-140,142-143,147-148
+  s_30bc31f46aebe1::t_8dc9eeb205c577 149-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "534b07b28e9ef32544706fb71e4e9b0a665451e9",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
