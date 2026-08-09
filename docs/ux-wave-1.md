@@ -114,3 +114,10 @@ bundle explica por qué se solicita el permiso.
 La entrada es deliberadamente de solo lectura: buscar no modifica nada y Enter copia el recordatorio
 seleccionado. Crear, completar, editar y borrar quedan fuera de este corte hasta tener sus propios
 tests de confirmación y recibo; siguen marcados como no disponibles en el catálogo.
+
+## Wave 2: Contacts
+
+Contacts tiene ahora un puente de lectura local mediante `Contacts.framework`: Settings muestra el
+permiso, `/contacts` lista la libreta y una búsqueda por nombre, correo o teléfono devuelve un
+resultado que se puede inspeccionar y copiar. Crear, editar y compartir contactos siguen fuera de
+este corte para no convertir una lectura en una mutación sin confirmación.
