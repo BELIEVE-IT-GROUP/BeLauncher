@@ -256,6 +256,15 @@ struct CommandView: View {
                         .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    Button {
+                        let question = model.query
+                        model.onNaturalLanguageQuestion?(question)
+                    } label: {
+                        Label(L("Ask your brain"), systemImage: "brain.head.profile")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .padding(.top, 5)
                 }
             }
 

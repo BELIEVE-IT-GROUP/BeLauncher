@@ -1384,10 +1384,17 @@ private struct BrainOverview: View {
                                             .foregroundStyle(state == .planned ? .secondary : Theme.cyan)
                                     }
                                     Text(source.scope).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                                if state == .available || state == .manual {
+                                    Button { runIntent("open settings") } label: {
+                                        Image(systemName: "gearshape")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help(L("Open settings"))
                                 }
                             }
                         }
-                    }
                 }
 
                 section(title: L("Worth your attention"), symbol: "waveform.path.ecg") {

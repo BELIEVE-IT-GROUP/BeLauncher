@@ -86,6 +86,10 @@ Cuando el verbo no tiene texto disponible, el Launcher abre un compositor propio
 pegar el contenido. Ya no exige haber copiado algo antes ni deja que el verbo falle sobre una entrada
 vacía.
 
+Un término sin resultados ofrece ahora `Ask your brain` con la misma frase, en lugar de dejar a la
+persona solo con ejemplos técnicos. En el Brain, cada fuente disponible o manual tiene un acceso
+directo a Ajustes; las fuentes planificadas siguen marcadas como tales y no prometen una conexión.
+
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover
