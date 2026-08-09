@@ -46,6 +46,7 @@ cc_binary(
         "//runtime/conversation:conversation",
         "//runtime/engine:engine_factory",
         "//runtime/engine:litert_lm_lib",
+        "//schema/capabilities:speculative_decoding",
     ],
 )
 BUILD
@@ -55,6 +56,15 @@ binary="$SOURCE_DIR/bazel-bin/spikes/belauncher_x2/litert_lm_x2_bridge"
 [[ -x "$binary" ]] || fail "Bazel reported success but bridge is missing"
 [[ "$(file -b "$binary")" == *"arm64"* ]] || fail "bridge is not an arm64 Mach-O binary"
 
-output="$($binary "$MODEL_PATH")" || fail "bridge did not complete inference"
-grep -q 'X2_OK' <<< "$output" || fail "bridge response did not contain the expected text"
+if [[ "${INSPECT_ONLY:-0}" == "1" ]]; then
+    output="$($binary --inspect-only "$MODEL_PATH")" \
+        || fail "capability inspection did not complete"
+else
+    output="$($binary "$MODEL_PATH")" || fail "bridge did not complete inference"
+    grep -q 'X2_OK' <<< "$output" || fail "bridge response did not contain the expected text"
+fi
+if [[ "${REQUIRE_MTP:-0}" == "1" ]]; then
+    grep -q '"speculative_decoding":true' <<< "$output" \
+        || fail "model does not advertise upstream speculative decoding support"
+fi
 printf '%s\n' "$output"

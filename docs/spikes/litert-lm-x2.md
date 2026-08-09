@@ -56,6 +56,23 @@ The bridge deliberately emits only the final `content` channel. It does not expo
 internal `thought` or `reasoning_content` fields to a caller. The output sentinel is checked both
 inside the bridge and by the shell runner.
 
+The bridge also calls LiteRT-LM's official `HasSpeculativeDecodingSupport` capability reader before
+generation. The Qwen artifact returned `{"speculative_decoding":false}`. The runner supports
+`INSPECT_ONLY=1` for metadata-only checks and `REQUIRE_MTP=1` for a fail-closed positive gate; this
+avoids allocating the full runtime merely to ask whether an artifact contains a drafter section.
+
+The official `gemma-4-E4B-it.litertlm` artifact then passed both gates: capability inspection returned
+`{"speculative_decoding":true}`, and a real CPU generation with the bridge exited 0 and returned
+`{"content":"X2_OK","speculative_decoding":true}`. It is 3,659,530,240 bytes with SHA-256
+`0b2a8980ce155fd97673d8e820b4d29d9c7d99b8fa6806f425d969b145bd52e0`. The runtime reported the
+model's `decode`, `prefill_128`, `prefill_1024` and `verify` signatures. `/usr/bin/time -l` recorded
+7.19 s wall time, 4,885,430,272 bytes maximum resident set and 2,231,621,488 bytes peak footprint
+on this 24 GiB arm64 host.
+
+This proves the packaged E4B artifact and upstream capability path, not that the public Conversation
+API has an MTP scheduler or that BeLauncher should enable it. The bridge deliberately uses ordinary
+conversation generation; the scheduler/acceptance-rate work remains X4.
+
 ## Acceptance gates
 
 - Build success is insufficient; the bridge must load the artifact and generate text.
@@ -67,7 +84,7 @@ inside the bridge and by the shell runner.
 ## Decision
 
 The C++ bridge path is technically viable and should be revisited only behind an isolated provider
-adapter. Do not add it to BeLauncher yet: E4B/MTP has not passed a model-level validation, the GPU
-accelerator packaging is unresolved from X1, and the user's M1/8 GB memory budget still needs a
-dedicated benchmark with the exact candidate artifact. X2 is therefore complete for the embeddable
-bridge sub-gate, but the E4B/MTP decision remains explicitly open rather than being reported as done.
+adapter. Do not add it to BeLauncher yet: the GPU accelerator packaging is unresolved from X1, the
+user's M1/8 GB memory budget still needs a dedicated benchmark, and the public API does not expose
+the MTP scheduler required for a production integration. X2 is complete for the embeddable bridge
+and E4B capability sub-gates; X4 remains the separate scheduler decision.

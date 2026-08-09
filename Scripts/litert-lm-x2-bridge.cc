@@ -6,14 +6,28 @@
 #include "runtime/conversation/conversation.h"
 #include "runtime/engine/engine_factory.h"
 #include "runtime/engine/engine_settings.h"
+#include "schema/capabilities/speculative_decoding.h"
 
 int main(int argc, char** argv) {
-  if (argc != 2) {
-    std::cerr << "usage: litert_lm_x2_bridge MODEL_PATH\n";
+  const bool inspectOnly = argc == 3 && std::string(argv[1]) == "--inspect-only";
+  const char* modelPath = inspectOnly ? argv[2] : (argc == 2 ? argv[1] : nullptr);
+  if (modelPath == nullptr) {
+    std::cerr << "usage: litert_lm_x2_bridge [--inspect-only] MODEL_PATH\n";
     return 64;
   }
 
-  auto assets = litert::lm::ModelAssets::Create(argv[1]);
+  auto speculative = litert::lm::schema::capabilities::HasSpeculativeDecodingSupport(
+      std::string(modelPath));
+  if (!speculative.ok()) {
+    std::cerr << "capability: " << speculative.status() << "\n";
+    return 10;
+  }
+  if (inspectOnly) {
+    std::cout << nlohmann::json{{"speculative_decoding", *speculative}}.dump() << "\n";
+    return 0;
+  }
+
+  auto assets = litert::lm::ModelAssets::Create(modelPath);
   if (!assets.ok()) {
     std::cerr << "model_assets: " << assets.status() << "\n";
     return 2;
@@ -61,6 +75,9 @@ int main(int argc, char** argv) {
     return 9;
   }
   // Keep internal channels such as reasoning_content out of the bridge contract.
-  std::cout << nlohmann::json{{"content", text}}.dump() << "\n";
+  std::cout << nlohmann::json{{"content", text},
+                              {"speculative_decoding", *speculative}}
+                   .dump()
+            << "\n";
   return 0;
 }
