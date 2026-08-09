@@ -75,7 +75,7 @@ public enum Capture {
             let detail = [contact.email, contact.phone].filter { !$0.isEmpty }
                 .joined(separator: " · ")
             return Event(node: WorkNode(
-                id: WorkNode.identifier(kind: .person, name: contact.name),
+                id: "person:contact:\(contact.id)",
                 kind: .person, name: contact.name, detail: detail, lastSeen: date
             ))
         }

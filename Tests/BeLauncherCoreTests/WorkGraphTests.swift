@@ -331,6 +331,7 @@ struct CaptureWiringTests {
         #expect(events[0].node.kind == .person)
         #expect(events[0].node.name == "Ana López")
         #expect(events[0].node.detail == "ana@example.com")
+        #expect(events[0].node.id == "person:contact:c1")
         #expect(events[0].node.target.isEmpty)
     }
 

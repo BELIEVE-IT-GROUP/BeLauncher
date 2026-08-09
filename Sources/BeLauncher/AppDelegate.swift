@@ -504,6 +504,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case "contacts":
             guard contacts.isAuthorised else { return false }
             await contacts.refresh()
+            let current = Set(Capture.contacts(contacts.contacts).map(\.node.id))
+            let old = Set((store?.nodes(kind: .person, limit: 2_000) ?? [])
+                .map(\.id).filter { $0.hasPrefix("person:contact:") })
+            store?.removeWorkNodes(ids: old.subtracting(current))
             rememberAll(Capture.contacts(contacts.contacts))
         case "photos":
             guard photos.isAuthorised else { return false }
