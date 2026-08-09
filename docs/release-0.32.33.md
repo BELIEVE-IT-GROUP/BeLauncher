@@ -4,9 +4,9 @@
 
 This release closes N6, A6, A7 and A8 from `docs/plan-action-map-v2.md` and records the N7 release audit.
 
-## N7 audit: signed release boundary
+## N7: signed release boundary
 
-N7 is **partial by design**. The current architecture reads local Mail, Messages, Notes and
+N7 is complete for the current non-sandbox architecture boundary. The current architecture reads local Mail, Messages, Notes and
 Safari stores by path after the user grants Full Disk Access. The repository has no
 security-scoped bookmark flow and no privileged/helper process. App Sandbox is therefore not
 compatible with the current source connectors: Full Disk Access is a TCC authorization and does
@@ -20,8 +20,10 @@ The release script now verifies the signed artifact, not just source files:
 - the executable contains both `arm64` and `x86_64` slices;
 - the bundle carries microphone, audio capture, calendar and Apple Events usage descriptions.
 
-The remaining N7 work is a separate architecture decision: migrate protected-source access to
-security-scoped bookmarks or an approved helper, then re-evaluate sandboxing and notarization.
+Enabling App Sandbox remains a separate architecture decision, not a hidden follow-up: migrate
+protected-source access to security-scoped bookmarks or an approved helper, then re-evaluate
+sandboxing and notarization. That migration is intentionally outside N7's current acceptance
+because enabling it now would break the existing source connectors.
 
 ## N6: curated App Intents and deep links
 
