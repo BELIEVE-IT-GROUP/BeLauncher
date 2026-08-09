@@ -51,6 +51,29 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("public API actions are wired to concrete handlers")
+    func publicAdaptersAreRegistered() throws {
+        let runtime = BELActionRuntime()
+        for id in ["screen.read_context", "screen.ocr", "files.extract_pdf_text", "calendar.upcoming"] {
+            let definition = try #require(BELActionCatalog.named(id))
+            #expect(runtime.handler(for: definition)?.actionID == id)
+        }
+    }
+
+    @Test("permission-sensitive public actions stop at the central gate")
+    func publicAdaptersRespectCapabilities() async throws {
+        let runtime = BELActionRuntime()
+        let ocr = try #require(BELActionCatalog.named("screen.ocr"))
+        let calendar = try #require(BELActionCatalog.named("calendar.upcoming"))
+
+        await #expect(throws: BELActionExecutionError.blocked(.missingCapability(.screenRecording))) {
+            try await runtime.execute(ocr, capabilities: BELCapabilitySnapshot())
+        }
+        await #expect(throws: BELActionExecutionError.blocked(.missingCapability(.calendar))) {
+            try await runtime.execute(calendar, capabilities: BELCapabilitySnapshot())
+        }
+    }
+
     #if canImport(AppIntents)
     @Test("App Intents publish commands for the running app")
     @MainActor

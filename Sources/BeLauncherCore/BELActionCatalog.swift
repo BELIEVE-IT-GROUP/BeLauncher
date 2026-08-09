@@ -19,7 +19,7 @@ public enum BELActionCatalog {
     /// The definitions that have a corresponding runtime today. The legacy registries remain the
     /// execution layer until N1 migrates them behind a handler protocol.
     public static var all: [BELActionDefinition] {
-        nativeSystem + nativeFiles + nativeShortcuts + aiVerbs
+        nativeSystem + nativeFiles + nativeScreen + nativeCalendar + nativeShortcuts + aiVerbs
     }
 
     public static func named(_ id: String) -> BELActionDefinition? {
@@ -132,6 +132,40 @@ public enum BELActionCatalog {
             routePolicy: .deterministic, adapter: .shortcut,
             availability: .implemented
         )]
+    }
+
+    private static var nativeScreen: [BELActionDefinition] {
+        [
+            BELActionDefinition(id: "screen.read_context", kind: .native,
+                                titleKey: "Read screen context",
+                                aliases: ["read screen", "read selection", L("Read screen")],
+                                output: .text, risk: .r0,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
+            BELActionDefinition(id: "screen.ocr", kind: .native,
+                                titleKey: "Read screen with OCR",
+                                aliases: ["ocr screen", "read screen aloud", L("Read screen with OCR")],
+                                output: .text, requiredCapabilities: [.screenRecording], risk: .r0,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
+            BELActionDefinition(id: "files.extract_pdf_text", kind: .native,
+                                titleKey: "Extract PDF text",
+                                aliases: ["read pdf", "extract pdf text", L("Read PDF")],
+                                arguments: [.init("path", .path)], output: .text,
+                                requiredCapabilities: [.files], risk: .r0,
+                                routePolicy: .deterministic, adapter: .publicAPI,
+                                availability: .implemented),
+        ]
+    }
+
+    private static var nativeCalendar: [BELActionDefinition] {
+        [BELActionDefinition(id: "calendar.upcoming", kind: .native,
+                             titleKey: "Upcoming meetings",
+                             aliases: ["upcoming meetings", "next meetings", L("Upcoming meetings")],
+                             arguments: [.init("daysAhead", .integer, required: false)], output: .text,
+                             requiredCapabilities: [.calendar], risk: .r0,
+                             routePolicy: .deterministic, adapter: .publicAPI,
+                             availability: .implemented)]
     }
 
     private static func nativeID(for kind: SystemCommand.Kind) -> String {

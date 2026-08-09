@@ -48,7 +48,7 @@ struct ShortcutActionHandler: BELActionHandler {
             throw ShortcutActionError.failed(status: process.terminationStatus,
                                               detail: String(problem.prefix(4_000)))
         }
-        return BELActionResult(text: String(output.prefix(16_000)), receipt: "shortcut:(name)")
+        return BELActionResult(text: String(output.prefix(16_000)), receipt: "shortcut:\(name)")
     }
 }
 

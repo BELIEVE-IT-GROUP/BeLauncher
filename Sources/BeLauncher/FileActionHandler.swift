@@ -29,17 +29,17 @@ struct FileActionHandler: BELActionHandler {
         switch actionID {
         case "files.open":
             guard NSWorkspace.shared.open(url) else { throw FileActionError.couldNotOpen(value.path) }
-            return BELActionResult(text: "Opened (url.lastPathComponent)", changed: [url.path],
+            return BELActionResult(text: "Opened \(url.lastPathComponent)", changed: [url.path],
                                    receipt: "file:open")
         case "files.reveal":
             NSWorkspace.shared.activateFileViewerSelecting([url])
-            return BELActionResult(text: "Revealed (url.lastPathComponent)", changed: [url.path],
+            return BELActionResult(text: "Revealed \(url.lastPathComponent)", changed: [url.path],
                                    receipt: "file:reveal")
         case "files.move_to_trash":
             do {
                 var trashed: NSURL?
                 try FileManager.default.trashItem(at: url, resultingItemURL: &trashed)
-                return BELActionResult(text: "Moved (url.lastPathComponent) to Trash",
+                return BELActionResult(text: "Moved \(url.lastPathComponent) to Trash",
                                        changed: [trashed?.path ?? url.path], receipt: "file:trash")
             } catch {
                 throw FileActionError.couldNotMoveToTrash(error.localizedDescription)

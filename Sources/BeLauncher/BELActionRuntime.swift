@@ -18,6 +18,9 @@ struct BELActionRuntime: Sendable {
         case .native:
             return SystemCommandActionHandler(definition: definition)
                 ?? FileActionHandler(definition: definition)
+                ?? PDFActionHandler(definition: definition)
+                ?? ScreenActionHandler(definition: definition)
+                ?? CalendarActionHandler(definition: definition)
                 ?? ShortcutActionHandler(definition: definition)
         case .ai:
             guard let aiRunner else { return nil }
