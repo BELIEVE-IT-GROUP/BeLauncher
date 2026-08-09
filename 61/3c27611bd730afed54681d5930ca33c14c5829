@@ -1,0 +1,33 @@
+Sources/BeLauncherCore/LauncherModel.swift
+  s_30bc31f46aebe1::t_86f95d03f9431d 200,248-258,669-671
+  s_30bc31f46aebe1::t_b24172966b2a9c 672-673
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_bc24de61ddf65f 85-88
+Sources/BeLauncherCore/SpanishStrings+Interface.swift
+  s_30bc31f46aebe1::t_86f95d03f9431d 34
+  s_30bc31f46aebe1::t_d9ccb48136214c 35-37
+Sources/BeLauncherCore/SearchEngine.swift
+  s_30bc31f46aebe1::t_86f95d03f9431d 485-491
+Sources/BeLauncher/CommandView.swift
+  s_30bc31f46aebe1::t_d9ccb48136214c 71-78,699-768
+  s_30bc31f46aebe1::t_dcca798f33e341 769
+Tests/BeLauncherCoreTests/AIVerbTests.swift
+  s_30bc31f46aebe1::t_0c9bf4e85703b6 225-226,228-229
+  s_30bc31f46aebe1::t_3ae76bf16e1263 230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "613c27611bd730afed54681d5930ca33c14c5829",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
