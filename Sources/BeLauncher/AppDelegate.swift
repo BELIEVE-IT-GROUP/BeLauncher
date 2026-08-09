@@ -1954,6 +1954,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         case .systemCommand(let kind):
             panel?.orderOut(nil)
+            if kind.hasPrefix("bel:") {
+                let parts = kind.split(separator: "\u{1F}", maxSplits: 1, omittingEmptySubsequences: false)
+                let id = String(parts[0].dropFirst("bel:".count))
+                let argument = parts.count == 2 ? String(parts[1]) : ""
+                executeStablePublicAction(id: id, argument: argument)
+                return nil
+            }
             // Not a system action: it opens a window of ours. Handled before the runner rather
             // than inside it, so the runner keeps meaning "things macOS does".
             if kind == SystemCommand.Kind.openBrain.rawValue { openGraph(); return nil }
@@ -2052,6 +2059,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 report(L("Confirmation required"), L("This action cannot be undone."))
             } catch {
                 report(L("The file action could not be completed"), "\(error)")
+            }
+        }
+    }
+
+    private func executeStablePublicAction(id: String, argument: String) {
+        guard let definition = BELActionCatalog.named(id) else {
+            report(L("The action is unavailable"), id)
+            return
+        }
+        let input: Data
+        do {
+            switch id {
+            case "files.extract_pdf_text":
+                input = try JSONEncoder().encode(BELPDFActionInput(path: argument))
+            case "calendar.upcoming":
+                input = try JSONEncoder().encode(BELCalendarActionInput())
+            default:
+                input = Data()
+            }
+        } catch {
+            report(L("The action could not be prepared"), "\(error)")
+            return
+        }
+        Task { @MainActor in
+            do {
+                let result = try await BELActionRuntime().execute(definition, input: input,
+                                                                  capabilities: .allGranted)
+                report(L("Action completed"), result.text)
+            } catch {
+                report(L("The action could not be completed"), "\(error)")
             }
         }
     }

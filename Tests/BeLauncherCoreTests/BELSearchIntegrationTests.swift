@@ -40,4 +40,19 @@ struct BELSearchIntegrationTests {
         #expect(result?.kind == .file)
         #expect(result?.payload == "/tmp/brief.md")
     }
+
+    @Test("public native actions appear in the launcher with executable payloads")
+    func publicActionsCarryTheirStableIDs() {
+        let cases = [
+            ("read screen", "screen.read_context"),
+            ("ocr screen", "screen.ocr"),
+            ("read pdf /tmp/brief.pdf", "files.extract_pdf_text"),
+            ("upcoming meetings", "calendar.upcoming"),
+        ]
+        for (query, id) in cases {
+            let result = SearchEngine.search(query, in: SearchInput()).first
+            #expect(result?.actionID == id, "missing stable action for \(query)")
+            #expect(result?.payload.hasPrefix("bel:\(id)\u{1F}") == true)
+        }
+    }
 }

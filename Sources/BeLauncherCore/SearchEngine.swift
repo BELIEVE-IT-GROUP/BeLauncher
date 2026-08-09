@@ -483,6 +483,16 @@ public enum SearchEngine {
                         subtitle: L(definition.titleKey),
                         score: 100_120 + match.confidence, matched: [], payload: path,
                         actionID: definition.id))
+                } else if definition.kind == .native {
+                    let argument = match.argument
+                    let payload = "bel:\(definition.id)\u{1F}\(argument)"
+                    pinned.append(SearchResult(
+                        id: "bel-\(definition.id)", kind: .system,
+                        title: L(definition.titleKey),
+                        subtitle: definition.requiredCapabilities.isEmpty
+                            ? L("Local action") : L("Needs permission if it is not granted"),
+                        score: 100_120 + match.confidence, matched: [], payload: payload,
+                        actionID: definition.id))
                 } else if definition.kind == .ai,
                           let legacyID = BELActionCatalog.legacyAIVerbID(for: definition.id),
                           let verb = AIVerb.named(legacyID) {
