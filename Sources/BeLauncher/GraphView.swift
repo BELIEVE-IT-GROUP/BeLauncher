@@ -860,13 +860,16 @@ struct GraphView: View {
                                   showGraph: { surface = .graph })
                 } else if surface == .inbox {
                     BrainNotesView(onlyInbox: true,
-                                   proposeMemory: { text in runIntent("remember that (text)") },
+                                   proposeMemory: { text in runIntent("remember that \(text)") },
+                                   clipboardItems: inboxItems.filter { $0.kind == .clipboard },
+                                   rememberClip: rememberInboxClip,
+                                   dismissClip: dismissInboxClip,
                                    newNote: beginNewNote,
                                    retryTranscription: { retryTranscription($0) },
                                    refresh: reloadInbox)
                 } else if surface == .notes {
                     BrainNotesView(
-                        proposeMemory: { text in runIntent("remember that (text)") },
+                        proposeMemory: { text in runIntent("remember that \(text)") },
                         newNote: beginNewNote,
                         retryTranscription: { retryTranscription($0) },
                         refresh: reloadInbox)
@@ -942,6 +945,16 @@ struct GraphView: View {
     private func reloadInbox() {
         inboxRecords = QuickNote.records(inVaultAt: Vault.defaultRoot()).filter { !$0.reviewed }
         inboxItems = model.inboxItems
+    }
+
+    private func rememberInboxClip(_ item: InboxItem) {
+        runIntent("remember this clipboard capture: (item.excerpt)")
+    }
+
+    private func dismissInboxClip(_ item: InboxItem) {
+        guard let id = item.clipID else { return }
+        model.unpinInboxClip(Clip(id: id, text: item.excerpt))
+        reloadInbox()
     }
 
 @MainActor
@@ -1615,6 +1628,9 @@ private struct BrainOverview: View {
 private struct BrainNotesView: View {
     var onlyInbox = false
     let proposeMemory: (String) -> Void
+    var clipboardItems: [InboxItem] = []
+    var rememberClip: (InboxItem) -> Void = { _ in }
+    var dismissClip: (InboxItem) -> Void = { _ in }
     let newNote: () -> Void
     let retryTranscription: (QuickNote.Record) -> Void
     let refresh: () -> Void
@@ -1672,7 +1688,39 @@ private struct BrainNotesView: View {
                     }
                     .padding(12)
                     Divider()
-                    if filtered.isEmpty {
+                    if onlyInbox && !clipboardItems.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(L("Clipboard waiting"))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.tertiary)
+                                .padding(.horizontal, 14)
+                                .padding(.top, 10)
+                            ForEach(clipboardItems) { item in
+                                HStack(alignment: .top, spacing: 7) {
+                                    Image(systemName: "paperclip").foregroundStyle(Theme.cyan)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.title).lineLimit(1)
+                                        Text(item.excerpt).font(.caption)
+                                            .foregroundStyle(.secondary).lineLimit(2)
+                                    }
+                                    Spacer(minLength: 2)
+                                    Button { rememberClip(item) } label: {
+                                        Image(systemName: "brain.head.profile")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help(L("Keep in Brain"))
+                                    Button { dismissClip(item) } label: {
+                                        Image(systemName: "pin.slash")
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help(L("Remove from Inbox"))
+                                }
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                            }
+                        }
+                        Divider()
+                    }
+                    if filtered.isEmpty && clipboardItems.isEmpty {
                         VStack(spacing: 8) {
                             Spacer()
                             Image(systemName: "note.text").font(.title2).foregroundStyle(.secondary)
@@ -1682,7 +1730,7 @@ private struct BrainNotesView: View {
                                 .font(.caption).foregroundStyle(.secondary)
                             Spacer()
                         }
-                    } else {
+                    } else if !filtered.isEmpty {
                         ScrollView {
                             LazyVStack(spacing: 0) {
                                 ForEach(filtered) { note in noteRow(note) }
@@ -1745,6 +1793,15 @@ private struct BrainNotesView: View {
                         Button(L("Save")) { save(selected) }.buttonStyle(.borderedProminent)
                     } else {
                         Button(L("Edit")) { draft = body(of: selected); editing = true }
+                    }
+                    if let source = selected.sourcePath, !source.isEmpty {
+                        Button {
+                            NSWorkspace.shared.open(URL(fileURLWithPath: source))
+                        } label: {
+                            Image(systemName: "arrow.up.right.square")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(L("Open original source"))
                     }
                     Button {
                         NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: selected.path)])
