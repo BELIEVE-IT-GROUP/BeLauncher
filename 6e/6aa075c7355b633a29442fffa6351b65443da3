@@ -1,0 +1,26 @@
+Sources/BeLauncher/CorpusRunner.swift
+  s_30bc31f46aebe1::t_d9190509402b45 729-737,740-746,750-753,771-772
+docs/release-0.32.60.md
+  s_30bc31f46aebe1::t_990a69bbe2eb34 1-26
+Tests/BeLauncherAppTests/CorpusRunnerTests.swift
+  s_30bc31f46aebe1::t_2965cf9c1585da 66,320-360,371
+  s_30bc31f46aebe1::t_19601ca9a8ddb8 361-370
+  s_30bc31f46aebe1::t_482fd462f9e7a9 25-29,31,46-65
+  s_30bc31f46aebe1::t_b11b6c2ff1b148 67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "6e6aa075c7355b633a29442fffa6351b65443da3",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
