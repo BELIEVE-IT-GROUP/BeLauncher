@@ -63,6 +63,9 @@ numéricos de las tarjetas solo se muestran en el modo dedicado de portapapeles,
 están conectados al teclado. En la vista mixta no se promete una tecla que podría ejecutar otra
 fila.
 
+La barra de comando también muestra un botón de icono para abrir las acciones de la selección
+actual. `⌘K` sigue siendo el camino rápido, pero ya no es un requisito oculto para descubrirlas.
+
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover

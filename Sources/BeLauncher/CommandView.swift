@@ -192,6 +192,18 @@ struct CommandView: View {
             )
             .frame(height: 28)
 
+            Button {
+                model.handle(.actionPanel)
+            } label: {
+                Image(systemName: model.isActionPanelOpen ? "bolt.horizontal.fill" : "bolt.horizontal")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(model.isActionPanelOpen ? Theme.cyan : .secondary)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L("Quick actions"))
+
             if !model.query.isEmpty {
                 Button {
                     model.query = ""
