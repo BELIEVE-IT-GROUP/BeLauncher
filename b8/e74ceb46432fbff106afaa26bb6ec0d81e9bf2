@@ -1,0 +1,23 @@
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_5a46e9f559d3ab 695-701
+Sources/BeLauncher/PhotoAccess.swift
+  s_30bc31f46aebe1::t_5a46e9f559d3ab 22-25
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_5a46e9f559d3ab 138-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b8e74ceb46432fbff106afaa26bb6ec0d81e9bf2",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
