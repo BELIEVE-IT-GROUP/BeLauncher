@@ -1,0 +1,28 @@
+Tests/BeLauncherAppTests/LocalSourceConnectorTests.swift
+  s_30bc31f46aebe1::t_54309f1e30cab7 52-70
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_44a630df76bf23 156-158
+Sources/BeLauncher/LocalSourceHealth.swift
+  s_30bc31f46aebe1::t_d1c30544a410a2 24-25
+Sources/BeLauncher/AppDelegate.swift
+  s_30bc31f46aebe1::t_d1c30544a410a2 499,508,517,521,529-533
+  s_30bc31f46aebe1::t_9f6f01cacbd97f 534-535
+Sources/BeLauncher/SourceCenterView.swift
+  s_30bc31f46aebe1::t_d1c30544a410a2 190,192,194,196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "10b1b9bf0f0292173de372420a2fc865a659ccba",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
