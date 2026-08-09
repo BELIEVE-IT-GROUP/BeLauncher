@@ -26,20 +26,22 @@ enum LocalSourceHealth {
         }
     }
 
-    static func successfulSync(_ id: String, store: Store) -> Bool {
+    static func successfulSync(_ id: String, store: Store,
+                               home: String = NSHomeDirectory()) -> Bool {
         guard store.setting("source_enabled_\(id)", default: true),
               let raw = store.setting("source_last_sync_\(id)"),
               let timestamp = Double(raw), timestamp > 0,
               (store.setting("source_last_problem_\(id)") ?? "").isEmpty else { return false }
         switch id {
         case "apple-mail":
-            return LocalMailConnector.mailRoot() != nil
+            guard let root = LocalMailConnector.mailRoot(home: home) else { return false }
+            return FileManager.default.isReadableFile(atPath: root.path)
         case "messages":
-            return FileManager.default.fileExists(
-                atPath: NSHomeDirectory() + "/Library/Messages/chat.db")
+            return FileManager.default.isReadableFile(
+                atPath: home + "/Library/Messages/chat.db")
         case "notes":
-            return FileManager.default.fileExists(
-                atPath: NSHomeDirectory()
+            return FileManager.default.isReadableFile(
+                atPath: home
                     + "/Library/Group Containers/group.com.apple.notes/NoteStore.sqlite")
         default:
             return true

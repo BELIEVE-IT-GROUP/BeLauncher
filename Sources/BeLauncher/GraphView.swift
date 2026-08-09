@@ -2,6 +2,10 @@ import SwiftUI
 import AppKit
 import BeLauncherCore
 
+enum BELBrainNavigationNotification {
+    static let notes = Notification.Name("com.believe.belauncher.brain.notes")
+}
+
 /// The graph of what you did.
 ///
 /// Obsidian's graph is what you wrote. This one is what you did. Nobody types a node here and
@@ -918,6 +922,10 @@ struct GraphView: View {
                                })
         }
         .onAppear { reloadInbox() }
+        .onReceive(NotificationCenter.default.publisher(for: BELBrainNavigationNotification.notes)) { _ in
+            surface = .notes
+            reloadInbox()
+        }
     }
 
     private func reloadInbox() {

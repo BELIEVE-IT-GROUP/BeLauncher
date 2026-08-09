@@ -19,7 +19,7 @@ struct LauncherInputNeeds: Equatable {
     var isEmpty: Bool { query.isEmpty }
     var needsPacks: Bool { mode == .all && query.hasPrefix("/") }
     var needsNotes: Bool {
-        mode == .all && ["notas", "mis notas", "quick notes", "inbox"].contains(query.lowercased())
+        mode == .all && ["notas", "mis notas", "my notes", "notes", "quick note", "quick notes", "inbox"].contains(query.lowercased())
     }
     var needsProcesses: Bool { mode == .all && ProcessList.order(for: query) != nil }
     var needsWorkspaces: Bool { mode == .all && WorkspaceLayouts.Intent.detect(query) != nil }

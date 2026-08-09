@@ -182,7 +182,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             center.addObserver(forName: BELAppIntentNotification.openNotes, object: nil,
                                queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.primeLauncher(with: "my notes") }
+                Task { @MainActor in
+                    self?.openGraph()
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: BELBrainNavigationNotification.notes,
+                                                        object: nil)
+                    }
+                }
             },
             center.addObserver(forName: BELAppIntentNotification.openGraph, object: nil,
                                queue: .main) { [weak self] _ in
@@ -190,7 +196,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             center.addObserver(forName: BELAppIntentNotification.transcribeLastVoice, object: nil,
                                queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.openGraph() }
+                Task { @MainActor in
+                    self?.openGraph()
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: BELBrainNavigationNotification.notes,
+                                                        object: nil)
+                    }
+                }
             },
             center.addObserver(forName: BELAppIntentNotification.openLauncher, object: nil,
                                queue: .main) { [weak self] _ in

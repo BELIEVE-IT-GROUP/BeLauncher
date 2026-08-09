@@ -61,6 +61,13 @@ struct LauncherInputNeedsTests {
         #expect(!plain.needsPacks)
     }
 
+    @Test("las invocaciones de Notes en inglés abren la superficie de notas")
+    func notesAliasesAreRecognized() {
+        #expect(LauncherInputNeeds(query: "my notes", mode: .all).needsNotes)
+        #expect(LauncherInputNeeds(query: "notes", mode: .all).needsNotes)
+        #expect(LauncherInputNeeds(query: "quick note", mode: .all).needsNotes)
+    }
+
     @Test("el modo clipboard no despierta otras superficies aunque el texto parezca comando")
     func clipboardModeStaysLightweight() {
         let process = LauncherInputNeeds(query: "cpu", mode: .clipboard)
