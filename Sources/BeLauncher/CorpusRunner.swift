@@ -726,16 +726,31 @@ final class CorpusRunner {
             corpus.considered.first { $0.episode.id == episode.id }?.isIndexed ?? false
         }
 
-        // Marked as done even with nothing to distill. A quiet day has no statements and retrying
-        // it every half hour forever would ask the model to summarise nothing, repeatedly.
-        store.setSetting("distilled_day", String(yesterday.timeIntervalSince1970))
-        guard episodes.count >= Distillation.minimumEpisodes else { return }
+        // Marked as done only when there is truly nothing to ask. A quiet day has no statements
+        // and retrying it every half hour forever would ask the model to summarise nothing,
+        // repeatedly. A model failure is different: that must stay due so the next healthy run
+        // can recover it.
+        guard episodes.count >= Distillation.minimumEpisodes else {
+            store.setSetting("distilled_day", String(yesterday.timeIntervalSince1970))
+            store.setSetting("distillation_last_problem", "")
+            return
+        }
 
         let (system, user) = Distillation.prompt(for: episodes)
-        guard let answer = try? await ask(system, user) else { return }
+        let answer: String
+        do {
+            answer = try await ask(system, user)
+        } catch {
+            store.setSetting("distillation_last_problem", error.localizedDescription)
+            return
+        }
 
         let statements = Distillation.parse(answer, episodes: episodes, day: yesterday)
         guard isCapturing else { return }
+        guard !statements.isEmpty else {
+            store.setSetting("distillation_last_problem", "The model returned no cited statements.")
+            return
+        }
 
         for statement in statements {
             // The citation travels into the text itself. A statement whose sources are only in a
@@ -753,6 +768,8 @@ final class CorpusRunner {
                 CorpusFiles.document(for: $0, titles: titles)
             })
         }
+        store.setSetting("distilled_day", String(yesterday.timeIntervalSince1970))
+        store.setSetting("distillation_last_problem", "")
         _ = try? await brain?.embedEverything(maximumBatches: 2)
     }
 

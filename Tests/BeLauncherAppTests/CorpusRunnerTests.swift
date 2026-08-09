@@ -22,12 +22,13 @@ struct CorpusRunnerTests {
 
     /// Un runner sin cerebro ni modelo: nada de lo que se prueba aquí los necesita, y pedirlos
     /// convertiría estas pruebas en pruebas de red.
-    private func runner(_ store: Store, corpusRoot: String? = nil) -> CorpusRunner {
+    private func runner(_ store: Store, corpusRoot: String? = nil,
+                        ask: @escaping (String, String) async throws -> String = { _, _ in
+                            Issue.record("no se debería haber llamado al modelo")
+                            return ""
+                        }) -> CorpusRunner {
         CorpusRunner(store: store, brain: nil,
-                     corpusRoot: corpusRoot ?? CorpusFolder.defaultRoot(), ask: { _, _ in
-            Issue.record("no se debería haber llamado al modelo")
-            return ""
-        })
+                     corpusRoot: corpusRoot ?? CorpusFolder.defaultRoot(), ask: ask)
     }
 
     private var morning: Date { Date(timeIntervalSince1970: 1_785_240_000) }
@@ -40,6 +41,28 @@ struct CorpusRunnerTests {
                          url: "https://ejemplo.com/\(topic)/\(step)",
                          title: "\(topic) paso \(step)", browser: "Safari")
         }
+    }
+
+    private func overnightNow() -> (now: Date, yesterday: Date, calendar: Calendar) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = calendar.date(from: DateComponents(year: 2026, month: 8, day: 9, hour: 3))!
+        let yesterday = calendar.date(byAdding: .day, value: -1,
+                                      to: calendar.startOfDay(for: now))!
+        return (now, yesterday, calendar)
+    }
+
+    private func seedDistillableEpisodes(in store: Store, day: Date) {
+        let first = day.addingTimeInterval(9 * 3_600)
+        let second = day.addingTimeInterval(11 * 3_600)
+        store.upsertNode(WorkNode(id: "file:atlas-a", kind: .file, name: "atlas-a.md",
+                                  target: "/Users/mac/Atlas/brief.md", lastSeen: first))
+        store.recordClip(text: "Atlas copied pricing decision", sourceApp: "Safari",
+                         at: first.addingTimeInterval(600))
+        store.upsertNode(WorkNode(id: "file:nova-a", kind: .file, name: "nova-a.md",
+                                  target: "/Users/mac/Nova/brief.md", lastSeen: second))
+        store.recordClip(text: "Nova copied launch notes", sourceApp: "Safari",
+                         at: second.addingTimeInterval(600))
     }
 
     // MARK: - La pausa
@@ -293,5 +316,57 @@ struct CorpusRunnerTests {
             .flatMap { $0.data(using: .utf8) }
             .flatMap { try? JSONDecoder().decode(IngestionProgress.self, from: $0) }
         #expect(progress?.phase == .completed)
+    }
+
+    @Test("una falla del modelo no marca el día como destilado")
+    func failedDistillationKeepsDayDue() async throws {
+        struct Boom: Error, LocalizedError {
+            var errorDescription: String? { "modelo local no disponible" }
+        }
+        let store = try temporaryStore()
+        try store.migrateSemanticIndex()
+        store.setSetting("graph_enabled", true)
+        let clock = overnightNow()
+        seedDistillableEpisodes(in: store, day: clock.yesterday)
+        var calls = 0
+
+        await runner(store, ask: { _, _ in
+            calls += 1
+            throw Boom()
+        }).distillIfDue(now: clock.now, calendar: clock.calendar)
+
+        #expect(calls == 1)
+        #expect(store.setting("distilled_day") == nil)
+        #expect(store.setting("distillation_last_problem") == "modelo local no disponible")
+    }
+
+    @Test("una destilación citada marca el día después de escribirla")
+    func successfulDistillationMarksTheDay() async throws {
+        let store = try temporaryStore()
+        try store.migrateSemanticIndex()
+        store.setSetting("graph_enabled", true)
+        let clock = overnightNow()
+        seedDistillableEpisodes(in: store, day: clock.yesterday)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-distill-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+
+        await runner(store, corpusRoot: root, ask: { _, _ in
+            "Atlas pricing needs follow-up [1]\nNova launch notes need review [2]"
+        }).distillIfDue(now: clock.now, calendar: clock.calendar)
+
+        #expect(store.setting("distilled_day") == String(clock.yesterday.timeIntervalSince1970))
+        #expect(store.setting("distillation_last_problem") == "")
+        let folder = try CorpusFolder(root: root)
+        let documents = folder.documents(kind: .statement)
+        #expect(documents.count == 2)
+        #expect(documents.contains { $0.title == "Atlas pricing needs follow-up" })
+        #expect(documents.contains { $0.title == "Nova launch notes need review" })
+        #expect(documents.allSatisfy { !$0.lists["sources", default: []].isEmpty })
+        #expect(documents.contains { document in
+            store.passages(for: IndexedSource(kind: .note, id: document.id)).contains {
+                $0.text.contains("Comes from:")
+            }
+        })
     }
 }
