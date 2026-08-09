@@ -81,7 +81,7 @@ final class GraphModel {
             switch self {
             case .week: L("7 days")
             case .month: L("30 days")
-            case .quarter: "3 meses"
+            case .quarter: L("90 days")
             case .everything: L("Everything")
             }
         }
@@ -162,6 +162,20 @@ final class GraphModel {
         workNodes.values.sorted { $0.lastSeen > $1.lastSeen }.prefix(8).map { $0 }
     }
 
+    private var todayStart: Date { Calendar.current.startOfDay(for: now) }
+
+    private var todayDocuments: [CorpusDocument] {
+        documents.values
+            .filter { $0.occurredAt >= todayStart && $0.occurredAt <= now }
+            .sorted { $0.occurredAt > $1.occurredAt }
+    }
+
+    private var todayNodes: [WorkNode] {
+        workNodes.values
+            .filter { $0.lastSeen >= todayStart && $0.lastSeen <= now }
+            .sorted { $0.lastSeen > $1.lastSeen }
+    }
+
     var nodeCount: Int { workNodes.count + episodes.count }
     var relationCount: Int { allLinks.count }
     var documentCount: Int { documents.count }
@@ -178,30 +192,44 @@ final class GraphModel {
         [
             changedCard(),
             mattersCard(pulseSignals: pulseSignals),
-            nextCard(inboxItems: inboxItems)
+            nextCard(inboxItems: inboxItems, pulseSignals: pulseSignals)
         ]
     }
 
     private func changedCard() -> DailyBriefCard {
-        if let document = recentDocuments.first {
+        if let document = todayDocuments.first {
+            let detail = todayDocuments.count == 1
+                ? L("One Brain update today: %@", document.title)
+                : L("%@ Brain updates today. Latest: %@", String(todayDocuments.count), document.title)
             return DailyBriefCard(
                 kind: .changed, title: L("What changed"),
-                detail: L("Latest Brain file: %@", document.title),
+                detail: detail,
                 symbol: "arrow.triangle.2.circlepath",
                 actionTitle: L("Read"),
                 action: .read(document.id))
         }
-        if let node = recentNodes.first {
+        if let node = todayNodes.first {
+            let detail = todayNodes.count == 1
+                ? L("One work thread active today: %@", node.name)
+                : L("%@ work threads active today. Latest: %@", String(todayNodes.count), node.name)
             return DailyBriefCard(
                 kind: .changed, title: L("What changed"),
-                detail: L("Recent work: %@", node.name),
+                detail: detail,
                 symbol: "waveform.path.ecg",
                 actionTitle: L("Open graph"),
                 action: .showGraph(node.id))
         }
+        if let document = recentDocuments.first {
+            return DailyBriefCard(
+                kind: .changed, title: L("What changed"),
+                detail: L("No new Brain files today. Last file: %@", document.title),
+                symbol: "clock.arrow.circlepath",
+                actionTitle: L("Read"),
+                action: .read(document.id))
+        }
         return DailyBriefCard(
             kind: .changed, title: L("What changed"),
-            detail: L("Nothing has landed in the Brain yet today."),
+            detail: L("Nothing new has landed in the Brain today."),
             symbol: "tray",
             actionTitle: L("Write note"),
             action: .newNote)
@@ -209,17 +237,20 @@ final class GraphModel {
 
     private func mattersCard(pulseSignals: [Pulse.Signal]) -> DailyBriefCard {
         if let signal = pulseSignals.first {
+            let detail = pulseSignals.count == 1
+                ? L("One thing needs attention: %@", signal.headline)
+                : L("%@ things need attention. Top: %@", String(pulseSignals.count), signal.headline)
             return DailyBriefCard(
                 kind: .matters, title: L("What matters"),
-                detail: signal.headline,
+                detail: detail,
                 symbol: "exclamationmark.bubble",
-                actionTitle: L("Ask"),
+                actionTitle: L("Ask why"),
                 action: .ask("what should we do about \(signal.headline)"))
         }
-        if let node = recentNodes.first {
+        if let node = todayNodes.first {
             return DailyBriefCard(
                 kind: .matters, title: L("What matters"),
-                detail: L("Most recent active thread: %@", node.name),
+                detail: L("Most active today: %@", node.name),
                 symbol: "target",
                 actionTitle: L("Focus"),
                 action: .showGraph(node.id))
@@ -232,24 +263,40 @@ final class GraphModel {
             action: .ask("what should I look at today?"))
     }
 
-    private func nextCard(inboxItems: [InboxItem]) -> DailyBriefCard {
-        if let item = inboxItems.first(where: { $0.state == .needsTranscription }) {
+    private func nextCard(inboxItems: [InboxItem], pulseSignals: [Pulse.Signal]) -> DailyBriefCard {
+        let transcriptionItems = inboxItems.filter { $0.state == .needsTranscription }
+        if let item = transcriptionItems.first {
+            let detail = transcriptionItems.count == 1
+                ? L("One voice note needs transcription: %@", item.title)
+                : L("%@ voice notes need transcription. Start with: %@",
+                    String(transcriptionItems.count), item.title)
             return DailyBriefCard(
                 kind: .next, title: L("What you can do now"),
-                detail: L("Transcribe: %@", item.title),
+                detail: detail,
                 symbol: "waveform",
-                actionTitle: L("Open"),
+                actionTitle: L("Transcribe first"),
                 action: .openInbox(item.id))
         }
         if let item = inboxItems.first {
+            let detail = inboxItems.count == 1
+                ? L("One Inbox item needs review: %@", item.title)
+                : L("%@ Inbox items need review. Start with: %@", String(inboxItems.count), item.title)
             return DailyBriefCard(
                 kind: .next, title: L("What you can do now"),
-                detail: L("Review: %@", item.title),
+                detail: detail,
                 symbol: "tray.and.arrow.down",
-                actionTitle: L("Review"),
+                actionTitle: L("Review first"),
                 action: .openInbox(item.id))
         }
-        if let document = recentDocuments.first {
+        if !pulseSignals.isEmpty {
+            return DailyBriefCard(
+                kind: .next, title: L("What you can do now"),
+                detail: L("Ask the Brain to turn the top attention item into a next step."),
+                symbol: "checklist",
+                actionTitle: L("Ask Brain"),
+                action: .ask("what is the next action?"))
+        }
+        if let document = todayDocuments.first ?? recentDocuments.first {
             return DailyBriefCard(
                 kind: .next, title: L("What you can do now"),
                 detail: L("Ask the Brain about %@", document.title),

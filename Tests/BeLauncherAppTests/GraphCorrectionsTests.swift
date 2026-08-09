@@ -350,10 +350,12 @@ struct GraphCorrectionsTests {
         let cards = model.dailyBrief(inboxItems: [inbox], pulseSignals: [pulse])
 
         #expect(cards.map(\.kind) == [.changed, .matters, .next])
-        #expect(cards[0].detail.contains("Atlas pricing call"))
+        #expect(cards[0].detail == "One Brain update today: Atlas pricing call")
         #expect(cards[0].action == .read(document.id))
-        #expect(cards[1].detail == "Overdue commitment")
+        #expect(cards[1].detail == "One thing needs attention: Overdue commitment")
         #expect(cards[2].action == .openInbox(inbox.id))
+        #expect(cards[2].detail == "One voice note needs transcription: Call awaiting transcription")
+        #expect(cards[2].actionTitle == "Transcribe first")
     }
 
     @Test("El Brain diario vacío dice qué falta en vez de fingir actividad")
@@ -369,6 +371,53 @@ struct GraphCorrectionsTests {
         #expect(cards[0].action == .newNote)
         #expect(cards[1].action == .ask("what should I look at today?"))
         #expect(cards[2].action == .newNote)
+    }
+
+    @Test("El Brain diario cuenta colas y diferencia hoy de lo último conocido")
+    func dailyBriefCountsQueuesAndStaleActivity() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let corpusRoot = (root as NSString).appendingPathComponent("corpus")
+        let folder = try CorpusFolder(root: corpusRoot)
+        let yesterday = noon.addingTimeInterval(-86_400)
+        let old = CorpusDocument(kind: .episode, id: "episode:yesterday",
+                                 title: "Yesterday client review",
+                                 occurredAt: yesterday,
+                                 body: "Ayer se revisó el cliente.",
+                                 lists: ["links": []])
+        _ = try folder.save(old)
+        let first = InboxItem(record: QuickNote.Record(
+            id: "/tmp/one.md", title: "Voice one", excerpt: "pending",
+            path: "/tmp/one.md", reviewed: false, kind: .evidence,
+            state: .needsTranscription, createdAt: noon, sourcePath: nil, attachmentPath: nil))
+        let second = InboxItem(record: QuickNote.Record(
+            id: "/tmp/two.md", title: "Voice two", excerpt: "pending",
+            path: "/tmp/two.md", reviewed: false, kind: .evidence,
+            state: .needsTranscription, createdAt: noon, sourcePath: nil, attachmentPath: nil))
+
+        let model = GraphModel(store: store, corpus: folder, now: noon)
+        let cards = model.dailyBrief(inboxItems: [first, second], pulseSignals: [])
+
+        #expect(cards[0].detail == "No new Brain files today. Last file: Yesterday client review")
+        #expect(cards[2].detail == "2 voice notes need transcription. Start with: Voice one")
+        #expect(cards[2].action == .openInbox(first.id))
+    }
+
+    @Test("El Brain diario convierte Pulse en siguiente paso cuando no hay Inbox")
+    func dailyBriefPulseBecomesNextAction() throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let store = try makeStore(in: root)
+        let pulse = Pulse.Signal(kind: .contradiction, headline: "Pricing conflict",
+                                 detail: "Two decisions disagree", weight: 95, objects: [])
+
+        let model = GraphModel(store: store, corpus: nil, now: noon)
+        let cards = model.dailyBrief(inboxItems: [], pulseSignals: [pulse])
+
+        #expect(cards[1].detail == "One thing needs attention: Pricing conflict")
+        #expect(cards[2].detail == "Ask the Brain to turn the top attention item into a next step.")
+        #expect(cards[2].action == GraphModel.DailyBriefCard.Action.ask("what is the next action?"))
     }
 
     @Test("Filtrar no congela la ventana")
