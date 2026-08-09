@@ -66,6 +66,10 @@ fila.
 La barra de comando también muestra un botón de icono para abrir las acciones de la selección
 actual. `⌘K` sigue siendo el camino rápido, pero ya no es un requisito oculto para descubrirlas.
 
+Los snippets dejaron de depender de recordar una palabra clave: el footer tiene una entrada
+`Snippets` que abre `/snippet`, lista los guardados, permite inspeccionar su expansión y ejecuta el
+snippet seleccionado con Enter, incluyendo su posición `{cursor}`.
+
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover

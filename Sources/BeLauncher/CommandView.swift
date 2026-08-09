@@ -378,6 +378,14 @@ struct CommandView: View {
             }
             .buttonStyle(.borderless)
             .help(L("Write a quick note"))
+            Button {
+                model.query = "/snippet"
+                focus = .search
+            } label: {
+                Label(L("Snippets"), systemImage: "text.quote")
+            }
+            .buttonStyle(.borderless)
+            .help(L("Use a saved snippet"))
             Button(action: recordVoice) {
                 Label(L("Record"), systemImage: "waveform")
             }

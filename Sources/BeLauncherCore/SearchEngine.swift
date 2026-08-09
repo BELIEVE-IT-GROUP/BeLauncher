@@ -279,6 +279,15 @@ public enum SearchEngine {
                                      matched: [], payload: SystemCommand.Kind.openBrain.rawValue,
                                      actionID: "brain.open")]
             }
+            if slash == "snippet" || slash == "snippets" {
+                return input.snippets.prefix(limit).enumerated().map { index, snippet in
+                    SearchResult(id: "snippet-\(snippet.id)", kind: .snippet,
+                                 title: snippet.title,
+                                 subtitle: "\(snippet.keyword) · \(preview(snippet.body))",
+                                 score: 100_000 - index, matched: [], payload: snippet.body,
+                                 recordID: snippet.id)
+                }
+            }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {
                 return [SearchResult(
                     id: "agent-\(command.id)", kind: .agent, title: command.title,

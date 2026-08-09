@@ -98,6 +98,20 @@ struct KeyboardWorkflowTests {
         #expect(recorder.uses.first?.1 == 7)
     }
 
+    @Test("the visible snippets route lists saved snippets before running one")
+    func browseSnippets() {
+        let recorder = Recorder()
+        let model = makeModel(recorder: recorder)
+        model.activate()
+        model.query = "/snippet"
+        #expect(model.results.count == 1)
+        #expect(model.selected?.kind == .snippet)
+        #expect(model.selected?.title == "Signature")
+
+        model.handle(.enter)
+        #expect(recorder.actions.first == .copyToClipboard(text: "Best,\nJorge", cursorOffset: 6))
+    }
+
     @Test("workflow keyword completes with Tab, then Enter opens the built URL")
     func runWorkflow() {
         let recorder = Recorder()
