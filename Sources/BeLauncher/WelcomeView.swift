@@ -240,6 +240,9 @@ private struct CapabilityCard: View {
         case .automation: health.automation.isReady
         case .screen: health.screenRecording.isReady
         case .calendar: model.calendarGranted
+        case .reminders: model.remindersGranted
+        case .contacts: model.contactsGranted
+        case .photos: model.photosGranted
         case .notifications: model.notificationsGranted
         case .microphone: health.microphone.isReady
         case .fullDiskAccess: health.fullDiskAccess.isReady
@@ -277,6 +280,12 @@ private struct CapabilityCard: View {
                 await model.requestCalendarAndRefresh()
                 finishPermissionRequest()
             }
+        case .reminders:
+            Task { @MainActor in model.requestReminders(); try? await Task.sleep(for: .milliseconds(500)); finishPermissionRequest() }
+        case .contacts:
+            Task { @MainActor in model.requestContacts(); try? await Task.sleep(for: .milliseconds(500)); finishPermissionRequest() }
+        case .photos:
+            Task { @MainActor in model.requestPhotos(); try? await Task.sleep(for: .milliseconds(500)); finishPermissionRequest() }
         case .notifications:
             model.requestNotifications()
             Task { @MainActor in
@@ -314,8 +323,8 @@ private struct CapabilityCard: View {
             Binding(get: { model.updateCheckEnabled }, set: { model.updateCheckEnabled = $0 })
         case .launchAtLogin:
             Binding(get: { model.launchAtLogin }, set: { model.launchAtLogin = $0 })
-        case .accessibility, .automation, .screen, .calendar, .notifications,
-             .microphone, .fullDiskAccess:
+        case .accessibility, .automation, .screen, .calendar, .reminders, .contacts, .photos,
+             .notifications, .microphone, .fullDiskAccess:
             .constant(false)
         }
     }

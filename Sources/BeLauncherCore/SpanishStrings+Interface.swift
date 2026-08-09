@@ -1004,5 +1004,14 @@ extension SpanishStrings {
         "Album": "Álbum",
         "Local identifier": "Identificador local",
         "%@ photos available locally": "%@ fotos disponibles localmente",
+        "Search pending reminders from the launcher and Brain.": "Busca recordatorios pendientes desde el launcher y el Brain.",
+        "Only reminder titles, lists and due dates on this Mac.": "Solo títulos, listas y fechas de vencimiento de recordatorios en este Mac.",
+        "Everything else works; reminders stay disconnected.": "Todo lo demás funciona; los recordatorios permanecen desconectados.",
+        "Find a person, email or phone number without leaving the launcher.": "Encuentra una persona, correo o teléfono sin salir del launcher.",
+        "Names and contact details only when you search.": "Nombres y datos de contacto solo cuando buscas.",
+        "Everything else works; contacts stay disconnected.": "Todo lo demás funciona; los contactos permanecen desconectados.",
+        "Find local photos and open them in Photos.": "Encuentra fotos locales y ábrelas en Fotos.",
+        "Photo metadata only; originals are not copied into the Brain.": "Solo metadatos de fotos; los originales no se copian al Brain.",
+        "Everything else works; Photos stays disconnected.": "Todo lo demás funciona; Fotos permanece desconectado.",
     ]
 }

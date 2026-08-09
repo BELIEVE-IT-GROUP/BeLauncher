@@ -128,3 +128,10 @@ Photos se conecta mediante `Photos.framework` con permiso de lectura. `/photos` 
 locales sin descargar originales, y Enter abre Fotos; la búsqueda BEL devuelve el conteo real de
 elementos disponibles. Los identificadores de Photos no se presentan como rutas de Finder ni como
 previews falsos. Edición, álbumes y extracción de texto quedan pendientes de adapters con recibo.
+
+## Permisos de Wave 2
+
+Reminders, Contacts y Photos ya no son conexiones escondidas solo en Settings. La guía de inicio
+las muestra como permisos opcionales con lenguaje humano, usa el estado real del sistema para pintar
+`Granted`, y refresca el estado cuando la persona vuelve desde Privacy & Security. El Brain y el
+centro de fuentes mantienen el mismo estado y la misma acción `Allow`.

@@ -1478,6 +1478,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .accessibility: Permissions.accessibilityGranted
         case .automation: Permissions.automationGranted()
         case .calendar: calendar.isAuthorised
+        case .reminders: reminders.isAuthorised
+        case .contacts: contacts.isAuthorised
+        case .photos: photos.isAuthorised
         case .microphone: Permissions.microphoneGranted
         case .fullDiskAccess: Permissions.fullDiskAccessLikely
         case .screen: ScreenCapture.screenRecordingGranted
@@ -1813,6 +1816,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateFeedURL: environment["BELAUNCHER_UPDATE_FEED_URL"] ?? UpdateCheck.defaultFeedURL
         )
         model.calendar = calendar
+        model.reminders = reminders
+        model.contacts = contacts
+        model.photos = photos
         model.onRequestNotifications = { [weak self] in
             await self?.requestNotifications() ?? false
         }

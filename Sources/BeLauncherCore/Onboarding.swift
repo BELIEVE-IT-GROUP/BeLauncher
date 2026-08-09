@@ -15,6 +15,9 @@ public enum Onboarding {
             case automation
             case screen
             case calendar
+            case reminders
+            case contacts
+            case photos
             case notifications
             case microphone
             case fullDiskAccess
@@ -100,6 +103,27 @@ public enum Onboarding {
                   accesses: L("Only the titles and times of your events, read at that moment and never stored or sent anywhere."),
                   ifYouSayNo: L("Preparing for a meeting still works, but you have to type who it is with."),
                   symbol: "calendar", isSystemPermission: true, recommended: false),
+
+            .init(kind: .reminders,
+                  title: L("Reminders"),
+                  unlocks: L("Search pending reminders from the launcher and Brain."),
+                  accesses: L("Only reminder titles, lists and due dates on this Mac."),
+                  ifYouSayNo: L("Everything else works; reminders stay disconnected."),
+                  symbol: "checklist", isSystemPermission: true, recommended: false),
+
+            .init(kind: .contacts,
+                  title: L("Contacts"),
+                  unlocks: L("Find a person, email or phone number without leaving the launcher."),
+                  accesses: L("Names and contact details only when you search."),
+                  ifYouSayNo: L("Everything else works; contacts stay disconnected."),
+                  symbol: "person.crop.circle", isSystemPermission: true, recommended: false),
+
+            .init(kind: .photos,
+                  title: L("Photos"),
+                  unlocks: L("Find local photos and open them in Photos."),
+                  accesses: L("Photo metadata only; originals are not copied into the Brain."),
+                  ifYouSayNo: L("Everything else works; Photos stays disconnected."),
+                  symbol: "photo", isSystemPermission: true, recommended: false),
 
             .init(kind: .notifications,
                   title: L("Notifications"),
