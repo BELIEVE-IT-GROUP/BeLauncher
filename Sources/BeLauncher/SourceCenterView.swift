@@ -144,7 +144,9 @@ private struct SourceRow: View {
             }
             .buttonStyle(.borderless)
             .help(L("Refresh local data"))
-            .disabled(!model.graphEnabled || model.sourceIsSyncing(source.id))
+            // Reading an authorised source also powers launcher search. It must not be blocked
+            // by the optional Brain projection; only the corpus sync needs graph_enabled.
+            .disabled(model.sourceIsSyncing(source.id))
         case "audio":
             Text(L("Manual")).font(.caption).foregroundStyle(.secondary)
         case "notes", "messages", "apple-mail", "browsers", "conversations":
