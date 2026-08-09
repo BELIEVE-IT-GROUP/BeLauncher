@@ -105,6 +105,7 @@ public enum QuickNote {
         public let state: State
         public let createdAt: Date?
         public let sourcePath: String?
+        public let attachmentPath: String?
     }
 
     public static let triggers = ["nota", "apunta", "anota", "note", "quick note"]
@@ -151,15 +152,19 @@ public enum QuickNote {
     }
 
     public static func renderEvidence(title: String, text: String, at date: Date = .now,
-                                      sourcePath: String? = nil) -> String {
+                                      sourcePath: String? = nil,
+                                      attachmentPath: String? = nil) -> String {
         let formatter = ISO8601DateFormatter()
         let source = sourcePath.map { "source_path: \($0.replacingOccurrences(of: "\n", with: " "))\n" } ?? ""
+        let attachment = attachmentPath.map {
+            "attachment_path: \($0.replacingOccurrences(of: "\n", with: " "))\n"
+        } ?? ""
         return """
             ---
             created: \(formatter.string(from: date))
             kind: evidence
             title: \(title.replacingOccurrences(of: "\n", with: " "))
-            \(source)---
+            \(source)\(attachment)---
 
             # \(title)
 
@@ -222,7 +227,8 @@ public enum QuickNote {
             return Record(id: path, title: title, excerpt: String(body.prefix(180)), path: path,
                           reviewed: reviewed, kind: kind,
                           state: awaitingTranscription ? .needsTranscription : .pending,
-                          createdAt: createdAt, sourcePath: metadata["source_path"])
+                          createdAt: createdAt, sourcePath: metadata["source_path"],
+                          attachmentPath: metadata["attachment_path"])
         }.sorted { $0.id > $1.id }
     }
 

@@ -20,6 +20,7 @@ public struct InboxItem: Identifiable, Sendable, Equatable {
     public let title: String
     public let excerpt: String
     public let sourcePath: String?
+    public let attachmentPath: String?
     public let clipID: Int64?
     public let sourceApp: String?
     public let createdAt: Date?
@@ -30,7 +31,8 @@ public struct InboxItem: Identifiable, Sendable, Equatable {
         state = record.state == .needsTranscription ? .needsTranscription : .pending
         title = record.title
         excerpt = record.excerpt
-        sourcePath = record.sourcePath ?? record.path
+        sourcePath = record.sourcePath ?? record.attachmentPath ?? record.path
+        attachmentPath = record.attachmentPath
         clipID = nil
         sourceApp = nil
         createdAt = record.createdAt
@@ -43,6 +45,7 @@ public struct InboxItem: Identifiable, Sendable, Equatable {
         title = clip.sourceApp.isEmpty ? "Clipboard capture" : clip.sourceApp
         excerpt = clip.text
         sourcePath = clip.assetPath.isEmpty ? nil : clip.assetPath
+        attachmentPath = nil
         clipID = clip.id
         sourceApp = clip.sourceApp.isEmpty ? nil : clip.sourceApp
         createdAt = clip.createdAt

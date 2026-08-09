@@ -292,6 +292,9 @@ public enum CorpusBuilder {
             + signals(fromClips: allowedClips(input))
             + signals(fromExchanges: allowedExchanges(input))
             + signals(fromVisits: allowedVisits(input))
+            + signals(fromMails: allowedMails(input))
+            + signals(fromMessages: allowedMessages(input))
+            + signals(fromNotes: allowedNotes(input))
             + signals(fromTranscripts: allowedTranscripts(input))
     }
 
@@ -357,6 +360,42 @@ public enum CorpusBuilder {
             let title = visit.title.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !title.isEmpty else { return nil }
             return Episode.Signal(at: visit.at, kind: .file, subject: visit.subject, title: title)
+        }
+    }
+
+    /// Mail, Messages and Notes are first-class evidence, not only search rows. If they are kept
+    /// out of the episode signal stream, the Brain can quote them when asked but the daily graph
+    /// still looks like nothing happened. Each subject points back to the original local source:
+    /// no message body, note body or mail file is duplicated as the authority.
+    public static func signals(fromMails mails: [MailMessage]) -> [Episode.Signal] {
+        mails.compactMap { mail in
+            let title = mail.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { return nil }
+            let subject = mail.messageID.isEmpty ? mail.sourcePath : mail.messageID
+            return Episode.Signal(at: mail.at, kind: .conversation,
+                                  subject: "mail:" + subject, title: title)
+        }
+    }
+
+    public static func signals(fromMessages messages: [MessageRecord]) -> [Episode.Signal] {
+        messages.map { message in
+            let head = message.text.replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let sender = message.sender.trimmingCharacters(in: .whitespacesAndNewlines)
+            let title = sender.isEmpty ? String(head.prefix(80)) : "\(sender): \(head.prefix(72))"
+            let subject = message.sender.isEmpty ? message.messageID : message.sender
+            return Episode.Signal(at: message.at, kind: .conversation,
+                                  subject: "message:" + subject, title: title)
+        }
+    }
+
+    public static func signals(fromNotes notes: [NoteRecord]) -> [Episode.Signal] {
+        notes.map { note in
+            let title = note.text.replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return Episode.Signal(at: note.at, kind: .note,
+                                  subject: "apple-note:" + note.noteID,
+                                  title: String(title.prefix(90)))
         }
     }
 

@@ -193,6 +193,34 @@ struct CorpusTests {
         #expect(bare.subject == "example.com")
     }
 
+    @Test("Mail, Messages y Notes son señales de episodio, no solo filas de búsqueda")
+    func localSourcesBecomeEpisodes() {
+        let corpus = CorpusBuilder.assemble(input {
+            $0.mails = [
+                MailMessage(at: self.morning, subject: "Decision pricing Acme",
+                            sender: "ana@acme.com", recipients: "jorge@believe.com",
+                            excerpt: "Confirmamos el precio enterprise.",
+                            sourcePath: "/Mail/1.emlx", messageID: "m1", isSent: true)
+            ]
+            $0.messages = [
+                MessageRecord(at: self.morning.addingTimeInterval(600),
+                              text: String(repeating: "Hablamos del contrato de Acme. ", count: 4),
+                              sender: "Ana", sourcePath: "/Messages/chat.db", messageID: "msg1")
+            ]
+            $0.notes = [
+                NoteRecord(at: self.morning.addingTimeInterval(1_200),
+                           text: String(repeating: "Nota sobre Acme y facturacion anual. ", count: 4),
+                           sourcePath: "/Notes/store.sqlite", noteID: "note1")
+            ]
+        })
+
+        let titles = corpus.episodes.flatMap { $0.signals.map(\.title) }.joined(separator: "\n")
+        #expect(titles.contains("Decision pricing Acme"))
+        #expect(titles.contains("Ana:"))
+        #expect(titles.contains("Nota sobre Acme"))
+        #expect(!corpus.items.isEmpty)
+    }
+
     // MARK: - Qué merece indexarse
 
     @Test("Un episodio que aún está pasando no se indexa por bien que puntúe")

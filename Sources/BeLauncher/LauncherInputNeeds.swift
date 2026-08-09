@@ -28,6 +28,10 @@ struct LauncherInputNeeds: Equatable {
 
     var brainIntent: BrainQuery.Intent { BrainQuery.Intent.detect(query) }
 
+    var naturalBrainQuestion: String? {
+        BrainQuery.naturalQuestion(query)
+    }
+
     var needsMemories: Bool {
         guard mode == .all else { return false }
         switch brainIntent {
@@ -36,6 +40,7 @@ struct LauncherInputNeeds: Equatable {
         case .remember, .none:
             break
         }
+        if naturalBrainQuestion != nil { return true }
         if case .promisedTo = workIntent { return true }
         return false
     }
@@ -45,6 +50,7 @@ struct LauncherInputNeeds: Equatable {
     var needsTraits: Bool {
         guard mode == .all else { return false }
         if case .pulse = brainIntent { return true }
+        if naturalBrainQuestion != nil { return true }
         return false
     }
 

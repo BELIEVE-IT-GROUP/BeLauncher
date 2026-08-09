@@ -22,8 +22,9 @@ struct CorpusRunnerTests {
 
     /// Un runner sin cerebro ni modelo: nada de lo que se prueba aquí los necesita, y pedirlos
     /// convertiría estas pruebas en pruebas de red.
-    private func runner(_ store: Store) -> CorpusRunner {
-        CorpusRunner(store: store, brain: nil, ask: { _, _ in
+    private func runner(_ store: Store, corpusRoot: String? = nil) -> CorpusRunner {
+        CorpusRunner(store: store, brain: nil,
+                     corpusRoot: corpusRoot ?? CorpusFolder.defaultRoot(), ask: { _, _ in
             Issue.record("no se debería haber llamado al modelo")
             return ""
         })
@@ -233,5 +234,26 @@ struct CorpusRunnerTests {
             WorkNode(id: "episode:second-line", kind: .conversation, name: "derived"),
             WorkNode(id: "file:raw", kind: .file, name: "raw.swift"),
         ]).map(\.subject) == ["file:raw"])
+    }
+
+    @Test("la escritura del runner publica el corpus Markdown por staging recuperable")
+    func writePublishesCorpusFiles() async throws {
+        let store = try temporaryStore()
+        try store.migrateSemanticIndex()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("belauncher-corpus-runner-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+
+        let input = runner(store, corpusRoot: root).assemblyInput(
+            now: morning.addingTimeInterval(10 * 3_600),
+            visits: browsing(from: morning, about: "acme-pricing"),
+            exchanges: [], transcripts: [])
+        let corpus = CorpusBuilder.assemble(input)
+
+        try await runner(store, corpusRoot: root).write(corpus)
+
+        let folder = try CorpusFolder(root: root)
+        #expect(!folder.documents(kind: .episode).isEmpty)
+        #expect(!folder.documents(kind: .entity).isEmpty)
     }
 }

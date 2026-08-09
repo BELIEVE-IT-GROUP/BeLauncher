@@ -24,6 +24,19 @@ public enum BrainQuery {
         }
     }
 
+    /// A broad but explicit natural-language door into the Brain. This is intentionally not a
+    /// generic question detector: "safari" must stay an app search, while "ask brain where I saw
+    /// the Acme article" should clearly route to the knowledge surface.
+    public static func naturalQuestion(_ query: String) -> String? {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let folded = Phrases.fold(trimmed)
+        for prefix in Phrases.naturalBrainQuestion where folded == prefix || folded.hasPrefix(prefix + " ") {
+            let rest = String(trimmed.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+            return rest.isEmpty ? nil : rest
+        }
+        return nil
+    }
+
     /// Recognises the shape of what the user typed. Deliberately small: three intents beat a
     /// natural-language parser that is wrong in ways nobody can predict.
     public enum Intent: Equatable, Sendable {

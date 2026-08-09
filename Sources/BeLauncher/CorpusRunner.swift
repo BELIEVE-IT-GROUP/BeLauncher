@@ -48,6 +48,7 @@ final class CorpusRunner {
 
     private let store: Store
     private weak var brain: BrainSearch?
+    private let corpusRoot: String
     /// The local model, for the nightly pass. Injected so the runner never reaches into the app.
     private let ask: (String, String) async throws -> String
 
@@ -77,10 +78,11 @@ final class CorpusRunner {
     /// hole and a pass that failed is simply redone by the next one.
     static let window: TimeInterval = 36 * 60 * 60
 
-    init(store: Store, brain: BrainSearch?,
+    init(store: Store, brain: BrainSearch?, corpusRoot: String = CorpusFolder.defaultRoot(),
          ask: @escaping (String, String) async throws -> String) {
         self.store = store
         self.brain = brain
+        self.corpusRoot = corpusRoot
         self.ask = ask
         if let raw = store.setting("corpus_checkpoint"),
            let data = raw.data(using: .utf8),
@@ -213,7 +215,7 @@ final class CorpusRunner {
         }.value
 
         let transcripts = source == nil ? await transcribePending(since: since) : []
-        await refreshCorrections()
+        await refreshCorrections(root: corpusRoot)
 
         setPhase(.assembling, source: runSource)
         persistIngestionProgress(phase: .assembling, source: runSource,
@@ -541,8 +543,36 @@ final class CorpusRunner {
         let questions = corpus.proposals.prefix(10).map { $0.id + "\u{1F}" + $0.question }
         store.setSetting("corpus_merge_questions", questions.joined(separator: "\n"))
 
+        try publishCorpusFiles(corpus)
+
         Task { @MainActor [weak self] in
             _ = try? await self?.brain?.embedEverything(maximumBatches: 2)
+        }
+    }
+
+    /// Publishes the open Markdown corpus through the same recoverable staging contract the
+    /// reader/editor uses. The database is derived and searchable; these files are the person's
+    /// audit surface and the place where corrections survive the next rebuild.
+    private func publishCorpusFiles(_ corpus: Corpus) throws {
+        let folder = try CorpusFolder(root: corpusRoot)
+        let documents = corpus.episodes.map { episode in
+            CorpusFiles.document(for: episode, links: entityLinks(for: episode, in: corpus))
+        } + corpus.entities.map { entity in
+            CorpusFiles.document(for: entity, seenAt: corpus.episodes
+                .filter { $0.signals.contains { signal in entity.forms.contains(Identity.fold(signal.subject)) } }
+                .map(\.start).max() ?? .now)
+        }
+        _ = try folder.saveBatch(documents)
+    }
+
+    private func entityLinks(for episode: Episode, in corpus: Corpus) -> [String] {
+        let folded = Identity.fold(episode.subjects.joined(separator: " ")
+            + " " + episode.signals.map(\.title).joined(separator: " "))
+        var seen = Set<String>()
+        return corpus.entities.compactMap { entity in
+            guard entity.forms.contains(where: { !$0.isEmpty && folded.contains($0) }),
+                  seen.insert(entity.canonical).inserted else { return nil }
+            return entity.canonical
         }
     }
 
@@ -710,6 +740,14 @@ final class CorpusRunner {
             let cited = statement.text + L("\n\nComes from: ") + statement.sources.joined(separator: ", ")
             _ = store.replacePassages(for: IndexedSource(kind: .note, id: statement.id),
                                       title: statement.text, occurredAt: statement.day, text: cited)
+        }
+        if !statements.isEmpty, let folder = try? CorpusFolder(root: corpusRoot) {
+            let titles = Dictionary(uniqueKeysWithValues: corpus.episodes.map { episode in
+                (episode.id, episode.title.isEmpty ? episode.fallbackTitle : episode.title)
+            })
+            _ = try? folder.saveBatch(statements.map {
+                CorpusFiles.document(for: $0, titles: titles)
+            })
         }
         _ = try? await brain?.embedEverything(maximumBatches: 2)
     }

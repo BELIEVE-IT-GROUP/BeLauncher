@@ -263,6 +263,13 @@ public enum SearchEngine {
 
         var pinned: [SearchResult] = []
 
+        if let question = BrainQuery.naturalQuestion(query) {
+            return [SearchResult(
+                id: "brain-question", kind: .answer, title: L("Ask your brain"),
+                subtitle: question, score: 101_200, matched: [], payload: question,
+                actionID: "brain.ask")]
+        }
+
         if wantsBrainLaunchpad(query) {
             pinned += brainLaunchpadResults()
         }

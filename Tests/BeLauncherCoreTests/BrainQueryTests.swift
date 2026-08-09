@@ -36,6 +36,15 @@ struct BrainQueryTests {
         #expect(BrainQuery.Intent.detect("qu") == .none)
     }
 
+    @Test("una pregunta explícita al Brain no secuestra búsquedas normales")
+    func naturalBrainQuestion() {
+        #expect(BrainQuery.naturalQuestion("ask brain where did I see Acme?")
+                == "where did I see Acme?")
+        #expect(BrainQuery.naturalQuestion("pregúntale al cerebro qué hice con Acme")
+                == "qué hice con Acme")
+        #expect(BrainQuery.naturalQuestion("safari") == nil)
+    }
+
     // MARK: - What did we decide
 
     @Test("it answers with the decision in force, not with everything ever said")
@@ -247,5 +256,12 @@ struct BrainInLauncherTests {
         )
         let results = SearchEngine.search("safari", in: input)
         #expect(results.first?.kind != .answer, "typing a name is a search, not a question")
+    }
+
+    @Test("asking the brain in natural language routes to the live Brain surface")
+    func naturalQuestionRoutesToBrain() {
+        let results = SearchEngine.search("ask brain where did I read about Acme", in: SearchInput())
+        #expect(results.first?.id == "brain-question")
+        #expect(results.first?.payload == "where did I read about Acme")
     }
 }

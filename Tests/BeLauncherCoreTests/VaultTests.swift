@@ -60,6 +60,36 @@ struct VaultTests {
             .filter { $0.hasPrefix(".beacon-vault-staging-") }.isEmpty)
     }
 
+    @Test("imported evidence publishes the inbox note and attachment together")
+    func importedEvidenceCopiesAttachmentThroughStaging() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vault-import-\(UUID().uuidString)").path
+        defer { try? FileManager.default.removeItem(atPath: root) }
+        let source = FileManager.default.temporaryDirectory
+            .appendingPathComponent("source-\(UUID().uuidString).txt")
+        defer { try? FileManager.default.removeItem(at: source) }
+        try Data("contract text".utf8).write(to: source)
+
+        let vault = try Vault(root: root)
+        let evidencePath = try vault.saveEvidence(title: "Contract",
+                                                  text: "contract text",
+                                                  at: Date(timeIntervalSince1970: 7_000_000),
+                                                  sourcePath: source.path,
+                                                  attachmentURL: source)
+        let raw = try String(contentsOfFile: evidencePath, encoding: .utf8)
+        let record = try #require(QuickNote.records(inVaultAt: root).first {
+            $0.title == "Contract"
+        })
+        let attachmentPath = try #require(record.attachmentPath)
+
+        #expect(raw.contains("source_path: \(source.path)"))
+        #expect(raw.contains("attachment_path: \(attachmentPath)"))
+        #expect(attachmentPath.hasPrefix((root as NSString).appendingPathComponent("attachments/imports")))
+        #expect(try String(contentsOfFile: attachmentPath, encoding: .utf8) == "contract text")
+        #expect((try FileManager.default.contentsOfDirectory(atPath: root))
+            .filter { $0.hasPrefix(".beacon-vault-staging-") }.isEmpty)
+    }
+
     @Test("quotes and accents in a statement do not corrupt the file")
     func awkwardCharacters() {
         let object = MemoryObject(level: .committed, kind: .policy,

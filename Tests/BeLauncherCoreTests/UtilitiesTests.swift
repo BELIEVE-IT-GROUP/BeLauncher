@@ -302,6 +302,28 @@ struct QuickNoteTests {
         #expect(item.sourcePath == "/tmp/call.m4a")
     }
 
+    @Test("el inbox conserva el adjunto local de una importación explícita")
+    func recordCarriesAttachmentPath() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("quick-note-attachment-\(UUID().uuidString)")
+        let inbox = root.appendingPathComponent("inbox")
+        try FileManager.default.createDirectory(at: inbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let path = inbox.appendingPathComponent("contract.md")
+        try QuickNote.renderEvidence(title: "Contract", text: "Imported text",
+                                     at: Date(timeIntervalSince1970: 0),
+                                     sourcePath: "/tmp/source.txt",
+                                     attachmentPath: "/tmp/vault/attachments/imports/source.txt")
+            .write(to: path, atomically: true, encoding: .utf8)
+        let record = try #require(QuickNote.records(inVaultAt: root.path).first)
+        let item = InboxItem(record: record)
+
+        #expect(record.attachmentPath == "/tmp/vault/attachments/imports/source.txt")
+        #expect(item.sourcePath == "/tmp/source.txt")
+        #expect(item.attachmentPath == "/tmp/vault/attachments/imports/source.txt")
+    }
+
     @Test("solo un clip fijado se convierte en candidato del Brain")
     func pinnedClipIsReviewable() {
         let clip = Clip(text: "decisión importante", sourceApp: "Mail", isPinned: true)

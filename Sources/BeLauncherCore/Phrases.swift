@@ -68,6 +68,13 @@ public enum Phrases {
         "pulso", "que se me escapa", "que esta en riesgo", "riesgos",
     ]
 
+    public static let naturalBrainQuestion = [
+        "ask brain", "ask my brain", "ask bebrain", "ask the brain",
+        "pregunta al brain", "preguntale al brain", "preguntale a mi brain",
+        "pregunta al cerebro", "preguntale al cerebro", "preguntale a mi cerebro",
+        "brain pregunta", "cerebro pregunta",
+    ]
+
     // MARK: - The work graph
 
     public static let promisedTo = [

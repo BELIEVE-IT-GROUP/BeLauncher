@@ -78,16 +78,28 @@ public final class Vault {
     /// its appearance recoverable if the app exits between staging and publication.
     @discardableResult
     public func saveEvidence(title: String, text: String, at date: Date = .now,
-                             sourcePath: String? = nil) throws -> String {
+                             sourcePath: String? = nil,
+                             attachmentURL: URL? = nil) throws -> String {
         let filename = QuickNote.filename(for: "\(title) \(text.prefix(80))", at: date)
         let destination = (inboxFolder as NSString).appendingPathComponent(filename)
-        try writeFiles([StagedWriteInput(destination: destination,
-                                         data: Data(QuickNote.renderEvidence(title: title,
-                                                                              text: text,
-                                                                              at: date,
-                                                                              sourcePath: sourcePath).utf8),
-                                         previous: manager.fileExists(atPath: destination)
-                                            ? destination : nil)])
+        let attachmentDestination = try attachmentURL.map { try stageableAttachmentPath(for: $0, title: title, at: date) }
+        var writes = [
+            StagedWriteInput(destination: destination,
+                             data: Data(QuickNote.renderEvidence(title: title,
+                                                                  text: text,
+                                                                  at: date,
+                                                                  sourcePath: sourcePath,
+                                                                  attachmentPath: attachmentDestination).utf8),
+                             previous: manager.fileExists(atPath: destination)
+                                ? destination : nil)
+        ]
+        if let attachmentURL, let attachmentDestination {
+            writes.append(StagedWriteInput(destination: attachmentDestination,
+                                           data: try Data(contentsOf: attachmentURL),
+                                           previous: manager.fileExists(atPath: attachmentDestination)
+                                                ? attachmentDestination : nil))
+        }
+        try writeFiles(writes)
         return destination
     }
 
@@ -301,6 +313,20 @@ public final class Vault {
         let destination: String
         let data: Data
         let previous: String?
+    }
+
+    private func stageableAttachmentPath(for url: URL, title: String, at date: Date) throws -> String {
+        let originalExtension = url.pathExtension.isEmpty ? "bin" : url.pathExtension
+        let stamp = ISO8601DateFormatter().string(from: date)
+            .replacingOccurrences(of: ":", with: "")
+        let base = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? url.deletingPathExtension().lastPathComponent
+            : title
+        let filename = SafeFilename.make("\(stamp)-\(base)-\(UUID().uuidString.prefix(8))",
+                                         fallback: "imported-evidence",
+                                         extension: originalExtension)
+        let importsFolder = (attachmentsFolder as NSString).appendingPathComponent("imports")
+        return (importsFolder as NSString).appendingPathComponent(filename)
     }
 
     /// Publishes a set of related files through a manifest. The filesystem cannot atomically

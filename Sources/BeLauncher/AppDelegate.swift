@@ -1377,15 +1377,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             report(L("Import failed"), L("The file is not readable text.")); return
         }
         importBrainText(text, title: url.deletingPathExtension().lastPathComponent,
-                        sourcePath: url.path)
+                        sourcePath: url.path, attachmentURL: url)
     }
 
-    func importBrainText(_ text: String, title: String, sourcePath: String? = nil) {
+    func importBrainText(_ text: String, title: String, sourcePath: String? = nil,
+                         attachmentURL: URL? = nil) {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? L("Imported evidence") : title.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             let vault = try Vault(root: Vault.defaultRoot())
-            _ = try vault.saveEvidence(title: cleanTitle, text: text, sourcePath: sourcePath)
+            _ = try vault.saveEvidence(title: cleanTitle, text: text, sourcePath: sourcePath,
+                                       attachmentURL: attachmentURL)
             refreshBrain(force: true)
             report(L("Evidence imported"), cleanTitle)
         } catch {
