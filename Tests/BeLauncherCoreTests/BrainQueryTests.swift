@@ -42,6 +42,12 @@ struct BrainQueryTests {
                 == "where did I see Acme?")
         #expect(BrainQuery.naturalQuestion("pregúntale al cerebro qué hice con Acme")
                 == "qué hice con Acme")
+        #expect(BrainQuery.naturalQuestion("search my brain for Atlas pricing")
+                == "Atlas pricing")
+        #expect(BrainQuery.naturalQuestion("búscame en mi memoria la llamada de Atlas")
+                == "la llamada de Atlas")
+        #expect(BrainQuery.naturalQuestion("qué sé de Acme")
+                == "Acme")
         #expect(BrainQuery.naturalQuestion("safari") == nil)
     }
 
@@ -213,7 +219,7 @@ struct BrainInLauncherTests {
         let results = SearchEngine.search("brain", in: SearchInput())
 
         #expect(results.contains { $0.id == "brain-open" })
-        #expect(results.contains { $0.id == "brain-ask" && $0.completion?.isEmpty == false })
+        #expect(results.contains { $0.id == "brain-ask" && $0.completion == "search my brain for " })
         #expect(results.contains { $0.id == "brain-remember" && $0.completion?.isEmpty == false })
         #expect(results.contains { $0.id == "brain-prepare" && $0.completion?.isEmpty == false })
         #expect(results.contains { $0.id == "brain-decide" && $0.completion?.isEmpty == false })
@@ -263,5 +269,19 @@ struct BrainInLauncherTests {
         let results = SearchEngine.search("ask brain where did I read about Acme", in: SearchInput())
         #expect(results.first?.id == "brain-question")
         #expect(results.first?.payload == "where did I read about Acme")
+    }
+
+    @Test("searching the brain can be typed like a human request")
+    func naturalSearchBrainPhrasesRouteToBrain() {
+        let english = SearchEngine.search("search my brain for Atlas pricing", in: SearchInput())
+        let spanish = SearchEngine.search("búscame en mi memoria la llamada de Atlas", in: SearchInput())
+        let know = SearchEngine.search("qué sé de Acme", in: SearchInput())
+
+        #expect(english.first?.id == "brain-question")
+        #expect(english.first?.payload == "Atlas pricing")
+        #expect(spanish.first?.id == "brain-question")
+        #expect(spanish.first?.payload == "la llamada de Atlas")
+        #expect(know.first?.id == "brain-question")
+        #expect(know.first?.payload == "Acme")
     }
 }

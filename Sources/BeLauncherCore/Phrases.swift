@@ -70,8 +70,23 @@ public enum Phrases {
 
     public static let naturalBrainQuestion = [
         "ask brain", "ask my brain", "ask bebrain", "ask the brain",
+        "search brain for", "search my brain for", "search the brain for",
+        "find in brain", "find in my brain", "find in the brain",
+        "search memory for", "search my memory for", "find in memory", "find in my memory",
+        "what do i know about", "what do we know about", "what do i know of",
         "pregunta al brain", "preguntale al brain", "preguntale a mi brain",
+        "busca en brain", "busca en el brain", "busca en mi brain",
+        "buscame en brain", "buscame en el brain", "buscame en mi brain",
+        "buscar en brain", "buscar en el brain", "buscar en mi brain",
+        "encuentra en brain", "encuentra en el brain", "encuentra en mi brain",
+        "busca en memoria", "busca en la memoria", "busca en mi memoria",
+        "buscame en memoria", "buscame en la memoria", "buscame en mi memoria",
+        "encuentra en memoria", "encuentra en la memoria", "encuentra en mi memoria",
+        "que se de", "que se sobre", "que sabemos de", "que sabemos sobre",
         "pregunta al cerebro", "preguntale al cerebro", "preguntale a mi cerebro",
+        "busca en el cerebro", "busca en mi cerebro", "buscar en el cerebro",
+        "buscame en el cerebro", "buscame en mi cerebro",
+        "encuentra en el cerebro", "encuentra en mi cerebro",
         "brain pregunta", "cerebro pregunta",
     ]
 

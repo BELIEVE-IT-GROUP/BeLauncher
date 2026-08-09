@@ -36,14 +36,17 @@ struct LauncherInputNeedsTests {
         let ordinary = LauncherInputNeeds(query: "pricing", mode: .all)
         let decision = LauncherInputNeeds(query: "what did we decide about pricing", mode: .all)
         let natural = LauncherInputNeeds(query: "ask brain where did I see the Acme article", mode: .all)
+        let searchBrain = LauncherInputNeeds(query: "búscame en mi memoria la llamada de Atlas", mode: .all)
         let pulse = LauncherInputNeeds(query: "pulse", mode: .all)
         #expect(!ordinary.needsMemories)
         #expect(decision.needsMemories)
         #expect(natural.needsMemories)
+        #expect(searchBrain.needsMemories)
         #expect(!decision.needsWorkGraph)
         #expect(pulse.needsMemories)
         #expect(pulse.needsTraits)
         #expect(natural.needsTraits)
+        #expect(searchBrain.needsTraits)
     }
 
     @Test("procesos, workspaces y comandos slash se leen solo cuando se piden")

@@ -874,6 +874,7 @@ extension SpanishStrings {
         "what did we decide about ": "qué decidimos sobre ",
         "remember that ": "recordar que ",
         "prepare me for ": "prepárame para ",
+        "search my brain for ": "busca en mi memoria ",
         "Start typing this": "Empezar con esto",
         "Showing the full local graph.": "Mostrando todo el grafo local.",
         "Showing the last 7 days.": "Mostrando los últimos 7 días.",

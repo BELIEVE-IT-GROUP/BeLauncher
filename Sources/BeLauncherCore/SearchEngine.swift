@@ -211,7 +211,7 @@ public enum SearchEngine {
                 id: "brain-ask", kind: .answer, title: L("Ask your brain"),
                 subtitle: L("Start with a question about decisions, people, projects or tasks"),
                 score: 100_990, matched: [], payload: "",
-                completion: L("what did we decide about ")
+                completion: L("search my brain for ")
             ),
             SearchResult(
                 id: "brain-remember", kind: .answer, title: L("Keep something in the brain"),
