@@ -695,6 +695,25 @@ private struct ActionPanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 7) {
+                    Image(systemName: "bolt.horizontal.fill")
+                        .foregroundStyle(Theme.cyan)
+                    Text(L("Quick actions"))
+                        .font(.system(size: 12, weight: .semibold))
+                    Spacer()
+                    Text(L("For the selected item"))
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.tertiary)
+                }
+                Text(model.selected?.title ?? L("Nothing selected"))
+                    .font(.system(size: 11.5))
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            Divider().overlay(.white.opacity(0.08))
             ScrollView {
                 VStack(alignment: .leading, spacing: 1) {
                     ForEach(ResultAction.Section.allCases, id: \.self) { section in
@@ -731,7 +750,7 @@ private struct ActionPanelView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
-                TextField(L("Search actions…"), text: $model.actionQuery)
+                TextField(L("Type to filter these actions"), text: $model.actionQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .focused($focus, equals: .actions)

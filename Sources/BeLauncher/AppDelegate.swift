@@ -333,6 +333,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             perform: { [weak self] action in self?.perform(action) }
         )
+        model.onNaturalLanguageQuestion = { [weak self] question in
+            self?.askNaturalLanguageQuestion(question)
+        }
         model.onMissionDraftChanged = { [weak self] draft in
             guard let store = self?.store else { return }
             if let draft {
@@ -2347,6 +2350,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Task { @MainActor in model.aiStreaming(verb: verb.title, fragment: fragment) }
                 }
                 model.aiAnswered(verb: verb.title, text: answer)
+            } catch let error as IntelligenceError {
+                model.aiFailed(error.description)
+            } catch {
+                model.aiFailed(error.localizedDescription)
+            }
+        }
+    }
+
+    /// A sentence that is not a closed launcher command belongs to the Brain, not to a dead-end
+    /// "no results" state. It still stays read-only: the answer is shown first, with the same
+    /// local evidence contract as the Brain window.
+    private func askNaturalLanguageQuestion(_ question: String) {
+        guard let model else { return }
+        model.aiWorking(L("Asking your Brain…"))
+        aiTask?.cancel()
+        aiTask = Task { @MainActor in
+            do {
+                let answer = try await askBrain(question)
+                model.aiAnswered(verb: L("Your Brain"), text: answer.text)
             } catch let error as IntelligenceError {
                 model.aiFailed(error.description)
             } catch {

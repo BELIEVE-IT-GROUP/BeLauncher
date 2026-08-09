@@ -70,6 +70,14 @@ Los snippets dejaron de depender de recordar una palabra clave: el footer tiene 
 `Snippets` que abre `/snippet`, lista los guardados, permite inspeccionar su expansión y ejecuta el
 snippet seleccionado con Enter, incluyendo su posición `{cursor}`.
 
+Las frases naturales que no son un comando cerrado ya no terminan en un vacío silencioso: si parecen
+una pregunta o una petición, aparece `Ask your Brain about…` y Enter las manda al buscador semántico
+local. El Launcher muestra la respuesta en la misma superficie; no ejecuta una acción de sistema por
+inferirla.
+
+El panel de Quick Actions identifica el elemento seleccionado, separa las acciones por contexto y
+expone un campo inequívoco para filtrar esa lista. El botón visible y `⌘K` abren el mismo panel.
+
 ### Inspección completa del clip
 
 Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un estado hover

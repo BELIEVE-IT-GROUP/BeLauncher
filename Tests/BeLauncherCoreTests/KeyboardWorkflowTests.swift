@@ -112,6 +112,20 @@ struct KeyboardWorkflowTests {
         #expect(recorder.actions.first == .copyToClipboard(text: "Best,\nJorge", cursorOffset: 6))
     }
 
+    @Test("an unmatched natural-language question is handed to the Brain")
+    func naturalLanguageQuestion() {
+        let recorder = Recorder()
+        let model = makeModel(recorder: recorder)
+        var handedOff = ""
+        model.onNaturalLanguageQuestion = { handedOff = $0 }
+        model.activate()
+        model.query = "what is the status of Project Atlas"
+        #expect(model.selected?.id == "brain-question")
+
+        model.handle(.enter)
+        #expect(handedOff == "what is the status of Project Atlas")
+    }
+
     @Test("workflow keyword completes with Tab, then Enter opens the built URL")
     func runWorkflow() {
         let recorder = Recorder()

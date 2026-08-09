@@ -197,6 +197,9 @@ public final class LauncherModel {
     }
 
     public private(set) var aiState: AIState = .idle
+    /// The app layer owns the Brain search because it also owns the configured provider and vault.
+    /// The launcher only decides that a free-form question should be handed there.
+    public var onNaturalLanguageQuestion: (@MainActor (String) -> Void)?
 
     /// The mission waiting for approval, if any. Shown as a plan the user reads before anything
     /// runs; there is no path that starts a mission without this step.
@@ -647,6 +650,10 @@ public final class LauncherModel {
             return true
 
         case .answer:
+            if result.id == "brain-question" {
+                onNaturalLanguageQuestion?(result.payload)
+                return true
+            }
             if result.payload.isEmpty, let completion = result.completion {
                 query = completion
                 return true

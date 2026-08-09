@@ -706,7 +706,28 @@ public enum SearchEngine {
                 ), at: 0)
             }
         }
-        return Array((pinned + ordered).prefix(limit))
+        let visible = Array((pinned + ordered).prefix(limit))
+        if visible.isEmpty, isNaturalLanguage(query) {
+            return [SearchResult(
+                id: "brain-question", kind: .answer,
+                title: L("Ask your Brain about %@", query),
+                subtitle: L("Search your local knowledge and show the sources"),
+                score: 100_000, matched: [], payload: query
+            )]
+        }
+        return visible
+    }
+
+    private static func isNaturalLanguage(_ query: String) -> Bool {
+        let words = query.split(whereSeparator: { $0.isWhitespace || $0.isPunctuation })
+        guard words.count >= 2 else { return query.hasSuffix("?") }
+        let first = Phrases.fold(String(words[0]))
+        let questionWords = Set([
+            "que", "como", "donde", "cuando", "porque", "por", "quien",
+            "what", "how", "where", "when", "why", "who", "can"
+        ])
+        return query.hasSuffix("?") || questionWords.contains(first)
+            || words.count >= 4
     }
 
     private static func wantsBrainLaunchpad(_ query: String) -> Bool {
