@@ -995,5 +995,14 @@ extension SpanishStrings {
         "Names and contact details after permission.": "Nombres y datos de contacto después de conceder permiso.",
         "Contact detail": "Dato de contacto",
         "Copy contact": "Copiar contacto",
+        "Photos": "Fotos",
+        "Local photo metadata after permission.": "Metadatos de fotos locales después de conceder permiso.",
+        "Photo library": "Fototeca",
+        "Photo": "Foto",
+        "Open photo": "Abrir foto",
+        "Copy path": "Copiar ruta",
+        "Album": "Álbum",
+        "Local identifier": "Identificador local",
+        "%@ photos available locally": "%@ fotos disponibles localmente",
     ]
 }

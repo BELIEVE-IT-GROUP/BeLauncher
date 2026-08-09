@@ -736,6 +736,10 @@ public final class LauncherModel {
             perform(.copyToClipboard(text: result.subtitle, cursorOffset: nil))
             perform(.dismiss)
 
+        case .photo:
+            perform(.openURL(URL(string: "photos://")!))
+            perform(.dismiss)
+
         case .file:
             perform(.openFile(path: result.payload))
             perform(.dismiss)

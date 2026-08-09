@@ -22,6 +22,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case process
     case reminder
     case contact
+    case photo
 
     public var label: String {
         switch self {
@@ -45,6 +46,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .process: L("Process")
         case .reminder: L("Reminder")
         case .contact: L("Contact")
+        case .photo: L("Photo")
         }
     }
 
@@ -70,6 +72,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .process: "gauge.with.needle"
         case .reminder: "checklist"
         case .contact: "person.crop.circle"
+        case .photo: "photo"
         }
     }
 }
@@ -129,6 +132,7 @@ public struct SearchInput: Sendable {
     public var events: [CalendarEvent]
     public var reminders: [ReminderItem]
     public var contacts: [ContactItem]
+    public var photos: [PhotoItem]
     /// The outcomes installed on this Mac, which is what `/` offers.
     public var packs: [OutcomePack]
     /// Operational memory: what was worked on, and how it is connected.
@@ -150,6 +154,7 @@ public struct SearchInput: Sendable {
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
                 reminders: [ReminderItem] = [],
                 contacts: [ContactItem] = [],
+                photos: [PhotoItem] = [],
                 workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
                 processes: [RunningProcess] = [], workspaces: [Workspace] = [],
                 notes: [QuickNote.Record] = []) {
@@ -167,6 +172,7 @@ public struct SearchInput: Sendable {
         self.events = events
         self.reminders = reminders
         self.contacts = contacts
+        self.photos = photos
         self.packs = packs
         self.workNodes = workNodes
         self.workEdges = workEdges
@@ -321,6 +327,13 @@ public enum SearchEngine {
                                  title: contact.name,
                                  subtitle: contact.email.isEmpty ? contact.phone : contact.email,
                                  score: 100_000 - index, matched: [], payload: contact.id)
+                }
+            }
+            if slash == "photo" || slash == "photos" {
+                return input.photos.prefix(limit).enumerated().map { index, photo in
+                    SearchResult(id: "photo-\(photo.id)", kind: .photo, title: photo.title,
+                                 subtitle: photo.album, score: 100_000 - index, matched: [],
+                                 payload: photo.path.isEmpty ? photo.id : photo.path)
                 }
             }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {
@@ -706,6 +719,13 @@ public enum SearchEngine {
                                         title: contact.name,
                                         subtitle: contact.email.isEmpty ? contact.phone : contact.email,
                                         score: match.score + 25, matched: match.matched, payload: contact.id))
+        }
+
+        for photo in input.photos {
+            guard let match = Fuzzy.match(needle: needle, hay: Fuzzy.folded(photo.searchableText)) else { continue }
+            results.append(SearchResult(id: "photo-\(photo.id)", kind: .photo, title: photo.title,
+                                        subtitle: photo.album, score: match.score + 20,
+                                        matched: match.matched, payload: photo.path.isEmpty ? photo.id : photo.path))
         }
 
         for (command, score) in WindowCommand.search(query) {

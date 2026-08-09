@@ -131,6 +131,9 @@ private struct SourceRow: View {
         case "contacts" where !model.contactsGranted:
             Button(L("Allow")) { model.requestContacts() }
                 .controlSize(.small)
+        case "photos" where !model.photosGranted:
+            Button(L("Allow")) { model.requestPhotos() }
+                .controlSize(.small)
         case "audio":
             Text(L("Manual")).font(.caption).foregroundStyle(.secondary)
         case "notes", "messages", "apple-mail", "browsers", "conversations":
@@ -178,6 +181,8 @@ private struct SourceRow: View {
             return model.remindersGranted ? .connected : .available
         case "contacts":
             return model.contactsGranted ? .connected : .available
+        case "photos":
+            return model.photosGranted ? .connected : .available
         default:
             return LocalSourceHealth.state(for: source, store: model.store)
         }

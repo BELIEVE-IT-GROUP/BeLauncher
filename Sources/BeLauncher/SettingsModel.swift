@@ -848,12 +848,14 @@ final class SettingsModel {
     var calendarGranted: Bool { calendar?.isAuthorised ?? false }
     var remindersGranted: Bool { reminders?.isAuthorised ?? false }
     var contactsGranted: Bool { contacts?.isAuthorised ?? false }
+    var photosGranted: Bool { photos?.isAuthorised ?? false }
     var notificationsGranted = false
 
     /// Set by the app so Settings can ask for the calendar without owning EventKit.
     var calendar: CalendarAccess?
     var reminders: ReminderAccess?
     var contacts: ContactAccess?
+    var photos: PhotoAccess?
     var onRequestNotifications: (() async -> Bool)?
 
     func requestCalendar() {
@@ -880,6 +882,15 @@ final class SettingsModel {
             guard let contacts else { return }
             await contacts.requestAccessIfNeeded()
             await contacts.refresh()
+            sourceRefreshRevision += 1
+        }
+    }
+
+    func requestPhotos() {
+        Task { @MainActor in
+            guard let photos else { return }
+            await photos.requestAccessIfNeeded()
+            photos.refresh()
             sourceRefreshRevision += 1
         }
     }

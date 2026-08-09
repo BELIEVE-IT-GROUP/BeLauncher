@@ -121,3 +121,10 @@ Contacts tiene ahora un puente de lectura local mediante `Contacts.framework`: S
 permiso, `/contacts` lista la libreta y una búsqueda por nombre, correo o teléfono devuelve un
 resultado que se puede inspeccionar y copiar. Crear, editar y compartir contactos siguen fuera de
 este corte para no convertir una lectura en una mutación sin confirmación.
+
+## Wave 2: Photos
+
+Photos se conecta mediante `Photos.framework` con permiso de lectura. `/photos` muestra metadatos
+locales sin descargar originales, y Enter abre Fotos; la búsqueda BEL devuelve el conteo real de
+elementos disponibles. Los identificadores de Photos no se presentan como rutas de Finder ni como
+previews falsos. Edición, álbumes y extracción de texto quedan pendientes de adapters con recibo.

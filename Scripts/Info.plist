@@ -43,6 +43,8 @@
 	<string>BeLauncher lee tus recordatorios pendientes solo cuando buscas en ellos o activas Recordatorios en el Brain.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>BeLauncher busca tus contactos localmente solo cuando tú lo pides.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BeLauncher busca fotos locales solo cuando tú lo pides y conserva el enlace al original.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Local-only launcher. No accounts, no telemetry.</string>
 	<key>NSMicrophoneUsageDescription</key>

@@ -205,6 +205,11 @@ public enum DetailBuilder {
             return ResultDetail(body: result.title,
                                 metadata: [.init(label: L("Contact detail"), value: result.subtitle)])
 
+        case .photo:
+            return ResultDetail(body: result.title,
+                                metadata: [.init(label: L("Album"), value: result.subtitle),
+                                           .init(label: L("Local identifier"), value: result.payload)])
+
         case .window:
             return ResultDetail(body: result.title,
                                 metadata: [.init(label: L("Needs"), value: L("Accessibility permission"))])
