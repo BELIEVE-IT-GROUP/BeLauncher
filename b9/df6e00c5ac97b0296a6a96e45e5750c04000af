@@ -1,0 +1,23 @@
+Sources/BeLauncherCore/Vault.swift
+  s_30bc31f46aebe1::t_8706d8ded3a854 98,314,316-332,362-367
+docs/release-0.32.58.md
+  s_30bc31f46aebe1::t_ce153cb9691a5b 1-24
+Tests/BeLauncherCoreTests/VaultTests.swift
+  s_30bc31f46aebe1::t_8e043a298f3fc0 359-399
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b9df6e00c5ac97b0296a6a96e45e5750c04000af",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
