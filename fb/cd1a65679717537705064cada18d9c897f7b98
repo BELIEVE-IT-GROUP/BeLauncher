@@ -1,0 +1,35 @@
+Sources/BeLauncherCore/KnowledgeSources.swift
+  s_30bc31f46aebe1::t_e8f04513550ec4 13,73
+Sources/BeLauncher/GraphView.swift
+  s_30bc31f46aebe1::t_037085cd4198e3 1606
+Sources/BeLauncher/LocalWhatsAppConnector.swift
+  s_30bc31f46aebe1::t_30c3fe74b621b9 1-103
+Sources/BeLauncher/main.swift
+  s_30bc31f46aebe1::t_3d63c78eb143b3 77-83
+Sources/BeLauncher/LocalSourceHealth.swift
+  s_30bc31f46aebe1::t_0ddf37ab8d0dcb 20-21
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_30bc31f46aebe1::t_636f8d92cdab7b 766-769,778,793
+docs/release-0.32.55.md
+  s_30bc31f46aebe1::t_2fe8f2ac1ca959 1-33
+Tests/BeLauncherAppTests/LocalSourceConnectorTests.swift
+  s_30bc31f46aebe1::t_351761bd9f7deb 71-133
+Sources/BeLauncher/SourceCenterView.swift
+  s_30bc31f46aebe1::t_139c7ee26f2518 180-182,213,223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "fbcd1a65679717537705064cada18d9c897f7b98",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
