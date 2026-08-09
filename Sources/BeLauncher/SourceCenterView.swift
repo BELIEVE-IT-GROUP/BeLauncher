@@ -96,8 +96,11 @@ private struct SourceRow: View {
 
     var body: some View {
         let _ = model.sourceRefreshRevision
+        let needsAttention = model.sourceNeedsAttention(source.id)
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: source.symbol).foregroundStyle(source.state == .planned ? .secondary : Theme.accent)
+            Image(systemName: needsAttention ? "exclamationmark.triangle.fill" : source.symbol)
+                .foregroundStyle(needsAttention ? Color.orange
+                                 : source.state == .planned ? .secondary : Theme.accent)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 7) {
@@ -205,12 +208,13 @@ private struct SourceRow: View {
     }
 
     private var stateLabel: String {
+        if model.sourceNeedsAttention(source.id) { return L("Needs attention") }
         switch effectiveState {
-        case .connected: L("Connected")
-        case .available: L("Available")
-        case .manual: L("Manual")
-        case .planned: L("Planned")
-        case .unsupported: L("Unsupported")
+        case .connected: return L("Connected")
+        case .available: return L("Available")
+        case .manual: return L("Manual")
+        case .planned: return L("Planned")
+        case .unsupported: return L("Unsupported")
         }
     }
 

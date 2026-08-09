@@ -1297,6 +1297,7 @@ final class SettingsModel {
             let result = await onSourceSync("all")
             sourceFeedback["all"] = sourceMessage(result)
             sourceFeedbackErrors["all"] = if case .failed = result { true } else { false }
+            refreshCorpusSourceFeedback(after: result)
             sourceSyncing.remove("all")
             sourceRefreshRevision &+= 1
             refreshBrainState()
@@ -1315,6 +1316,30 @@ final class SettingsModel {
         case .deferred(let reason): return L("Capture was deferred: %@", reason)
         case .busy: return L("Another source is already being read.")
         case .failed(let problem): return L("Read failed: %@", problem)
+        }
+    }
+
+    private static let corpusSourceIDs = [
+        "browsers", "conversations", "apple-mail", "messages", "notes"
+    ]
+
+    /// "Sync all" used to leave the person with one global sentence. That is not enough for deep
+    /// local sources: Mail can need Full Disk Access while browser history succeeds. The rows need
+    /// to tell their own truth immediately after the run, before any relaunch or manual refresh.
+    private func refreshCorpusSourceFeedback(after result: CorpusRunner.RunResult) {
+        for id in Self.corpusSourceIDs {
+            guard sourceEnabled(id) else {
+                sourceFeedback.removeValue(forKey: id)
+                sourceFeedbackErrors.removeValue(forKey: id)
+                continue
+            }
+            if let status = storedSourceStatusLine(id) {
+                sourceFeedback[id] = status
+                sourceFeedbackErrors[id] = storedSourceHasProblem(id)
+            } else if case .failed = result {
+                sourceFeedback[id] = sourceMessage(result)
+                sourceFeedbackErrors[id] = true
+            }
         }
     }
 
@@ -1338,6 +1363,10 @@ final class SettingsModel {
     func sourceStatusLine(_ id: String) -> String? {
         guard sourceEnabled(id) else { return L("Paused by you") }
         if let feedback = sourceFeedback[id] { return feedback }
+        return storedSourceStatusLine(id)
+    }
+
+    private func storedSourceStatusLine(_ id: String) -> String? {
         guard let raw = store.setting("source_last_sync_\(id)"),
               let timestamp = Double(raw), timestamp > 0 else { return L("Not read yet") }
         let count = store.setting("source_last_count_\(id)") ?? "0"
@@ -1353,10 +1382,19 @@ final class SettingsModel {
         return L("Last read: %@ items · %@", count, date.formatted(date: .abbreviated, time: .shortened))
     }
 
+    private func storedSourceHasProblem(_ id: String) -> Bool {
+        guard let problem = store.setting("source_last_problem_\(id)") else { return false }
+        return !problem.isEmpty
+    }
+
     /// A catalog entry is not proof that this Mac has actually read the source. The source
     /// center uses this to keep its green state tied to a completed, error-free sync.
     func sourceHasSuccessfulSync(_ id: String) -> Bool {
         LocalSourceHealth.successfulSync(id, store: store)
+    }
+
+    func sourceNeedsAttention(_ id: String) -> Bool {
+        sourceEnabled(id) && storedSourceHasProblem(id)
     }
 
     /// The browser connector has no separate schedule record: its evidence is the local history
