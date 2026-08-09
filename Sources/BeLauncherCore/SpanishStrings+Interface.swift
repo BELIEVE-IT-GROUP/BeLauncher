@@ -982,5 +982,13 @@ extension SpanishStrings {
         "I could not read every Apple Mail message. Check Full Disk Access and the Mail store.": "No pude leer todos los mensajes de Apple Mail. Revisa el Acceso total al disco y el almacén de Mail.",
         "Apple Messages could not finish reading its local database.": "Apple Mensajes no pudo terminar de leer su base de datos local.",
         "Apple Notes could not finish reading its local database.": "Apple Notas no pudo terminar de leer su base de datos local.",
+        "Reminder": "Recordatorio",
+        "Reminders": "Recordatorios",
+        "Pending reminders and due dates after permission.": "Recordatorios pendientes y fechas de vencimiento después de conceder permiso.",
+        "No due date": "Sin fecha de vencimiento",
+        "Untitled": "Sin título",
+        "Copy the reminder": "Copiar el recordatorio",
+        "List and due date": "Lista y fecha de vencimiento",
+        "Reminders on this Mac": "Recordatorios de este Mac",
     ]
 }

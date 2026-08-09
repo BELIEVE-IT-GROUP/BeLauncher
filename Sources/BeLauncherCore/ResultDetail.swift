@@ -194,6 +194,13 @@ public enum DetailBuilder {
                 ]
             )
 
+        case .reminder:
+            return ResultDetail(
+                body: result.title,
+                metadata: [.init(label: L("List and due date"), value: result.subtitle),
+                           .init(label: L("Source"), value: L("Reminders on this Mac"))]
+            )
+
         case .window:
             return ResultDetail(body: result.title,
                                 metadata: [.init(label: L("Needs"), value: L("Accessibility permission"))])

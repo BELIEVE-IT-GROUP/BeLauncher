@@ -121,6 +121,18 @@ struct KeyboardWorkflowTests {
         #expect(results.first?.payload == "Focus block")
     }
 
+    @Test("reminders can be browsed and searched from the launcher")
+    func browseReminders() {
+        let reminder = ReminderItem(id: "r1", title: "Enviar propuesta", list: "Trabajo")
+        let listed = SearchEngine.search("/reminders", in: SearchInput(reminders: [reminder]))
+        #expect(listed.count == 1)
+        #expect(listed.first?.kind == .reminder)
+        #expect(listed.first?.payload == "r1")
+
+        let found = SearchEngine.search("propuesta", in: SearchInput(reminders: [reminder]))
+        #expect(found.first?.id == "reminder-r1")
+    }
+
     @Test("an unmatched natural-language question is handed to the Brain")
     func naturalLanguageQuestion() {
         let recorder = Recorder()

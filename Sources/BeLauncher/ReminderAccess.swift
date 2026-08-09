@@ -1,0 +1,52 @@
+import Foundation
+@preconcurrency import EventKit
+import BeLauncherCore
+
+/// Read-only first slice of the Reminders bridge. It never asks for permission while typing.
+@MainActor
+final class ReminderAccess {
+    private let store = EKEventStore()
+    private(set) var reminders: [ReminderItem] = []
+    private(set) var lastError: String?
+    private var hasAsked = false
+
+    var isAuthorised: Bool {
+        EKEventStore.authorizationStatus(for: .reminder) == .fullAccess
+    }
+
+    func requestAccessIfNeeded() async {
+        guard !isAuthorised, !hasAsked else { return }
+        hasAsked = true
+        do {
+            if try await store.requestFullAccessToReminders() {
+                await refresh()
+            }
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func refresh() async {
+        guard isAuthorised else { return }
+        let predicate = store.predicateForReminders(in: nil)
+        reminders = await withCheckedContinuation { continuation in
+            store.fetchReminders(matching: predicate) { items in
+                let mapped = (items ?? [])
+                    .filter { !$0.isCompleted }
+                    .compactMap { item -> ReminderItem? in
+                        guard let title = item.title, !title.isEmpty else { return nil }
+                        return ReminderItem(
+                            id: item.calendarItemIdentifier,
+                            title: title,
+                            list: item.calendar.title,
+                            dueDate: item.dueDateComponents.flatMap { Calendar.current.date(from: $0) },
+                            notes: item.notes ?? ""
+                        )
+                    }
+                    .sorted { ($0.dueDate ?? .distantFuture, $0.title) <
+                              ($1.dueDate ?? .distantFuture, $1.title) }
+                continuation.resume(returning: mapped)
+            }
+        }
+    }
+}

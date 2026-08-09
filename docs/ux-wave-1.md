@@ -103,3 +103,14 @@ Una miniatura no basta para saber qué se copió. Cada tarjeta ofrece ahora un e
 reconocible y una acción `Quick Preview` que expande el contenido completo dentro del Launcher, sin
 cerrarlo ni reemplazar el contenido del portapapeles. El preview reutiliza el detalle real y funciona
 para texto largo, imágenes y archivos, junto con las acciones existentes de la tarjeta.
+
+## Wave 2: Reminders
+
+Reminders deja de aparecer como una promesa vacía. La primera entrega conecta el permiso real de
+EventKit con el catálogo BEL y permite leer solo los recordatorios pendientes, buscar por título o
+lista y abrir `/reminders` desde el launcher. Settings muestra el estado `Allow`/conectado y el
+bundle explica por qué se solicita el permiso.
+
+La entrada es deliberadamente de solo lectura: buscar no modifica nada y Enter copia el recordatorio
+seleccionado. Crear, completar, editar y borrar quedan fuera de este corte hasta tener sus propios
+tests de confirmación y recibo; siguen marcados como no disponibles en el catálogo.

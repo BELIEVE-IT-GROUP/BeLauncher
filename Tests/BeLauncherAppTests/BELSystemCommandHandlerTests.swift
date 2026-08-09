@@ -168,6 +168,9 @@ struct BELSystemCommandHandlerTests {
         for id in ["reminders.create", "contacts.find", "photos.find"] {
             #expect(BELActionCatalog.named(id)?.availability == .unavailable)
         }
+        let reminders = try #require(BELActionCatalog.named("reminders.find"))
+        #expect(reminders.availability == .implemented)
+        #expect(BELActionRuntime().handler(for: reminders)?.actionID == reminders.id)
     }
 
     @Test("public app actions validate identifiers and settings without opening the host")

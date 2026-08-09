@@ -39,6 +39,8 @@
 	<string>BeLauncher captura el audio del sistema solo cuando tú inicias una grabación de llamada.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>BeLauncher lee tus próximos eventos solo cuando preparas una reunión o activas el calendario del Brain.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>BeLauncher lee tus recordatorios pendientes solo cuando buscas en ellos o activas Recordatorios en el Brain.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Local-only launcher. No accounts, no telemetry.</string>
 	<key>NSMicrophoneUsageDescription</key>

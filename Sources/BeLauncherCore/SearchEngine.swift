@@ -20,6 +20,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
     case mission
     case agent
     case process
+    case reminder
 
     public var label: String {
         switch self {
@@ -41,6 +42,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .mission: L("Mission")
         case .agent: L("Command")
         case .process: L("Process")
+        case .reminder: L("Reminder")
         }
     }
 
@@ -64,6 +66,7 @@ public enum ResultKind: String, Sendable, Codable, CaseIterable {
         case .mission: "wand.and.stars"
         case .agent: "terminal"
         case .process: "gauge.with.needle"
+        case .reminder: "checklist"
         }
     }
 }
@@ -121,6 +124,7 @@ public struct SearchInput: Sendable {
     public var memories: [MemoryObject]
     public var pendingCommits: [MemoryCommit]
     public var events: [CalendarEvent]
+    public var reminders: [ReminderItem]
     /// The outcomes installed on this Mac, which is what `/` offers.
     public var packs: [OutcomePack]
     /// Operational memory: what was worked on, and how it is connected.
@@ -140,6 +144,7 @@ public struct SearchInput: Sendable {
                 shortcuts: [Shortcut] = [], systemShortcuts: [String] = [],
                 memories: [MemoryObject] = [], pendingCommits: [MemoryCommit] = [],
                 events: [CalendarEvent] = [], packs: [OutcomePack] = [],
+                reminders: [ReminderItem] = [],
                 workNodes: [WorkNode] = [], workEdges: [WorkEdge] = [], traits: [Trait] = [],
                 processes: [RunningProcess] = [], workspaces: [Workspace] = [],
                 notes: [QuickNote.Record] = []) {
@@ -155,6 +160,7 @@ public struct SearchInput: Sendable {
         self.memories = memories
         self.pendingCommits = pendingCommits
         self.events = events
+        self.reminders = reminders
         self.packs = packs
         self.workNodes = workNodes
         self.workEdges = workEdges
@@ -293,6 +299,14 @@ public enum SearchEngine {
                     SearchResult(id: "shortcut-run-\(name)", kind: .shortcut,
                                  title: name, subtitle: L("macOS Shortcut"),
                                  score: 100_000 - index, matched: [], payload: name)
+                }
+            }
+            if slash == "reminder" || slash == "reminders" {
+                return input.reminders.prefix(limit).enumerated().map { index, reminder in
+                    SearchResult(id: "reminder-\(reminder.id)", kind: .reminder,
+                                 title: reminder.title,
+                                 subtitle: "\(reminder.list) · \(reminder.displayDueDate)",
+                                 score: 100_000 - index, matched: [], payload: reminder.id)
                 }
             }
             if let (command, argument) = AgentCommand.parse(query, in: commands) {
@@ -659,6 +673,16 @@ public enum SearchEngine {
                 id: "shortcut-run-\(name)", kind: .shortcut, title: name,
                 subtitle: L("macOS Shortcut"), score: match.score + 15, matched: match.matched,
                 payload: name
+            ))
+        }
+
+        for reminder in input.reminders {
+            guard let match = Fuzzy.match(needle: needle,
+                                          hay: Fuzzy.folded(reminder.searchableText)) else { continue }
+            results.append(SearchResult(
+                id: "reminder-\(reminder.id)", kind: .reminder, title: reminder.title,
+                subtitle: "\(reminder.list) · \(reminder.displayDueDate)",
+                score: match.score + 25, matched: match.matched, payload: reminder.id
             ))
         }
 

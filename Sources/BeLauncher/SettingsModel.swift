@@ -846,10 +846,12 @@ final class SettingsModel {
     /// Whether macOS has actually granted these. The onboarding toggles read this, so a switch
     /// never shows "on" for something the system has not agreed to.
     var calendarGranted: Bool { calendar?.isAuthorised ?? false }
+    var remindersGranted: Bool { reminders?.isAuthorised ?? false }
     var notificationsGranted = false
 
     /// Set by the app so Settings can ask for the calendar without owning EventKit.
     var calendar: CalendarAccess?
+    var reminders: ReminderAccess?
     var onRequestNotifications: (() async -> Bool)?
 
     func requestCalendar() {
@@ -860,6 +862,15 @@ final class SettingsModel {
         guard let calendar else { return }
         await calendar.requestAccessIfNeeded()
         calendar.refresh()
+    }
+
+    func requestReminders() {
+        Task { @MainActor in
+            guard let reminders else { return }
+            await reminders.requestAccessIfNeeded()
+            await reminders.refresh()
+            sourceRefreshRevision += 1
+        }
     }
 
     func requestNotifications() {

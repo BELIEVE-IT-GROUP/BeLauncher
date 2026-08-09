@@ -65,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var missionTasks: [String: Task<Void, Error>] = [:]
     private let commandCoordinator = BrainCommandCoordinator()
     private let calendar = CalendarAccess()
+    private let reminders = ReminderAccess()
     private var environment: [String: String] = [:]
     private var activationWindow: NSWindow?
     private var activationModel: ActivationModel?
@@ -253,6 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     needs.needsWorkGraph ? "graph" : "",
                     needs.needsMemories ? "memories" : "",
                     needs.needsCalendar ? "calendar" : "",
+                    "reminders",
                     needs.needsTraits ? "traits" : ""
                 ].joined(separator: "|")
                 if let cached = self.launcherInputCache,
@@ -278,6 +280,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         ? (self.vault?.commits(state: .proposed) ?? []) : [],
                     events: needs.needsCalendar ? self.calendar.events : [],
                     packs: needs.needsPacks ? store.availablePacks() : [],
+                    reminders: self.reminders.reminders,
                     workNodes: workNodes,
                     workEdges: workEdges,
                     traits: needs.needsTraits ? store.traits() : [],
@@ -1093,6 +1096,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsModel.updateStatus = L("There is a new version: %@", pending.version)
         }
         settingsModel.calendar = calendar
+        settingsModel.reminders = reminders
         settingsModel.onRequestNotifications = { [weak self] in
             await self?.requestNotifications() ?? false
         }
