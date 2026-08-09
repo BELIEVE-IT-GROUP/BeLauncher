@@ -17,6 +17,9 @@ Inbox, leer/editar Markdown, preparar una misión y abrir la fuente original.
   `Worth your attention`, `Recent notes` y `Recent work`.
 - El Overview ofrece acciones directas para nueva nota, importar archivo, nota de voz, preguntar y
   planear una tarea.
+- La conversación con el Brain vive abajo como una barra de comando persistente; el contenido,
+  Inbox y grafo ocupan primero la superficie principal, como una herramienta de trabajo y no como
+  un chat que desplaza todo lo demás.
 - La escalera técnica de niveles de verdad permanece disponible dentro del inspector, donde sirve
   para revisar evidencia, pero no compite con la navegación principal.
 

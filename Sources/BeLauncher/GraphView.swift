@@ -821,28 +821,6 @@ struct GraphView: View {
             VStack(spacing: 0) {
                 controls
                 Divider().opacity(0.35)
-                BrainConversationView(coordinator: coordinator,
-                                      context: {
-                                          guard let document = reader?.selected else { return nil }
-                                          return BrainConversationContext(
-                                              sourceID: document.id,
-                                              title: document.title,
-                                              body: String(document.body.prefix(6_000)))
-                                      },
-                                      ask: askBrain,
-                                      importText: importText, importFile: importFile,
-                                      saveNote: { text in
-                                          noteDraft = text
-                                          showingNoteComposer = true
-                                      },
-                                      newNote: {
-                                          noteDraft = ""
-                                          showingNoteComposer = true
-                                      },
-                                      prepareMission: prepareMission,
-                                      runIntent: runIntent,
-                                      openCitation: openCitation)
-                Divider().opacity(0.35)
                 if let reader {
                     BrainReaderSurface(model: reader) {
                         self.reader = nil
@@ -893,6 +871,28 @@ struct GraphView: View {
                             .transition(.move(edge: .trailing))
                     }
                 }
+                Divider().opacity(0.35)
+                BrainConversationView(coordinator: coordinator,
+                                      context: {
+                                          guard let document = reader?.selected else { return nil }
+                                          return BrainConversationContext(
+                                              sourceID: document.id,
+                                              title: document.title,
+                                              body: String(document.body.prefix(6_000)))
+                                      },
+                                      ask: askBrain,
+                                      importText: importText, importFile: importFile,
+                                      saveNote: { text in
+                                          noteDraft = text
+                                          showingNoteComposer = true
+                                      },
+                                      newNote: {
+                                          noteDraft = ""
+                                          showingNoteComposer = true
+                                      },
+                                      prepareMission: prepareMission,
+                                      runIntent: runIntent,
+                                      openCitation: openCitation)
                 Divider().opacity(0.35)
                 footer
             }
