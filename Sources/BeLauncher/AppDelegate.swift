@@ -1214,6 +1214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // the retained model when the person returns instead of preserving that first empty
             // snapshot forever.
             graphModel?.load()
+            fitBrainWindow(window, animate: true)
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
@@ -1221,11 +1222,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The same root the corpus runner writes to. A different one silently opens the loop
         // again: corrections would be written where nothing reads them, and nothing would fail.
         let folder = try? CorpusFolder(root: CorpusFolder.defaultRoot())
+        let brainFrame = BrainWindowSizing.frame(in: screenUnderPointer().visibleFrame)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1120, height: 720),
+            contentRect: brainFrame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false
         )
+        window.minSize = BrainWindowSizing.minimumSize(in: screenUnderPointer().visibleFrame)
         window.title = L("Your brain")
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
@@ -1257,7 +1260,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             runIntent: { [weak self] text in self?.primeLauncher(with: text) },
             openCitation: { [weak self] citation in self?.openBrainCitation(citation) }))
         window.isReleasedWhenClosed = false
-        place(window)
+        fitBrainWindow(window, animate: false)
         graphWindow = window
 
         panel?.orderOut(nil)
@@ -2811,18 +2814,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Vertically it sits above the middle. A window centred exactly looks low, because the eye
     /// reads the space under it as heavier; every system dialog on macOS does the same.
     private func place(_ window: NSWindow) {
-        let pointer = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first { NSMouseInRect(pointer, $0.frame, false) }
-            ?? NSScreen.main
-            ?? NSScreen.screens[0]
-
-        let visible = screen.visibleFrame
+        let visible = screenUnderPointer().visibleFrame
         let size = window.frame.size
         let x = visible.midX - size.width / 2
         let y = visible.midY - size.height / 2 + visible.height * 0.10
         // Never push the title bar off the top of the screen on a short display.
         let clamped = min(y, visible.maxY - size.height)
         window.setFrameOrigin(NSPoint(x: x.rounded(), y: clamped.rounded()))
+    }
+
+    private func screenUnderPointer() -> NSScreen {
+        let pointer = NSEvent.mouseLocation
+        return NSScreen.screens.first { NSMouseInRect(pointer, $0.frame, false) }
+            ?? NSScreen.main
+            ?? NSScreen.screens[0]
+    }
+
+    private func fitBrainWindow(_ window: NSWindow, animate: Bool) {
+        let visible = screenUnderPointer().visibleFrame
+        let target = BrainWindowSizing.frame(in: visible)
+        window.minSize = BrainWindowSizing.minimumSize(in: visible)
+        let oversized = window.frame.width > visible.width || window.frame.height > visible.height
+        guard oversized || BrainWindowSizing.shouldGrow(current: window.frame, toward: target) else {
+            place(window)
+            return
+        }
+        window.setFrame(target, display: true, animate: animate)
     }
 
     private func report(_ title: String, _ detail: String) {
