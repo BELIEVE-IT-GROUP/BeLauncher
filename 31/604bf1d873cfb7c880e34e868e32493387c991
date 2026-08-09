@@ -1,0 +1,21 @@
+docs/ux-wave-1.md
+  s_30bc31f46aebe1::t_12523a4e2c647c 57-64
+Sources/BeLauncher/CommandView.swift
+  s_30bc31f46aebe1::t_eedd7b40369db7 956,992,1020
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "31604bf1d873cfb7c880e34e868e32493387c991",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
