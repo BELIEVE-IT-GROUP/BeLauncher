@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "T-16",
+  "kind": "implementation",
+  "objective": "Close the Launcher human-UX slice: clipboard Quick Preview must open the full preview reliably, the footer must not visually overflow when many actions exist, and the launcher must keep local-source hot paths explicit.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Clipboard cards expose a visible Quick Preview button and hover affordance that expands the full detail inside the launcher without running the clip or replacing the clipboard."},
+    {"id": "PC-2", "promise": "The footer has full, compact and minimal layouts so quick actions do not overflow or look broken when the selected item adds primary/actions/settings controls."},
+    {"id": "PC-3", "promise": "Launcher input routing keeps clipboard mode lightweight and does not wake Brain/vault/local-source work unless the user asks for those surfaces."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Run CommandViewUXTests and inspect CommandView preview ordering/selection clearing.", "expected": "The selected card is set before expansion and stale model.selected is not used to clear the preview."},
+    {"criterion_id": "PC-2", "procedure": "Run CommandViewUXTests and inspect CommandView footer ViewThatFits variants.", "expected": "The footer includes a minimal fallback with icon-only controls and a Voice menu."},
+    {"criterion_id": "PC-3", "procedure": "Run LauncherInputNeedsTests.", "expected": "Clipboard mode and ordinary launch do not touch vault, graph, processes or local sources unless explicitly requested."}
+  ],
+  "subsystems": ["launcher-ui"],
+  "expected_paths": [
+    "Sources/BeLauncher/CommandView.swift",
+    "Tests/BeLauncherAppTests/CommandViewUXTests.swift",
+    "Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift",
+    "docs/ux-wave-1.md"
+  ],
+  "risk_seams": ["release-visible-ui"],
+  "material_unknowns": [],
+  "dependencies": ["T-14", "T-15"],
+  "program_item_ids": ["ITEM-01"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "CommandView, launcher input tests and UX wave docs were inspected. The reported MacBook issue maps to preview clearing by stale selection and to a footer without a third fallback layout.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "CommandViewUXTests plus LauncherInputNeedsTests."
+  }
+}

@@ -1,0 +1,29 @@
+T-10 attempt 1 worker outcome
+
+Guard-dispatched worker id: 019fe781-T10
+Actual native subagent: 019fe784-7d58-7552-b9ca-05163c3990a3
+Note: the guard dispatch used a stable lead-assigned worker label before the native subagent id was returned. The actual subagent id is preserved here for audit.
+
+Status: DONE
+
+Changed product paths:
+- Sources/BeLauncherCore/BELLanguageModelProvider.swift
+- Sources/BeLauncherCore/AIVerbs.swift
+- Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift
+- Tests/BeLauncherCoreTests/LocalModelsTests.swift
+- Tests/BeLauncherCoreTests/AIVerbTests.swift
+
+Criteria evidence:
+- PC-1: Tests prove Ollama and LM Studio collapse to bebrain.local.core, cloud keeps anthropic identity, and Foundation Models remains runtime-discovered only.
+- PC-2: Discovery tests hit Ollama /api/tags and LM Studio /v1/models, filter embedding-only models, honor saved installed models, and local generation refuses an undiscovered default model before making HTTP.
+- PC-3: Verb tests prove ordinary work defaults to local with no cloud preference, ordinary work falls back to cloud only when no discovered local chat model is usable, and confidential work refuses cloud.
+
+Lead reproduction:
+- swift test --filter BELLanguageModelProviderTests: PASS, 9 tests.
+- swift test --filter LocalModelsDiscoveryContractTests: PASS, 5 tests.
+- swift test --filter AIVerbTests: PASS, 24 tests.
+- git diff --check -- Sources/BeLauncherCore/BELLanguageModelProvider.swift Sources/BeLauncherCore/LocalModels.swift Sources/BeLauncherCore/AIVerbs.swift Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift Tests/BeLauncherCoreTests/LocalModelsTests.swift Tests/BeLauncherCoreTests/AIVerbTests.swift: PASS.
+
+Concerns:
+- SwiftPM emitted existing unrelated warnings in other files during worker execution.
+- Existing unrelated dirty worktree files were present; worker-reported changed files remained in the allowed write set.

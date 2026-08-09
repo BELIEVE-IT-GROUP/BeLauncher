@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "T-07",
+  "kind": "implementation",
+  "objective": "Close Wave 3 A4: Brain B0-B3 retrieval must use a real token budget, preserve citations/gaps, and produce distinct context by level without exceeding budget.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "BeBrainContextProvider.retrieve(tokenBudget:) enforces a token budget for empty, light, and rich corpora; it never returns over-budget context."},
+    {"id": "PC-2", "promise": "B0/B1/B2/B3 levels remain distinct: no long-term evidence in B0/B1, bounded working context in B2, richer long-term context in B3."},
+    {"id": "PC-3", "promise": "Citations, source IDs, gaps, and truncation state survive budget cuts; tiny budgets fail closed rather than inventing evidence."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect Retriever.swift and RetrievalTests.swift; run focused retrieval tests.", "expected": "Selection estimatedTokens never exceeds tokenBudget in tested corpora."},
+    {"criterion_id": "PC-2", "procedure": "Run tests over B0-B3 with multiple hits.", "expected": "Different levels produce the expected scope/hit differences."},
+    {"criterion_id": "PC-3", "procedure": "Run tests for citation/gap/truncation/tiny budget and git diff --check.", "expected": "Source metadata remains and over-budget/tiny-budget paths are explicit."}
+  ],
+  "subsystems": ["brain-retrieval"],
+  "expected_paths": [
+    "Sources/BeLauncherCore/Retriever.swift",
+    "Sources/BeLauncherCore/MCPTools.swift",
+    "Tests/BeLauncherCoreTests/RetrievalTests.swift",
+    "Tests/BeLauncherCoreTests/MCPServerTests.swift"
+  ],
+  "risk_seams": ["context-budget"],
+  "material_unknowns": [],
+  "dependencies": ["T-04"],
+  "program_item_ids": ["ITEM-09"],
+  "estimated_minutes": 40,
+  "recon_complete": true,
+  "recon_evidence": "Retriever.BeBrainContextProvider.retrieve(tokenBudget:), Retriever.context, MCPTools usage, and RetrievalTests were inspected. Existing code already budgets tokens; this ticket closes the edge-case and level-distinction proof.",
+  "first_checkpoint": {
+    "minutes": 12,
+    "evidence": "Focused retrieval matrix for empty/light/rich corpora and B0-B3 levels."
+  }
+}

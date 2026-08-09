@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-17",
+  "attempt": 1,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "lead-T-17-attempt1",
+  "reason": "Agent thread capacity is exhausted and the remaining item is a Brain UX integration closure backed by focused deterministic tests. Lead route will verify the workflows without claiming visual MacBook validation.",
+  "write_set": [
+    "Sources/BeLauncher/GraphView.swift",
+    "Sources/BeLauncher/CorpusReaderView.swift",
+    "Sources/BeLauncher/QuickNoteEditorView.swift",
+    "Sources/BeLauncher/AppDelegate.swift",
+    "Tests/BeLauncherCoreTests/UtilitiesTests.swift",
+    "Tests/BeLauncherAppTests/GraphCorrectionsTests.swift",
+    "Tests/BeLauncherCoreTests/BrainQueryTests.swift",
+    "Tests/BeLauncherCoreTests/CorpusFilesTests.swift",
+    "docs/ux-wave-1.md"
+  ]
+}

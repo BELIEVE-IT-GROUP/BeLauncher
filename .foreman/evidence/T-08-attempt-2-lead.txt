@@ -1,0 +1,21 @@
+T-08 attempt 2 lead takeover outcome
+
+Objective: close the PC-2 verifier failure from attempt 1 without changing the rest of the cloud-boundary contract.
+
+Changed product paths:
+- Sources/BeLauncherCore/SecretGuard.swift
+- Tests/BeLauncherCoreTests/SecretGuardTests.swift
+- Tests/BeLauncherCoreTests/IntelligenceTests.swift
+
+Implementation:
+- SecretGuard.redacted now redacts complete PRIVATE KEY / PRIVATE KEY BLOCK regions before line-by-line credential scrubbing.
+- SecretGuardTests now covers a multiline private-key block and asserts marker lines, body lines, and END line are absent after redaction.
+- IntelligenceTests now covers the actual cloud-bound serialized request body for a multiline private-key prompt and asserts context remains while the key block is removed.
+
+Lead reproduction:
+- swift test --filter SecretGuardTests: PASS, 20 tests.
+- swift test --filter IntelligenceTests: PASS, 39 tests.
+- git diff --check -- Sources/BeLauncherCore/Intelligence.swift Sources/BeLauncherCore/SecretGuard.swift Tests/BeLauncherCoreTests/IntelligenceTests.swift Tests/BeLauncherCoreTests/SecretGuardTests.swift: PASS.
+
+Candidate fingerprint after fix:
+d788a5d7d158b2b6d6c78485381536ad9773f8aa744272f4d4c7c84b1d55ad4b

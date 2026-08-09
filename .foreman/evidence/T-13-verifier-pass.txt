@@ -1,0 +1,43 @@
+T-13 deterministic verifier PASS
+
+Verifier identity: deterministic-shell-T-13
+Ticket: T-13
+Program item completed: ITEM-15
+Verification scope: slice
+Candidate fingerprint: ff95a622d212c8cc39cd3920b64034b990ba285ade58db0b3c7059546b383148
+
+Product criteria result:
+
+PC-1 X1 source/runtime spike:
+PASS. The runner syntax is valid and the spike artifacts show explicit MODEL_PATH, macOS arm64, Bazel 7.6.1 pin, CPU backend execution, X1_OK sentinel, and documented GPU rejection. The runner never silently downloads a model.
+
+Evidence commands:
+bash -n Scripts/spike-litert-lm-x1.sh Scripts/spike-litert-lm-x2.sh
+Result: exit=0.
+
+rg -n "MODEL_PATH|bazelversion|X1_OK|backend=cpu|backend=gpu|LiteRT|litert" docs/spikes/litert-lm-x1.md Scripts/spike-litert-lm-x1.sh
+Result: expected explicit MODEL_PATH, Bazel pin, CPU backend, X1_OK, and LiteRT references present.
+
+PC-2 X2 embeddable bridge spike:
+PASS. The runner syntax is valid; the bridge is built only as an isolated upstream Bazel target; the source uses upstream LiteRT-LM C++ APIs; inspect-only mode reads speculative decoding capability; generation requires X2_OK.
+
+Evidence commands:
+rg -n "MODEL_PATH|X2_OK|speculative_decoding|litert_lm_x2_bridge|provider|Package.swift" docs/spikes/litert-lm-x2.md Scripts/spike-litert-lm-x2.sh Scripts/litert-lm-x2-bridge.cc
+Result: expected bridge, X2_OK, inspect-only/speculative decoding, and no Package.swift alteration evidence present.
+
+PC-3 No production provider exposure:
+PASS. Package.swift has no LiteRT target, dependency, linker setting, or provider bridge. The production scan found only an explanatory LiteRT-LM comment in BELMTPScheduler.swift and no provider/bridge registration.
+
+Evidence commands:
+sed -n '1,180p' Package.swift
+Result: only BeLauncherCore, BeLauncher, BeLauncherCoreTests, and BeLauncherAppTests targets are declared.
+
+rg -n "LiteRT|litert|litert_lm_x2_bridge|beMetalFused" Sources/BeLauncher Sources/BeLauncherCore Package.swift
+Result: only Sources/BeLauncherCore/BELMTPScheduler.swift comment mentioning LiteRT-LM signature shape; no production provider or bridge.
+
+Structural check:
+git diff --check -- docs/spikes/litert-lm-x1.md docs/spikes/litert-lm-x2.md Scripts/spike-litert-lm-x1.sh Scripts/spike-litert-lm-x2.sh Scripts/litert-lm-x2-bridge.cc Package.swift
+Result: exit=0.
+
+Verifier caveat:
+This pass is deterministic verification from the lead process, not a new subagent session, because spawning additional agents failed with the active thread limit. The guard identity is distinct from the builder identity and the evidence was freshly reproduced after the outcome.

@@ -1,0 +1,1 @@
+{"schema_version":1,"event":"recovery_action","ticket_id":"T-04","action":"escalate","after_attempt":1,"evidence":"The first dispatch used a closed worker identity and produced no implementation. Retry with a fresh live worker identity; keep the provider-routing write set unchanged.","cause_family":"capability-gap"}

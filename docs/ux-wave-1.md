@@ -3,6 +3,17 @@
 Estado: **completada en código; pendiente únicamente de validación visual en el MacBook de
 release**.
 
+## Reconciliación T-02
+
+Reminders, Contacts y Photos están disponibles en código para sus recorridos locales documentados:
+lectura/búsqueda, operaciones seleccionadas y apertura exacta tienen catálogo, handlers y pruebas
+enfocadas. `Connected` sigue dependiendo de una lectura local exitosa, y esta documentación no
+declara probado el comportamiento en un MacBook real. TCC, Automation, Full Disk Access y el
+share picker siguen siendo límites de runtime; `contacts.share` tiene preparación de vCard y
+selección del servicio nativo, pero sigue parcial hasta validar un servicio de compartir real. Aquí,
+`partial`, `pending` y `deferred` son etiquetas editoriales de documentación, no estados completos
+del enum de disponibilidad de `BELActionDefinition`.
+
 ## Criterio humano
 
 Una persona debe poder llegar a estas acciones sin conocer RAG, vectores, chunks, schemas ni
@@ -149,7 +160,9 @@ bloqueo del sistema se muestra como error accionable, no como éxito. `Edit cont
 identificador estable. La edición
 abre nombre, email y teléfono; los campos vacíos conservan su valor actual. Requiere confirmación
 `r2`, escribe con `CNSaveRequest`, deja recibo y refresca Contacts y su proyección operativa del
-Brain. Compartir el contacto y abrir una ficha concreta fuera de BeLauncher siguen pendientes.
+Brain. Compartir el contacto tiene ya una ruta parcial: prepara un vCard y ofrece el picker nativo
+cuando hay una ventana y un servicio disponibles. Sigue pendiente la validación del share picker
+en el MacBook y fuera de BeLauncher; una ausencia de servicio devuelve un error tipado, no éxito.
 `/contact add Ada Lovelace` es la única entrada de creación: requiere permiso, confirmación y escribe
 mediante `CNSaveRequest`, dejando recibo local y refrescando el snapshot.
 

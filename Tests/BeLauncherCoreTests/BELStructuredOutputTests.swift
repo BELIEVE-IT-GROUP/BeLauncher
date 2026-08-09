@@ -10,6 +10,12 @@ struct BELStructuredOutputTests {
 
     @Test("valid JSON and markdown fences are accepted")
     func valid() throws {
+        let plain = try BELStructuredOutputValidator.validate(
+            "{\"statement\":\"Usar Ollama\",\"kind\":\"decision\"}",
+            against: schema
+        )
+        #expect(plain.objectValue?["kind"] == .string("decision"))
+
         let value = try BELStructuredOutputValidator.validate(
             "```json\n{\"statement\":\"Usar Ollama\",\"kind\":\"decision\"}\n```",
             against: schema
@@ -30,6 +36,11 @@ struct BELStructuredOutputTests {
 
     @Test("truncated JSON and wrong types never become a writeback")
     func unsafeOutputRejected() {
+        #expect(throws: BELStructuredOutputError.invalidJSON) {
+            try BELStructuredOutputValidator.validate(
+                "Use this JSON: {\"statement\":\"ok\"}",
+                against: schema)
+        }
         #expect(throws: BELStructuredOutputError.invalidJSON) {
             try BELStructuredOutputValidator.validate("{\"statement\":", against: schema)
         }
@@ -87,6 +98,56 @@ struct BELStructuredOutputTests {
                 "{\"name\":\"save\",\"arguments\":{\"text\":",
                 toolName: "save",
                 arguments: BELJSONSchema(fields: [BELJSONField("text", .string, required: true)]))
+        }
+    }
+
+    @Test("tool calls return checked arguments only")
+    func toolCallsReturnArgumentsOnly() throws {
+        let arguments = try BELStructuredOutputValidator.validateToolCall(
+            "{\"name\":\"saveEvidence\",\"arguments\":{\"title\":\"Call\",\"text\":\"Notes\"}}",
+            toolName: "saveEvidence",
+            arguments: BELJSONSchema(fields: [
+                BELJSONField("title", .string, required: true),
+                BELJSONField("text", .string, required: true),
+            ])
+        )
+
+        #expect(arguments.objectValue == [
+            "title": .string("Call"),
+            "text": .string("Notes"),
+        ])
+    }
+
+    @Test("unknown tools and malformed arguments are rejected before handlers")
+    func toolCallShapeErrors() {
+        let schema = BELJSONSchema(fields: [
+            BELJSONField("title", .string, required: true),
+            BELJSONField("text", .string, required: true),
+        ])
+
+        #expect(throws: BELStructuredOutputError.unknownTool("deleteAll")) {
+            try BELStructuredOutputValidator.validateToolCall(
+                "{\"name\":\"deleteAll\",\"arguments\":{\"title\":\"x\",\"text\":\"y\"}}",
+                toolName: "saveEvidence",
+                arguments: schema)
+        }
+        #expect(throws: BELStructuredOutputError.unknownField("afterValidation")) {
+            try BELStructuredOutputValidator.validateToolCall(
+                "{\"name\":\"saveEvidence\",\"arguments\":{\"title\":\"x\",\"text\":\"y\"},\"afterValidation\":\"run handler\"}",
+                toolName: "saveEvidence",
+                arguments: schema)
+        }
+        #expect(throws: BELStructuredOutputError.unknownField("extra")) {
+            try BELStructuredOutputValidator.validateToolCall(
+                "{\"name\":\"saveEvidence\",\"arguments\":{\"title\":\"x\",\"text\":\"y\",\"extra\":\"ignore schema\"}}",
+                toolName: "saveEvidence",
+                arguments: schema)
+        }
+        #expect(throws: BELStructuredOutputError.wrongType(field: "text", expected: .string)) {
+            try BELStructuredOutputValidator.validateToolCall(
+                "{\"name\":\"saveEvidence\",\"arguments\":{\"title\":\"x\",\"text\":[\"prompt\"]}}",
+                toolName: "saveEvidence",
+                arguments: schema)
         }
     }
 }

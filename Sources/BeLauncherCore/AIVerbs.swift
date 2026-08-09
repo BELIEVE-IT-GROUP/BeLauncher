@@ -146,19 +146,24 @@ public struct AIVerbRunner: Sendable {
 
         let routedProviders: [IntelligenceProvider]
         let definition = BELActionCatalog.named("ai.verb.\(verb.id)")
+        let routableProviders = providers.filter { provider in
+            !provider.isPrivate || models[provider.id] != nil
+        }
         if let healthCache {
-            let health = await healthCache.snapshot(for: providers, models: models)
-            routedProviders = try router.providers(for: verb.sensitivity, available: providers,
+            let health = await healthCache.snapshot(for: routableProviders, models: models)
+            routedProviders = try router.providers(for: verb.sensitivity, available: routableProviders,
                                                    health: health,
                                                    machine: MacCapabilityDetector.current(),
                                                    routePolicy: definition?.routePolicy,
                                                    freshness: definition?.freshness ?? .notRequired)
         } else {
-            routedProviders = try router.providers(for: verb.sensitivity, available: providers,
+            routedProviders = try router.providers(for: verb.sensitivity, available: routableProviders,
                                                    health: [:],
                                                    routePolicy: definition?.routePolicy,
                                                    freshness: definition?.freshness ?? .notRequired)
         }
+        let localOnly = router.localOnlyFor.contains(verb.sensitivity)
+            || definition?.routePolicy == .localOnly
         let request = IntelligenceRequest(
             system: AIVerbRunner.systemPrompt,
             prompt: "\(verb.instruction)\n\n---\n\(trimmed)",
@@ -172,7 +177,7 @@ public struct AIVerbRunner: Sendable {
                 let modelRequest = BELModelRequest(system: request.system, prompt: request.prompt,
                                                    sensitivity: request.sensitivity,
                                                    maxTokens: request.maxTokens,
-                                                   localOnly: router.localOnlyFor.contains(verb.sensitivity))
+                                                   localOnly: localOnly)
                 if let onFragment {
                     let response = try await modelProvider.stream(modelRequest,
                                                                   model: models[provider.id],

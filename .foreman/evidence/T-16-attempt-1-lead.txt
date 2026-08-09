@@ -1,0 +1,27 @@
+T-16 lead outcome receipt
+
+Ticket: T-16
+Program item: ITEM-01
+Objective: close the Launcher human-UX slice for clipboard full preview, footer overflow, and explicit local-source hot paths.
+Worker identity recorded in guard: lead-T-16-attempt1
+
+Result: reported for verification.
+
+Changes made:
+- Sources/BeLauncher/CommandView.swift: Quick Preview now selects the card before expanding it, and the selection-change cleanup reads the carousel entry by index instead of a possibly stale model.selected.
+- Sources/BeLauncher/CommandView.swift: footer now has full, compact and minimal layouts. The minimal fallback keeps icon controls and moves Record/Dictate into a Voice menu so the bar does not overflow when selected-item actions appear.
+- Tests/BeLauncherAppTests/CommandViewUXTests.swift: added focused source-contract tests for the preview ordering and minimal footer fallback.
+
+Commands rerun before reporting:
+- swift test --filter CommandViewUXTests
+- swift test --filter LauncherInputNeedsTests
+- git diff --check -- T-16 write set
+
+Observed command results:
+- CommandViewUXTests rerun exit=0; 2 tests passed.
+- LauncherInputNeedsTests rerun exit=0; 7 tests passed.
+- T16 diff-check exit=0.
+
+Notes:
+- This is still not a MacBook visual screenshot pass. It is a focused code/test closure for the concrete bugs observed locally in source.
+- No subagent could be opened for this attempt because the collaboration tool reported the agent thread limit was reached.

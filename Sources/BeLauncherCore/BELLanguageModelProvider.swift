@@ -106,7 +106,7 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
             localOnly: request.localOnly,
             brainContextLevel: request.brainContextLevel
         )
-        let selectedModel = model ?? descriptor.defaultModel
+        let selectedModel = try selectedModel(model)
         let text = try await client.answer(intelligenceRequest, using: descriptor, model: selectedModel)
         try Task.checkCancellation()
         return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
@@ -124,11 +124,22 @@ public struct BELHTTPModelProvider: BELLanguageModelProvider {
             localOnly: request.localOnly,
             brainContextLevel: request.brainContextLevel
         )
-        let selectedModel = model ?? descriptor.defaultModel
+        let selectedModel = try selectedModel(model)
         let text = try await client.stream(intelligenceRequest, using: descriptor,
                                            model: selectedModel, onFragment: onFragment)
         try Task.checkCancellation()
         return BELModelResponse(text: text, providerID: providerID, model: selectedModel)
+    }
+
+    private func selectedModel(_ model: String?) throws -> String {
+        if let model = model?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !model.isEmpty {
+            return model
+        }
+        guard !descriptor.isPrivate else {
+            throw IntelligenceError.noProviderConfigured
+        }
+        return descriptor.defaultModel
     }
 
     public func isAvailable() async -> Bool {

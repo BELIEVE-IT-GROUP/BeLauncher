@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-13",
+  "attempt": 1,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "native-T-13-attempt1",
+  "reason": "LiteRT X1/X2 are spike-decision closures and agent thread capacity is exhausted. Lead route will verify docs/scripts/source absence deterministically without claiming external worker execution.",
+  "write_set": [
+    "docs/spikes/litert-lm-x1.md",
+    "docs/spikes/litert-lm-x2.md",
+    "Scripts/spike-litert-lm-x1.sh",
+    "Scripts/spike-litert-lm-x2.sh",
+    "Scripts/litert-lm-x2-bridge.cc",
+    "Package.swift"
+  ]
+}

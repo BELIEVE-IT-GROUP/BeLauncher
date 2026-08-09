@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "T-09",
+  "kind": "implementation",
+  "objective": "Close Wave 3 A6: structured model output must validate JSON schema, unknown fields, bounded repair, and tool-call arguments before any writeback/action sees model output.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Valid JSON and complete markdown-fenced JSON are accepted, but invalid/truncated/unclosed-fence output is rejected without broad repair."},
+    {"id": "PC-2", "promise": "Schemas reject missing required fields, unknown fields, wrong types, oversized/deep/wide/long values, and unknown tool calls."},
+    {"id": "PC-3", "promise": "Tool-call argument validation returns only checked argument objects and fails before handlers/writeback can run on prompt-injected or malformed envelopes."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect BELStructuredOutput.swift and tests.", "expected": "Only bounded fence cleanup is accepted; truncation/prose fail."},
+    {"criterion_id": "PC-2", "procedure": "Run structured output and writeback tests.", "expected": "Schema and resource-limit failures are covered."},
+    {"criterion_id": "PC-3", "procedure": "Run tool-call validation tests and writeback tests.", "expected": "Unknown tool/malformed args cannot reach writeback."}
+  ],
+  "subsystems": ["structured-output"],
+  "expected_paths": [
+    "Sources/BeLauncherCore/BELStructuredOutput.swift",
+    "Sources/BeLauncherCore/BELBrainWriteback.swift",
+    "Tests/BeLauncherCoreTests/BELStructuredOutputTests.swift",
+    "Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift"
+  ],
+  "risk_seams": ["model-output-boundary"],
+  "material_unknowns": [],
+  "dependencies": ["T-07"],
+  "program_item_ids": ["ITEM-11"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "BELStructuredOutput, BELBrainWriteback, BELStructuredOutputTests, and BELBrainWritebackTests were inspected. Core validator exists; this ticket closes any remaining prompt-injection/tool-call/writeback proof gaps.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Structured-output fixture matrix and focused tests."
+  }
+}

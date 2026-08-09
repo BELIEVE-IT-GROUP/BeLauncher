@@ -1,0 +1,28 @@
+T-12 lead outcome receipt
+
+Ticket: T-12
+Program item: ITEM-14
+Objective: close native macOS integration hardening for Shortcuts fallback, curated App Intents, and release gates.
+Worker identity recorded in guard: lead-T-12-attempt1
+
+Result: reported for verification.
+
+What was checked by the lead:
+- Shortcuts bridge uses /usr/bin/shortcuts through Process arguments, not shell strings.
+- Shortcut action handler validates names, checks availability, maps typed failures, and respects foreground requirements.
+- Curated App Intents publish 16 stable commands and reversible BeLauncher deep links.
+- Release script fails closed on required TCC usage text, automation entitlements, universal slices, and sandbox absence while Full Disk Access remains an explicit architecture choice.
+
+Commands rerun before reporting:
+- swift test --filter BELSystemCommandHandlerTests
+- swift test --filter SystemCommandTests
+- git diff --check -- T-12 write set
+
+Observed command results:
+- BELSystemCommandHandlerTests exit=0; 27 tests passed.
+- SystemCommandTests exit=0; 25 tests passed.
+- T12 diff-check exit=0.
+
+Notes:
+- No subagent could be opened for this attempt because the collaboration tool reported the agent thread limit was reached.
+- The execution route was therefore lead-owned and the later verification route is deterministic shell verification with a distinct guard identity.

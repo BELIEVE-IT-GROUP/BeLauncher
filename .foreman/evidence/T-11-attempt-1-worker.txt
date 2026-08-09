@@ -1,0 +1,23 @@
+T-11 attempt 1 worker outcome
+
+Guard-dispatched worker id: 019fe781-T11
+Actual native subagent: 019fe784-7e18-70f2-86b3-c8427ef7f5df
+Note: the guard dispatch used a stable lead-assigned worker label before the native subagent id was returned. The actual subagent id is preserved here for audit.
+
+Status: DONE
+
+Changed product path:
+- Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift
+
+Criteria evidence:
+- PC-1: Added malformed writeback cases for wrong statement, invalid entities, invalid kind, wrong evidence title, and malformed project entities; all assert no commits, objects, current memory, or AI audit entries.
+- PC-2: Extended project update test to discard the proposal and assert no current project/object exists, with discarded commit recorded.
+- PC-3: Existing focused test covers evidence-only save and preview-then-confirm forget removing clips plus semantic passages/vectors, with preview/confirmation audit events.
+
+Lead reproduction:
+- swift test --filter BELBrainWritebackTests: PASS, 8 tests.
+- git diff --check -- Sources/BeLauncherCore/BELBrainWriteback.swift Sources/BeLauncherCore/Vault.swift Sources/BeLauncherCore/Store.swift Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift: PASS.
+
+Concerns:
+- Production code was unchanged because the added acceptance tests passed against the existing implementation.
+- Existing unrelated dirty worktree files were present; worker-reported changed files remained in the allowed write set.

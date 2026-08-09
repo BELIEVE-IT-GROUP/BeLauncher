@@ -1,0 +1,6 @@
+Bounded implementation worker for T-02 attempt 3 in /Users/mac/Developer/beacon.
+Edit only docs/plan-action-map-v2.md and docs/ux-wave-1.md. Do not touch source, tests, .foreman, audit artifacts, or release files.
+
+Correct the specific independent verifier finding: docs/plan-action-map-v2.md lines 25-29 contain stale approximate action counts. Recompute any numeric claims from current source or remove them. Inspect current source yourself before writing. Keep the prior corrections: AppIntents/AppShortcuts are present; MTP/KV code/tests are isolated spikes, not production LiteRT/Metal; runtime MacBook/TCC/Automation/share-picker/AI uncertainty remains explicit; editorial labels are separate from BEL runtime enum values.
+
+Run git diff --check and focused read-only source/test checks. Report exact files changed, claims updated, and command results. First line DONE or DONE_WITH_CONCERNS. Do not modify anything outside the two docs.

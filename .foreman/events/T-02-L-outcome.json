@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "event": "ticket_outcome",
+  "ticket_id": "T-02-L",
+  "attempt": 1,
+  "outcome": "reported",
+  "worker_receipt_sha256": "9ac2f89a82dab9f361427051361191e97811457fc05848d356541691d4550431",
+  "worker_minutes_status": "unavailable",
+  "worker_minutes_reason": "Lead timing was not exposed by the collaboration tool.",
+  "noncached_input_tokens_status": "unavailable",
+  "noncached_input_tokens_reason": "Lead usage was not exposed by the collaboration tool."
+}

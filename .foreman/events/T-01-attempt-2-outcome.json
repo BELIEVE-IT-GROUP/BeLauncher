@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "event": "ticket_outcome",
+  "ticket_id": "T-01",
+  "attempt": 2,
+  "outcome": "reported",
+  "worker_receipt_sha256": "8ed44260b44fbdfe1a4261253b328f828967dbbf3626e4bc020d582619569131",
+  "worker_minutes_status": "unavailable",
+  "worker_minutes_reason": "Native worker timing was not exposed by the collaboration tool.",
+  "noncached_input_tokens_status": "unavailable",
+  "noncached_input_tokens_reason": "Native worker usage was not exposed by the collaboration tool."
+}

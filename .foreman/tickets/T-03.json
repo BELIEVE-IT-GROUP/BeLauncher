@@ -1,0 +1,20 @@
+{
+  "schema_version":1,
+  "id":"T-03",
+  "kind":"implementation",
+  "objective":"Close the Wave 2 permission contract: declare the required Contacts, Photos, and Calendar usage descriptions and cover the permission-facing source status without claiming MacBook runtime validation.",
+  "baseline":"36e7aea",
+  "criteria":[
+    {"id":"PC-1","promise":"The signed app metadata contains the usage descriptions required by the implemented Contacts, Photos, and calendar/reminder paths, using the repository's existing localization/Info.plist conventions."},
+    {"id":"PC-2","promise":"Permission-facing behavior remains fail-closed and actionable for denied/not-determined states; no success is reported without authorization."},
+    {"id":"PC-3","promise":"Focused tests or static validation cover the new metadata/permission contract; runtime MacBook/TCC behavior is explicitly left as a manual gate."}
+  ],
+  "verification_gates":[
+    {"criterion_id":"PC-1","procedure":"Inspect Scripts/Info.plist, entitlements, and existing source strings; validate plist syntax and required keys.","expected":"All required usage keys exist with non-empty user-facing text and no unrelated metadata churn."},
+    {"criterion_id":"PC-2","procedure":"Inspect EventKit/Contacts/Photos handlers and focused tests.","expected":"Denied/not-determined paths remain typed failures or actionable unavailable states."},
+    {"criterion_id":"PC-3","procedure":"Run focused tests/static checks and inspect git diff --check.","expected":"Checks pass; no runtime permission claim is invented."}
+  ],
+  "subsystems":["permission-metadata"],
+  "expected_paths":["Scripts/Info.plist","Sources/BeLauncher/ContactActionHandler.swift","Sources/BeLauncher/PhotoActionHandler.swift","Sources/BeLauncher/ReminderActionHandler.swift","Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift"],
+  "risk_seams":["TCC runtime"],"material_unknowns":[],"dependencies":["T-01"],"program_item_ids":["ITEM-05"],"estimated_minutes":35,"recon_complete":true,"recon_evidence":"Current Scripts/Info.plist was inspected; handlers and focused tests were inspected. The only remaining unknown is runtime MacBook behavior, explicitly treated as a manual verification gate rather than a dispatch blocker.","first_checkpoint":{"minutes":10,"evidence":"Required usage-key inventory and focused permission-path check."}
+}

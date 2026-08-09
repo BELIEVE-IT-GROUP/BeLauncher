@@ -1,0 +1,24 @@
+T-15 lead outcome receipt
+
+Ticket: T-15
+Program item: ITEM-17
+Objective: close X5 Metal/fused-attention gate as blocked/fail-closed, with no production feature flag.
+Worker identity recorded in guard: lead-T-15-attempt1
+
+Result: reported for verification.
+
+Commands rerun before reporting:
+- bash -n Scripts/spike-litert-lm-x5.sh
+- rg targeted X5 docs/script scan for MODEL_PATH, LITERT_LM_SOURCE_DIR, backend=gpu, X5_OK, exit 2, blocked and MetalAccelerator evidence
+- rg exact production scan for beMetalFused, MetalAccelerator, LiteRT/litert, litert_lm, E4B, backend=gpu and feature flags
+- git diff --check -- T-15 write set
+
+Observed command results:
+- T15 bash-n exit=0.
+- T15 diff-check exit=0.
+- X5 docs/script scan found explicit model/source requirements, GPU backend, sentinel, blocked exit path and Metal accelerator blocker.
+- Exact product scan found no production LiteRT/Metal provider or feature flag. It found one false positive E4B hexadecimal hotkey signature and one explanatory LiteRT-LM comment in BELMTPScheduler.swift.
+
+Notes:
+- No subagent could be opened for this attempt because the collaboration tool reported the agent thread limit was reached.
+- The execution route was therefore lead-owned and the later verification route is deterministic shell verification with a distinct guard identity.

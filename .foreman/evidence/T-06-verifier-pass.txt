@@ -1,0 +1,16 @@
+T-06 independent verifier result
+Verifier identity: 019fe76f-f0c6-7131-b62b-6ab112fced69
+Verdict: PASS_WITH_NOTES
+
+Product criteria:
+- PC-1 pass: MacCapabilitySnapshot explicitly carries architecture, memory GB/bytes, thermal, memory pressure, low power, battery, network, and Foundation Models facts. Unknown runtime facts remain nil/unknown.
+- PC-2 pass: ModelRouting consumes machine snapshots; constrained Macs add local preference, critical thermal/pressure penalize local, and networkAvailable=false excludes cloud.
+- PC-3 pass: focused tests use simulated MacCapabilitySnapshot values only.
+
+Commands reproduced by verifier:
+- swift test --scratch-path /tmp/beacon-t06-mac-capability-detector --filter MacCapabilityDetectorTests: pass, 4 tests
+- swift test --scratch-path /tmp/beacon-t06-model-routing --filter ModelRoutingTests: pass, 13 tests
+- git diff --check on scoped files: pass
+
+Note:
+- Verifier used /tmp scratch paths to avoid repository build artifact writes. Existing unrelated warnings were outside scoped files.

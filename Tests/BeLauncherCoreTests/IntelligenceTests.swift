@@ -97,6 +97,26 @@ struct IntelligenceTests {
         }
     }
 
+    @Test("confidential requests are refused at the cloud boundary by default")
+    func confidentialBoundary() {
+        let client = IntelligenceClient(keyLookup: { _ in "user-key" })
+        #expect(throws: IntelligenceError.blockedBySensitivity("Anthropic")) {
+            try client.build(IntelligenceRequest(prompt: "company plan", sensitivity: .confidential),
+                             provider: cloud, model: cloud.defaultModel)
+        }
+    }
+
+    @Test("confidential cloud requests require an explicit boundary policy")
+    func confidentialCloudPolicy() throws {
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                        keyLookup: { _ in "user-key" },
+                                        cloudAllowedFor: Set(Sensitivity.allCases))
+        let request = try client.build(
+            IntelligenceRequest(prompt: "approved cloud context", sensitivity: .confidential),
+            provider: cloud, model: cloud.defaultModel)
+        #expect(request.url?.host == "api.anthropic.com")
+    }
+
     @Test("the cloud boundary redacts credentials from the actual request body")
     func cloudBoundaryRedactsCredentials() throws {
         let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
@@ -110,6 +130,32 @@ struct IntelligenceTests {
         #expect(body["system"] as? String == "[credential omitted]")
         #expect((body["messages"] as? [[String: String]])?.last?["content"]
                 == "Resume esto\n[credential omitted]")
+    }
+
+    @Test("the cloud boundary redacts multiline private keys from the actual request body")
+    func cloudBoundaryRedactsMultilinePrivateKeys() throws {
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                        keyLookup: { _ in "sk-user-own" })
+        let request = try client.build(
+            IntelligenceRequest(prompt: """
+            keep context
+            -----BEGIN PRIVATE KEY-----
+            MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCexample
+            -----END PRIVATE KEY-----
+            keep next task
+            """),
+            provider: cloud, model: "claude-sonnet-5"
+        )
+
+        let body = try #require(JSONSerialization.jsonObject(with: request.httpBody!) as? [String: Any])
+        let messages = try #require(body["messages"] as? [[String: String]])
+        let content = try #require(messages.last?["content"])
+        #expect(content.contains("keep context"))
+        #expect(content.contains("keep next task"))
+        #expect(content.contains("[credential omitted]"))
+        #expect(!content.contains("BEGIN PRIVATE KEY"))
+        #expect(!content.contains("MIIEvQIBADAN"))
+        #expect(!content.contains("END PRIVATE KEY"))
     }
 
     @Test("local providers keep the original text because it never leaves the Mac")
@@ -152,6 +198,27 @@ struct IntelligenceTests {
         #expect(event.localOnly == false)
         #expect(event.redactedSystem)
         #expect(event.redactedPrompt == false)
+
+        let fields = Set(Mirror(reflecting: event).children.compactMap(\.label))
+        #expect(fields == [
+            "providerID", "providerClass", "sensitivity", "brainContextLevel", "localOnly",
+            "redactedSystem", "redactedPrompt",
+        ])
+    }
+
+    @Test("the privacy audit records localOnly separately from Brain context")
+    func privacyAuditSeparatesLocalOnlyFromBrainContext() throws {
+        let recorder = AuditRecorder()
+        let client = IntelligenceClient(transport: { _ in (Data(), URLResponse()) },
+                                        audit: { recorder.events.append($0) })
+        _ = try client.build(
+            IntelligenceRequest(prompt: "memory", brainContextLevel: .b3),
+            provider: local, model: "llama3.2")
+
+        let event = try #require(recorder.events.first)
+        #expect(event.providerClass == .local)
+        #expect(event.brainContextLevel == .b3)
+        #expect(event.localOnly == false)
     }
 
     @Test("OpenAI GPT-5 uses the current completion limit parameter")
@@ -267,6 +334,16 @@ struct IntelligenceProbeTests {
     private func response(_ status: Int = 200) -> HTTPURLResponse {
         HTTPURLResponse(url: URL(string: "http://localhost")!, statusCode: status,
                         httpVersion: nil, headerFields: nil)!
+    }
+
+    @Test("probe states expose configured, ready and unavailable without guessing")
+    func probeStateSemantics() {
+        #expect(IntelligenceProbeState.ready.isReadyForGeneration)
+        #expect(IntelligenceProbeState.ready.isConfigured)
+        #expect(IntelligenceProbeState.configured.isConfigured)
+        #expect(!IntelligenceProbeState.configured.isReadyForGeneration)
+        #expect(IntelligenceProbeState.needsSetup.isUnavailable)
+        #expect(IntelligenceProbeState.offline("down").isUnavailable)
     }
 
     @Test("a local runner is ready only when its model catalogue is non-empty")

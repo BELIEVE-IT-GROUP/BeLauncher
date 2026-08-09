@@ -67,6 +67,28 @@ public enum IntelligenceProbeState: Sendable, Equatable {
     case offline(String)
 }
 
+public extension IntelligenceProbeState {
+    /// True only after a real generation path has succeeded.
+    var isReadyForGeneration: Bool {
+        self == .ready
+    }
+
+    /// True when setup exists, whether or not generation has been verified.
+    var isConfigured: Bool {
+        switch self {
+        case .configured, .ready: true
+        case .needsSetup, .offline: false
+        }
+    }
+
+    var isUnavailable: Bool {
+        switch self {
+        case .needsSetup, .offline: true
+        case .configured, .ready: false
+        }
+    }
+}
+
 public extension IntelligenceProvider {
     /// Performs a real, non-generative discovery request. Local providers must return models;
     /// cloud providers must accept the user's credential and return a successful HTTP status.
@@ -267,17 +289,20 @@ public struct IntelligenceClient: Sendable {
     public var byteTransport: ByteTransport
     public var keyLookup: @Sendable (String) -> String?
     public var audit: @Sendable (BELPrivacyAuditEvent) -> Void
+    public var cloudAllowedFor: Set<Sensitivity>
 
     public init(
         transport: @escaping Transport = { try await URLSession.shared.data(for: $0) },
         byteTransport: @escaping ByteTransport = { try await URLSession.shared.bytes(for: $0) },
         keyLookup: @escaping @Sendable (String) -> String? = { Keychain.get($0) },
-        audit: @escaping @Sendable (BELPrivacyAuditEvent) -> Void = { _ in }
+        audit: @escaping @Sendable (BELPrivacyAuditEvent) -> Void = { _ in },
+        cloudAllowedFor: Set<Sensitivity> = [.ordinary, .personal]
     ) {
         self.transport = transport
         self.byteTransport = byteTransport
         self.keyLookup = keyLookup
         self.audit = audit
+        self.cloudAllowedFor = cloudAllowedFor
     }
 
     public func answer(
@@ -420,8 +445,11 @@ public struct IntelligenceClient: Sendable {
 
     func build(_ request: IntelligenceRequest, provider: IntelligenceProvider, model: String,
                streaming: Bool = false) throws -> URLRequest {
-        guard !request.requiresLocalExecution || provider.isPrivate else {
-            throw IntelligenceError.blockedBySensitivity(provider.name)
+        if !provider.isPrivate {
+            guard cloudAllowedFor.contains(request.sensitivity),
+                  !request.requiresLocalExecution else {
+                throw IntelligenceError.blockedBySensitivity(provider.name)
+            }
         }
         let endpoint: String
         if provider.id == "gemini" {
@@ -464,7 +492,7 @@ public struct IntelligenceClient: Sendable {
             providerClass: provider.isPrivate ? .local : .cloud,
             sensitivity: request.sensitivity,
             brainContextLevel: request.brainContextLevel,
-            localOnly: request.requiresLocalExecution,
+            localOnly: request.localOnly,
             redactedSystem: outboundSystem != request.system,
             redactedPrompt: outboundPrompt != request.prompt))
 

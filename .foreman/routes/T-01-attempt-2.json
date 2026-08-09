@@ -1,0 +1,14 @@
+{
+  "ticket_id": "T-01",
+  "attempt": 2,
+  "lane": "native-codex",
+  "worker_id": "019fe721-5c83-7983-ba51-491faeda11c0",
+  "nickname": "Ramanujan",
+  "requested_model": "inherited native Codex",
+  "requested_effort": "high",
+  "evidence_labels": ["native-inherited-unconfirmed"],
+  "quality_floor": "WORKHORSE: focused tests must expose the failed product criterion",
+  "residual_judgment": "moderate",
+  "uncertainty": "native collaboration tool does not expose a per-child serving model in this session",
+  "reason": "Second attempt changes the worker and raises effort while narrowing the write set to the failed criterion."
+}

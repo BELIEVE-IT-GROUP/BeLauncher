@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import Contacts
 import BeLauncherCore
 @testable import BeLauncher
 
@@ -18,8 +19,27 @@ private final class URLRecorder: @unchecked Sendable {
     }
 }
 
+private final class ContactBox: @unchecked Sendable {
+    let contact: CNContact
+
+    init(_ contact: CNContact) {
+        self.contact = contact
+    }
+}
+
 @Suite("Native BEL adapters")
 struct BELSystemCommandHandlerTests {
+    private static var repositoryRoot: String {
+        var path = URL(fileURLWithPath: #filePath)
+        while path.pathComponents.count > 1 {
+            path.deleteLastPathComponent()
+            if FileManager.default.fileExists(atPath: path.appendingPathComponent("Package.swift").path) {
+                return path.path
+            }
+        }
+        return ""
+    }
+
     @Test("the existing closed system commands execute through stable BEL IDs")
     @MainActor
     func systemCommandBridge() async throws {
@@ -126,6 +146,63 @@ struct BELSystemCommandHandlerTests {
         }
     }
 
+    @Test("the bundle has non-empty usage text for Contacts, Photos, and EventKit")
+    func nativePermissionUsageDescriptionsAreNonEmpty() throws {
+        let path = URL(fileURLWithPath: Self.repositoryRoot)
+            .appendingPathComponent("Scripts/Info.plist")
+        let data = try Data(contentsOf: path)
+        let plist = try #require(PropertyListSerialization.propertyList(from: data, format: nil)
+            as? [String: Any])
+        for key in ["NSContactsUsageDescription", "NSPhotoLibraryUsageDescription",
+                    "NSCalendarsUsageDescription", "NSRemindersUsageDescription"] {
+            let description = try #require(plist[key] as? String, "missing (key)")
+            #expect(!description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    "empty (key)")
+        }
+    }
+
+    @Test("permission-sensitive native actions fail closed before their adapters run")
+    func nativePermissionGateBlocksMissingAndDeniedSources() async throws {
+        let cases: [(String, BELActionDefinition.Capability)] = [
+            ("calendar.upcoming", .calendar),
+            ("reminders.find", .reminders),
+            ("contacts.find", .contacts),
+            ("photos.find", .photos),
+        ]
+        let runtime = BELActionRuntime()
+        for (id, capability) in cases {
+            let definition = try #require(BELActionCatalog.named(id))
+            let handler = try #require(runtime.handler(for: definition))
+            for status in [BELCapabilityStatus.needsPermission, .denied] {
+                let blocker: BELActionGate.Blocker = status == .denied
+                    ? .deniedCapability(capability)
+                    : .missingCapability(capability)
+                await #expect(throws: BELActionExecutionError.blocked(blocker)) {
+                    try await BELActionExecutor.execute(
+                        definition,
+                        capabilities: BELCapabilitySnapshot(states: [capability: status]),
+                        handler: handler)
+                }
+            }
+        }
+    }
+
+    @Test("a denied Contacts authorization cannot produce a successful action")
+    func contactsActionFailsClosedWhenUnauthorized() async throws {
+        let definition = try #require(BELActionCatalog.named("contacts.find"))
+        let presentShare: @MainActor @Sendable (URL) -> Bool = { _ in false }
+        let contactsAuthorized: @Sendable () -> Bool = { false }
+        let handler = try #require(ContactActionHandler(
+            definition: definition,
+            presentShare: presentShare,
+            contactsAuthorized: contactsAuthorized))
+        let input = try JSONEncoder().encode(BELContactActionInput(query: "Ada"))
+
+        await #expect(throws: ContactActionError.permission) {
+            try await handler.perform(input: input)
+        }
+    }
+
     @Test("the file chooser returns selected paths without touching the real panel in tests")
     func fileChooserAdapter() async throws {
         let definition = try #require(BELActionCatalog.named("files.choose"))
@@ -202,6 +279,79 @@ struct BELSystemCommandHandlerTests {
         #expect(openReminder.availability == .implemented)
         #expect(openReminder.adapter == .appleScript)
         #expect(BELActionRuntime().handler(for: openReminder)?.actionID == openReminder.id)
+    }
+
+    @Test("contacts.share is implemented and available through the public API catalog")
+    func contactsShareCatalogAvailability() throws {
+        let definition = try #require(BELActionCatalog.named("contacts.share"))
+        #expect(definition.availability == .implemented)
+        #expect(definition.adapter == .publicAPI)
+        #expect(definition.requiredCapabilities.contains(.contacts))
+        #expect(BELActionRuntime().handler(for: definition)?.actionID == "contacts.share")
+    }
+
+    @Test("contact share action routes the selected result's stable identifier")
+    func contactsShareContactActionRoutesStableIdentifier() throws {
+        let result = SearchResult(id: "contact-1", kind: .contact, title: "Ada Lovelace",
+                                  subtitle: "ada@example.com", score: 1, matched: [],
+                                  payload: "contact-123")
+        let action = try #require(ActionRegistry.actions(for: result).first { $0.id == "share" })
+        #expect(action.intent == .systemCommand("bel:contacts.share\u{1F}contact-123"))
+    }
+
+    @Test("contact share prepares a vCard for the native sharing surface")
+    func contactsSharePreparesVCardForNativeSharing() async throws {
+        let definition = try #require(BELActionCatalog.named("contacts.share"))
+        let contact = CNMutableContact()
+        contact.givenName = "Ada"
+        contact.familyName = "Lovelace"
+        contact.emailAddresses = [CNLabeledValue(label: CNLabelHome, value: "ada@example.com" as NSString)]
+        let contactBox = ContactBox(contact)
+        let recorder = URLRecorder()
+        let presentShare: @MainActor @Sendable (URL) -> Bool = { url in
+            recorder.append(url)
+            return true
+        }
+        let contactsAuthorized: @Sendable () -> Bool = { true }
+        let contactForID: @Sendable ([CNKeyDescriptor], String) throws -> CNContact? = { _, identifier in
+            identifier == "contact-123" ? contactBox.contact : nil
+        }
+        let handler = try #require(ContactActionHandler(
+            definition: definition,
+            presentShare: presentShare,
+            contactsAuthorized: contactsAuthorized,
+            contactForID: contactForID))
+
+        let input = try JSONEncoder().encode(BELContactActionInput(contactID: "contact-123"))
+        let result = try await handler.perform(input: input)
+        let url = try #require(recorder.value.first)
+        let vCard = try String(contentsOf: url, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: url) }
+        #expect(vCard.contains("BEGIN:VCARD"))
+        #expect(vCard.contains("Ada"))
+        #expect(url.pathExtension == "vcf")
+        #expect(result.receipt == "contacts:share:contact-123")
+    }
+
+    @Test("contact share returns a typed failure when no sharing surface is available")
+    func contactsShareReturnsTypedFailureWhenSharingUnavailable() async throws {
+        let definition = try #require(BELActionCatalog.named("contacts.share"))
+        let contact = CNMutableContact()
+        contact.givenName = "Ada"
+        let contactBox = ContactBox(contact)
+        let presentShare: @MainActor @Sendable (URL) -> Bool = { _ in false }
+        let contactsAuthorized: @Sendable () -> Bool = { true }
+        let contactForID: @Sendable ([CNKeyDescriptor], String) throws -> CNContact? = { _, _ in contactBox.contact }
+        let handler = try #require(ContactActionHandler(
+            definition: definition,
+            presentShare: presentShare,
+            contactsAuthorized: contactsAuthorized,
+            contactForID: contactForID))
+
+        let input = try JSONEncoder().encode(BELContactActionInput(contactID: "contact-123"))
+        await #expect(throws: ContactShareActionError.sharingUnavailable) {
+            try await handler.perform(input: input)
+        }
     }
 
     @Test("completing a reminder cannot bypass confirmation")

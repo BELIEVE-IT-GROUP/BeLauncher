@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "event": "recovery_action",
+  "ticket_id": "T-08",
+  "after_attempt": 1,
+  "action": "lead-takeover",
+  "cause_family": "implementation-defect",
+  "evidence": "The independent verifier found a narrow PC-2 failure: multiline private-key block redaction was detected at whole-text level but applied line-by-line, allowing private-key body lines to remain in cloud-bound serialized prompts. Retry attempt 2 keeps the same product contract and fixes only the final-boundary redaction gap."
+}

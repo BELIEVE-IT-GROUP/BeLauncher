@@ -1,0 +1,17 @@
+T-02-L lead takeover receipt
+
+Worker: lead-T-02-L
+Result: DONE
+Scope: docs/plan-action-map-v2.md and docs/ux-wave-1.md only.
+
+Changes:
+- removed the stale approximate 18-25 action-count statement;
+- recorded current checkout counts as 22 SystemCommand.Kind cases and 58 implemented BELActionCatalog entries;
+- corrected the secondary stale 24-command reference to 22;
+- preserved AppIntents/AppShortcuts presence, MTP/KV spike-only status, editorial/runtime distinction, and MacBook/TCC/Automation/share-picker/AI runtime caveats.
+
+Checks:
+- git diff --check -- docs/ux-wave-1.md: passed
+- stale-count scan for 18-25, 24 comandos, and ~100: no matches
+- source inspection of SystemCommand.Kind: passed; cases are current checkout evidence
+- BELActionCatalog implementation source inspection: passed

@@ -1,0 +1,24 @@
+T-14 lead outcome receipt
+
+Ticket: T-14
+Program item: ITEM-16
+Objective: close X3/X4 Apple Silicon primitives as verified gated primitives, without wiring them into a production provider.
+Worker identity recorded in guard: lead-T-14-attempt1
+
+Result: reported for verification.
+
+Commands rerun before reporting:
+- swift test --filter BELPrefixKVCacheTests
+- swift test --filter BELMTPSchedulerTests
+- rg production scan for cache/scheduler/LiteRT/MTP/product feature exposure
+- git diff --check -- T-14 write set
+
+Observed command results:
+- BELPrefixKVCacheTests exit=0; 5 tests passed.
+- BELMTPSchedulerTests exit=0; 8 tests passed.
+- T14 diff-check exit=0.
+- Product scan found only BELPrefixKVCache and BELMTPScheduler primitives plus an explanatory LiteRT-LM comment; no production provider/feature flag was found.
+
+Notes:
+- No subagent could be opened for this attempt because the collaboration tool reported the agent thread limit was reached.
+- The execution route was therefore lead-owned and the later verification route is deterministic shell verification with a distinct guard identity.

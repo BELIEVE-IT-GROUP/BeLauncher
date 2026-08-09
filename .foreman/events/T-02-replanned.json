@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "event": "replanned",
+  "new_plan_id": "plan-wave2-tracker-reconciliation-final-retry",
+  "corrective_action": "Use one final documentation retry with a fresh worker and an explicit source-count audit. Remove or update every numeric action-count claim, run focused source checks, and keep the same two-file write set. Stop this ticket after this retry if verification fails again.",
+  "max_parallel": 2
+}

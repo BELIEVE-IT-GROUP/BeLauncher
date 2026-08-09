@@ -33,6 +33,26 @@ struct SecretGuardTests {
         ))
     }
 
+    @Test("multiline private key blocks are redacted as one secret")
+    func redactsMultilinePrivateKeyBlock() {
+        let text = """
+        keep before
+        -----BEGIN PRIVATE KEY-----
+        MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCexample
+        -----END PRIVATE KEY-----
+        keep after
+        """
+
+        let redacted = SecretGuard.redacted(text)
+
+        #expect(redacted.contains("keep before"))
+        #expect(redacted.contains("keep after"))
+        #expect(redacted.contains(SecretGuard.redactionMark))
+        #expect(!redacted.contains("BEGIN PRIVATE KEY"))
+        #expect(!redacted.contains("MIIEvQIBADAN"))
+        #expect(!redacted.contains("END PRIVATE KEY"))
+    }
+
     @Test("ordinary text is kept — a guard that eats normal copies is worse than none")
     func keepsOrdinaryText() {
         #expect(!SecretGuard.looksLikeSecret("https://belauncher.app"))

@@ -1,0 +1,9 @@
+FAIL
+
+PC-1 PASS: ContactActionHandler.swift retrieves the stable contact ID, uses CNContactVCardSerialization.descriptorForRequiredKeys(), serializes via CNContactVCardSerialization.data, writes a .vcf, and invokes NSSharingServicePicker.
+
+PC-2 PASS: BELActionCatalog.swift implements contacts.share with publicAPI, implemented, contacts, and r2; ResultAction exposes it; AppDelegate routes the stable ID and requires confirmation; typed failures are not reported as success.
+
+PC-3 FAIL: swift test --filter 'BELSystemCommandHandlerTests|BELActionCatalogTests|Contact' passed with 29 tests in 3 suites, but output named no contacts.share, vCard, injection, or unavailable-sharing-surface tests. The inspected test file contains no share-related tests.
+
+PC-4 PASS_WITH_NOTES: the four declared product files changed; the declared test file was unchanged; no release/tag/unrelated action change appeared in the scoped diff. git diff --check passed. Workspace has unrelated pre-existing artifacts.

@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "event": "pilot_approved",
+  "evidence": "T-01 passed independent product verification on attempt 2 after one recorded implementation-defect correction; 33 focused tests pass and only live picker UI remains a runtime note."
+}

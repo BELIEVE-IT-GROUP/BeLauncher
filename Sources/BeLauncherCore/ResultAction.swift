@@ -397,28 +397,32 @@ public enum ActionRegistry {
                     ResultAction(id: "open", title: L("Open contact"), symbol: "person.crop.circle",
                                  section: .manage,
                                  intent: .systemCommand("bel:contacts.open\u{1F}\(result.payload)")),
+                    ResultAction(id: "share", title: L("Share contact"), symbol: "square.and.arrow.up",
+                                 section: .manage,
+                                 intent: .systemCommand("bel:contacts.share\u{1F}\(result.payload)")),
                     ResultAction(id: "edit", title: L("Edit contact"), symbol: "pencil",
                                  section: .manage,
                                  intent: .systemCommand("bel:contacts.update\u{1F}\(result.payload)"))]
 
         case .photo:
+            let assetID = photoAssetID(for: result)
             return [ResultAction(id: "open", title: L("Open photo"), symbol: "photo",
                                  shortcut: .enter,
-                                 intent: .systemCommand("bel:photos.open\u{1F}\(result.payload)")),
-                    ResultAction(id: "copy", title: L("Copy path"), symbol: "doc.on.doc",
-                                 shortcut: .copy, section: .copy, intent: .copy(text: result.payload)),
+                                 intent: .systemCommand("bel:photos.open\u{1F}\(assetID)")),
+                    ResultAction(id: "copy", title: L("Copy Photos ID"), symbol: "doc.on.doc",
+                                 shortcut: .copy, section: .copy, intent: .copy(text: assetID)),
                     ResultAction(id: "album", title: L("Add to album"), symbol: "rectangle.stack.badge.plus",
                                  section: .manage,
-                                 intent: .systemCommand("bel:photos.add_to_album\u{1F}\(result.payload)")),
+                                 intent: .systemCommand("bel:photos.add_to_album\u{1F}\(assetID)")),
                     ResultAction(id: "create-album", title: L("Create album with photo"), symbol: "rectangle.stack.badge.plus",
                                  section: .manage,
-                                 intent: .systemCommand("bel:photos.create_album\u{1F}\(result.payload)")),
+                                 intent: .systemCommand("bel:photos.create_album\u{1F}\(assetID)")),
                     ResultAction(id: "ocr", title: L("Extract text from photo"), symbol: "text.viewfinder",
                                  section: .manage,
-                                 intent: .systemCommand("bel:photos.extract_text\u{1F}\(result.payload)")),
+                                 intent: .systemCommand("bel:photos.extract_text\u{1F}\(assetID)")),
                     ResultAction(id: "remember", title: L("Keep in Brain"), symbol: "brain.head.profile",
                                  section: .manage,
-                                 intent: .systemCommand("bel:photos.remember\u{1F}\(result.payload)"))]
+                                 intent: .systemCommand("bel:photos.remember\u{1F}\(assetID)"))]
 
         case .window:
             return [
@@ -446,6 +450,12 @@ public enum ActionRegistry {
     public static func secondary(for result: SearchResult) -> ResultAction? {
         let all = actions(for: result)
         return all.count > 1 ? all[1] : nil
+    }
+
+    private static func photoAssetID(for result: SearchResult) -> String {
+        let prefix = "photo-"
+        guard result.id.hasPrefix(prefix) else { return result.payload }
+        return String(result.id.dropFirst(prefix.count))
     }
 
     /// Filters the panel as the user types inside it.

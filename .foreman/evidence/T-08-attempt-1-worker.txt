@@ -1,0 +1,20 @@
+T-08 attempt 1 worker receipt
+Worker identity: 019fe775-157a-7121-967c-dad69da80597
+Worker first line: DONE_WITH_CONCERNS
+
+Changed files:
+- Sources/BeLauncherCore/Intelligence.swift
+- Tests/BeLauncherCoreTests/IntelligenceTests.swift
+
+Criteria evidence:
+- PC-1: IntelligenceClient.build now blocks cloud providers unless request.sensitivity is in cloudAllowedFor and request.requiresLocalExecution is false.
+- PC-2: existing cloud/local redaction behavior remains tested with SecretGuard and request fixtures.
+- PC-3: audit event remains metadata-only and tests assert provider ID/class, sensitivity, Brain context level, localOnly, and redaction flags.
+
+Lead reproduction:
+- swift test --filter IntelligenceTests: pass, 38 tests
+- swift test --filter SecretGuardTests: pass, 19 tests
+- git diff --check on T-08/T-09 scoped files: pass
+
+Concern resolved by lead:
+- The reported digest mismatch is raw file SHA-256 versus preflight's canonical ticket_sha256. preflight_ticket.py reports READY and the canonical digest used by dispatch matches program state.

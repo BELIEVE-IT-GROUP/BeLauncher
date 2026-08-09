@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "id": "T-14",
+  "kind": "integration",
+  "objective": "Close X3/X4 Apple Silicon primitives as verified gated primitives: privacy-scoped prefix/KV cache and adaptive MTP scheduler, without wiring either into a production provider.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "X3 prefix/KV cache is in-memory only, keyed by schema/model revision/privacy scope/boundary/prefix digest, rejects invalid or oversized entries, expires stale data, evicts by resource limits, and exposes metrics without prompts, paths, tokens or digests."},
+    {"id": "PC-2", "promise": "X4 MTP scheduler starts in ordinary decoding, requires capability plus warm-up evidence, adapts only across configured compiled draft variants, resets on model revision, and falls back on memory pressure, failures, low acceptance or unproven speedup."},
+    {"id": "PC-3", "promise": "Neither X3 nor X4 is wired into a production LiteRT provider; they remain local primitives/spike decisions until a runtime executor exposes stable KV/MTP contracts."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Run swift test --filter BELPrefixKVCacheTests and inspect cache source/docs.", "expected": "Privacy isolation, rejection, LRU/byte eviction, expiration and scoped removal all pass."},
+    {"criterion_id": "PC-2", "procedure": "Run swift test --filter BELMTPSchedulerTests and inspect scheduler source/docs.", "expected": "Capability/memory gates, warm-up, evidence-backed speculation, step-up/down, failure fallback, revision reset and invalid observations all pass."},
+    {"criterion_id": "PC-3", "procedure": "Search production package/provider sources for LiteRT/provider wiring or user-visible feature flags.", "expected": "Only gated primitives/docs mention LiteRT/MTP; no production provider or feature flag is registered."}
+  ],
+  "subsystems": ["local-inference-policy"],
+  "expected_paths": [
+    "docs/spikes/litert-lm-x3.md",
+    "docs/spikes/litert-lm-x4.md",
+    "Sources/BeLauncherCore/BELPrefixKVCache.swift",
+    "Sources/BeLauncherCore/BELMTPScheduler.swift",
+    "Tests/BeLauncherCoreTests/BELPrefixKVCacheTests.swift",
+    "Tests/BeLauncherCoreTests/BELMTPSchedulerTests.swift",
+    "Package.swift"
+  ],
+  "risk_seams": ["privacy-boundary"],
+  "material_unknowns": [],
+  "dependencies": ["T-13"],
+  "program_item_ids": ["ITEM-16"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "X3/X4 docs, primitives and tests were inspected. This ticket accepts only fail-closed primitives and explicitly forbids production provider wiring. The missing production LiteRT executor contract is a known integration gate documented in the spike docs, not an unresolved unknown for this closure.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Focused Swift tests and product-source absence search."
+  }
+}

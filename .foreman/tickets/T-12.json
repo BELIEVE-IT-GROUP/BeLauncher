@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "id": "T-12",
+  "kind": "integration",
+  "objective": "Close native macOS integration hardening: Shortcuts fallback, curated App Intents, and release gates must be honest, typed, and fail closed.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Shortcuts integration runs only existing user-owned shortcuts through /usr/bin/shortcuts with separated arguments, bounded stdout/stderr, real exit-code errors, mapping validation and foreground requirements."},
+    {"id": "PC-2", "promise": "The curated App Intents surface exposes exactly the 16 supported launcher/Brain commands, reversible deep links, and unknown IDs remain unavailable."},
+    {"id": "PC-3", "promise": "Release hardening checks the signed artifact for required usage descriptions, universal macOS slices, and absence of App Sandbox while the architecture relies on Full Disk Access."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect Shortcuts.swift, ShortcutActionHandler.swift, BELShortcutMapping and run focused Shortcut tests.", "expected": "No shell interpolation, missing tool/non-zero exit/control-name failures are typed and tested."},
+    {"criterion_id": "PC-2", "procedure": "Inspect AppIntents.swift and BELAppIntentCatalog; run App Intent catalog tests.", "expected": "16 curated intents and shortcuts are verified; unknown deep links/actions fail closed."},
+    {"criterion_id": "PC-3", "procedure": "Inspect Scripts/release-mac.sh and Scripts/BeLauncher.entitlements; run N7 release hardening tests.", "expected": "Release script checks usage keys, universal binary and sandbox absence; entitlements do not enable sandbox."}
+  ],
+  "subsystems": ["native-macos-actions"],
+  "expected_paths": [
+    "Sources/BeLauncher/Shortcuts.swift",
+    "Sources/BeLauncher/ShortcutActionHandler.swift",
+    "Sources/BeLauncher/AppIntents.swift",
+    "Sources/BeLauncherCore/BELAppIntentCatalog.swift",
+    "Sources/BeLauncherCore/BELShortcutMapping.swift",
+    "Scripts/release-mac.sh",
+    "Scripts/BeLauncher.entitlements",
+    "Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift",
+    "Tests/BeLauncherCoreTests/SystemCommandTests.swift"
+  ],
+  "risk_seams": ["macos-system-boundary"],
+  "material_unknowns": [],
+  "dependencies": ["T-03"],
+  "program_item_ids": ["ITEM-14"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "Shortcuts, ShortcutActionHandler, AppIntents, App Intent catalog tests, release hardening tests and entitlements were inspected. This ticket verifies the already-implemented native macOS hardening without claiming MacBook runtime TCC proof.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Focused native integration test matrix and scoped diff/inspection notes."
+  }
+}

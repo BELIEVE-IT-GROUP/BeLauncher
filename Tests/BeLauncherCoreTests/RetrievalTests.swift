@@ -228,22 +228,95 @@ struct RetrieverTests {
 
     @Test("Brain context levels are explicit and do not leak long-term memory into B0")
     func brainContextLevels() {
-        let passage = IndexedPassage(id: "p", source: IndexedSource(kind: .note, id: "n"),
-                                     title: "Note", ordinal: 0,
-                                     text: "A useful piece of local evidence.",
-                                     occurredAt: .now, hasVector: true)
-        let result = Retriever.Result(
-            hits: [Retrieved(passage: passage, score: 1, route: .both)],
-            usedMeaning: true, usedWords: true)
+        let hits = (0..<6).map { index in
+            Retrieved(passage: IndexedPassage(
+                id: "p\(index)", source: IndexedSource(kind: .note, id: "n\(index)"),
+                title: "Note \(index)", ordinal: index,
+                text: "A useful piece of local evidence \(index).",
+                occurredAt: .now, hasVector: true),
+                      score: Double(10 - index), route: .both)
+        }
+        let result = Retriever.Result(hits: hits, usedMeaning: true, usedWords: true)
         let b0 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b0)
+        let b1 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b1)
         let b2 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b2)
         let b3 = Retriever.BeBrainContextProvider.retrieve(result: result, level: .b3)
         #expect(b0.hits.isEmpty)
         #expect(b0.level == .b0)
         #expect(b0.scope == .none)
-        #expect(b2.hits.count == 1)
+        #expect(b1.hits.isEmpty)
+        #expect(b1.level == .b1)
+        #expect(b1.scope == .none)
+        #expect(b2.hits.count == 4)
         #expect(b2.scope == .working)
+        #expect(b2.hits.map(\.id) == ["p0", "p1", "p2", "p3"])
+        #expect(b3.hits.count == 6)
         #expect(b3.scope == .longTerm)
+    }
+
+    @Test("Brain context provider enforces budget for empty light and rich corpora")
+    func brainContextProviderBudgetMatrix() {
+        let empty = Retriever.Result(hits: [], usedMeaning: true, usedWords: true,
+                                     gap: "No material.")
+        let emptySelection = Retriever.BeBrainContextProvider.retrieve(
+            result: empty, level: .b3, tokenBudget: 12)
+        #expect(emptySelection.hits.isEmpty)
+        #expect(emptySelection.estimatedTokens == 0)
+        #expect(emptySelection.estimatedTokens <= 12)
+        #expect(emptySelection.gap == "No material.")
+        #expect(!emptySelection.wasTruncated)
+
+        let lightHit = Retrieved(passage: passage("light", "short cited evidence"),
+                                 score: 1, route: .words)
+        let lightSelection = Retriever.BeBrainContextProvider.retrieve(
+            result: Retriever.Result(hits: [lightHit], usedMeaning: false, usedWords: true,
+                                     gap: "Words only."),
+            level: .b3, tokenBudget: 80)
+        #expect(lightSelection.hits.map(\.id) == ["light"])
+        #expect(lightSelection.estimatedTokens <= 80)
+        #expect(lightSelection.gap == "Words only.")
+        #expect(!lightSelection.wasTruncated)
+
+        let richHits = (0..<12).map { index in
+            Retrieved(passage: passage("rich-\(index)", String(repeating: "evidence \(index) ",
+                                                               count: 80)),
+                      score: Double(12 - index), route: .meaning)
+        }
+        let richSelection = Retriever.BeBrainContextProvider.retrieve(
+            result: Retriever.Result(hits: richHits, usedMeaning: true, usedWords: true,
+                                     gap: "Some areas are missing."),
+            level: .b3, tokenBudget: 120)
+        #expect(richSelection.estimatedTokens <= 120)
+        #expect(!richSelection.hits.isEmpty)
+        #expect(richSelection.hits.count < richHits.count)
+        #expect(richSelection.gap == "Some areas are missing.")
+        #expect(richSelection.wasTruncated)
+    }
+
+    @Test("Budget cuts keep citation metadata gap and truncation state")
+    func brainContextProviderPreservesMetadataWhenCut() {
+        let source = IndexedSource(kind: .node, id: "source-node")
+        let passage = IndexedPassage(id: "long", source: source, title: "Long source",
+                                     ordinal: 7,
+                                     text: String(repeating: "important evidence ", count: 120),
+                                     occurredAt: .now.addingTimeInterval(-500),
+                                     hasVector: true)
+        let hit = Retrieved(passage: passage, score: 0.8, route: .related, via: "Meeting note")
+        let selection = Retriever.BeBrainContextProvider.retrieve(
+            result: Retriever.Result(hits: [hit], usedMeaning: true, usedWords: false,
+                                     gap: "Only adjacent evidence exists."),
+            level: .b3, tokenBudget: 90)
+
+        let shortened = selection.hits.first
+        #expect(selection.estimatedTokens <= 90)
+        #expect(selection.wasTruncated)
+        #expect(selection.gap == "Only adjacent evidence exists.")
+        #expect(shortened?.passage.source.id == "source-node")
+        #expect(shortened?.passage.source.kind == .node)
+        #expect(shortened?.passage.ordinal == 7)
+        #expect(shortened?.route == .related)
+        #expect(shortened?.via == "Meeting note")
+        #expect(shortened?.passage.text.hasSuffix("…") == true)
     }
 
     @Test("a citation envelope that cannot fit is omitted rather than exceeding the budget")

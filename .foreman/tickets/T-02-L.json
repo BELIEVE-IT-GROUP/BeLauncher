@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "T-02-L",
+  "kind": "docs",
+  "objective": "Lead takeover: reconcile the action-map tracker and Wave 2 UX status with the behavior actually present and tested on main, correcting stale numeric claims.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id":"PC-1","promise":"Editorial labels implemented, partial, pending, and deferred are clearly separated from BEL runtime availability; every numeric repository claim is source-derived or removed."},
+    {"id":"PC-2","promise":"Docs accurately preserve AppIntents/AppShortcuts presence, MTP/KV spike status, and unresolved MacBook/TCC/Automation/share-picker/AI runtime validation."},
+    {"id":"PC-3","promise":"Only docs/plan-action-map-v2.md and docs/ux-wave-1.md are changed by this ticket."}
+  ],
+  "verification_gates": [
+    {"criterion_id":"PC-1","procedure":"Inspect docs against current SystemCommand.Kind and BELActionCatalog source; run focused checks.","expected":"No stale approximate count remains; labels and runtime enum distinction are explicit."},
+    {"criterion_id":"PC-2","procedure":"Inspect docs against AppIntents.swift, spike sources/tests, and existing runtime caveats.","expected":"Claims are accurate and no unrun MacBook behavior is presented as tested."},
+    {"criterion_id":"PC-3","procedure":"Inspect scoped status and run git diff --check.","expected":"Only the two declared docs are part of the lead takeover delta."}
+  ],
+  "subsystems":["tracker-documentation"],
+  "expected_paths":["docs/plan-action-map-v2.md","docs/ux-wave-1.md"],
+  "risk_seams":[],
+  "material_unknowns":[],
+  "dependencies":["T-01"],
+  "program_item_ids":["ITEM-06"],
+  "estimated_minutes":30,
+  "recon_complete":true,
+  "first_checkpoint":{"minutes":10,"evidence":"Source-count audit and corrected status table."}
+}

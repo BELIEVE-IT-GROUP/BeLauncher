@@ -1,0 +1,37 @@
+T-16 deterministic verifier PASS
+
+Verifier identity: deterministic-shell-T-16
+Ticket: T-16
+Program item completed: ITEM-01
+Verification scope: integration
+Candidate fingerprint: c4fdcd627b8893aafacc287c2ebde4c6797723fc019fd750c875046586def2e8
+
+Product criteria result:
+
+PC-1 Clipboard Quick Preview:
+PASS. The new focused test proves CommandView selects the card before setting expandedClipID and no longer clears the preview by comparing against model.selected. The cleanup uses the carousel's visible entry for the new selection, which addresses the stale-selection failure mode behind a preview button that appears to do nothing.
+
+Evidence command:
+swift test --filter CommandViewUXTests
+Result: exit=0; 2 tests passed.
+
+PC-2 Footer overflow:
+PASS. The new focused test proves CommandView has ViewThatFits plus a minimalFooterRow fallback and Voice menu. This gives SwiftUI a third layout to choose when the full and compact rows do not fit, instead of rendering an overfull compact row.
+
+Evidence command:
+swift test --filter CommandViewUXTests
+Result: exit=0; 2 tests passed.
+
+PC-3 Hot path stays explicit:
+PASS. LauncherInputNeedsTests prove empty launch, clipboard mode, Notes invocation, process/workspace commands, vault, graph history and local sources are loaded only when the query/mode calls for them.
+
+Evidence command:
+swift test --filter LauncherInputNeedsTests
+Result: exit=0; 7 tests passed.
+
+Structural check:
+git diff --check -- Sources/BeLauncher/CommandView.swift Tests/BeLauncherAppTests/CommandViewUXTests.swift Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift docs/ux-wave-1.md
+Result: exit=0.
+
+Verifier caveat:
+This pass is deterministic verification from the lead process, not a new subagent session, because spawning additional agents failed with the active thread limit. A final MacBook visual check is still needed before a user-facing release claim.

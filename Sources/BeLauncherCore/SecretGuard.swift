@@ -70,9 +70,21 @@ public enum SecretGuard {
     /// boundary prevents a new caller from accidentally sending a secret it forgot to scrub.
     public static func redacted(_ text: String) -> String {
         guard carriesSecret(text) else { return text }
-        return text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+        let blockRedacted = redactedSecretBlocks(in: text)
+        return blockRedacted.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
             .map { carriesSecret(String($0)) ? redactionMark : String($0) }
             .joined(separator: "\n")
+    }
+
+    /// Private keys are structured across several lines. The marker line is obvious, but the
+    /// body often looks like plain base64 when evaluated alone, so redact the whole block before
+    /// the line-by-line scrub runs.
+    static func redactedSecretBlocks(in text: String) -> String {
+        let pattern = #"-----BEGIN [A-Z ]*PRIVATE KEY(?: BLOCK)?-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY(?: BLOCK)?-----|$)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
+        let fullRange = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.stringByReplacingMatches(in: text, options: [], range: fullRange,
+                                               withTemplate: redactionMark)
     }
 
     /// Every run of characters that could be a token on its own.

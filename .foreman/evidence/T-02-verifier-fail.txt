@@ -1,0 +1,7 @@
+FAIL
+
+PC-1 partially supported: docs use partial/pending/deferred in prose but BELActionDefinition only has implemented/shortcutFallback/unavailable. The docs status vocabulary is not first-class product state.
+
+PC-2 mostly supported but stale: AppIntent/AppShortcutsProvider absence claim is false because Sources/BeLauncher/AppIntents.swift exists; LiteRT/Metal/MTP have spike code/tests and should be documented as deferred production integration, not absent.
+
+PC-3 failed as written against the entire worktree because unrelated pre-existing T-01 paths are modified; scoped docs delta itself was within the intended files. git diff --check passed.

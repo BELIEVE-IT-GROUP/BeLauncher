@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "id": "T-17",
+  "kind": "integration",
+  "objective": "Close the Brain human-UX slice: notes, Inbox, Markdown reader/editor, graph inspection/actions, and Brain questions must be usable without treating the graph as a decorative dead end.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Quick notes and Inbox are real Markdown workflows: create, review, edit body, preserve front matter/provenance, discard only the triage Markdown, and keep only deliberate clips as Brain candidates."},
+    {"id": "PC-2", "promise": "Graph nodes are actionable: the inspector can show evidence, materialize/read derived Markdown locally, open stable local sources, and correction decisions survive reload instead of opening empty windows."},
+    {"id": "PC-3", "promise": "Conversing with the Brain from the launcher/Brain surfaces is understandable: recognized bilingual intents answer with current truth, preparations cite meetings/decisions/commitments, empty knowledge is explicit, and ordinary search is not hijacked."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Run QuickNoteTests and CorpusFilesTests.", "expected": "Markdown note, Inbox, provenance, edit, discard and human-owned corpus behavior pass."},
+    {"criterion_id": "PC-2", "procedure": "Run GraphCorrectionsTests.", "expected": "Read here/materialization, no empty reader, evidence routes, corrections, forget/pin/reject and graph responsiveness pass."},
+    {"criterion_id": "PC-3", "procedure": "Run BrainQueryTests.", "expected": "Bilingual Brain intents, current-truth answers, preparation, no-knowledge states and launcher primer behavior pass."}
+  ],
+  "subsystems": ["brain-ui"],
+  "expected_paths": [
+    "Sources/BeLauncher/GraphView.swift",
+    "Sources/BeLauncher/CorpusReaderView.swift",
+    "Sources/BeLauncher/QuickNoteEditorView.swift",
+    "Sources/BeLauncher/AppDelegate.swift",
+    "Tests/BeLauncherCoreTests/UtilitiesTests.swift",
+    "Tests/BeLauncherAppTests/GraphCorrectionsTests.swift",
+    "Tests/BeLauncherCoreTests/BrainQueryTests.swift",
+    "Tests/BeLauncherCoreTests/CorpusFilesTests.swift",
+    "docs/ux-wave-1.md"
+  ],
+  "risk_seams": ["release-visible-ui"],
+  "material_unknowns": [],
+  "dependencies": ["T-16"],
+  "program_item_ids": ["ITEM-02"],
+  "estimated_minutes": 40,
+  "recon_complete": true,
+  "recon_evidence": "GraphView, CorpusReaderView, QuickNote workflows and existing focused tests were inspected. This ticket accepts the code/test UX closure while still requiring a MacBook visual pass before release packaging.",
+  "first_checkpoint": {
+    "minutes": 15,
+    "evidence": "Focused QuickNote, CorpusFiles, GraphCorrections and BrainQuery test results."
+  }
+}

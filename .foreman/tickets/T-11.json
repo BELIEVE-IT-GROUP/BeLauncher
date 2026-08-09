@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "T-11",
+  "kind": "implementation",
+  "objective": "Close Wave 3 A8: AI writeback save/forget/project update must be two-step where needed, validated before persistence, and fully audit logged without silent commits.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Model output for memory/project writeback is validated before persistence; unknown fields, prompt-injected commands, malformed args and invalid kinds leave no vault state."},
+    {"id": "PC-2", "promise": "Project updates and memory proposals never become current until an explicit human confirmation call; discard leaves no current object and is audited."},
+    {"id": "PC-3", "promise": "Save writes evidence only, not committed memory; forget is preview-then-confirm and confirmed forget removes clips plus semantic passages/vectors, with audit events for preview and confirmation."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect BELBrainWriteback and run BELBrainWritebackTests.", "expected": "Unsafe model output throws before vault mutation or audit pollution."},
+    {"criterion_id": "PC-2", "procedure": "Run proposal/confirm/discard/project update tests.", "expected": "Only explicit confirm creates current committed objects; discard remains non-current and audited."},
+    {"criterion_id": "PC-3", "procedure": "Run save and forget tests with a temporary Store semantic index.", "expected": "Save creates inbox evidence only; forget preview is non-mutating; confirm forget removes clips and indexed passages and records audit events."}
+  ],
+  "subsystems": ["ai-writeback"],
+  "expected_paths": [
+    "Sources/BeLauncherCore/BELBrainWriteback.swift",
+    "Sources/BeLauncherCore/Vault.swift",
+    "Sources/BeLauncherCore/Store.swift",
+    "Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift"
+  ],
+  "risk_seams": ["model-output-boundary"],
+  "material_unknowns": [],
+  "dependencies": ["T-09"],
+  "program_item_ids": ["ITEM-13"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "BELBrainWriteback and BELBrainWritebackTests were inspected. Most behavior is already covered; this ticket closes any remaining audit/state proof gaps for A8.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Focused writeback state/audit test matrix."
+  }
+}

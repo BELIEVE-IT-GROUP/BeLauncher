@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-10",
+  "attempt": 1,
+  "provider": "native-codex",
+  "model": "native-inherited",
+  "effort": "high",
+  "workspace_id": "native-T-10-attempt1",
+  "reason": "A7 is a bounded provider-routing proof slice. Expected work is focused tests and only small production fixes if tests expose a real local-default gap.",
+  "write_set": [
+    "Sources/BeLauncherCore/BELLanguageModelProvider.swift",
+    "Sources/BeLauncherCore/LocalModels.swift",
+    "Sources/BeLauncherCore/AIVerbs.swift",
+    "Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift",
+    "Tests/BeLauncherCoreTests/LocalModelsTests.swift",
+    "Tests/BeLauncherCoreTests/AIVerbTests.swift"
+  ]
+}

@@ -1,0 +1,37 @@
+T-14 deterministic verifier PASS
+
+Verifier identity: deterministic-shell-T-14
+Ticket: T-14
+Program item completed: ITEM-16
+Verification scope: slice
+Candidate fingerprint: ff95a622d212c8cc39cd3920b64034b990ba285ade58db0b3c7059546b383148
+
+Product criteria result:
+
+PC-1 X3 prefix/KV cache:
+PASS. Focused tests prove scope/boundary isolation, invalid-key and oversized-value rejection, LRU/byte-cap eviction, expiration, byte release and scoped removal. Source inspection confirms it stores opaque in-memory Data in an actor, requires schema/model revision/privacy scope/boundary/prefix digest, and metrics expose only counters/sizes.
+
+Evidence command:
+swift test --filter BELPrefixKVCacheTests
+Result: exit=0; 5 tests passed.
+
+PC-2 X4 MTP scheduler:
+PASS. Focused tests prove capability/memory fail-closed behavior, warm-up ordinary mode, evidence-backed speculative mode, adaptation only to supported variants, low-acceptance fallback, failure fallback, model-revision reset and invalid-observation rejection. Source inspection confirms telemetry is numeric only.
+
+Evidence command:
+swift test --filter BELMTPSchedulerTests
+Result: exit=0; 8 tests passed.
+
+PC-3 No production provider exposure:
+PASS. Product scan found only the gated primitives and an explanatory LiteRT-LM comment. Package.swift does not expose a LiteRT provider/dependency and no user-visible Metal/MTP feature flag is registered.
+
+Evidence command:
+rg -n "BELPrefixKVCache|BELMTPScheduler|LiteRT|litert|MTP|mtp|beMetalFused|featureFlag|FeatureFlag" Sources Package.swift
+Result: matches are limited to BELPrefixKVCache.swift and BELMTPScheduler.swift.
+
+Structural check:
+git diff --check -- docs/spikes/litert-lm-x3.md docs/spikes/litert-lm-x4.md Sources/BeLauncherCore/BELPrefixKVCache.swift Sources/BeLauncherCore/BELMTPScheduler.swift Tests/BeLauncherCoreTests/BELPrefixKVCacheTests.swift Tests/BeLauncherCoreTests/BELMTPSchedulerTests.swift Package.swift
+Result: exit=0.
+
+Verifier caveat:
+This pass is deterministic verification from the lead process, not a new subagent session, because spawning additional agents failed with the active thread limit. The guard identity is distinct from the builder identity and the evidence was freshly reproduced after the outcome.

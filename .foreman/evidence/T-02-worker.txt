@@ -1,0 +1,3 @@
+DONE_WITH_CONCERNS
+
+Updated only docs/plan-action-map-v2.md and docs/ux-wave-1.md. Reconciled Reminders, Contacts, and Photos as implemented/partial using code, focused tests, commits, and tracker reconciliation. Preserved MacBook/TCC/Automation/share-picker limitations and AI/LiteRT-LM/Metal/MTP gaps. Focused tests 24 + 58 passed; git diff --check passed; untracked plan whitespace check passed.

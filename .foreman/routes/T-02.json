@@ -1,0 +1,13 @@
+{
+  "ticket_id": "T-02",
+  "lane": "native-codex",
+  "worker_id": "019fe727-b63b-71e0-8580-0e4f8c5c10fe",
+  "nickname": "Sartre",
+  "requested_model": "inherited native Codex",
+  "requested_effort": "medium",
+  "evidence_labels": ["native-inherited-unconfirmed"],
+  "quality_floor": "WORKHORSE: status claims must be source-backed and preserve unknowns",
+  "residual_judgment": "moderate",
+  "uncertainty": "native collaboration tool does not expose a per-child serving model in this session",
+  "reason": "Documentation reconciliation is bounded to two files and removes tracker drift before broader implementation work."
+}

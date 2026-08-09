@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "T-08",
+  "kind": "implementation",
+  "objective": "Close Wave 3 A5: the cloud boundary must enforce memory scopes/localOnly, redact immediately before request construction, and audit provider class without payload.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Requests carrying confidential or B2/B3 Brain context cannot be built for cloud providers unless policy explicitly allows it; localOnly is enforced at the final request boundary."},
+    {"id": "PC-2", "promise": "Cloud-bound request bodies redact credential-looking content immediately before serialization, while local providers keep original text because it never leaves the Mac."},
+    {"id": "PC-3", "promise": "Privacy audit events record metadata only: provider ID/class, sensitivity, Brain context level, localOnly, and redaction flags; no prompt/system payload is stored."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect IntelligenceClient.build and IntelligenceTests; run focused Intelligence/Privacy/SecretGuard tests.", "expected": "Local-only and long-term Brain context block cloud at request construction."},
+    {"criterion_id": "PC-2", "procedure": "Inspect serialized request fixtures for cloud/local providers.", "expected": "Cloud payloads are redacted; local payloads preserve original text."},
+    {"criterion_id": "PC-3", "procedure": "Inspect audit event shape and tests.", "expected": "Audit contains only metadata and boolean redaction flags."}
+  ],
+  "subsystems": ["cloud-boundary"],
+  "expected_paths": [
+    "Sources/BeLauncherCore/Intelligence.swift",
+    "Sources/BeLauncherCore/SecretGuard.swift",
+    "Tests/BeLauncherCoreTests/IntelligenceTests.swift",
+    "Tests/BeLauncherCoreTests/SecretGuardTests.swift"
+  ],
+  "risk_seams": ["cloud-boundary"],
+  "material_unknowns": [],
+  "dependencies": ["T-04", "T-07"],
+  "program_item_ids": ["ITEM-10"],
+  "estimated_minutes": 40,
+  "recon_complete": true,
+  "recon_evidence": "IntelligenceClient.build, BELPrivacyAuditEvent, SecretGuard, and IntelligenceTests were inspected. Existing tests cover localOnly, B3 cloud refusal, cloud redaction, local preservation, and metadata audit; this ticket closes any remaining contract gaps.",
+  "first_checkpoint": {
+    "minutes": 12,
+    "evidence": "Request-boundary fixture matrix for local/cloud, localOnly, B2/B3, and audit payload absence."
+  }
+}

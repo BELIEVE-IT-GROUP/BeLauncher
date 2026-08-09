@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "T-10",
+  "kind": "implementation",
+  "objective": "Close Wave 3 A7: BeBrain local core must be the default cheap local route, backed by real local model discovery and explicit fallback when no local backend is usable.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "Local Ollama/LM Studio backends collapse to the stable Brain-facing provider identity bebrain.local.core, while cloud providers keep their own identity and Apple Foundation Models remains runtime-discovered only."},
+    {"id": "PC-2", "promise": "Local model discovery uses each provider's real catalogue endpoint, filters non-chat embedding models, honors a saved model only while it is actually installed, and never sends a hardcoded missing model to a local runner."},
+    {"id": "PC-3", "promise": "With no explicit cloud preference and both local and cloud providers available, ordinary AI verbs route to local; confidential/local-only work cannot fall back to cloud when local is unavailable."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect BELLanguageModelProviderFactory and BELLanguageModelProviderTests.", "expected": "Local providers report bebrain.local.core; Foundation Models is absent unless runtime availability is true."},
+    {"criterion_id": "PC-2", "procedure": "Run LocalModelsTests and focused model-choice tests.", "expected": "Ollama and LM Studio catalogues parse, embedding models are ignored for chat, saved missing models are not selected, selected installed model is used in the HTTP body."},
+    {"criterion_id": "PC-3", "procedure": "Run AIVerbTests and inspect captured request hosts/bodies.", "expected": "Default ordinary verb uses the local endpoint/model and does not call cloud; local-only/confidential cloud fallback is refused."}
+  ],
+  "subsystems": ["local-ai-routing"],
+  "expected_paths": [
+    "Sources/BeLauncherCore/BELLanguageModelProvider.swift",
+    "Sources/BeLauncherCore/LocalModels.swift",
+    "Sources/BeLauncherCore/AIVerbs.swift",
+    "Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift",
+    "Tests/BeLauncherCoreTests/LocalModelsTests.swift",
+    "Tests/BeLauncherCoreTests/AIVerbTests.swift"
+  ],
+  "risk_seams": ["provider-routing"],
+  "material_unknowns": [],
+  "dependencies": ["T-08", "T-09"],
+  "program_item_ids": ["ITEM-12"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "BELLanguageModelProvider, LocalModels, AIVerbs, ModelRoutingTests, BELLanguageModelProviderTests and LocalModelsTests were inspected. The backend exists; this ticket closes missing end-to-end proof and any small contract gaps.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Focused tests proving local default route and installed-model selection."
+  }
+}

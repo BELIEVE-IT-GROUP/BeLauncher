@@ -34,14 +34,30 @@ struct BELContactActionInput: Codable, Sendable {
 
 struct ContactActionHandler: BELActionHandler {
     let actionID: String
+    private let presentShare: @MainActor @Sendable (URL) -> Bool
+    private let contactsAuthorized: @Sendable () -> Bool
+    private let contactForID: @Sendable ([CNKeyDescriptor], String) throws -> CNContact?
     init?(definition: BELActionDefinition) {
-        guard ["contacts.find", "contacts.get_details", "contacts.copy_email", "contacts.create", "contacts.update"].contains(definition.id),
+        self.init(definition: definition,
+                  presentShare: ContactActionHandler.defaultPresentShare,
+                  contactsAuthorized: { CNContactStore.authorizationStatus(for: .contacts) == .authorized },
+                  contactForID: ContactActionHandler.defaultContactForID)
+    }
+
+    init?(definition: BELActionDefinition,
+          presentShare: @escaping @MainActor @Sendable (URL) -> Bool,
+          contactsAuthorized: @escaping @Sendable () -> Bool = { CNContactStore.authorizationStatus(for: .contacts) == .authorized },
+          contactForID: @escaping @Sendable ([CNKeyDescriptor], String) throws -> CNContact? = ContactActionHandler.defaultContactForID) {
+        guard ["contacts.find", "contacts.get_details", "contacts.copy_email", "contacts.create", "contacts.update", "contacts.share"].contains(definition.id),
               definition.adapter == .publicAPI else { return nil }
         actionID = definition.id
+        self.presentShare = presentShare
+        self.contactsAuthorized = contactsAuthorized
+        self.contactForID = contactForID
     }
     func perform(input: Data) async throws -> BELActionResult {
         let value = try JSONDecoder().decode(BELContactActionInput.self, from: input)
-        guard CNContactStore.authorizationStatus(for: .contacts) == .authorized else { throw ContactActionError.permission }
+        guard contactsAuthorized() else { throw ContactActionError.permission }
         let store = CNContactStore()
         if actionID == "contacts.create" {
             let name = value.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -64,20 +80,22 @@ struct ContactActionHandler: BELActionHandler {
                                    changed: [contact.identifier],
                                    receipt: "contacts:create:\(contact.identifier)")
         }
-        let keys: [CNKeyDescriptor] = [CNContactIdentifierKey as NSString,
+        var keys: [CNKeyDescriptor] = [CNContactIdentifierKey as NSString,
                                        CNContactFormatter.descriptorForRequiredKeys(for: .fullName),
                                        CNContactEmailAddressesKey as NSString,
                                        CNContactPhoneNumbersKey as NSString,
                                        CNContactPostalAddressesKey as NSString,
                                        CNContactOrganizationNameKey as NSString]
+        if actionID == "contacts.share" {
+            keys.append(CNContactVCardSerialization.descriptorForRequiredKeys())
+        }
         if actionID != "contacts.find" {
             guard let id = value.contactID else { throw ContactActionError.noMatches }
-            var found: CNContact?
-            let request = CNContactFetchRequest(keysToFetch: keys)
-            try store.enumerateContacts(with: request) { contact, stop in
-                if contact.identifier == id { found = contact; stop.pointee = true }
-            }
+            let found = try contactForID(keys, id)
             guard let contact = found else { throw ContactActionError.noMatches }
+            if actionID == "contacts.share" {
+                return try await share(contact: contact, identifier: id)
+            }
             if actionID == "contacts.update" {
                 let edited = contact.mutableCopy() as! CNMutableContact
                 if let name = value.name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
@@ -134,8 +152,66 @@ struct ContactActionHandler: BELActionHandler {
         guard !lines.isEmpty else { throw ContactActionError.noMatches }
         return BELActionResult(text: lines.joined(separator: "\n"), receipt: "contacts:find")
     }
+
+    private func share(contact: CNContact, identifier: String) async throws -> BELActionResult {
+        let data: Data
+        do {
+            data = try CNContactVCardSerialization.data(with: [contact])
+        } catch {
+            throw ContactShareActionError.serializationFailed(error.localizedDescription)
+        }
+        let name = CNContactFormatter.string(from: contact, style: .fullName) ?? L("Contact")
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("BeLauncher-\(UUID().uuidString)-\(Self.safeShareFileName(name)).vcf")
+        do {
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            throw ContactShareActionError.filePreparationFailed(error.localizedDescription)
+        }
+        let shown = await MainActor.run { presentShare(fileURL) }
+        guard shown else { throw ContactShareActionError.sharingUnavailable }
+        return BELActionResult(text: L("Share options opened for %@", name),
+                               changed: [fileURL.path], receipt: "contacts:share:\(identifier)")
+    }
+
+    private static func defaultContactForID(_ keys: [CNKeyDescriptor], _ identifier: String) throws -> CNContact? {
+        let request = CNContactFetchRequest(keysToFetch: keys)
+        let store = CNContactStore()
+        var found: CNContact?
+        try store.enumerateContacts(with: request) { contact, stop in
+            if contact.identifier == identifier { found = contact; stop.pointee = true }
+        }
+        return found
+    }
+
+    @MainActor
+    private static func defaultPresentShare(_ fileURL: URL) -> Bool {
+        guard let view = NSApp.keyWindow?.contentView,
+              view.window != nil,
+              !NSSharingService.sharingServices(forItems: [fileURL]).isEmpty else {
+            return false
+        }
+        let picker = NSSharingServicePicker(items: [fileURL])
+        picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
+        return true
+    }
+
+    private static func safeShareFileName(_ name: String) -> String {
+        let cleaned = name.replacingOccurrences(of: "/", with: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? "contact" : cleaned
+    }
 }
 enum ContactActionError: Error, Equatable { case permission, noMatches, noDetails, invalidInput }
+
+enum ContactShareActionError: Error, Equatable {
+    case permission
+    case invalidInput
+    case noMatches
+    case serializationFailed(String)
+    case filePreparationFailed(String)
+    case sharingUnavailable
+}
 
 /// Opens the exact record through Contacts' documented scripting dictionary. A plain
 /// `NSWorkspace.open` would only launch an empty Contacts window and falsely claim to open a

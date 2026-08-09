@@ -1,0 +1,7 @@
+T-02 attempt 3 transport evidence
+
+Route: Claude CLI, model alias claude-sonnet, high effort.
+Launcher receipt: /tmp/beacon-foreman/T-02-attempt-3/receipt.json
+Launcher result: exit_code=1, status=terminal, process_tree_closed=true.
+Underlying result: model_not_found; Claude reported that claude-sonnet does not exist or is not accessible.
+No worker edits were accepted from this run. The repository write scope remains the two documentation files.

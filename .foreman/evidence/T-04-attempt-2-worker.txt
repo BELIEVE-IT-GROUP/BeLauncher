@@ -1,0 +1,25 @@
+T-04 attempt 2 worker receipt
+Worker identity: 019fe75f-f5d9-7c00-9033-584869d8fd39
+Worker first line: DONE
+
+Changed files reported:
+- Sources/BeLauncherCore/Intelligence.swift
+- Sources/BeLauncherCore/ModelProviderRegistry.swift
+- Tests/BeLauncherCoreTests/IntelligenceTests.swift
+- Tests/BeLauncherCoreTests/ModelProviderRegistryTests.swift
+- Tests/BeLauncherCoreTests/ModelRoutingTests.swift
+
+Criteria evidence reported:
+- PC-1: IntelligenceProbeState exposes ready/configured/unavailable semantics; ModelProviderDescriptor.State includes configured distinct from ready.
+- PC-2: routing tests prove missing health evidence is configured-only, ready beats configured, and local-only policy cannot select cloud.
+- PC-3: focused tests use fake transport/probe only; no real network or credentials.
+
+Lead reproduction:
+- swift test --filter IntelligenceTests: pass, 35 tests
+- swift test --filter ModelRoutingTests: pass, 10 tests
+- swift test --filter ModelProviderRegistryTests: pass, 8 tests
+- swift test --filter BELProviderHealthCacheTests: pass, 3 tests
+- git diff --check on the T-04/T-05 scoped files: pass
+
+Runtime note:
+- Live MacBook/provider health and real credentials were not validated by this ticket.

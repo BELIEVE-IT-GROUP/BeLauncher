@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "id": "T-02",
+  "kind": "docs",
+  "objective": "Reconcile the action-map tracker and Wave 2 UX status with the behavior actually present and tested on main.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {
+      "id": "PC-1",
+      "promise": "The tracker uses editorial labels implemented, partial, pending, and deferred with explicit evidence links, without falsely implying that those labels are all first-class BEL runtime enum values. Any repository counts stated in the docs must be recomputed from current source or removed; stale approximate action-count claims are forbidden."
+    },
+    {
+      "id": "PC-2",
+      "promise": "The document names the exact remaining gaps for Contacts, Photos, Reminders, AI architecture, runtime MacBook validation, and LiteRT/Metal/MTP spikes without declaring runtime behavior tested when it was not."
+    },
+    {
+      "id": "PC-3",
+      "promise": "The T-02 delta changes only the two declared tracker/status files; pre-existing product changes and untracked audit artifacts remain untouched and are not attributed to this ticket."
+    }
+  ],
+  "verification_gates": [
+    {
+      "criterion_id": "PC-1",
+      "procedure": "Inspect the updated tables against `git log`, BELActionCatalog, focused tests, and docs/ux-wave-1.md.",
+      "expected": "Each editorial status is backed by a concrete commit, source path, test, or an explicit runtime-validation note, and the docs state that editorial status is separate from BELActionDefinition availability."
+    },
+    {
+      "criterion_id": "PC-2",
+      "procedure": "Read the remaining-work sections and compare them with the current repository and the tracker reconciliation artifact.",
+      "expected": "The document preserves unresolved runtime/AI/spike work and does not claim MacBook/TCC/Share-picker validation without evidence."
+    },
+    {
+      "criterion_id": "PC-3",
+      "procedure": "Inspect the T-02 docs-only diff and compare it with the pre-dispatch worktree snapshot in the worker report; run `git diff --check` and inspect the two declared paths explicitly.",
+      "expected": "The T-02 delta contains only docs/plan-action-map-v2.md and docs/ux-wave-1.md; pre-existing product/audit paths are not attributed to this ticket and diff check exits 0."
+    }
+  ],
+  "subsystems": ["tracker-documentation"],
+  "expected_paths": ["docs/plan-action-map-v2.md", "docs/ux-wave-1.md"],
+  "risk_seams": [],
+  "material_unknowns": [],
+  "dependencies": ["T-01"],
+  "program_item_ids": ["ITEM-06"],
+  "estimated_minutes": 30,
+  "recon_complete": true,
+  "first_checkpoint": {"minutes": 10, "evidence": "First reconciled status table with source/commit references."
+  }
+}

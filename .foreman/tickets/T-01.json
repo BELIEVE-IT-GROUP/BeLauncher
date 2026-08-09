@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "T-01",
+  "kind": "implementation",
+  "objective": "Implement real contacts.share behavior through the macOS sharing surface.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {
+      "id": "PC-1",
+      "promise": "A selected contact can be serialized as a valid vCard and handed to a native macOS sharing surface; opening Contacts alone does not count."
+    },
+    {
+      "id": "PC-2",
+      "promise": "The action is discoverable from a contact result and uses the existing BEL catalog/runtime/gate conventions with explicit permission, cancellation, and failure outcomes."
+    },
+    {
+      "id": "PC-3",
+      "promise": "Focused tests prove catalog availability, exact input routing, vCard/share preparation, and no false success path."
+    },
+    {
+      "id": "PC-4",
+      "promise": "No product files outside the declared write set change, and no release, tag, or unrelated action changes are made."
+    }
+  ],
+  "verification_gates": [
+    {
+      "criterion_id": "PC-1",
+      "procedure": "Inspect the diff and run the focused Contacts/share tests; verify that the handler creates vCard data and invokes an actual AppKit sharing API or returns an explicit unsupported/error result.",
+      "expected": "The focused evidence names CNContactVCardSerialization and a real NSSharingService/NSSharingServicePicker route, or proves a typed non-success result; opening Contacts alone is absent."
+    },
+    {
+      "criterion_id": "PC-2",
+      "procedure": "Run the focused catalog/runtime/UI routing tests and inspect the action path from contact result to handler.",
+      "expected": "contacts.share is implemented in the catalog, appears in contact actions, reaches its handler with the stable contact identifier, and cancellation/permission/failure are not reported as success."
+    },
+    {
+      "criterion_id": "PC-3",
+      "procedure": "Run `swift test --filter 'BELSystemCommandHandlerTests|BELActionCatalogTests|Contact'` and require exit 0 with named share coverage.",
+      "expected": "The command exits 0 and the test output contains focused contacts.share coverage."
+    },
+    {
+      "criterion_id": "PC-4",
+      "procedure": "Run `git diff --name-only 36e7aea` and `git diff --check`; require only the declared write set and no release metadata changes.",
+      "expected": "Only declared product paths change; no tag, release script, package manifest, or unrelated action path changes; diff check exits 0."
+    }
+  ],
+  "subsystems": ["contacts-share-action"],
+  "expected_paths": [
+    "Sources/BeLauncher/ContactActionHandler.swift",
+    "Sources/BeLauncherCore/BELActionCatalog.swift",
+    "Sources/BeLauncherCore/ResultAction.swift",
+    "Sources/BeLauncher/AppDelegate.swift",
+    "Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift"
+  ],
+  "risk_seams": ["macos-sharing-completion"],
+  "material_unknowns": [],
+  "dependencies": [],
+  "program_item_ids": ["ITEM-03"],
+  "estimated_minutes": 40,
+  "recon_complete": true,
+  "first_checkpoint": {
+    "minutes": 15,
+    "evidence": "First coherent diff plus a focused test or a documented SDK/API blocker."
+  }
+}

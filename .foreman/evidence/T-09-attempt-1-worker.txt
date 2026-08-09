@@ -1,0 +1,20 @@
+T-09 attempt 1 worker receipt
+Worker identity: 019fe775-4daf-7532-a0b4-c9ebc4d0101e
+Worker first line: DONE_WITH_CONCERNS
+
+Changed files:
+- Tests/BeLauncherCoreTests/BELStructuredOutputTests.swift
+- Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift
+
+Criteria evidence:
+- PC-1: tests cover plain JSON acceptance, fenced JSON acceptance, prose-wrapped JSON rejection, truncated JSON rejection, and unclosed-fence rejection.
+- PC-2: tests cover missing required fields, unknown fields, wrong types, resource limits, and unknown tool calls.
+- PC-3: tests cover checked argument return, injected envelope rejection, malformed args rejection, and writeback injections leaving vault state empty.
+
+Lead reproduction:
+- swift test --filter BELStructuredOutputTests: pass, 7 tests
+- swift test --filter BELBrainWritebackTests: pass, 8 tests
+- git diff --check on T-08/T-09 scoped files: pass
+
+Concern:
+- No production logic changed; existing validator/writeback behavior already satisfied the new proof cases.

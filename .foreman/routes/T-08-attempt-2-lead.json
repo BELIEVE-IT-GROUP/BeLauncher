@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-08",
+  "attempt": 2,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "lead-T-08-attempt2",
+  "reason": "The failed criterion is a narrow final-boundary redaction defect in SecretGuard. Lead takeover reduces cycle time while preserving the original ticket scope and requiring a fresh independent verifier before accepting ITEM-10.",
+  "write_set": [
+    "Sources/BeLauncherCore/SecretGuard.swift",
+    "Tests/BeLauncherCoreTests/SecretGuardTests.swift",
+    "Tests/BeLauncherCoreTests/IntelligenceTests.swift"
+  ],
+  "verification": [
+    "swift test --filter SecretGuardTests",
+    "swift test --filter IntelligenceTests",
+    "git diff --check -- Sources/BeLauncherCore/SecretGuard.swift Tests/BeLauncherCoreTests/SecretGuardTests.swift Tests/BeLauncherCoreTests/IntelligenceTests.swift"
+  ]
+}

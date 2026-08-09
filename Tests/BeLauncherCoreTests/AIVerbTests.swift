@@ -9,14 +9,17 @@ struct AIVerbTests {
     private let cloud = IntelligenceProvider.named("anthropic")!
 
     private func runner(_ answer: String, providers: [IntelligenceProvider],
-                        preferred: String) -> AIVerbRunner {
+                        preferred: String?, models: [String: String]? = nil) -> AIVerbRunner {
         let json = #"{"choices":[{"message":{"content":"\#(answer)"}}]}"#
         let client = IntelligenceClient(
             transport: { _ in (Data(json.utf8), URLResponse()) },
             keyLookup: { _ in "user-own-key" }
         )
+        let selectedModels = models ?? Dictionary(uniqueKeysWithValues: providers
+            .filter(\.isPrivate)
+            .map { ($0.id, "qwen2.5") })
         return AIVerbRunner(client: client, router: ModelRouter(preferred: preferred),
-                            providers: providers)
+                            providers: providers, models: selectedModels)
     }
 
     @Test("a verb carries its own instruction, so nobody has to explain themselves twice")
@@ -72,12 +75,83 @@ struct AIVerbTests {
         }
     }
 
+    @Test("a confidential verb refuses cloud when local has no discovered chat model")
+    func refusesCloudWhenLocalModelIsMissing() async {
+        let runner = runner("x", providers: [local, cloud], preferred: nil, models: [:])
+        let tasks = AIVerb.named("extract-tasks")!
+
+        await #expect(throws: IntelligenceError.self) {
+            try await runner.run(tasks, on: "material de empresa")
+        }
+    }
+
     @Test("an ordinary verb honours the model you chose")
     func ordinaryVerbUsesPreference() async throws {
         let runner = runner("formateado", providers: [local, cloud], preferred: "anthropic")
         let json = AIVerb.named("json")!
         #expect(json.sensitivity == .ordinary)
         #expect(try await runner.run(json, on: "{\"a\":1}") == "formateado")
+    }
+
+    @Test("without a cloud preference, an ordinary verb uses local by default")
+    func ordinaryVerbDefaultsToLocal() async throws {
+        actor Capture {
+            var url: String?
+            var model: String?
+
+            func store(_ request: URLRequest) throws {
+                url = request.url?.absoluteString
+                guard let body = request.httpBody,
+                      let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+                else { return }
+                model = json["model"] as? String
+            }
+        }
+        let capture = Capture()
+        let client = IntelligenceClient(
+            transport: { request in
+                try await capture.store(request)
+                return (Data(#"{"choices":[{"message":{"content":"local"}}]}"#.utf8),
+                        URLResponse())
+            },
+            keyLookup: { _ in "cloud-key" }
+        )
+        let runner = AIVerbRunner(
+            client: client, router: ModelRouter(preferred: nil),
+            providers: [cloud, local], models: [local.id: "qwen2.5"]
+        )
+
+        let result = try await runner.run(try #require(AIVerb.named("json")), on: "{\"a\":1}")
+
+        #expect(result == "local")
+        #expect(await capture.url == local.endpoint)
+        #expect(await capture.model == "qwen2.5")
+    }
+
+    @Test("ordinary work falls back to cloud when no local model is usable")
+    func ordinaryVerbFallsBackWhenLocalHasNoDiscoveredModel() async throws {
+        actor Capture {
+            var url: String?
+            func store(_ request: URLRequest) { url = request.url?.absoluteString }
+        }
+        let capture = Capture()
+        let client = IntelligenceClient(
+            transport: { request in
+                await capture.store(request)
+                return (Data(#"{"choices":[{"message":{"content":"cloud"}}]}"#.utf8),
+                        URLResponse())
+            },
+            keyLookup: { _ in "cloud-key" }
+        )
+        let runner = AIVerbRunner(
+            client: client, router: ModelRouter(preferred: nil),
+            providers: [local, cloud], models: [:]
+        )
+
+        let result = try await runner.run(try #require(AIVerb.named("json")), on: "{\"a\":1}")
+
+        #expect(result == "cloud")
+        #expect(await capture.url == cloud.endpoint)
     }
 
     @Test("empty input is refused before any model is bothered")
@@ -103,7 +177,7 @@ struct AIVerbTests {
             keyLookup: { _ in "k" }
         )
         let runner = AIVerbRunner(client: client, router: ModelRouter(preferred: "ollama"),
-                                  providers: [local])
+                                  providers: [local], models: [local.id: "qwen2.5"])
         _ = try await runner.run(AIVerb.named("fix")!, on: "testo con herrores")
 
         let body = await capture.body

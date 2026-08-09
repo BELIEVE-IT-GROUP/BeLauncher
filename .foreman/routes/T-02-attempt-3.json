@@ -1,0 +1,6 @@
+route: Claude CLI worker
+model: claude-sonnet
+effort: high
+provider capability evidence: .foreman/events.jsonl capability probe; Claude CLI authenticated presence was observed, served model identity remains unconfirmed
+selection rationale: cross-provider worker for the final bounded documentation retry after stale numeric counts were found
+verification: fresh read-only verifier required after worker completion

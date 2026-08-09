@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-16",
+  "attempt": 1,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "lead-T-16-attempt1",
+  "reason": "Agent thread capacity is exhausted and the failing surface is a concrete SwiftUI launcher regression. Lead route will patch and verify with focused tests plus source inspection.",
+  "write_set": [
+    "Sources/BeLauncher/CommandView.swift",
+    "Tests/BeLauncherAppTests/CommandViewUXTests.swift",
+    "Tests/BeLauncherAppTests/LauncherInputNeedsTests.swift",
+    "docs/ux-wave-1.md"
+  ]
+}

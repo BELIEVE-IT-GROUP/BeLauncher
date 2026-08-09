@@ -1,0 +1,19 @@
+T-07 attempt 1 worker receipt
+Worker identity: 019fe76c-4ef7-7e40-b7d6-89314e3d4f9f
+Worker first line: DONE_WITH_CONCERNS
+
+Changed file:
+- Tests/BeLauncherCoreTests/RetrievalTests.swift
+
+Criteria evidence:
+- PC-1: tests now cover empty, light, and rich corpora with estimatedTokens <= tokenBudget.
+- PC-2: tests now pin B0/B1 empty, B2 first four working hits, and B3 richer long-term context.
+- PC-3: tests now preserve source ID/kind, ordinal, route, via, gap, and truncation state through budget cuts; tiny budget still fails closed.
+
+Lead reproduction:
+- swift test --filter RetrievalTests: pass, 43 tests
+- swift test --filter MCPServerTests: pass, 10 tests
+- git diff --check on T-06/T-07 scoped files: pass
+
+Concern resolved by lead:
+- The reported digest mismatch is raw file SHA-256 versus preflight's canonical ticket_sha256. preflight_ticket.py still reports READY and the canonical digest used by dispatch matches program state.

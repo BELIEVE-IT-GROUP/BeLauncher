@@ -1,0 +1,17 @@
+T-08 independent verification FAIL
+
+Verifier: 019fe778-b990-78e0-a890-3c749994c2a9
+Verdict: FAIL
+Cause family: implementation-defect
+
+Criteria reviewed:
+- PC-1 PASS: cloud construction blocks confidential and local-only work unless policy explicitly allows it.
+- PC-2 FAIL: cloud-bound request redaction handles line-shaped credentials, but leaks the body of multiline private-key blocks. SecretGuard.carriesSecret detects a private-key marker at whole-text level, then SecretGuard.redacted maps line by line; the base64 body line and END marker can remain in the cloud-bound serialized prompt.
+- PC-3 PASS: privacy audit events remain metadata-only.
+
+Reproduced gates:
+- swift test --filter IntelligenceTests
+- swift test --filter SecretGuardTests
+- git diff --check -- Sources/BeLauncherCore/Intelligence.swift Sources/BeLauncherCore/SecretGuard.swift Tests/BeLauncherCoreTests/IntelligenceTests.swift Tests/BeLauncherCoreTests/SecretGuardTests.swift
+
+Lead disposition: do not accept ITEM-10; retry T-08 with a focused SecretGuard fix and fresh independent verification.

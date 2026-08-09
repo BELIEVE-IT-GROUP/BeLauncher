@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "T-15",
+  "kind": "integration",
+  "objective": "Close X5 Metal/fused-attention gate as blocked/fail-closed: no GPU success claim, no silent CPU fallback, and no production feature flag until a packaged accelerator proves a benchmark win.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "The X5 probe requires explicit MODEL_PATH and LITERT_LM_SOURCE_DIR, macOS arm64, an already-built advanced CLI, GPU backend output containing the sentinel, and exits blocked instead of falling back to CPU when the accelerator is absent."},
+    {"id": "PC-2", "promise": "The X5 docs record the upstream accelerator-packaging blocker and require future CPU/GPU output equivalence plus target M1/8 GB benchmark evidence before reopening production work."},
+    {"id": "PC-3", "promise": "No production provider, feature flag, or Package.swift dependency exposes Metal/LiteRT fused attention to users."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Run bash -n on Scripts/spike-litert-lm-x5.sh and inspect its explicit environment requirements and blocked exit path.", "expected": "The probe never downloads, never silently falls back to CPU, and labels failed GPU output as blocked/rejected."},
+    {"criterion_id": "PC-2", "procedure": "Inspect docs/spikes/litert-lm-x5.md.", "expected": "The blocker, future equivalence requirement and target-machine benchmark gate are documented."},
+    {"criterion_id": "PC-3", "procedure": "Search production sources and Package.swift for Metal/LiteRT/fused attention exposure.", "expected": "No production provider/feature flag/dependency is registered."}
+  ],
+  "subsystems": ["metal-gpu-gate"],
+  "expected_paths": [
+    "docs/spikes/litert-lm-x5.md",
+    "Scripts/spike-litert-lm-x5.sh",
+    "Package.swift",
+    "Sources/BeLauncherCore/ModelProviderRegistry.swift",
+    "Sources/BeLauncherCore/BELLanguageModelProvider.swift"
+  ],
+  "risk_seams": ["performance-claim"],
+  "material_unknowns": [],
+  "dependencies": ["T-13"],
+  "program_item_ids": ["ITEM-17"],
+  "estimated_minutes": 25,
+  "recon_complete": true,
+  "recon_evidence": "X5 docs and probe were inspected. This ticket accepts a blocked fail-closed state, not Metal production integration. The absent official GPU/Metal accelerator dylibs are a known blocker documented in the spike docs, not an unresolved unknown for this closure.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Shell syntax check, docs inspection and production source absence search."
+  }
+}

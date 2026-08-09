@@ -44,13 +44,25 @@ struct BELLanguageModelProviderTests {
 
     @Test("local runtimes share the stable Brain identity")
     func localCoreFacade() throws {
-        let local = try #require(
-            BELLanguageModelProviderFactory.localCoreProviders().first(where: {
-                $0.backend.descriptor.id == "ollama"
-            }))
-        #expect(local.providerID == BELLocalCore.id)
-        #expect(local.capabilities.contains(.chat))
-        #expect(local.capabilities.contains(.embeddings))
+        let locals = BELLanguageModelProviderFactory.localCoreProviders()
+        #expect(Set(locals.map(\.providerID)) == Set([BELLocalCore.id]))
+        #expect(Set(locals.map(\.backend.descriptor.id)) == Set(["ollama", "lmstudio"]))
+        #expect(locals.allSatisfy { $0.capabilities.contains(.chat) })
+        #expect(locals.allSatisfy { $0.capabilities.contains(.embeddings) })
+    }
+
+    @Test("factory collapses local providers and keeps cloud identities")
+    func factoryProviderIdentity() throws {
+        let ollama = try #require(IntelligenceProvider.named("ollama"))
+        let lmStudio = try #require(IntelligenceProvider.named("lmstudio"))
+        let anthropic = try #require(IntelligenceProvider.named("anthropic"))
+
+        #expect(BELLanguageModelProviderFactory.provider(for: ollama).providerID
+                == BELLocalCore.id)
+        #expect(BELLanguageModelProviderFactory.provider(for: lmStudio).providerID
+                == BELLocalCore.id)
+        #expect(BELLanguageModelProviderFactory.provider(for: anthropic).providerID
+                == "anthropic")
     }
 
     @Test("provider metadata exposes placement and never invents a context window")
@@ -76,6 +88,25 @@ struct BELLanguageModelProviderTests {
             }))
 
         #expect(await model.isAvailable())
+    }
+
+    @Test("local generation refuses an undiscovered default model")
+    func localGenerationRequiresDiscoveredModel() async throws {
+        let provider = try #require(IntelligenceProvider.named("ollama"))
+        let called = RequestBox()
+        let model = BELHTTPModelProvider(
+            descriptor: provider,
+            client: IntelligenceClient(transport: { request in
+                called.value = request
+                return (Data(#"{"message":{"content":"should not arrive"}}"#.utf8),
+                        HTTPURLResponse(url: request.url!, statusCode: 200,
+                                        httpVersion: nil, headerFields: nil)!)
+            }))
+
+        await #expect(throws: IntelligenceError.noProviderConfigured) {
+            try await model.generate(BELModelRequest(prompt: "hola"))
+        }
+        #expect(called.value == nil)
     }
 
     @Test("cancelled generation stops before making a provider request")

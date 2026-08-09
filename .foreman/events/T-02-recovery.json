@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "event": "recovery_action",
+  "ticket_id": "T-02",
+  "after_attempt": 1,
+  "action": "correct-ticket",
+  "evidence": "Reconcile stale AppIntents and spike claims, and redefine PC-3 as the ticket delta against the pre-dispatch worktree snapshot rather than unrelated pre-existing changes."
+}

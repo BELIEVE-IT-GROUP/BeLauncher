@@ -1,0 +1,16 @@
+T-07 independent verifier result
+Verifier identity: 019fe770-14b2-7652-89f3-65fcc32a0660
+Verdict: PASS_WITH_NOTES
+
+Product criteria:
+- PC-1 pass: BeBrainContextProvider.retrieve(tokenBudget:) routes allowed hits through Retriever.context, enforcing estimatedTokens <= tokenBudget for empty, light, and rich corpora.
+- PC-2 pass: B0/B1 return no evidence, B2 uses bounded working context, and B3 uses richer long-term context subject to the same budget.
+- PC-3 pass: budget cuts preserve gap, truncation, source id/kind, ordinal, route, and via; tiny budgets fail closed.
+
+Commands reproduced by verifier:
+- swift test --package-path /Users/mac/Developer/beacon --scratch-path /tmp/beacon-t07-retrievaltests --filter RetrievalTests: pass, 43 tests
+- swift test --package-path /Users/mac/Developer/beacon --scratch-path /tmp/beacon-t07-retrievaltests --filter MCPServerTests: pass, 10 tests
+- git diff --check on scoped files: pass
+
+Note:
+- Existing warnings were outside the scoped behavior path.

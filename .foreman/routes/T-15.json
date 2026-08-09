@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-15",
+  "attempt": 1,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "lead-T-15-attempt1",
+  "reason": "Agent thread capacity is exhausted and X5 is a fail-closed spike gate. Lead route will verify blocked behavior and absence of product exposure deterministically.",
+  "write_set": [
+    "docs/spikes/litert-lm-x5.md",
+    "Scripts/spike-litert-lm-x5.sh",
+    "Package.swift",
+    "Sources/BeLauncherCore/ModelProviderRegistry.swift",
+    "Sources/BeLauncherCore/BELLanguageModelProvider.swift"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "event": "progress_reported",
+  "reasons": ["first_verified", "first_unsuccessful", "pilot_result", "no_accepted_throughput", "projection"],
+  "snapshot": {
+    "accepted_items": 1,
+    "verified_tickets": 1,
+    "attempts": 2,
+    "remaining_items": 16,
+    "active_attempts": 0,
+    "reported_unverified": 0,
+    "elapsed_minutes": 0.0,
+    "projection": {
+      "projected_additional_noncached_input_tokens": "unavailable_due_to_missing_telemetry",
+      "projected_additional_work_minutes": "unavailable_due_to_missing_telemetry",
+      "remaining_items": 16
+    },
+    "projection_note": "Accepted throughput is one verified pilot item; worker and verifier telemetry is unavailable, so no cost or time projection is invented."
+  }
+}

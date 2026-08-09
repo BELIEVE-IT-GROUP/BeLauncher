@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-11",
+  "attempt": 1,
+  "provider": "native-codex",
+  "model": "native-inherited",
+  "effort": "high",
+  "workspace_id": "native-T-11-attempt1",
+  "reason": "A8 is a bounded writeback safety proof slice. Expected work is focused state/audit tests and only small production fixes if a silent-write gap is found.",
+  "write_set": [
+    "Sources/BeLauncherCore/BELBrainWriteback.swift",
+    "Sources/BeLauncherCore/Vault.swift",
+    "Sources/BeLauncherCore/Store.swift",
+    "Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift"
+  ]
+}

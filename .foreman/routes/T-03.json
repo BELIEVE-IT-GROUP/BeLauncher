@@ -1,0 +1,3 @@
+route: native inherited Codex worker
+provider capability evidence: existing sanitized probe in .foreman/events.jsonl
+selection rationale: bounded native macOS metadata and permission slice

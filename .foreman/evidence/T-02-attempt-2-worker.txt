@@ -1,0 +1,16 @@
+T-02 attempt 2 worker receipt
+
+Worker: Carson (019fe72d-e057-73e2-9678-c304aa751e7e)
+Result: DONE_WITH_CONCERNS
+Scope: documentation reconciliation only
+Declared files changed:
+- docs/plan-action-map-v2.md
+- docs/ux-wave-1.md
+
+Reported changes:
+- corrected stale AppIntent/AppShortcuts claims;
+- documented existing MTP/KV spike code and tests without claiming production LiteRT/Metal integration;
+- clarified editorial statuses and preserved runtime unknowns;
+- git diff --check passed.
+
+Lead note: this receipt is a worker report, not acceptance. Independent verification is required.

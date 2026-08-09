@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-14",
+  "attempt": 1,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "lead-T-14-attempt1",
+  "reason": "Agent thread capacity is exhausted and X3/X4 are deterministic primitive/spike closures. Lead route will run focused tests and source absence checks without claiming external worker execution.",
+  "write_set": [
+    "docs/spikes/litert-lm-x3.md",
+    "docs/spikes/litert-lm-x4.md",
+    "Sources/BeLauncherCore/BELPrefixKVCache.swift",
+    "Sources/BeLauncherCore/BELMTPScheduler.swift",
+    "Tests/BeLauncherCoreTests/BELPrefixKVCacheTests.swift",
+    "Tests/BeLauncherCoreTests/BELMTPSchedulerTests.swift",
+    "Package.swift"
+  ]
+}

@@ -11,15 +11,19 @@ struct ModelProviderRegistryTests {
         #expect(ModelProviderRegistry.named("openai")?.keychainAccount == "openai_api_key")
     }
 
-    @Test("provider state distinguishes a missing key from an offline local runner")
+    @Test("provider state distinguishes setup from verified generation readiness")
     func stateIsActionable() throws {
         let openAI = try #require(ModelProviderRegistry.named("openai"))
         let ollama = try #require(ModelProviderRegistry.named("ollama"))
 
         #expect(openAI.state() == .needsSetup)
-        #expect(openAI.state(configuredKeyAccounts: ["openai_api_key"]) == .ready)
+        #expect(openAI.state(configuredKeyAccounts: ["openai_api_key"]) == .configured)
+        #expect(openAI.state(configuredKeyAccounts: ["openai_api_key"],
+                             readyProviderIDs: ["openai"]) == .ready)
         #expect(ollama.state() == .offline)
-        #expect(ollama.state(localProviderIDs: ["ollama"]) == .ready)
+        #expect(ollama.state(localProviderIDs: ["ollama"]) == .configured)
+        #expect(ollama.state(localProviderIDs: ["ollama"],
+                             readyProviderIDs: ["ollama"]) == .ready)
     }
 
     @Test("embedding capability is visible without pretending an embedding model can chat")

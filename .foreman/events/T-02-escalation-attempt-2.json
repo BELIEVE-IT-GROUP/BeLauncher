@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "event": "recovery_action",
+  "ticket_id": "T-02",
+  "action": "escalate",
+  "after_attempt": 2,
+  "evidence": "The same stale-count defect repeated after correction. The final retry changes provider from native inherited Codex to the installed Claude CLI worker and keeps the same bounded documentation scope.",
+  "cause_family": "implementation-defect"
+}

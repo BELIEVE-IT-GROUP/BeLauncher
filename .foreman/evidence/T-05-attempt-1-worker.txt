@@ -1,0 +1,23 @@
+T-05 attempt 1 worker receipt
+Worker identity: 019fe761-9a5c-7e12-90fa-ea308b1cd14f
+Worker first line: DONE
+
+Changed files reported:
+- Sources/BeLauncher/AppDelegate.swift
+- Sources/BeLauncherCore/Photo.swift
+- Sources/BeLauncherCore/ResultAction.swift
+- Tests/BeLauncherCoreTests/PhotoTests.swift
+- Tests/BeLauncherCoreTests/WorkGraphTests.swift
+
+Criteria evidence reported:
+- PC-1: PhotoItem discards any supplied original path; photo graph nodes use bel://photos/<assetID> and metadata only.
+- PC-2: photos.remember remains a confirmed action and AppDelegate checks photos.item(for:) before executing/remembering.
+- PC-3: focused tests cover source-retention without Photos runtime permission or a real library.
+
+Lead reproduction:
+- swift test --filter PhotoTests: pass, 5 tests
+- swift test --filter CaptureWiringTests: pass, 5 tests
+- git diff --check on the T-04/T-05 scoped files: pass
+
+Runtime note:
+- Real Photos runtime permission/library behavior remains a manual integration gate.

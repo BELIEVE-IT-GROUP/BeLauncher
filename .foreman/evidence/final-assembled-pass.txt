@@ -1,0 +1,31 @@
+Final assembled verifier PASS
+
+Verifier identity: final-deterministic-shell-assembled
+Program: P-20260809-wave2
+Verification scope: assembled
+Candidate fingerprint: 5343e44a9692066b51c63fe36d3698dddfca96046f11a7c6ff123fac4680d190
+
+Gates:
+
+1. Full test suite
+Command:
+swift test
+Result:
+exit=0; 1157 tests in 150 suites passed after 3.781 seconds.
+
+2. Diff structural check
+Command:
+git diff --check
+Result:
+exit=0.
+
+3. Original criteria reconciliation
+Path:
+.foreman/final-reconciliation.md
+
+Notes:
+- The first assembled run failed with 3 issues: two AI adapter tests depended on a local provider without declaring a discovered model, and localization caught missing Spanish strings.
+- The AI tests were corrected to use the fixture model map required by the local-model discovery contract.
+- The missing Spanish strings were added.
+- The second assembled run passed the full suite.
+- This is a deterministic shell assembled verifier, not a new subagent, because the active agent pool was exhausted.

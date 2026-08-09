@@ -1,0 +1,17 @@
+T-08 attempt 2 independent verification PASS
+
+Verifier: 019fe780-0027-75b1-ae26-10eb099326a9
+Verdict: PASS
+Mutation: verifier reported no file changes.
+
+Criteria reviewed:
+- PC-1 PASS: IntelligenceClient.build blocks cloud providers unless cloudAllowedFor includes the request sensitivity and request.requiresLocalExecution is false; requiresLocalExecution covers localOnly and B2/B3 Brain context.
+- PC-2 PASS: cloud request construction applies SecretGuard.redacted immediately before JSON serialization; multiline private-key tests prove BEGIN marker, body, and END marker do not remain in the serialized cloud request. Local provider payload preservation still passes.
+- PC-3 PASS: BELPrivacyAuditEvent contains only provider ID/class, sensitivity, Brain level, localOnly, and redaction flags; tests assert no prompt/system payload fields exist.
+
+Reproduced gates:
+- swift test --filter SecretGuardTests: PASS, 20 tests.
+- swift test --filter IntelligenceTests: PASS, 39 tests.
+- git diff --check -- Sources/BeLauncherCore/Intelligence.swift Sources/BeLauncherCore/SecretGuard.swift Tests/BeLauncherCoreTests/IntelligenceTests.swift Tests/BeLauncherCoreTests/SecretGuardTests.swift: PASS.
+
+Lead disposition: accept ITEM-10.

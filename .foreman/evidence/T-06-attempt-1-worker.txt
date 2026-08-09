@@ -1,0 +1,20 @@
+T-06 attempt 1 worker receipt
+Worker identity: 019fe76c-1ff1-79d0-9c33-3691eaa0f951
+Worker first line: DONE_WITH_CONCERNS
+
+Changed files:
+- Tests/BeLauncherCoreTests/MacCapabilityDetectorTests.swift
+- Tests/BeLauncherCoreTests/ModelRoutingTests.swift
+
+Criteria evidence:
+- PC-1: tests now cover Apple silicon and Intel 8/16/32/64 GB snapshots plus thermal, pressure, low power, battery, network, and Foundation Models facts.
+- PC-2: tests now cover low power/elevated pressure local preference scores, critical pressure/thermal local penalties, and networkUnavailable excluding cloud.
+- PC-3: tests use injected MacCapabilitySnapshot values; unknown optional facts remain nil/unknown.
+
+Lead reproduction:
+- swift test --filter MacCapabilityDetectorTests: pass, 4 tests
+- swift test --filter ModelRoutingTests: pass, 13 tests
+- git diff --check on T-06/T-07 scoped files: pass
+
+Concern resolved by lead:
+- The reported digest mismatch is raw file SHA-256 versus preflight's canonical ticket_sha256. preflight_ticket.py still reports READY and the canonical digest used by dispatch matches program state.

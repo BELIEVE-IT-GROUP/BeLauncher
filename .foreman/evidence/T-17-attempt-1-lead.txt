@@ -1,0 +1,26 @@
+T-17 lead outcome receipt
+
+Ticket: T-17
+Program item: ITEM-02
+Objective: close the Brain human-UX slice for notes, Inbox, Markdown reader/editor, graph inspection/actions and Brain questions.
+Worker identity recorded in guard: lead-T-17-attempt1
+
+Result: reported for verification.
+
+Commands rerun before reporting:
+- swift test --filter QuickNoteTests
+- swift test --filter GraphCorrectionsTests
+- swift test --filter BrainQueryTests
+- swift test --filter CorpusFilesTests
+- git diff --check -- T-17 write set
+
+Observed command results:
+- QuickNoteTests exit=0; 10 tests passed.
+- GraphCorrectionsTests exit=0; 13 tests passed.
+- BrainQueryTests exit=0; 17 tests passed.
+- CorpusFilesTests exit=0; 27 tests passed.
+- T17 diff-check exit=0.
+
+Notes:
+- This closure verifies the code/test UX contracts for Brain workflows, not a fresh MacBook visual screenshot pass.
+- No subagent could be opened for this attempt because the collaboration tool reported the agent thread limit was reached.

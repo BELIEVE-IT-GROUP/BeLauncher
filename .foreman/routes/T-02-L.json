@@ -1,0 +1,6 @@
+route: lead takeover
+provider: lead
+model: gpt-5.6-sol
+effort: high
+selection rationale: the external escalated CLI route failed before execution; lead closes only the already-bounded docs delta
+verification: fresh read-only verifier required

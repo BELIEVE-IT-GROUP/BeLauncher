@@ -1,0 +1,8 @@
+PASS_WITH_NOTES
+
+PC-1 PASS: stable ID retrieval, CNContactVCardSerialization, and real NSSharingServicePicker route verified; Contacts-only opening is not used.
+PC-2 PASS: catalog, Contacts capability, publicAPI, result routing, confirmation, and typed failures verified.
+PC-3 PASS: exact focused command exited 0; 33 tests in 3 suites passed, including catalog, routing, vCard, and unavailable-surface tests.
+PC-4 PASS: only the five scoped contact product/test files differ from baseline; no release/deploy changes; git diff --check passed.
+
+Note: injected presenter tests do not exercise the live macOS picker UI or actual installed sharing services.

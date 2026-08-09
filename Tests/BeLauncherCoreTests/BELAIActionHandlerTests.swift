@@ -17,7 +17,7 @@ struct BELAIActionHandlerTests {
                                                           headerFields: nil)!) },
             keyLookup: { _ in nil })
         let runner = AIVerbRunner(client: client, router: ModelRouter(preferred: "fixture"),
-                                  providers: [provider])
+                                  providers: [provider], models: ["fixture": "fixture"])
         let handler = try #require(BELAIActionHandler(definition: definition, runner: runner))
         let input = try JSONEncoder().encode(BELTextActionInput(text: "texto de prueba"))
         let result = try await BELActionExecutor.execute(definition, input: input,
@@ -34,7 +34,8 @@ struct BELAIActionHandlerTests {
                                             endpoint: "http://127.0.0.1/chat/completions",
                                             defaultModel: "fixture")
         let runner = AIVerbRunner(client: IntelligenceClient(),
-                                  router: ModelRouter(preferred: "fixture"), providers: [provider])
+                                  router: ModelRouter(preferred: "fixture"), providers: [provider],
+                                  models: ["fixture": "fixture"])
         let native = try #require(BELActionCatalog.named("brain.open"))
         #expect(BELAIActionHandler(definition: native, runner: runner) == nil)
 
@@ -57,7 +58,7 @@ struct BELAIActionHandlerTests {
                                        httpVersion: nil, headerFields: nil)!)
         })
         let runner = AIVerbRunner(client: client, router: ModelRouter(preferred: "fixture"),
-                                  providers: [provider])
+                                  providers: [provider], models: ["fixture": "fixture"])
         let handler = try #require(BELAIActionHandler(definition: definition, runner: runner))
         let result = try await handler.perform(toolCall: "{\"name\":\"ai.verb.summarise\",\"arguments\":{\"text\":\"hola\"}}")
         #expect(result.text == "ok")

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "T-05",
+  "kind": "implementation",
+  "objective": "Close Wave 2 photo retention/source policy: keeping a photo in the Brain must retain only metadata and a stable link back to Photos, never duplicate the original image/video.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "A kept photo projects into the graph as a source-linked metadata node with a stable Photos target, not as a copied file path or binary attachment."},
+    {"id": "PC-2", "promise": "The launcher/action path for photos.remember is guarded by explicit confirmation and reports a clear failure when the selected asset is no longer available."},
+    {"id": "PC-3", "promise": "Focused tests cover the retention/source contract without requiring Photos runtime permission or a real photo library."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect Capture.photo, PhotoItem, WorkGraph/Photo tests, and any changed code.", "expected": "Photo graph nodes use bel://photos/<assetID>, metadata detail, and no source image path copy."},
+    {"criterion_id": "PC-2", "procedure": "Inspect AppDelegate photos.remember dispatch/confirmation and result action catalog.", "expected": "photos.remember requires confirmation and missing asset reports an actionable failure before graph write."},
+    {"criterion_id": "PC-3", "procedure": "Run swift test --filter PhotoTests and swift test --filter CaptureWiringTests plus git diff --check on scoped files.", "expected": "Focused tests pass and do not depend on Photos.framework runtime state."}
+  ],
+  "subsystems": ["photo-retention"],
+  "expected_paths": [
+    "Sources/BeLauncher/AppDelegate.swift",
+    "Sources/BeLauncherCore/Capture.swift",
+    "Sources/BeLauncherCore/Photo.swift",
+    "Sources/BeLauncherCore/ResultAction.swift",
+    "Tests/BeLauncherCoreTests/PhotoTests.swift",
+    "Tests/BeLauncherCoreTests/WorkGraphTests.swift"
+  ],
+  "risk_seams": ["source-retention"],
+  "material_unknowns": [],
+  "dependencies": ["T-03"],
+  "program_item_ids": ["ITEM-04"],
+  "estimated_minutes": 30,
+  "recon_complete": true,
+  "recon_evidence": "PhotoActionHandler, Capture.photo, AppDelegate photos.remember, PhotoTests, and WorkGraphTests were inspected. The runtime Photos library remains a manual integration gate; this ticket verifies the product retention contract without copying originals.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "A focused diff or no-op proof showing the metadata-only photo retention path and missing-asset guard."
+  }
+}

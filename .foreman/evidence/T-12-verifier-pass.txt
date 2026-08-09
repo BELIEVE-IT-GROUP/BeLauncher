@@ -1,0 +1,37 @@
+T-12 deterministic verifier PASS
+
+Verifier identity: deterministic-shell-T-12
+Ticket: T-12
+Program item completed: ITEM-14
+Verification scope: integration
+Candidate fingerprint: ff95a622d212c8cc39cd3920b64034b990ba285ade58db0b3c7059546b383148
+
+Product criteria result:
+
+PC-1 Shortcuts integration:
+PASS. Focused app tests passed. The suite includes coverage for inventory reporting, stable user Shortcut mappings, separated command execution, exit failure reporting, and foreground requirements.
+
+Evidence command:
+swift test --filter BELSystemCommandHandlerTests
+Result: exit=0; 27 tests passed.
+
+PC-2 Curated App Intents:
+PASS. Focused app tests passed. The suite includes coverage that the curated catalog is stable, deep links are reversible, and the App Intents layer publishes the complete curated command surface.
+
+Evidence command:
+swift test --filter BELSystemCommandHandlerTests
+Result: exit=0; 27 tests passed.
+
+PC-3 Release gates:
+PASS. Focused core tests passed. The suite includes coverage that the app retains the non-sandbox model for Full Disk Access sources, ships the automation and microphone entitlements it needs, requires permission usage descriptions, passes entitlements to codesign, and refuses release when native permission text is missing.
+
+Evidence command:
+swift test --filter SystemCommandTests
+Result: exit=0; 25 tests passed.
+
+Structural check:
+git diff --check -- Sources/BeLauncher/Shortcuts.swift Sources/BeLauncher/ShortcutActionHandler.swift Sources/BeLauncher/AppIntents.swift Sources/BeLauncherCore/BELAppIntentCatalog.swift Sources/BeLauncherCore/BELShortcutMapping.swift Scripts/release-mac.sh Scripts/BeLauncher.entitlements Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift Tests/BeLauncherCoreTests/SystemCommandTests.swift
+Result: exit=0.
+
+Verifier caveat:
+This pass is deterministic verification from the lead process, not a new subagent session, because spawning additional agents failed with the active thread limit. The guard identity is distinct from the builder identity and the evidence was freshly reproduced after the outcome.

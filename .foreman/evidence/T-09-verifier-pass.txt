@@ -1,0 +1,16 @@
+T-09 independent verification PASS
+
+Verifier: 019fe778-dff2-7e63-af76-edafe9bb2a45
+Verdict: PASS
+
+Criteria reviewed:
+- PC-1 PASS: valid JSON and complete fenced JSON are accepted; invalid, prose, truncated, and unclosed-fence output are rejected.
+- PC-2 PASS: required fields, unknown fields, wrong types, resource bounds, and unknown tools are rejected by focused tests.
+- PC-3 PASS: tool-call validation returns checked argument objects before writeback/handlers can run; prompt-injected and malformed envelopes are rejected.
+
+Reproduced gates:
+- swift test --filter BELStructuredOutputTests
+- swift test --filter BELBrainWritebackTests
+- git diff --check -- Tests/BeLauncherCoreTests/BELStructuredOutputTests.swift Tests/BeLauncherCoreTests/BELBrainWritebackTests.swift
+
+Lead disposition: accept ITEM-11.

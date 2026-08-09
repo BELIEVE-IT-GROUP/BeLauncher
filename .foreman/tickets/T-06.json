@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "id": "T-06",
+  "kind": "implementation",
+  "objective": "Close Wave 3 A2: MacCapabilityDetector must expose deterministic architecture, memory, pressure, thermal, power, network, and Foundation Models facts for routing without false positives.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "MacCapabilitySnapshot represents 8/16/32/64 GB Apple silicon and Intel profiles, thermal state, memory pressure, low power, battery, network, and Foundation Models availability explicitly."},
+    {"id": "PC-2", "promise": "Routing policy consumes machine facts deterministically: small/pressured/low-power Macs prefer small local routes, critical pressure/thermal penalizes local, and networkUnavailable excludes cloud."},
+    {"id": "PC-3", "promise": "Focused tests cover the matrix with simulated snapshots only; runtime probes that cannot be read remain nil/unknown rather than positive claims."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect MacCapabilityDetector.swift and MacCapabilityDetectorTests.swift.", "expected": "All required facts are represented with optional unknowns where appropriate."},
+    {"criterion_id": "PC-2", "procedure": "Inspect and run ModelRoutingTests/MacCapabilityDetectorTests.", "expected": "Routing decisions react deterministically to simulated machine facts."},
+    {"criterion_id": "PC-3", "procedure": "Run swift test --filter MacCapabilityDetectorTests and swift test --filter ModelRoutingTests plus git diff --check on scoped files.", "expected": "Tests pass without depending on the actual MacBook state."}
+  ],
+  "subsystems": ["machine-routing"],
+  "expected_paths": [
+    "Sources/BeLauncherCore/MacCapabilityDetector.swift",
+    "Sources/BeLauncherCore/ModelRouting.swift",
+    "Tests/BeLauncherCoreTests/MacCapabilityDetectorTests.swift",
+    "Tests/BeLauncherCoreTests/ModelRoutingTests.swift"
+  ],
+  "risk_seams": ["runtime-probes"],
+  "material_unknowns": [],
+  "dependencies": ["T-04"],
+  "program_item_ids": ["ITEM-08"],
+  "estimated_minutes": 35,
+  "recon_complete": true,
+  "recon_evidence": "MacCapabilityDetector, MacCapabilityDetectorTests, ModelRouting, and ModelRoutingTests were inspected. Runtime Foundation Models and machine state are tested through injected/simulated snapshots, not the lead Mac's current state.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Machine capability/routing matrix from current tests and any focused additions."
+  }
+}

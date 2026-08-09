@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "event": "ticket_verification_failed",
+  "ticket_id": "T-08",
+  "attempt": 1,
+  "verifier_id": "019fe778-b990-78e0-a890-3c749994c2a9",
+  "verifier_evidence_sha256": "49601584324797f00808c4992025d9f12f8ce6ecbfc46931ba2d947fba8f844d",
+  "verdict": "FAIL",
+  "lead_reviewed": true,
+  "processes_closed": true,
+  "verification_scope": "slice",
+  "cause_family": "implementation-defect",
+  "finding_evidence_path": ".foreman/evidence/T-08-verifier-fail.txt",
+  "finding_evidence_sha256": "49601584324797f00808c4992025d9f12f8ce6ecbfc46931ba2d947fba8f844d",
+  "candidate_fingerprint": "465dad2dd71ee0acc79acf43d55a89af8f0733ec30abc0080b03a509026a6281",
+  "verification_minutes_status": "unavailable",
+  "verification_minutes_reason": "Native verifier timing was not exposed by the collaboration tool.",
+  "verification_noncached_input_tokens_status": "unavailable",
+  "verification_noncached_input_tokens_reason": "Native verifier usage was not exposed by the collaboration tool."
+}

@@ -1,0 +1,18 @@
+T-04 independent verifier result
+Verifier identity: 019fe767-ee89-7463-a5a9-22245a736cb1
+Verdict: PASS
+
+Product criteria:
+- PC-1 pass: IntelligenceProbeState and ModelProviderDescriptor.State distinguish configured, ready, needsSetup, and offline. readyProviderIDs is required to report descriptor ready.
+- PC-2 pass: ModelRouter.rankedRoutes defaults missing health to configured, scores ready higher, and routePolicy localOnly filters cloud before scoring.
+- PC-3 pass: focused tests cover ready/configured/unavailable, non-2xx/provider errors, stale health, local-only cloud blocking, and fake transports/probes only.
+
+Commands reproduced by verifier:
+- swift test --filter IntelligenceTests: pass
+- swift test --filter ModelRoutingTests: pass
+- swift test --filter ModelProviderRegistryTests: pass
+- swift test --filter BELProviderHealthCacheTests: pass
+- git diff --check on scoped files: pass
+
+Note:
+- Live MacBook/provider runtime health remains outside this slice.

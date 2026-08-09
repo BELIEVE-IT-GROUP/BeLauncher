@@ -2165,14 +2165,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
         case .systemCommand(let kind):
-            panel?.orderOut(nil)
             if kind.hasPrefix("bel:") {
                 let parts = kind.split(separator: "\u{1F}", maxSplits: 1, omittingEmptySubsequences: false)
                 let id = String(parts[0].dropFirst("bel:".count))
                 let argument = parts.count == 2 ? String(parts[1]) : ""
+                // The sharing picker needs the launcher window as its native AppKit anchor.
+                // Keep it visible for this one action; all other stable actions dismiss it first.
+                if id != "contacts.share" { panel?.orderOut(nil) }
                 executeStablePublicAction(id: id, argument: argument)
                 return nil
             }
+            panel?.orderOut(nil)
             // Not a system action: it opens a window of ours. Handled before the runner rather
             // than inside it, so the runner keeps meaning "things macOS does".
             if kind == SystemCommand.Kind.openBrain.rawValue { openGraph(); return nil }
@@ -2328,7 +2331,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 input = try JSONEncoder().encode(BELReminderActionInput(reminderID: argument, priority: priority))
             case "contacts.find":
                 input = try JSONEncoder().encode(BELContactActionInput(query: argument))
-            case "contacts.get_details", "contacts.copy_email", "contacts.open":
+            case "contacts.get_details", "contacts.copy_email", "contacts.open", "contacts.share":
                 input = try JSONEncoder().encode(BELContactActionInput(contactID: argument))
             case "contacts.create":
                 input = try JSONEncoder().encode(BELContactActionInput(name: argument))
@@ -2354,7 +2357,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task { @MainActor in
             do {
-                let confirmed = ["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
+                let confirmed = ["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create", "contacts.share",
                                  "reminders.change_due_date", "reminders.change_list",
                                  "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                                  "photos.create_album", "photos.remember"].contains(id)
@@ -2364,6 +2367,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "reminders.create_list" ? L("Create this reminder list?")
                                          : id == "reminders.delete" ? L("Delete this reminder?")
                                          : id == "contacts.create" ? L("Create this contact?")
+                                         : id == "contacts.share" ? L("Share this contact?")
                                          : id == "contacts.update" ? L("Update this contact?")
                                          : id == "photos.create_album" ? L("Create this album?")
                                          : id == "photos.add_to_album" ? L("Add this photo to the album?")
@@ -2379,6 +2383,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "reminders.create_list" ? L("This will add a list to macOS Reminders.")
                                          : id == "reminders.delete" ? L("This removes the reminder from macOS Reminders.")
                                          : id == "contacts.create" ? L("This will add a contact to macOS Contacts.")
+                                         : id == "contacts.share" ? L("A vCard will be offered to a native macOS sharing service.")
                                          : id == "contacts.update" ? L("This changes the contact in macOS Contacts.")
                                          : id == "photos.create_album" ? L("This creates an album in your Photos library.")
                                          : id == "photos.add_to_album" ? L("This changes your Photos library.")
@@ -2389,19 +2394,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                          : id == "reminders.set_priority" ? L("This changes the reminder in macOS Reminders.")
                                          : L("This changes the reminder in macOS Reminders."))
                     : false
-                guard !["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create",
+                guard !["reminders.complete", "reminders.uncomplete", "reminders.create", "reminders.create_list", "reminders.delete", "contacts.create", "contacts.share",
                         "reminders.change_due_date", "reminders.change_list",
                         "reminders.add_notes", "reminders.set_priority", "contacts.update", "photos.add_to_album",
                         "photos.create_album", "photos.remember"].contains(id) || confirmed else { return }
-                let result = try await BELActionRuntime().execute(definition, input: input,
-                                                                  capabilities: .allGranted,
-                                                                  confirmed: confirmed)
+                let photoToRemember: PhotoItem?
                 if id == "photos.remember" {
                     guard let photo = photos.item(for: argument) else {
                         report(L("The action could not be completed"),
                                L("The selected photo is no longer available in Photos."))
                         return
                     }
+                    photoToRemember = photo
+                } else {
+                    photoToRemember = nil
+                }
+                let result = try await BELActionRuntime().execute(definition, input: input,
+                                                                  capabilities: .allGranted,
+                                                                  confirmed: confirmed)
+                if let photo = photoToRemember {
                     remember(Capture.photo(photo))
                 }
                 report(L("Action completed"), result.text)

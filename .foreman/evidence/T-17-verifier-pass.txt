@@ -1,0 +1,40 @@
+T-17 deterministic verifier PASS
+
+Verifier identity: deterministic-shell-T-17
+Ticket: T-17
+Program item completed: ITEM-02
+Verification scope: integration
+Candidate fingerprint: c4fdcd627b8893aafacc287c2ebde4c6797723fc019fd750c875046586def2e8
+
+Product criteria result:
+
+PC-1 Quick notes and Inbox:
+PASS. QuickNoteTests prove note phrases are recognized, notes land in Inbox, Markdown is readable, review is recorded, editing preserves front matter and Markdown body, horizontal rules survive edits, discard removes only the Inbox Markdown entry while keeping provenance/source, pending transcription is detected, and only pinned clips become Brain candidates. CorpusFilesTests additionally prove human-owned Markdown survives machine passes and corrections remain readable.
+
+Evidence commands:
+swift test --filter QuickNoteTests
+Result: exit=0; 10 tests passed.
+
+swift test --filter CorpusFilesTests
+Result: exit=0; 27 tests passed.
+
+PC-2 Graph nodes are actionable:
+PASS. GraphCorrectionsTests prove the graph inspector shows direct/connected/name-match evidence, opening a node without origin reads inside the graph instead of opening an empty window, Read here materializes documents before opening the reader, graph corrections survive reload, rejected/forgotten/pinned decisions reach the engine, and filtering/layout do not freeze the window.
+
+Evidence command:
+swift test --filter GraphCorrectionsTests
+Result: exit=0; 13 tests passed.
+
+PC-3 Brain conversation is understandable:
+PASS. BrainQueryTests prove bilingual intent detection for decisions, preparation and remembering; ordinary search is not hijacked; empty knowledge says so plainly; current truth beats expired decisions; preparation gathers meetings, decisions and commitments; and launcher Brain primers are usable.
+
+Evidence command:
+swift test --filter BrainQueryTests
+Result: exit=0; 17 tests passed.
+
+Structural check:
+git diff --check -- Sources/BeLauncher/GraphView.swift Sources/BeLauncher/CorpusReaderView.swift Sources/BeLauncher/QuickNoteEditorView.swift Sources/BeLauncher/AppDelegate.swift Tests/BeLauncherCoreTests/UtilitiesTests.swift Tests/BeLauncherAppTests/GraphCorrectionsTests.swift Tests/BeLauncherCoreTests/BrainQueryTests.swift Tests/BeLauncherCoreTests/CorpusFilesTests.swift docs/ux-wave-1.md
+Result: exit=0.
+
+Verifier caveat:
+This pass is deterministic verification from the lead process, not a new subagent session, because spawning additional agents failed with the active thread limit. A final MacBook visual check remains separate from this code/test closure.

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "ticket_id": "T-12",
+  "attempt": 1,
+  "provider": "lead",
+  "model": "gpt-5",
+  "effort": "high",
+  "workspace_id": "native-T-12-attempt1",
+  "reason": "Native macOS hardening is already largely implemented and agent thread capacity is exhausted. Lead route will run deterministic gates and preserve exact evidence without claiming external worker execution.",
+  "write_set": [
+    "Sources/BeLauncher/Shortcuts.swift",
+    "Sources/BeLauncher/ShortcutActionHandler.swift",
+    "Sources/BeLauncher/AppIntents.swift",
+    "Sources/BeLauncherCore/BELAppIntentCatalog.swift",
+    "Sources/BeLauncherCore/BELShortcutMapping.swift",
+    "Scripts/release-mac.sh",
+    "Scripts/BeLauncher.entitlements",
+    "Tests/BeLauncherAppTests/BELSystemCommandHandlerTests.swift",
+    "Tests/BeLauncherCoreTests/SystemCommandTests.swift"
+  ]
+}

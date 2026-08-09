@@ -1,0 +1,16 @@
+T-05 independent verifier result
+Verifier identity: 019fe768-17d0-7320-900d-c35678f6ee93
+Verdict: PASS_WITH_NOTES
+
+Product criteria:
+- PC-1 pass: PhotoItem discards supplied original paths; Capture.photo uses bel://photos/<assetID> and metadata only; ResultAction uses stable Photos ID for photo actions.
+- PC-2 pass: photos.remember is confirmed, describes metadata/link retention, resolves the asset with photos.item(for:) before retention, and reports a clear unavailable-source failure.
+- PC-3 pass: focused tests cover metadata/path suppression, stable actions, confirmation gate, and graph projection without Photos runtime permission/library access.
+
+Commands reproduced by verifier:
+- swift test --filter PhotoTests: pass, 5 tests
+- swift test --filter CaptureWiringTests: pass, 5 tests
+- git diff --check on scoped files: pass
+
+Verifier note:
+- SearchEngine still has a legacy photo.path fallback, but PhotoItem construction now forces path empty; no reachable original-path leak was observed.

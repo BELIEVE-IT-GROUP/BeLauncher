@@ -1,0 +1,1 @@
+{"schema_version":1,"event":"replanned","new_plan_id":"plan-wave2-wave3-execution","corrective_action":"Resume Wave 2 and Wave 3 with fresh live worker identities after the lifecycle dispatch failure. Keep two disjoint tickets only, verify both independently, and stop again if either retry lacks an executable worker receipt.","max_parallel":2}

@@ -1,0 +1,16 @@
+T-02 attempt 2 independent verification
+
+Verifier: Kant (019fe732-34d2-7061-aa4b-b8173deded4c)
+Verdict: FAIL
+
+Finding:
+- docs/plan-action-map-v2.md:25-29 contains stale action counts. Current SystemCommand.Kind has 22 cases and the catalog has 58 implemented native entries, not approximately 18-25.
+
+Passing checks:
+- Editorial labels are defined at plan-action-map-v2.md:52-54 and ux-wave-1.md:8-15.
+- App Intents/App Shortcuts are present in Sources/BeLauncher/AppIntents.swift:290-307.
+- MTP/KV are described as isolated spike/core code and focused tests pass.
+- Runtime caveats remain explicit.
+- Scoped docs state is consistent with the ticket; git diff --check passes.
+
+Disposition: reject attempt 2 and correct the ticket/content. No item accepted.

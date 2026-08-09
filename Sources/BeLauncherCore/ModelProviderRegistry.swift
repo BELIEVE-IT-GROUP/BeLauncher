@@ -11,7 +11,14 @@ public enum ModelCapability: String, Codable, Sendable, Equatable, CaseIterable 
 
 public struct ModelProviderDescriptor: Codable, Sendable, Equatable, Identifiable {
     public enum Transport: String, Codable, Sendable, Equatable { case local, directKey }
-    public enum State: String, Codable, Sendable, Equatable { case ready, needsSetup, offline }
+    public enum State: String, Codable, Sendable, Equatable {
+        /// A generation request has succeeded recently enough for the caller to trust it.
+        case ready
+        /// The local endpoint or cloud credential exists, but generation has not been verified.
+        case configured
+        case needsSetup
+        case offline
+    }
 
     public let id: String
     public let name: String
@@ -44,9 +51,12 @@ public struct ModelProviderDescriptor: Codable, Sendable, Equatable, Identifiabl
 
     public var isPrivate: Bool { transport == .local }
 
-    public func state(localProviderIDs: Set<String> = [], configuredKeyAccounts: Set<String> = []) -> State {
-        if isPrivate { return localProviderIDs.contains(id) ? .ready : .offline }
-        return configuredKeyAccounts.contains(keychainAccount) ? .ready : .needsSetup
+    public func state(localProviderIDs: Set<String> = [],
+                      configuredKeyAccounts: Set<String> = [],
+                      readyProviderIDs: Set<String> = []) -> State {
+        if readyProviderIDs.contains(id) { return .ready }
+        if isPrivate { return localProviderIDs.contains(id) ? .configured : .offline }
+        return configuredKeyAccounts.contains(keychainAccount) ? .configured : .needsSetup
     }
 }
 

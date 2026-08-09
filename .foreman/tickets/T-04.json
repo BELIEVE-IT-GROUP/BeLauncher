@@ -1,0 +1,18 @@
+{
+  "schema_version":1,
+  "id":"T-04",
+  "kind":"implementation",
+  "objective":"Close the first Wave 3 AI architecture slice: make provider health/capability state explicit and consumable without treating configured credentials as healthy generation.",
+  "baseline":"36e7aea",
+  "criteria":[
+    {"id":"PC-1","promise":"The provider registry exposes a deterministic health/capability result that distinguishes unavailable, configured, and ready generation paths."},
+    {"id":"PC-2","promise":"Routing/selection never treats configured-only providers as verified healthy; local-only policy cannot select a cloud provider."},
+    {"id":"PC-3","promise":"Focused tests cover ready/configured/unavailable, non-2xx/provider errors, and local-only routing without network calls."}
+  ],
+  "verification_gates":[
+    {"criterion_id":"PC-1","procedure":"Inspect Intelligence.swift/provider registry and tests; run focused provider/router tests.","expected":"State and capability semantics are explicit and stable."},
+    {"criterion_id":"PC-2","procedure":"Exercise deterministic fake providers and routing policy tests.","expected":"Configured is not healthy and local-only excludes cloud routes."},
+    {"criterion_id":"PC-3","procedure":"Run focused AI tests and git diff --check.","expected":"All focused tests pass with no real network dependency."}
+  ],
+  "subsystems":["provider-routing"],"expected_paths":["Sources/BeLauncherCore/Intelligence.swift","Sources/BeLauncherCore/ModelProviderRegistry.swift","Sources/BeLauncherCore/ModelRouting.swift","Sources/BeLauncherCore/BELProviderHealthCache.swift","Tests/BeLauncherCoreTests/IntelligenceTests.swift","Tests/BeLauncherCoreTests/ModelRoutingTests.swift","Tests/BeLauncherCoreTests/ModelProviderRegistryTests.swift","Tests/BeLauncherCoreTests/BELProviderHealthCacheTests.swift"],"risk_seams":["cloud selection"],"material_unknowns":[],"dependencies":["T-02-L"],"program_item_ids":["ITEM-07"],"estimated_minutes":45,"recon_complete":true,"recon_evidence":"Current provider registry, intelligence probe states, provider health cache, ModelRouting.swift, and focused routing/provider tests were inspected. Real MacBook provider availability remains a manual runtime gate, not an unresolved implementation question for this bounded slice.","first_checkpoint":{"minutes":12,"evidence":"Provider state and router decision table from current code/tests."}
+}

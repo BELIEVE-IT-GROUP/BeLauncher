@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "event": "pilot_approved",
+  "evidence": "Two original items are now independently verified: contacts.share implementation and tracker reconciliation. The second required a documented provider failure and lead takeover; no broader work is dispatched until throughput is reviewed again."
+}

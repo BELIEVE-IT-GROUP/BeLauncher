@@ -1,0 +1,13 @@
+{
+  "ticket_id": "T-01",
+  "lane": "native-codex",
+  "worker_id": "019fe719-4477-7a10-9a54-9343ccc8cbed",
+  "nickname": "Ampere",
+  "requested_model": "inherited native Codex",
+  "requested_effort": "medium",
+  "evidence_labels": ["native-inherited-unconfirmed"],
+  "quality_floor": "WORKHORSE: bounded Swift/AppKit feature with focused tests and independent verification",
+  "residual_judgment": "moderate",
+  "uncertainty": "native collaboration tool does not expose a per-child serving model in this session",
+  "reason": "The pilot crosses known BEL catalog/runtime/UI seams but has one observable behavior and a fixed write set."
+}

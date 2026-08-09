@@ -1,0 +1,30 @@
+T-13 lead outcome receipt
+
+Ticket: T-13
+Program item: ITEM-15
+Objective: close LiteRT-LM X1/X2 source and bridge spikes as documented spike decisions without production provider or model download.
+Worker identity recorded in guard: lead-T-13-attempt1
+
+Result: reported for verification.
+
+What was checked by the lead:
+- X1 runner requires explicit MODEL_PATH, macOS arm64, Bazel pin, arm64 binary check, CPU inference, and rejects implicit model download.
+- X2 runner writes an isolated upstream Bazel target, builds the bridge there, supports inspect-only mode, requires X2_OK for generation, and can require speculative decoding capability.
+- Bridge source uses upstream LiteRT-LM C++ APIs and remains outside the Swift package.
+- Package.swift does not add a LiteRT/E4B/bridge dependency or provider.
+
+Commands rerun before reporting:
+- bash -n Scripts/spike-litert-lm-x1.sh Scripts/spike-litert-lm-x2.sh
+- rg targeted production source scan for LiteRT/bridge/provider leakage
+- rg targeted spike doc/script scan for MODEL_PATH, Bazel, CPU/GPU, X1_OK/X2_OK, and speculative decoding evidence
+- git diff --check -- T-13 write set
+
+Observed command results:
+- T13 bash-n exit=0.
+- T13 diff-check exit=0.
+- Production scan found no Package.swift dependency and no production provider/bridge; only a LiteRT-LM explanatory comment in BELMTPScheduler.swift.
+- Spike scan found the expected MODEL_PATH, Bazel, CPU, X1_OK/X2_OK, bridge, and speculative decoding evidence in docs/scripts.
+
+Notes:
+- No subagent could be opened for this attempt because the collaboration tool reported the agent thread limit was reached.
+- The execution route was therefore lead-owned and the later verification route is deterministic shell verification with a distinct guard identity.

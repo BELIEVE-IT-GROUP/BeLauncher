@@ -389,74 +389,159 @@ struct CommandView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 14) {
-            Button(action: newNote) {
-                Label(L("New note"), systemImage: "note.text.badge.plus")
-            }
-            .buttonStyle(.borderless)
-            .help(L("Write a quick note"))
-            Button {
-                model.query = "/snippet"
-                focus = .search
-            } label: {
-                Label(L("Snippets"), systemImage: "text.quote")
-            }
-            .buttonStyle(.borderless)
-            .help(L("Use a saved snippet"))
-            Button {
-                model.query = "/shortcuts"
-                focus = .search
-            } label: {
-                Label(L("Shortcuts"), systemImage: "square.stack.3d.up")
-            }
-            .buttonStyle(.borderless)
-            .help(L("Use a macOS Shortcut"))
-            Menu {
-                Button { model.query = "/reminders"; focus = .search } label: {
-                    Label(L("Reminders"), systemImage: "checklist")
-                }
-                Button { model.query = "/contacts"; focus = .search } label: {
-                    Label(L("Contacts"), systemImage: "person.crop.circle")
-                }
-                Button { model.query = "/photos"; focus = .search } label: {
-                    Label(L("Photos"), systemImage: "photo")
-                }
-            } label: {
-                Label(L("Sources"), systemImage: "square.stack")
-            }
-            .menuStyle(.borderlessButton)
-            .help(L("Search local sources"))
-            Button(action: recordVoice) {
-                Label(L("Record"), systemImage: "waveform")
-            }
-            .buttonStyle(.borderless)
-            .help(L("Record a voice note"))
-            Button(action: dictate) {
-                Label(L("Dictate"), systemImage: "text.cursor")
-            }
-            .buttonStyle(.borderless)
-            .help(L("Dictate into the current app"))
-            Text(countLabel)
-                .font(.system(size: 10.5))
-                .foregroundStyle(.tertiary)
-            Spacer()
-            if let primary = model.actions.first {
-                KeyCap(symbol: "↩", label: primary.title)
-            }
-            if model.selected != nil {
-                Divider().frame(height: 12).overlay(.white.opacity(0.12))
-                Button { model.handle(.actionPanel) } label: {
-                    KeyCap(symbol: "⌘K", label: L("Actions"))
-                }
-                .buttonStyle(.plain)
-            }
-            Button(action: openSettings) {
-                KeyCap(symbol: "⌘,", label: L("Settings"))
-            }
-            .buttonStyle(.plain)
+        ViewThatFits(in: .horizontal) {
+            footerRow(compact: false)
+            footerRow(compact: true)
+            minimalFooterRow
         }
         .padding(.horizontal, 16)
         .frame(height: 34)
+    }
+
+    @ViewBuilder
+    private func footerRow(compact: Bool) -> some View {
+        HStack(spacing: compact ? 9 : 14) {
+            if compact {
+                footerIcon("note.text.badge.plus", L("Write a quick note"), action: newNote)
+                footerIcon("text.quote", L("Use a saved snippet")) {
+                    model.query = "/snippet"; focus = .search
+                }
+                footerIcon("square.stack.3d.up", L("Use a macOS Shortcut")) {
+                    model.query = "/shortcuts"; focus = .search
+                }
+                sourcesMenu(compact: true)
+                footerIcon("waveform", L("Record a voice note"), action: recordVoice)
+                footerIcon("text.cursor", L("Dictate into the current app"), action: dictate)
+            } else {
+                Button(action: newNote) { Label(L("New note"), systemImage: "note.text.badge.plus") }
+                    .buttonStyle(.borderless)
+                    .help(L("Write a quick note"))
+                Button { model.query = "/snippet"; focus = .search } label: {
+                    Label(L("Snippets"), systemImage: "text.quote")
+                }
+                .buttonStyle(.borderless)
+                .help(L("Use a saved snippet"))
+                Button { model.query = "/shortcuts"; focus = .search } label: {
+                    Label(L("Shortcuts"), systemImage: "square.stack.3d.up")
+                }
+                .buttonStyle(.borderless)
+                .help(L("Use a macOS Shortcut"))
+                sourcesMenu(compact: false)
+                Button(action: recordVoice) { Label(L("Record"), systemImage: "waveform") }
+                    .buttonStyle(.borderless)
+                    .help(L("Record a voice note"))
+                Button(action: dictate) { Label(L("Dictate"), systemImage: "text.cursor") }
+                    .buttonStyle(.borderless)
+                    .help(L("Dictate into the current app"))
+            }
+
+            Text(countLabel)
+                .font(.system(size: 10.5))
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .fixedSize()
+            Spacer(minLength: compact ? 4 : 8)
+            if let primary = model.actions.first {
+                if compact {
+                    footerIcon("return", primary.title) { model.run(primary) }
+                } else {
+                    KeyCap(symbol: "↩", label: primary.title)
+                }
+            }
+            if model.selected != nil {
+                if !compact { Divider().frame(height: 12).overlay(.white.opacity(0.12)) }
+                if compact {
+                    footerIcon("bolt.horizontal.fill", L("Actions")) { model.handle(.actionPanel) }
+                } else {
+                    Button { model.handle(.actionPanel) } label: {
+                        KeyCap(symbol: "⌘K", label: L("Actions"))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            if compact {
+                footerIcon("gearshape", L("Settings"), action: openSettings)
+            } else {
+                Button(action: openSettings) { KeyCap(symbol: "⌘,", label: L("Settings")) }
+                    .buttonStyle(.plain)
+            }
+        }
+        .fixedSize(horizontal: compact, vertical: false)
+    }
+
+    private var minimalFooterRow: some View {
+        HStack(spacing: 8) {
+            footerIcon("note.text.badge.plus", L("Write a quick note"), action: newNote)
+            footerIcon("text.quote", L("Use a saved snippet")) {
+                model.query = "/snippet"; focus = .search
+            }
+            footerIcon("square.stack.3d.up", L("Use a macOS Shortcut")) {
+                model.query = "/shortcuts"; focus = .search
+            }
+            sourcesMenu(compact: true)
+            Menu {
+                Button(action: recordVoice) {
+                    Label(L("Record a voice note"), systemImage: "waveform")
+                }
+                Button(action: dictate) {
+                    Label(L("Dictate into the current app"), systemImage: "text.cursor")
+                }
+            } label: {
+                Image(systemName: "mic")
+                    .font(.system(size: 12, weight: .medium))
+                    .frame(width: 22, height: 22)
+            }
+            .menuStyle(.borderlessButton)
+            .help(L("Voice"))
+            .accessibilityLabel(L("Voice"))
+
+            Spacer(minLength: 6)
+
+            if model.selected != nil {
+                footerIcon("bolt.horizontal.fill", L("Actions")) { model.handle(.actionPanel) }
+            }
+            footerIcon("gearshape", L("Settings"), action: openSettings)
+        }
+        .fixedSize(horizontal: false, vertical: false)
+    }
+
+    private func footerIcon(_ symbol: String, _ help: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .help(help)
+        .accessibilityLabel(help)
+    }
+
+    @ViewBuilder
+    private func sourcesMenu(compact: Bool) -> some View {
+        Menu {
+            Button { model.query = "/reminders"; focus = .search } label: {
+                Label(L("Reminders"), systemImage: "checklist")
+            }
+            Button { model.query = "/contacts"; focus = .search } label: {
+                Label(L("Contacts"), systemImage: "person.crop.circle")
+            }
+            Button { model.query = "/photos"; focus = .search } label: {
+                Label(L("Photos"), systemImage: "photo")
+            }
+        } label: {
+            if compact {
+                Image(systemName: "square.stack")
+                    .font(.system(size: 12, weight: .medium))
+                    .frame(width: 22, height: 22)
+            } else {
+                Label(L("Sources"), systemImage: "square.stack")
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .help(L("Search local sources"))
+        .accessibilityLabel(L("Search local sources"))
     }
 
     private var countLabel: String {
@@ -1122,17 +1207,14 @@ struct ClipboardCarousel: View {
                                  showsShortcut: model.mode == .clipboard,
                                  selected: index == model.selection,
                                  preview: {
-                                     expandedClipID = result.id
-                                     // Set the expansion first. Selecting another card publishes an
-                                     // async state change; doing it in the opposite order let the
-                                     // selection observer clear a preview before it appeared.
                                      model.select(index)
+                                     expandedClipID = result.id
+                                 },
+                                 activate: {
+                                     model.select(index)
+                                     model.runSelected()
                                  })
                             .id(index)
-                            .onTapGesture {
-                                model.select(index)
-                                model.runSelected()
-                            }
                             .onHover { inside in
                                 if inside, !model.isActionPanelOpen { model.select(index) }
                             }
@@ -1150,7 +1232,8 @@ struct ClipboardCarousel: View {
             }
             .onChange(of: model.selection) { _, new in
                 guard visibleEntries.contains(where: { $0.index == new }) else { return }
-                if expandedClipID != model.selected?.id { expandedClipID = nil }
+                let selectedID = visibleEntries.first(where: { $0.index == new })?.result.id
+                if expandedClipID != selectedID { expandedClipID = nil }
                 withAnimation(.easeOut(duration: 0.16)) { proxy.scrollTo(new, anchor: .center) }
             }
             if let expandedClipID,
@@ -1183,6 +1266,7 @@ private struct ClipCard: View {
     let showsShortcut: Bool
     let selected: Bool
     let preview: () -> Void
+    let activate: () -> Void
 
     @State private var image: NSImage?
     @State private var hovering = false
@@ -1195,6 +1279,8 @@ private struct ClipCard: View {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .clipped()
+                .contentShape(Rectangle())
+                .onTapGesture(perform: activate)
 
             HStack(spacing: 5) {
                 // The icon of the app you copied from does the recognising faster than its name

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "T-13",
+  "kind": "integration",
+  "objective": "Close X1/X2 LiteRT-LM source and embeddable bridge spikes as recorded spike decisions, without adding a production provider or model download path.",
+  "baseline": "36e7aea",
+  "criteria": [
+    {"id": "PC-1", "promise": "X1 documents and scripts require explicit MODEL_PATH, Apple Silicon/macOS, pinned Bazel, arm64 binary, real CPU inference output, and reject GPU as unavailable rather than treating build success as runtime health."},
+    {"id": "PC-2", "promise": "X2 bridge uses upstream public C++ APIs in an isolated spike target, requires a real sentinel response, exposes speculative-decoding capability only from upstream metadata, and introduces no BeLauncher production dependency."},
+    {"id": "PC-3", "promise": "The production Swift package/provider registry does not expose LiteRT-LM, E4B or the bridge as a usable provider until runtime/model/memory gates are separately satisfied."}
+  ],
+  "verification_gates": [
+    {"criterion_id": "PC-1", "procedure": "Inspect docs/spikes/litert-lm-x1.md and Scripts/spike-litert-lm-x1.sh; run shell syntax checks.", "expected": "Opt-in model path, Bazel pin and real CPU run are documented; GPU negative result is explicit."},
+    {"criterion_id": "PC-2", "procedure": "Inspect docs/spikes/litert-lm-x2.md, Scripts/spike-litert-lm-x2.sh and bridge source.", "expected": "Bridge is isolated under upstream Bazel and checks X2_OK/speculative metadata without editing Package.swift."},
+    {"criterion_id": "PC-3", "procedure": "Search product sources/package for LiteRT production integration.", "expected": "Only spike docs/scripts/primitives mention LiteRT/MTP; no production provider is registered."}
+  ],
+  "subsystems": ["litert-spike"],
+  "expected_paths": [
+    "docs/spikes/litert-lm-x1.md",
+    "docs/spikes/litert-lm-x2.md",
+    "Scripts/spike-litert-lm-x1.sh",
+    "Scripts/spike-litert-lm-x2.sh",
+    "Scripts/litert-lm-x2-bridge.cc",
+    "Package.swift"
+  ],
+  "risk_seams": ["runtime-provider-boundary"],
+  "material_unknowns": [],
+  "dependencies": ["T-10"],
+  "program_item_ids": ["ITEM-15"],
+  "estimated_minutes": 30,
+  "recon_complete": true,
+  "recon_evidence": "LiteRT X1/X2 spike docs, scripts and production source search were inspected. This ticket accepts only the spike decision and explicitly forbids adding a production LiteRT provider.",
+  "first_checkpoint": {
+    "minutes": 10,
+    "evidence": "Script syntax checks and product-source absence search."
+  }
+}

@@ -1,0 +1,18 @@
+T-10 independent verification PASS
+
+Verifier: 019fe78a-9e32-73b3-ad8f-6e75c31349fa
+Verdict: PASS
+Mutation: verifier reported no file changes.
+
+Criteria reviewed:
+- PC-1 PASS: Ollama and LM Studio are wrapped as bebrain.local.core; cloud providers retain their IDs; Foundation Models is returned only from runtime availability.
+- PC-2 PASS: discovery calls Ollama /api/tags and LM Studio /v1/models, filters embedding names, ignores saved missing models, and local generation requires a discovered model.
+- PC-3 PASS: ordinary verbs default to local with no cloud preference; confidential/local-only routes throw instead of falling back to cloud.
+
+Reproduced gates:
+- swift test --filter BELLanguageModelProviderTests: PASS, 9 tests.
+- swift test --filter LocalModelsDiscoveryContractTests: PASS, 5 tests.
+- swift test --filter AIVerbTests: PASS, 24 tests.
+- git diff --check on T-10 scoped paths: PASS.
+
+Lead disposition: accept ITEM-12.

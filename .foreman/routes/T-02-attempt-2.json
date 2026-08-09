@@ -1,0 +1,14 @@
+{
+  "ticket_id": "T-02",
+  "attempt": 2,
+  "lane": "native-codex",
+  "worker_id": "019fe72d-e057-73e2-9678-c304aa751e7e",
+  "nickname": "Carson",
+  "requested_model": "inherited native Codex",
+  "requested_effort": "high",
+  "evidence_labels": ["native-inherited-unconfirmed"],
+  "quality_floor": "WORKHORSE: every corrected status claim must be source-backed and scoped",
+  "residual_judgment": "moderate",
+  "uncertainty": "native collaboration tool does not expose a per-child serving model in this session",
+  "reason": "Second documentation attempt uses a different worker and addresses the verifier's precise stale-claim findings."
+}

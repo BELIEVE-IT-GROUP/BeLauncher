@@ -1,0 +1,3 @@
+route: native inherited Codex worker
+provider capability evidence: existing sanitized probe in .foreman/events.jsonl
+selection rationale: bounded AI provider/router slice with disjoint write set

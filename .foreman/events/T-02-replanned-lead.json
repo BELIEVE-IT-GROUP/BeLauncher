@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "event": "replanned",
+  "new_plan_id": "plan-wave2-tracker-reconciliation-lead-takeover",
+  "corrective_action": "Take over the bounded documentation delta directly after the escalated CLI route failed before execution. Recompute all numeric claims from source, preserve the corrected runtime caveats, and require a fresh independent verifier before acceptance.",
+  "max_parallel": 2
+}

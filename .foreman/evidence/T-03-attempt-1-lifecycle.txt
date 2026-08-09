@@ -1,0 +1,3 @@
+T-03 attempt 1 lifecycle evidence
+
+The program guard accepted the dispatch, but the worker identity supplied to it had already been closed during ticket correction. No worker execution or repository change is attributed to this attempt. This is an orchestration/capability failure, not a product result.

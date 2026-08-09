@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "event": "recovery_action",
+  "ticket_id": "T-01",
+  "after_attempt": 1,
+  "action": "correct-ticket",
+  "evidence": "PC-3 failed in `.foreman/evidence/T-01-verifier-fail.txt`; add explicit vCard/share tests and injectable presentation failure coverage without expanding the product scope."
+}

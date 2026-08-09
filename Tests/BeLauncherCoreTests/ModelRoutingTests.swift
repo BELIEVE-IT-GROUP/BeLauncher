@@ -65,6 +65,104 @@ struct ModelRoutingTests {
         #expect(routes.first?.providerID == "ollama")
     }
 
+    @Test("low power and elevated pressure prefer the small local route")
+    func constrainedMachineAddsLocalPreference() throws {
+        let router = ModelRouter(preferred: nil)
+        let nominal = try router.rankedRoutes(
+            for: .personal,
+            available: [local],
+            health: ["ollama": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           thermalState: .nominal,
+                                           memoryPressure: .normal,
+                                           lowPowerMode: false)
+        )
+        let lowPower = try router.rankedRoutes(
+            for: .personal,
+            available: [local],
+            health: ["ollama": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           thermalState: .nominal,
+                                           memoryPressure: .normal,
+                                           lowPowerMode: true)
+        )
+        let pressured = try router.rankedRoutes(
+            for: .personal,
+            available: [local],
+            health: ["ollama": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           thermalState: .nominal,
+                                           memoryPressure: .elevated,
+                                           lowPowerMode: false)
+        )
+
+        #expect(nominal == [BELProviderRoute(providerID: "ollama", score: 350,
+                                             health: .ready)])
+        #expect(lowPower == [BELProviderRoute(providerID: "ollama", score: 375,
+                                              health: .ready)])
+        #expect(pressured == [BELProviderRoute(providerID: "ollama", score: 375,
+                                               health: .ready)])
+    }
+
+    @Test("critical pressure and thermal state penalize local routes")
+    func criticalMachineFactsPenalizeLocal() throws {
+        let router = ModelRouter(preferred: nil)
+        let criticalPressure = try router.rankedRoutes(
+            for: .personal,
+            available: [local],
+            health: ["ollama": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           thermalState: .nominal,
+                                           memoryPressure: .critical)
+        )
+        let criticalThermal = try router.rankedRoutes(
+            for: .personal,
+            available: [local],
+            health: ["ollama": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           thermalState: .critical,
+                                           memoryPressure: .normal)
+        )
+        let bothCritical = try router.rankedRoutes(
+            for: .personal,
+            available: [local],
+            health: ["ollama": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           thermalState: .critical,
+                                           memoryPressure: .critical)
+        )
+
+        #expect(criticalPressure == [BELProviderRoute(providerID: "ollama", score: 275,
+                                                      health: .ready)])
+        #expect(criticalThermal == [BELProviderRoute(providerID: "ollama", score: 275,
+                                                     health: .ready)])
+        #expect(bothCritical == [BELProviderRoute(providerID: "ollama", score: 175,
+                                                  health: .ready)])
+    }
+
+    @Test("network unavailable excludes cloud routes")
+    func networkUnavailableExcludesCloud() throws {
+        let router = ModelRouter(preferred: "openai")
+        let unknownNetwork = try router.rankedRoutes(
+            for: .personal,
+            available: [cloud],
+            health: ["openai": BELProviderHealth(state: .ready)],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           networkAvailable: nil)
+        )
+
+        #expect(unknownNetwork.map(\.providerID) == ["openai"])
+        #expect(throws: IntelligenceError.noProviderConfigured) {
+            try router.rankedRoutes(
+                for: .personal,
+                available: [cloud],
+                health: ["openai": BELProviderHealth(state: .ready)],
+                machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                               networkAvailable: false)
+            )
+        }
+    }
+
     @Test("a provider without the requested capability is never a route")
     func capabilityMismatchIsExcluded() {
         let provider = IntelligenceProvider(id: "text-only", name: "Text only",
@@ -90,6 +188,32 @@ struct ModelRoutingTests {
         )
 
         #expect(routes.map(\.providerID) == ["ollama"])
+    }
+
+    @Test("missing health evidence is configured only, never ready")
+    func missingHealthIsNotReady() throws {
+        let routes = try ModelRouter(preferred: "openai").rankedRoutes(
+            for: .personal,
+            available: [cloud],
+            health: [:],
+            machine: MacCapabilitySnapshot(architecture: .appleSilicon, unifiedMemoryGB: 32,
+                                           networkAvailable: true)
+        )
+
+        #expect(routes == [BELProviderRoute(providerID: "openai", score: 250,
+                                            health: .configured)])
+    }
+
+    @Test("local-only policy cannot select a cloud provider")
+    func localOnlyPolicyBlocksCloud() {
+        #expect(throws: IntelligenceError.blockedBySensitivity("OpenAI")) {
+            try ModelRouter(preferred: "openai").rankedRoutes(
+                for: .ordinary,
+                available: [cloud],
+                health: ["openai": BELProviderHealth(state: .ready)],
+                routePolicy: .localOnly
+            )
+        }
     }
 
     @Test("stale ready evidence is not accepted as current health")

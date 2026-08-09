@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "event": "ticket_outcome",
+  "ticket_id": "T-02",
+  "attempt": 3,
+  "outcome": "blocked",
+  "blocker_class": "external",
+  "cause_family": "capability-gap",
+  "worker_receipt_sha256": "72dbd3e0ac1a3e52bd3420c53eee8c661fae586424df0ba95ba119c27a0f8f8d",
+  "worker_minutes_status": "unavailable",
+  "worker_minutes_reason": "CLI worker failed before model execution.",
+  "noncached_input_tokens_status": "unavailable",
+  "noncached_input_tokens_reason": "CLI worker failed before model execution."
+}

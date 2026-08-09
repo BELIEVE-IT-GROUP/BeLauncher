@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "event": "ticket_verified",
+  "ticket_id": "T-08",
+  "attempt": 2,
+  "verifier_id": "019fe780-0027-75b1-ae26-10eb099326a9",
+  "verifier_evidence_sha256": "9c0e68a817b68899dd500c1163f204d1823b0583862b491dff0bdab8b9d766b3",
+  "verdict": "PASS",
+  "lead_reviewed": true,
+  "processes_closed": true,
+  "verification_scope": "slice",
+  "completed_item_ids": ["ITEM-10"],
+  "criteria_evidence_path": ".foreman/evidence/T-08-attempt-2-verifier-pass.txt",
+  "criteria_evidence_sha256": "9c0e68a817b68899dd500c1163f204d1823b0583862b491dff0bdab8b9d766b3",
+  "candidate_fingerprint": "d788a5d7d158b2b6d6c78485381536ad9773f8aa744272f4d4c7c84b1d55ad4b",
+  "verification_minutes_status": "unavailable",
+  "verification_minutes_reason": "Native verifier timing was not exposed by the collaboration tool.",
+  "verification_noncached_input_tokens_status": "unavailable",
+  "verification_noncached_input_tokens_reason": "Native verifier usage was not exposed by the collaboration tool."
+}

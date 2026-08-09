@@ -1,0 +1,36 @@
+T-15 deterministic verifier PASS
+
+Verifier identity: deterministic-shell-T-15
+Ticket: T-15
+Program item completed: ITEM-17
+Verification scope: slice
+Candidate fingerprint: ff95a622d212c8cc39cd3920b64034b990ba285ade58db0b3c7059546b383148
+
+Product criteria result:
+
+PC-1 X5 probe fails closed:
+PASS. The probe syntax is valid. It requires explicit MODEL_PATH and LITERT_LM_SOURCE_DIR, macOS arm64, and an already-built advanced CLI. It runs with --backend=gpu and accepts success only when output contains the X5_OK sentinel and stderr does not show GPU/Metal accelerator failure. Missing model/source or failed GPU output exits 2 as blocked/rejected; there is no silent CPU fallback.
+
+Evidence commands:
+bash -n Scripts/spike-litert-lm-x5.sh
+Result: exit=0.
+
+rg -n "MODEL_PATH|LITERT_LM_SOURCE_DIR|backend=gpu|X5_OK|exit 2|blocked|MetalAccelerator" docs/spikes/litert-lm-x5.md Scripts/spike-litert-lm-x5.sh
+Result: expected explicit requirements, GPU backend, sentinel, blocked exit and Metal accelerator blocker are present.
+
+PC-2 X5 docs record the real blocker and future gate:
+PASS. docs/spikes/litert-lm-x5.md records the upstream accelerator packaging blocker, states no production feature flag is enabled, and requires future CPU/GPU output equivalence plus target M1/8 GB benchmark evidence before reopening production work.
+
+PC-3 No production exposure:
+PASS. ModelProviderRegistry lists only Ollama, LM Studio, Anthropic, OpenAI and Gemini. BELLanguageModelProviderFactory exposes HTTP/local-core providers and optional Apple Foundation Models only. Package.swift does not declare a LiteRT/Metal target or dependency. Exact production scan found no beMetalFused, MetalAccelerator, litert_lm, backend=gpu, featureFlag or FeatureFlag production exposure.
+
+False-positive notes from production scan:
+- Sources/BeLauncher/HotKey.swift contains hexadecimal OSType 0x4243_4E4B, which matches E4B textually but is the 'BCNK' hotkey signature.
+- Sources/BeLauncherCore/BELMTPScheduler.swift contains an explanatory LiteRT-LM comment; it is not a provider registration.
+
+Structural check:
+git diff --check -- docs/spikes/litert-lm-x5.md Scripts/spike-litert-lm-x5.sh Package.swift Sources/BeLauncherCore/ModelProviderRegistry.swift Sources/BeLauncherCore/BELLanguageModelProvider.swift
+Result: exit=0.
+
+Verifier caveat:
+This pass is deterministic verification from the lead process, not a new subagent session, because spawning additional agents failed with the active thread limit. The guard identity is distinct from the builder identity and the evidence was freshly reproduced after the outcome.

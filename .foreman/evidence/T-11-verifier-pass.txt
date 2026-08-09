@@ -1,0 +1,16 @@
+T-11 independent verification PASS
+
+Verifier: 019fe78a-9ee2-7a23-bf1b-1ea22eba5c68
+Verdict: PASS
+Mutation: verifier reported no file changes.
+
+Criteria reviewed:
+- PC-1 PASS: writeback paths validate through strict schemas before persistence; invalid JSON, wrong types, invalid kinds/entities and unknown injected fields leave no vault state or audit pollution.
+- PC-2 PASS: memory/project updates persist only as proposed commits; current objects appear only through explicit confirm; discard leaves no objects/current project and records audit.
+- PC-3 PASS: save writes inbox evidence only; forget preview is non-mutating; confirm removes clips and passage rows/vectors with preview/confirmation audit events.
+
+Reproduced gates:
+- swift test --filter BELBrainWritebackTests: PASS, 8 tests.
+- git diff --check on T-11 scoped paths: PASS.
+
+Lead disposition: accept ITEM-13.
