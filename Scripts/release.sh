@@ -11,13 +11,9 @@ cd "$ROOT"
 BUMP="${1:-patch}"
 case "$BUMP" in patch|minor|major) ;; *) echo "usage: release.sh [patch|minor|major]"; exit 1 ;; esac
 
-UNEXPECTED_DIRTY="$(git status --porcelain | while IFS= read -r line; do
-    path="${line:3}"
-    case "$path" in
-        audit-ai-layer/*|audit-native-actions/*|docs/plan-action-map-v2.md) ;;
-        *) printf '%s\n' "$line" ;;
-    esac
-done)"
+UNEXPECTED_DIRTY="$(git status --porcelain \
+    | grep -vE '^\\?\\? (audit-ai-layer/|audit-native-actions/|docs/plan-action-map-v2\\.md$)' \
+    || true)"
 [ -z "$UNEXPECTED_DIRTY" ] || {
     echo "Working tree is dirty; commit first."
     printf '%s\n' "$UNEXPECTED_DIRTY"
