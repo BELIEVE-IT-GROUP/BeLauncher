@@ -21,10 +21,20 @@ public enum LiteRTLMInstall {
         string: "https://files.believe-global.com/apps/belauncher/litert-lm/litert_lm_server_bridge-latest"
     )!
 
+    /// The bridge links this one library through `@rpath` and carries a plain `@loader_path`
+    /// rpath, so it loads as long as the file sits next to the executable — which is why it is
+    /// fetched as a second flat file rather than an archive that would need unpacking. Re-signed
+    /// with our own Developer ID by the release script: dyld refuses to map a library whose Team
+    /// ID differs from the hardened-runtime process loading it.
+    public static let dylibName = "libGemmaModelConstraintProvider.dylib"
+    public static let dylibURL = URL(
+        string: "https://files.believe-global.com/apps/belauncher/litert-lm/libGemmaModelConstraintProvider.dylib"
+    )!
+
     /// Measured via HEAD against `modelURL` on 2026-08-10; used only as a fallback denominator
     /// when a response carries no Content-Length, so the bar never divides by zero.
     public static let modelBytes: Int64 = 3_659_530_240
-    public static let binaryBytes: Int64 = 25_000_000
+    public static let binaryBytes: Int64 = 31_200_000
     public static let requiredDiskBytes: Int64 = modelBytes + binaryBytes + 300_000_000
 
     /// One line justifying a 3.6 GB download. Said once, said honestly: what it is, what it

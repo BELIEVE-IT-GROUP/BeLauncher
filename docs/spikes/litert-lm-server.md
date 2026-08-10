@@ -3,8 +3,8 @@
 Status: **built, wired into `ModelProviderRegistry` and app startup/shutdown, and verified
 end-to-end on real M1/8 GB hardware against the real `gemma-4-E4B-it.litertlm` model — real HTTP
 round trips return real generated text, and the local-provider discovery path
-(`LocalModels.installed()`) finds it exactly like it finds Ollama or LM Studio. Not yet bundled
-with a signed build — see "What is still open" below.**
+(`LocalModels.installed()`) finds it exactly like it finds Ollama or LM Studio. Signed, notarized
+and published for download on request — see "Distribution" below.**
 
 ## What this is
 
@@ -105,15 +105,35 @@ X2/X4 spikes).
    from this server, not before — wiring it without that telemetry would be an unproven "adaptive"
    claim, per X4's own acceptance gates.
 
+## Distribution: downloaded on request, never bundled (2026-08-10)
+
+Nothing ships inside the signed `.app`. The engine and the model are fetched only when a person
+asks for them — from the onboarding step (`WelcomeView`) or from Settings → Intelligence
+(`SettingsView`) — by `LiteRTLMInstaller`, with resumable `URLSessionDownloadTask` transfers and a
+cancel that keeps what already came down. Everything else in BeLauncher works whether or not they
+ever download it.
+
+What gets published, by `Scripts/release-litert-lm-server.sh` on the same self-hosted runner as the
+DMG (`.github/workflows/release-litert-lm-server.yml`), signed with the Believe Developer ID and
+notarized by Apple:
+
+- `litert_lm_server_bridge-latest` (~21 MB)
+- `libGemmaModelConstraintProvider.dylib` (~9 MB)
+
+Two files, not one: the bridge links the library through `@rpath` and carries a plain
+`@loader_path` rpath, so both land in the same directory and no archive needs unpacking. The
+library also has to be **re-signed** — upstream ships it signed by Google, and dyld refuses to map
+a library whose Team ID differs from the hardened-runtime process loading it (`different Team
+IDs`). Both are notarized together in one submission. The bare executable is not stapled: stapling
+matters for bundles opened through LaunchServices, and this one is launched via `Process()`.
+
+Verified end-to-end on 2026-08-10: both files downloaded from
+`files.believe-global.com/apps/belauncher/litert-lm/`, marked with a quarantine xattr, and the
+bridge runs (`usage: litert_lm_server_bridge MODEL_PATH PORT`) with matching SHA-256 and a valid
+signature.
+
 ## What is still open
 
-**Bundling the binary and model with a signed build is not done and was not attempted here.**
-`Package.swift` is a plain Swift Package with no resource-bundling rule for an arbitrary external
-executable (the only precedent found — `brain.html`, `AppIconArt.png` — is `Bundle.main` lookups
-for small assets, nothing like a 21 MB Mach-O plus a 3.6 GB model file). This is a real product
-decision, not a mechanical one: ship the model inside the signed `.app` (huge download, works
-offline immediately), or download it on first run (small app, needs a real download/verify/resume
-flow that does not exist yet), and either way the ~21 MB binary needs to be code-signed and
-notarized as part of the build, which nothing in this repo's build pipeline does today. Until one
-of those is chosen and built, `litertlm` is registered and fully wired but will never actually
-appear as an available provider outside a machine with the env vars set.
+5. Reconnecting `BELMTPScheduler` (X4) — deliberately not done: it needs real MTP cycle telemetry
+   from this server first, and wiring it without that telemetry would be an unproven "adaptive"
+   claim, per X4's own acceptance gates.
