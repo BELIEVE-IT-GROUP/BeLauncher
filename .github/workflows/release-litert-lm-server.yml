@@ -1,0 +1,37 @@
+name: Release litert-lm-server
+
+# Builds, signs, notarizes and publishes litert_lm_server_bridge on the same self-hosted
+# runner (mac-jorge) as Release macOS — see Scripts/release-litert-lm-server.sh. Kept as its
+# own workflow rather than a step in release-mac.yml: the Bazel build here is expensive and
+# the bridge changes far less often than BeLauncher itself, so it should not run on every
+# BeLauncher patch tag. Triggered manually, or automatically when the bridge source changes.
+#
+# LiteRTLMInstaller (Sources/BeLauncher/LiteRTLMInstaller.swift) downloads whatever this
+# publishes from https://files.believe-global.com/apps/belauncher/litert-lm/litert_lm_server_bridge-latest.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Scripts/litert-lm-server-bridge.cc'
+      - 'Scripts/build-litert-lm-server.sh'
+      - 'Scripts/release-litert-lm-server.sh'
+
+jobs:
+  release:
+    runs-on: [self-hosted, macOS, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build, sign, notarize & publish
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          MAC_SIGN_IDENTITY: ${{ secrets.MAC_SIGN_IDENTITY }}
+          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
+          R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: bash Scripts/release-litert-lm-server.sh
