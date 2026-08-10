@@ -1,0 +1,25 @@
+Sources/BeLauncher/ScreenCapture.swift
+  s_6d5bf66b8b4b65::t_29a9a19256f562 2
+  s_6d5bf66b8b4b65::t_599e0c55896b9b 139-146,150-156
+Sources/BeLauncher/AppDelegate.swift
+  s_6d5bf66b8b4b65::t_7f50627277d9f9 466-468,470-477
+Sources/BeLauncher/LiteRTLMInstaller.swift
+  s_6d5bf66b8b4b65::t_4993eece024263 14-17
+  s_6d5bf66b8b4b65::t_ef19a6925d9444 108-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "97355b2dc73b76b78e0bd8169bf986bb76cc536c",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
