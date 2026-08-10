@@ -91,6 +91,40 @@ struct LiteRTLMServiceTests {
         }
         await service.stop()
     }
+
+    @Test("Si la GPU no levanta, cae a CPU y termina respondiendo")
+    func fallsBackToCPU() async throws {
+        // Falla mientras le pidan GPU y responde cuando le piden CPU: exactamente la máquina
+        // donde el acelerador no registra.
+        let service = LiteRTLMService()
+        let modelPath = try makeExistingFile()
+        let binaryPath = try makeExecutableScript("""
+            #!/bin/sh
+            if [ "$LITERT_LM_BACKEND" = "gpu" ]; then exit 7; fi
+            echo '{"ready":true}'
+            sleep 5
+            """)
+
+        try await service.startPreferringGPU(binaryPath: binaryPath, modelPath: modelPath)
+        #expect(await service.isRunning)
+        await service.stop()
+    }
+
+    @Test("Se le pide GPU al binario, no se asume")
+    func asksForGPU() async throws {
+        let service = LiteRTLMService()
+        let modelPath = try makeExistingFile()
+        let binaryPath = try makeExecutableScript("""
+            #!/bin/sh
+            if [ "$LITERT_LM_BACKEND" != "gpu" ]; then exit 8; fi
+            echo '{"ready":true}'
+            sleep 5
+            """)
+
+        try await service.startPreferringGPU(binaryPath: binaryPath, modelPath: modelPath)
+        #expect(await service.isRunning)
+        await service.stop()
+    }
 }
 
 @Suite("El modelo local se elige según la memoria del Mac")

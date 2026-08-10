@@ -473,8 +473,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard LiteRTLMLocalCore.isAvailable else { return }
         Task { [liteRTLMService] in
             do {
-                try await liteRTLMService.start(binaryPath: LiteRTLMLocalCore.binaryPath(),
-                                                 modelPath: LiteRTLMLocalCore.modelPath())
+                try await liteRTLMService.startPreferringGPU(
+                    binaryPath: LiteRTLMLocalCore.binaryPath(),
+                    modelPath: LiteRTLMLocalCore.modelPath())
             } catch {
                 NSLog("LiteRT-LM local core failed to start: \(error)")
             }

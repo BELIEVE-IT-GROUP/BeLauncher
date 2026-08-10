@@ -23,7 +23,9 @@ final class LiteRTLMInstaller {
     }
 
     private var binaryURL: URL { root.appendingPathComponent("litert_lm_server_bridge") }
-    private var dylibURL: URL { root.appendingPathComponent(LiteRTLMInstall.dylibName) }
+    private var dylibURLs: [URL] {
+        LiteRTLMInstall.dylibNames.map { root.appendingPathComponent($0) }
+    }
     /// Where the model this Mac downloads lands. Reads through `LiteRTLMLocalCore.modelPath()` so
     /// a model downloaded by an earlier version — a different variant than this Mac would pick
     /// today — still counts as installed instead of being re-downloaded.
@@ -39,7 +41,7 @@ final class LiteRTLMInstaller {
     func refresh() {
         let state = LiteRTLMInstall.MachineState(
             binaryPresent: FileManager.default.isExecutableFile(atPath: binaryURL.path)
-                && FileManager.default.fileExists(atPath: dylibURL.path),
+                && dylibURLs.allSatisfy { FileManager.default.fileExists(atPath: $0.path) },
             modelPresent: FileManager.default.fileExists(atPath: modelURL.path))
         phase = state.isReady ? .ready : .notReady(state)
         persist(state.isReady ? .ready : .idle)
@@ -75,8 +77,10 @@ final class LiteRTLMInstaller {
 
                 // Same phase as the executable on purpose: the two are one engine as far as the
                 // person waiting is concerned, and the bridge cannot start without this library.
-                if !FileManager.default.fileExists(atPath: dylibURL.path) {
-                    try await self.download(from: LiteRTLMInstall.dylibURL, to: dylibURL) { progress in
+                for destination in dylibURLs
+                where !FileManager.default.fileExists(atPath: destination.path) {
+                    try await self.download(from: LiteRTLMInstall.dylibURL(destination.lastPathComponent),
+                                            to: destination) { progress in
                         Task { @MainActor in
                             self.phase = .downloadingBinary(progress)
                             self.persist(.downloading, message: LiteRTLMInstall.message(for: self.phase))

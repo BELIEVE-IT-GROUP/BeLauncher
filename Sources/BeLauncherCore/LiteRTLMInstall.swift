@@ -9,12 +9,10 @@ public enum LiteRTLMInstall {
 
     // MARK: - Which model this Mac gets
 
-    /// Two sizes, picked by how much memory the machine has. The bridge runs CPU-only through
-    /// XNNPACK on macOS (NPU and GPU acceleration do not engage — see
-    /// docs/spikes/litert-lm-server.md), so the ceiling here is what stays responsive on the
-    /// smaller Macs, not what the largest one could hold. The 12B and 31B variants exist upstream
-    /// and are deliberately not offered: nobody has measured them on CPU-only Apple silicon, and
-    /// shipping an unmeasured size would trade a slow answer for a bigger download.
+    /// Two sizes, picked by how much memory the machine has, since the model competes for memory
+    /// with everything else the person has open. The 12B and 31B variants exist upstream and are
+    /// deliberately not offered: nobody has measured them on Apple silicon, and shipping an
+    /// unmeasured size would trade a slow answer for a bigger download.
     public enum Variant: String, Sendable, CaseIterable {
         case e2b = "gemma-4-E2B-it"
         case e4b = "gemma-4-E4B-it"
@@ -41,6 +39,37 @@ public enum LiteRTLMInstall {
             case .e4b: "3.7 GB"
             }
         }
+
+        /// What to call it in front of a person: the family, not the checkpoint.
+        public var displayName: String {
+            switch self {
+            case .e2b: "Gemma E2B"
+            case .e4b: "Gemma E4B"
+            }
+        }
+    }
+
+    /// Why *this* Mac gets *this* model, in the person's own terms — quoting their actual memory
+    /// rather than asking them to trust an unexplained choice.
+    public static var whyThisModel: String {
+        let memory = ByteCountFormatter.string(
+            fromByteCount: Int64(ProcessInfo.processInfo.physicalMemory), countStyle: .memory)
+        switch variant {
+        case .e4b:
+            return L("This Mac has %@, so it gets %@ — the full version. Macs with 8 GB get the compact one instead, so the model never competes for memory with everything else you have open.",
+                     memory, variant.displayName)
+        case .e2b:
+            return L("This Mac has %@, so it gets %@ — the compact version. It answers faster here and leaves memory for everything else you have open; Macs with more than 8 GB get the full one.",
+                     memory, variant.displayName)
+        }
+    }
+
+    /// What the download actually buys, stated as what changes for the person rather than as
+    /// features. Kept to three: past that nobody reads it.
+    public static var benefits: [String] {
+        [L("Your Brain answers about your own notes, mail and meetings without any of it reaching a server."),
+         L("The launcher understands what you mean, not just what matches the letters you typed."),
+         L("It works with no internet and costs nothing per question.")]
     }
 
     /// 8 GB Macs run E4B — that was verified on an M1/8 GB, ~1.4 GB resident — but they run it
@@ -69,18 +98,28 @@ public enum LiteRTLMInstall {
         string: "https://files.believe-global.com/apps/belauncher/litert-lm/litert_lm_server_bridge-latest"
     )!
 
-    /// The bridge links this one library through `@rpath` and carries a plain `@loader_path`
-    /// rpath, so it loads as long as the file sits next to the executable — which is why it is
-    /// fetched as a second flat file rather than an archive that would need unpacking. Re-signed
-    /// with our own Developer ID by the release script: dyld refuses to map a library whose Team
-    /// ID differs from the hardened-runtime process loading it.
-    public static let dylibName = "libGemmaModelConstraintProvider.dylib"
-    public static let dylibURL = URL(
-        string: "https://files.believe-global.com/apps/belauncher/litert-lm/libGemmaModelConstraintProvider.dylib"
-    )!
+    /// Flat files next to the executable, not an archive that would need unpacking: the bridge
+    /// carries a plain `@loader_path` rpath, so everything loads as long as it sits in the same
+    /// directory. All of them are re-signed with our own Developer ID by the release script —
+    /// dyld refuses to map a library whose Team ID differs from the hardened-runtime process.
+    ///
+    /// Three, not one. `libGemmaModelConstraintProvider` is what the bridge links directly; the
+    /// other two are what the GPU path needs — the accelerator is `dlopen`ed by name at runtime,
+    /// and Dawn is what it links in turn. Metal's own accelerator and the WebGPU sampler are
+    /// deliberately left out: both were tried on an M4 and neither loads (the sampler looks for a
+    /// `.so`), and adding 30 MB that measurably change nothing is a worse deal than the wait.
+    public static let dylibNames = [
+        "libGemmaModelConstraintProvider.dylib",
+        "libLiteRtWebGpuAccelerator.dylib",
+        "libwebgpu_dawn.dylib",
+    ]
+
+    public static func dylibURL(_ name: String) -> URL {
+        URL(string: "https://files.believe-global.com/apps/belauncher/litert-lm/\(name)")!
+    }
 
     public static var modelBytes: Int64 { variant.bytes }
-    public static let binaryBytes: Int64 = 31_200_000
+    public static let binaryBytes: Int64 = 56_000_000
 
     /// The model file is not the whole cost. On first run XNNPACK builds a weight cache next to
     /// the model (`<model>_<mtime>_<size>.xnnpack_cache`) and **aborts the process** if it cannot

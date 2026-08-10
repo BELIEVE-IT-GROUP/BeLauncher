@@ -21,11 +21,14 @@ cd "$ROOT"
 IDENTITY="${MAC_SIGN_IDENTITY:-Developer ID Application: BELIEVE IT GROUP SAS (35R4W3WK5T)}"
 DIST="$ROOT/dist"
 BINARY_NAME="litert_lm_server_bridge"
-# The bridge is not self-contained: it links @rpath/libGemmaModelConstraintProvider.dylib and
-# carries a plain @loader_path rpath, so the dylib ships alongside it and LiteRTLMInstaller drops
-# both into the same directory. It also has to be re-signed: upstream ships it signed by Google,
-# and dyld refuses to map a library whose Team ID differs from the hardened-runtime process.
-DYLIB_NAME="libGemmaModelConstraintProvider.dylib"
+# The bridge is not self-contained. It links libGemmaModelConstraintProvider directly, and the GPU
+# path dlopens libLiteRtWebGpuAccelerator by name, which links Dawn in turn. The bridge carries a
+# plain @loader_path rpath, so all of them ship alongside it and LiteRTLMInstaller drops them into
+# one directory. They also have to be re-signed: upstream ships them signed by Google, and dyld
+# refuses to map a library whose Team ID differs from the hardened-runtime process.
+# Metal's own accelerator and the WebGPU sampler are left out on purpose — measured on an M4,
+# neither loads, so they would be 30 MB of download that changes nothing.
+DYLIBS=(libGemmaModelConstraintProvider.dylib libLiteRtWebGpuAccelerator.dylib libwebgpu_dawn.dylib)
 
 echo "▸ litert-lm-server-bridge"
 mkdir -p "$DIST"
@@ -35,12 +38,14 @@ echo "▸ Building (Bazel, arm64 only — see Scripts/build-litert-lm-server.sh)
 BUILT="$(bash "$ROOT/Scripts/build-litert-lm-server.sh")"
 # Removed rather than overwritten: a previous run leaves a signed binary here, and copying onto a
 # signed Mach-O in place fails with EACCES.
-rm -f "$DIST/$BINARY_NAME" "$DIST/$DYLIB_NAME"
+rm -f "$DIST/$BINARY_NAME" "${DYLIBS[@]/#/$DIST/}"
 cp "$BUILT" "$DIST/$BINARY_NAME"
 chmod +x "$DIST/$BINARY_NAME"
 
 SOURCE_DIR="${BUILT%%/bazel-bin/*}"
-cp "$SOURCE_DIR/prebuilt/macos_arm64/$DYLIB_NAME" "$DIST/$DYLIB_NAME"
+for dylib in "${DYLIBS[@]}"; do
+    cp "$SOURCE_DIR/prebuilt/macos_arm64/$dylib" "$DIST/$dylib"
+done
 
 # ---------------------------------------------------------------- sign
 # Identical throwaway-keychain import as release-mac.sh: lets codesign run
@@ -80,9 +85,11 @@ fi
 echo "▸ Signing with: $IDENTITY"
 # Dylib first: signing the executable afterwards is what the loader expects, and both must carry
 # our Team ID for dyld to map the library into the hardened-runtime process.
-codesign --force --options runtime --timestamp --sign "$IDENTITY" "$DIST/$DYLIB_NAME"
+for dylib in "${DYLIBS[@]}"; do
+    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$DIST/$dylib"
+    codesign --verify --strict --verbose=2 "$DIST/$dylib"
+done
 codesign --force --options runtime --timestamp --sign "$IDENTITY" "$DIST/$BINARY_NAME"
-codesign --verify --strict --verbose=2 "$DIST/$DYLIB_NAME"
 codesign --verify --strict --verbose=2 "$DIST/$BINARY_NAME"
 
 # ---------------------------------------------------------------- notarize
@@ -96,7 +103,7 @@ if [ "${SKIP_NOTARIZE:-}" != "1" ]; then
       through LaunchServices, so the notarization ticket check alone is what matters)"
     rm -rf "$DIST/notarize" "$DIST/notarize.zip"
     mkdir -p "$DIST/notarize"
-    cp "$DIST/$BINARY_NAME" "$DIST/$DYLIB_NAME" "$DIST/notarize/"
+    cp "$DIST/$BINARY_NAME" "${DYLIBS[@]/#/$DIST/}" "$DIST/notarize/"
     ditto -c -k --keepParent "$DIST/notarize" "$DIST/notarize.zip"
     xcrun notarytool submit "$DIST/notarize.zip" \
         --apple-id "$APPLE_ID" \
@@ -112,7 +119,7 @@ echo "▸ Verification"
 file "$DIST/$BINARY_NAME"
 codesign -dv "$DIST/$BINARY_NAME" 2>&1
 
-shasum -a 256 "$DIST/$BINARY_NAME" "$DIST/$DYLIB_NAME"
+shasum -a 256 "$DIST/$BINARY_NAME" "${DYLIBS[@]/#/$DIST/}"
 
 # ---------------------------------------------------------------- publish
 if [ "${SKIP_UPLOAD:-}" != "1" ]; then
@@ -122,7 +129,9 @@ if [ "${SKIP_UPLOAD:-}" != "1" ]; then
     R2_BUCKET="${R2_BUCKET:-believe-r2}"
 
     echo "▸ Publishing to files.believe-global.com"
-    for pair in "$BINARY_NAME:litert_lm_server_bridge-latest" "$DYLIB_NAME:$DYLIB_NAME"; do
+    publish=("$BINARY_NAME:litert_lm_server_bridge-latest")
+    for dylib in "${DYLIBS[@]}"; do publish+=("$dylib:$dylib"); done
+    for pair in "${publish[@]}"; do
         AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$R2_SECRET_KEY" \
             aws s3 cp "$DIST/${pair%%:*}" \
             "s3://$R2_BUCKET/apps/belauncher/litert-lm/${pair##*:}" \

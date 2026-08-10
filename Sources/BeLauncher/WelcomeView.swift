@@ -67,6 +67,20 @@ struct WelcomeView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(LiteRTLMInstall.benefits, id: \.self) { benefit in
+                        Label(benefit, systemImage: "checkmark")
+                            .font(.system(size: 12))
+                            .labelStyle(.titleAndIcon)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Text(LiteRTLMInstall.whyThisModel)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 Text(L("Optional. Everything else in BeLauncher works whether or not you download it, and you can always start or cancel this from Settings → Intelligence."))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)

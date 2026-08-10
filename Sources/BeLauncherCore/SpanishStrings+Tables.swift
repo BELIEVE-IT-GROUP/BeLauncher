@@ -258,6 +258,16 @@ extension SpanishStrings {
             "Arranca BeLauncher igual que lo haría tu asistente, le hace una pregunta cuya respuesta conocemos y comprueba que vuelva con contenido. No basta con que el archivo de configuración nos mencione.",
 
         // MARK: - LiteRT-LM (Gemma on-device)
+        "This Mac has %@, so it gets %@ — the full version. Macs with 8 GB get the compact one instead, so the model never competes for memory with everything else you have open.":
+            "Este Mac tiene %@, así que le toca %@, la versión completa. Los Mac de 8 GB reciben la compacta, para que el modelo nunca compita por memoria con todo lo demás que tienes abierto.",
+        "This Mac has %@, so it gets %@ — the compact version. It answers faster here and leaves memory for everything else you have open; Macs with more than 8 GB get the full one.":
+            "Este Mac tiene %@, así que le toca %@, la versión compacta. Aquí responde más rápido y deja memoria para todo lo demás que tienes abierto; los Mac de más de 8 GB reciben la completa.",
+        "Your Brain answers about your own notes, mail and meetings without any of it reaching a server.":
+            "Tu Brain responde sobre tus propias notas, correos y reuniones sin que nada de eso llegue a un servidor.",
+        "The launcher understands what you mean, not just what matches the letters you typed.":
+            "El lanzador entiende lo que quieres decir, no solo lo que coincide con las letras que escribiste.",
+        "It works with no internet and costs nothing per question.":
+            "Funciona sin internet y no cuesta nada por pregunta.",
         "A full local model that answers without leaving this Mac: no conversation, no document ever reaches a server. About %@, downloaded once.":
             "Un modelo local completo que responde sin salir de este Mac: ninguna conversación, ningún documento llega jamás a un servidor. Unos %@, se descarga una sola vez.",
         "Nobody looked yet whether Gemma is on this Mac.":

@@ -150,8 +150,13 @@ int main(int argc, char** argv) {
     std::cerr << "model_assets: " << assets.status() << "\n";
     return 2;
   }
-  auto settings =
-      litert::lm::EngineSettings::CreateDefault(std::move(*assets), litert::lm::Backend::CPU);
+  // CPU unless asked otherwise. GPU needs three things together — this env var, the Metal
+  // accelerator dylibs next to the binary, and a `-gpu.litertlm` model file — so it stays opt-in
+  // until it is measured on real hardware rather than becoming a silent default that fails back.
+  const char* backendEnv = std::getenv("LITERT_LM_BACKEND");
+  const bool useGpu = backendEnv != nullptr && std::string(backendEnv) == "gpu";
+  auto settings = litert::lm::EngineSettings::CreateDefault(
+      std::move(*assets), useGpu ? litert::lm::Backend::GPU : litert::lm::Backend::CPU);
   if (!settings.ok()) {
     std::cerr << "engine_settings: " << settings.status() << "\n";
     return 3;
