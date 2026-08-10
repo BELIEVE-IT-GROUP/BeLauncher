@@ -1,0 +1,36 @@
+.gitignore
+  s_6d5bf66b8b4b65::t_fadad1c701cb0a 8-10
+Sources/BeLauncherCore/LiteRTLMInstall.swift
+  s_6d5bf66b8b4b65::t_48dc06024944b2 24-33,37
+Sources/BeLauncher/LiteRTLMInstaller.swift
+  s_6d5bf66b8b4b65::t_6f4f9282934a2f 73-84
+  s_6d5bf66b8b4b65::t_aea04d0bc43fd1 26
+  s_6d5bf66b8b4b65::t_3f91a8d25a1a8e 38-39
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_0c448d5a48e11d 6-7
+  s_6d5bf66b8b4b65::t_70f1eb6d46abed 108-134,137-139
+Scripts/release-litert-lm-server.sh
+  s_6d5bf66b8b4b65::t_77daf7baa581c3 115
+  s_6d5bf66b8b4b65::t_57eaa8c65e8dc3 125-133
+  s_6d5bf66b8b4b65::t_fa0d526faf7d02 81-83,85
+  s_6d5bf66b8b4b65::t_e48fd89b6f1a14 24-28,41-43
+  s_6d5bf66b8b4b65::t_dd646dd994ff7c 36-38
+  s_6d5bf66b8b4b65::t_859695f456131b 97-101,106
+  s_6d5bf66b8b4b65::t_c2ed57da011912 1-23,29-35,39-40,44-80,84,86-96,102-105,107-114,116-124,134-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "eb4444d95f9682c5beb63cea85e3a6749a2f3522",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}

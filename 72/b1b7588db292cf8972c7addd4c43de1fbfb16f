@@ -1,0 +1,43 @@
+docs/plan-sentient-beacon.md
+  s_6d5bf66b8b4b65::t_bcb9a05ce5a3b5 23
+  s_6d5bf66b8b4b65::t_306d6ff1c2a4ab 66
+  s_6d5bf66b8b4b65::t_c5420a77e09ee0 17
+  s_6d5bf66b8b4b65::t_31f7d34ac909b7 15
+  s_6d5bf66b8b4b65::t_c6485bd7316e1b 60
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_6d5bf66b8b4b65::t_f198374520efe8 1031
+Sources/BeLauncherCore/SearchEngine.swift
+  s_6d5bf66b8b4b65::t_eb4f8138c36085 695-709
+Sources/BeLauncherCore/BELActionResolver.swift
+  s_6d5bf66b8b4b65::t_fb8e02d555a064 18-24,30-38,54,56,69-70,84-87
+Tests/BeLauncherCoreTests/BELActionResolverTests.swift
+  s_6d5bf66b8b4b65::t_1ae6f1739184d7 63-64
+  s_6d5bf66b8b4b65::t_3f1b0cf157dba6 46,48,50-62,65-76
+  s_6d5bf66b8b4b65::t_1a436b65f6b994 47,49
+Scripts/build-litert-lm-server.sh
+  s_6d5bf66b8b4b65::t_69ee7d04278a29 1-63
+Scripts/litert-lm-server-bridge.cc
+  s_6d5bf66b8b4b65::t_e62020a7a6d377 1-230
+Sources/BeLauncherCore/LiteRTLMService.swift
+  s_6d5bf66b8b4b65::t_f4d2a0fb16b396 1-110
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_e5e391260cb07f 1-60
+Tests/BeLauncherCoreTests/LiteRTLMServiceTests.swift
+  s_6d5bf66b8b4b65::t_d8eccd9004185e 1-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "72b1b7588db292cf8972c7addd4c43de1fbfb16f",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
