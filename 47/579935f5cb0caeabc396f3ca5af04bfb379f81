@@ -1,0 +1,24 @@
+Sources/BeLauncher/main.swift
+  s_30bc31f46aebe1::t_7cf5759ea4119a 6-12,105-107,117-118
+Tests/BeLauncherAppTests/MCPStdioIntegrationTests.swift
+  s_30bc31f46aebe1::t_ad367cd918235c 68-69,71,73-76,78-79,82,87-88
+  s_30bc31f46aebe1::t_dd608236ee9062 1-67,70,72,77,80-81,83-86,89-166
+docs/release-0.32.68.md
+  s_30bc31f46aebe1::t_ac33d1f19f63c9 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "47579935f5cb0caeabc396f3ca5af04bfb379f81",
+  "prompts": {},
+  "sessions": {
+    "s_30bc31f46aebe1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fdadb-ee69-76c0-9b4a-f6f762c86a64",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
