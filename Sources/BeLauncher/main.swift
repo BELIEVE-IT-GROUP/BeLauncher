@@ -3,6 +3,13 @@ import AVFoundation
 import AVFAudio
 import BeLauncherCore
 
+private func commandLineValue(after flag: String) -> String? {
+    let arguments = CommandLine.arguments
+    guard let index = arguments.firstIndex(of: flag),
+          arguments.indices.contains(index + 1) else { return nil }
+    return arguments[index + 1]
+}
+
 // Repairs the affected derived corpus in a standalone process. It deliberately runs before the
 // AppKit application is created so a multi-gigabyte maintenance operation can never block the
 // command bar. `--database` exists for release and migration harnesses; normal use always targets
@@ -95,7 +102,9 @@ if CommandLine.arguments.contains("--diagnose-sources") {
 if CommandLine.arguments.contains("--mcp") {
     MainActor.assumeIsolated {
         Task { @MainActor in
-            guard let vault = try? Vault(root: Vault.defaultRoot()) else {
+            let vaultRoot = commandLineValue(after: "--vault-root") ?? Vault.defaultRoot()
+            let databasePath = commandLineValue(after: "--database") ?? Store.defaultPath()
+            guard let vault = try? Vault(root: vaultRoot) else {
                 FileHandle.standardError.write(Data("no se pudo abrir el vault\n".utf8))
                 exit(1)
             }
@@ -105,7 +114,8 @@ if CommandLine.arguments.contains("--mcp") {
             // vault and nothing else. Every tool would have answered "el índice no está
             // disponible" in production while every test passed, because the tests build their
             // own context with a brain in it.
-            let store = try? Store(path: Store.defaultPath())
+            let store = try? Store(path: databasePath)
+            try? store?.migrateSemanticIndex(repairOversizedTitles: false)
             var brain: BrainSearch?
             if let store {
                 let search = BrainSearch(store: store)
