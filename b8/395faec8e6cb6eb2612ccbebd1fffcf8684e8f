@@ -1,0 +1,37 @@
+Scripts/litert-lm-server-bridge.cc
+  s_6d5bf66b8b4b65::t_288cb5e910f2dd 136
+  s_6d5bf66b8b4b65::t_2b64c83e6aaab2 36-45,57-67,70,85-94
+  s_6d5bf66b8b4b65::t_c2a8d28f7777a8 197-207,215
+Sources/BeLauncher/AppDelegate.swift
+  s_6d5bf66b8b4b65::t_a23107445a2601 706-707
+  s_6d5bf66b8b4b65::t_3f19fb8fcc08a0 466-483
+  s_6d5bf66b8b4b65::t_50348d597294c0 48
+  s_6d5bf66b8b4b65::t_545d9fcfd82b10 439
+Tests/BeLauncherCoreTests/BELLanguageModelProviderTests.swift
+  s_6d5bf66b8b4b65::t_e8a1fd5540b9d7 49,51-55
+Tests/BeLauncherCoreTests/LocalModelsTests.swift
+  s_6d5bf66b8b4b65::t_efce9d9a700541 38,58-59,62-64
+Sources/BeLauncherCore/ModelProviderRegistry.swift
+  s_6d5bf66b8b4b65::t_92a1282ed5232f 75-79
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_3a1c3e55da24cd 73,82-103,107-119
+  s_6d5bf66b8b4b65::t_4be8bcf52ff791 3-7
+Sources/BeLauncherCore/LiteRTLMService.swift
+  s_6d5bf66b8b4b65::t_622a478acd4b1f 111-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b8395faec8e6cb6eb2612ccbebd1fffcf8684e8f",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
