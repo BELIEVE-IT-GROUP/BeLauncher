@@ -1,0 +1,27 @@
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_6d5bf66b8b4b65::t_f198374520efe8 1031
+Sources/BeLauncherCore/SearchEngine.swift
+  s_6d5bf66b8b4b65::t_eb4f8138c36085 695-709
+Sources/BeLauncherCore/BELActionResolver.swift
+  s_6d5bf66b8b4b65::t_fb8e02d555a064 18-24,30-38,54,56,69-70,84-87
+Tests/BeLauncherCoreTests/BELActionResolverTests.swift
+  s_6d5bf66b8b4b65::t_1ae6f1739184d7 63-64
+  s_6d5bf66b8b4b65::t_3f1b0cf157dba6 46,48,50-62,65-76
+  s_6d5bf66b8b4b65::t_1a436b65f6b994 47,49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "885ffe1e3aed24117fdffb1c65fad77cc5bb9d7a",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
