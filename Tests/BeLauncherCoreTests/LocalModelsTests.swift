@@ -35,6 +35,7 @@ struct LocalModelsDiscoveryContractTests {
     func discoveryUsesProviderCatalogues() async throws {
         let ollama = try #require(ModelProviderRegistry.named("ollama"))
         let lmStudio = try #require(ModelProviderRegistry.named("lmstudio"))
+        let liteRTLM = try #require(ModelProviderRegistry.named("litertlm"))
         let log = RequestLog()
         let found = await LocalModels.installed(transport: { request in
             let url = try #require(request.url)
@@ -54,9 +55,13 @@ struct LocalModelsDiscoveryContractTests {
 
         let byProvider = Dictionary(uniqueKeysWithValues: found.map { ($0.providerID, $0.models) })
         let requestedURLs = await log.urls
-        #expect(Set(requestedURLs) == Set([ollama.modelsEndpoint!, lmStudio.modelsEndpoint!]))
+        #expect(Set(requestedURLs) == Set([ollama.modelsEndpoint!, lmStudio.modelsEndpoint!,
+                                            liteRTLM.modelsEndpoint!]))
         #expect(byProvider["ollama"] == ["qwen2.5"])
         #expect(byProvider["lmstudio"] == ["local-chat"])
+        // Not running in this test (its endpoint returns an empty models list), so it should not
+        // be reported as installed — same as any other local provider that isn't up.
+        #expect(byProvider["litertlm"] == nil)
     }
 
     @Test("embedding-only catalogues are not usable chat backends")

@@ -45,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsModel: SettingsModel?
     private var keyMonitor: Any?
     private var appIndex = AppIndex()
+    private let liteRTLMService = LiteRTLMService()
     /// One snapshot per short typing session. Re-reading 1,000 clipboard rows, including their
     /// payloads, for every keystroke is visible on an 8 GB Mac even though the SQL itself is fast.
     private var launcherInputCache: (key: String, input: SearchInput, expires: Date)?
@@ -435,6 +436,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startBrain()
         startCorpus(store: store)
         scheduleBoundedMaintenance(store: store)
+        startLiteRTLMIfAvailable()
         // Developer/runtime inspection only. The normal menu-bar launch remains unchanged, but
         // a deterministic entry point lets visual QA inspect the same Brain window without
         // relying on Accessibility to discover a status-item menu.
@@ -458,6 +460,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             try? await Task.sleep(for: .seconds(8))
             guard !Task.isCancelled else { return }
             _ = store.purgeSecrets(limit: 500)
+        }
+    }
+
+    /// Launches the on-device LiteRT-LM core when its binary and model are actually present.
+    ///
+    /// Neither ships yet (see docs/spikes/litert-lm-server.md) so on every real user's machine
+    /// today `isAvailable` is false and this is a no-op — same as `askModel` finding no local
+    /// provider running. This exists so the "litertlm" entry in `ModelProviderRegistry` is real
+    /// and testable ahead of that bundling decision, not so it does anything on its own yet.
+    private func startLiteRTLMIfAvailable() {
+        guard LiteRTLMLocalCore.isAvailable else { return }
+        Task { [liteRTLMService] in
+            do {
+                try await liteRTLMService.start(binaryPath: LiteRTLMLocalCore.binaryPath(),
+                                                 modelPath: LiteRTLMLocalCore.modelPath())
+            } catch {
+                NSLog("LiteRT-LM local core failed to start: \(error)")
+            }
         }
     }
 
@@ -683,6 +703,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
         if let monitor = keyMonitor { NSEvent.removeMonitor(monitor) }
+        let service = liteRTLMService
+        Task { await service.stop() }
     }
 
     // MARK: - Licensing

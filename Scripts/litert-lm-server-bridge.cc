@@ -33,9 +33,16 @@
 
 namespace {
 
-// Reads exactly one HTTP/1.1 request off `fd`: enough of the headers to find Content-Length,
-// then that many body bytes. Returns nullopt on a malformed or truncated request.
-std::optional<std::string> ReadRequestBody(int fd) {
+struct HttpRequest {
+  std::string method;
+  std::string path;
+  std::string body;
+};
+
+// Reads exactly one HTTP/1.1 request off `fd`: the request line (for method/path routing), enough
+// of the headers to find Content-Length, then that many body bytes. Returns nullopt on a
+// malformed or truncated request.
+std::optional<HttpRequest> ReadRequest(int fd) {
   std::string buffer;
   char chunk[4096];
   size_t headerEnd = std::string::npos;
@@ -47,9 +54,20 @@ std::optional<std::string> ReadRequestBody(int fd) {
     if (buffer.size() > 1 << 20 && headerEnd == std::string::npos) return std::nullopt;
   }
 
+  std::string headerBlock = buffer.substr(0, headerEnd);
+  std::string requestLine = headerBlock.substr(0, headerBlock.find("\r\n"));
+  std::string method, path;
+  size_t methodEnd = requestLine.find(' ');
+  size_t pathEnd = methodEnd == std::string::npos ? std::string::npos
+                                                    : requestLine.find(' ', methodEnd + 1);
+  if (methodEnd != std::string::npos && pathEnd != std::string::npos) {
+    method = requestLine.substr(0, methodEnd);
+    path = requestLine.substr(methodEnd + 1, pathEnd - methodEnd - 1);
+  }
+
   size_t contentLength = 0;
   {
-    std::string lower = buffer.substr(0, headerEnd);
+    std::string lower = headerBlock;
     for (auto& c : lower) c = static_cast<char>(::tolower(static_cast<unsigned char>(c)));
     auto pos = lower.find("content-length:");
     if (pos != std::string::npos) {
@@ -64,7 +82,16 @@ std::optional<std::string> ReadRequestBody(int fd) {
     body.append(chunk, static_cast<size_t>(n));
   }
   body.resize(contentLength);
-  return body;
+  return HttpRequest{std::move(method), std::move(path), std::move(body)};
+}
+
+// Derives a model id from the file name, matching the LM Studio shape BeLauncher already parses
+// (`{"data":[{"id":"..."}]}`): "/path/to/gemma-4-E4B-it.litertlm" -> "gemma-4-E4B-it".
+std::string ModelIdFromPath(const std::string& modelPath) {
+  size_t slash = modelPath.find_last_of('/');
+  std::string base = slash == std::string::npos ? modelPath : modelPath.substr(slash + 1);
+  size_t dot = base.find_last_of('.');
+  return dot == std::string::npos ? base : base.substr(0, dot);
 }
 
 void WriteResponse(int fd, int status, const std::string& statusText,
@@ -106,6 +133,7 @@ int main(int argc, char** argv) {
   }
   const std::string modelPath = argv[1];
   const int port = std::stoi(argv[2]);
+  const std::string modelId = ModelIdFromPath(modelPath);
 
   auto speculative =
       litert::lm::schema::capabilities::HasSpeculativeDecodingSupport(modelPath);
@@ -166,8 +194,17 @@ int main(int argc, char** argv) {
     int clientFd = accept(listenFd, nullptr, nullptr);
     if (clientFd < 0) continue;
 
-    auto body = ReadRequestBody(clientFd);
-    if (!body) {
+    auto req = ReadRequest(clientFd);
+    if (!req) {
+      close(clientFd);
+      continue;
+    }
+
+    // Matches Ollama's /api/tags and LM Studio's /v1/models: BeLauncher's local-provider discovery
+    // (LocalModels.installed()) pings this before ever calling /v1/chat/completions, and treats a
+    // provider with no models endpoint as never installed.
+    if (req->method == "GET" && req->path == "/v1/models") {
+      WriteResponse(clientFd, 200, "OK", {{"data", {{{"id", modelId}}}}});
       close(clientFd);
       continue;
     }
@@ -175,7 +212,7 @@ int main(int argc, char** argv) {
     nlohmann::json request;
     std::optional<std::string> prompt;
     try {
-      request = nlohmann::json::parse(*body);
+      request = nlohmann::json::parse(req->body);
       prompt = ExtractPrompt(request);
     } catch (const nlohmann::json::exception&) {
       prompt = std::nullopt;

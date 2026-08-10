@@ -1,8 +1,10 @@
 # LiteRT-LM local core: production server bridge
 
-Status: **built and verified end-to-end on real M1/8 GB hardware against the real
-`gemma-4-E4B-it.litertlm` model — real HTTP round trips return real generated text. Not yet
-wired into `ModelProviderRegistry`.**
+Status: **built, wired into `ModelProviderRegistry` and app startup/shutdown, and verified
+end-to-end on real M1/8 GB hardware against the real `gemma-4-E4B-it.litertlm` model — real HTTP
+round trips return real generated text, and the local-provider discovery path
+(`LocalModels.installed()`) finds it exactly like it finds Ollama or LM Studio. Not yet bundled
+with a signed build — see "What is still open" below.**
 
 ## What this is
 
@@ -68,7 +70,7 @@ X2/X4 spikes).
    sustained multi-turn conversation cost (each request currently creates a fresh
    `Conversation` — see below).
 
-## Next steps, in order
+## Registered and wired (2026-08-10)
 
 1. ~~Run the build on target hardware and confirm it compiles.~~ Done — see above; build script
    fixed.
@@ -77,8 +79,41 @@ X2/X4 spikes).
    ~9 tok/s CPU-only and ~1.4 GB RSS are real numbers now, not projections; NPU/GPU acceleration is
    currently not engaging on this hardware, which is worth its own investigation before treating
    9 tok/s as a ceiling.
-4. Register a `belocal-litertlm` entry in `ModelProviderRegistry`, bundle the built binary with the
-   signed app, and wire `LiteRTLMService` into app startup/shutdown. Not yet done in this session.
+4. ~~Register a `litertlm` entry in `ModelProviderRegistry` and wire `LiteRTLMService` into app
+   startup/shutdown.~~ Done:
+   - `litert-lm-server-bridge.cc` now answers `GET /v1/models` with the LM Studio-shaped
+     `{"data":[{"id":"..."}]}` `LocalModels.models(in:)` already parses — without this, the bridge
+     could serve chat completions but `LocalModels.installed()` would never see it, because that is
+     the ping every local provider is discovered through. Rebuilt and verified against the real
+     model: both `/v1/models` and `/v1/chat/completions` respond correctly on real hardware.
+   - `ModelProviderRegistry.all` has a `litertlm` entry (`transport: .local`,
+     `defaultModel: "gemma-4-E4B-it"`), which `IntelligenceProvider.all` picks up automatically —
+     no separate catalogue to maintain.
+   - `LiteRTLMLocalCore` (in `LiteRTLMService.swift`) defines the path convention: binary and model
+     are expected at `Application Support/BeLauncher/LocalCore/`, overridable via
+     `LITERT_LM_BINARY_PATH` / `LITERT_LM_MODEL_PATH` for development against a Bazel output
+     directory. `isAvailable` is true only when both files actually exist there.
+   - `AppDelegate.finishLaunch(store:)` calls `startLiteRTLMIfAvailable()`, which is a no-op unless
+     `LiteRTLMLocalCore.isAvailable`; `applicationWillTerminate` stops the service. On every real
+     user's machine today this is a no-op, identical to Ollama not being installed — nothing
+     bundles the binary or the model yet (see below).
+   - Verified end-to-end on real hardware: with the binary and model at the env-var-overridden
+     paths, `LocalModels.installed()` reports `litertlm` as running with model
+     `gemma-4-E4B-it` — the same discovery path `askModel` already uses for every other local
+     provider, unmodified.
 5. Reconnect `BELMTPScheduler` (X4) once the provider contract exposes real MTP cycle telemetry
    from this server, not before — wiring it without that telemetry would be an unproven "adaptive"
    claim, per X4's own acceptance gates.
+
+## What is still open
+
+**Bundling the binary and model with a signed build is not done and was not attempted here.**
+`Package.swift` is a plain Swift Package with no resource-bundling rule for an arbitrary external
+executable (the only precedent found — `brain.html`, `AppIconArt.png` — is `Bundle.main` lookups
+for small assets, nothing like a 21 MB Mach-O plus a 3.6 GB model file). This is a real product
+decision, not a mechanical one: ship the model inside the signed `.app` (huge download, works
+offline immediately), or download it on first run (small app, needs a real download/verify/resume
+flow that does not exist yet), and either way the ~21 MB binary needs to be code-signed and
+notarized as part of the build, which nothing in this repo's build pipeline does today. Until one
+of those is chosen and built, `litertlm` is registered and fully wired but will never actually
+appear as an available provider outside a machine with the env vars set.
