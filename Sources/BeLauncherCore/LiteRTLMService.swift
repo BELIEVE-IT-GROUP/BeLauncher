@@ -34,8 +34,27 @@ public actor LiteRTLMService {
     /// Starts the server and suspends until it prints its ready line on stdout, or the process
     /// exits first. `binaryPath` and `modelPath` are caller-supplied rather than discovered here:
     /// this type only manages the process, it does not decide where the model lives on disk.
+    /// Tries the GPU first and falls back to CPU if it does not come up. Measured on a Mac mini
+    /// M4/24 GB with the same model and prompts: 6.8s → 2.2s for a one-sentence answer, 11.0s →
+    /// 6.8s for ~120 words, ~13-16 → ~22-25 tok/s. The fallback is not defensive padding — the GPU
+    /// accelerator is loaded by `dlopen` at runtime and simply fails to register on machines where
+    /// it cannot run, and answering slowly beats not answering.
+    public func startPreferringGPU(binaryPath: String, modelPath: String,
+                                   port: Int = LiteRTLMService.defaultPort) async throws {
+        do {
+            try await start(binaryPath: binaryPath, modelPath: modelPath, port: port, backend: .gpu)
+        } catch {
+            try await start(binaryPath: binaryPath, modelPath: modelPath, port: port, backend: .cpu)
+        }
+    }
+
+    public enum Backend: String, Sendable {
+        case cpu, gpu
+    }
+
     public func start(binaryPath: String, modelPath: String,
-                      port: Int = LiteRTLMService.defaultPort) async throws {
+                      port: Int = LiteRTLMService.defaultPort,
+                      backend: Backend = .cpu) async throws {
         guard process == nil else { throw ServiceError.alreadyRunning }
         guard FileManager.default.isExecutableFile(atPath: binaryPath) else {
             throw ServiceError.binaryMissing(binaryPath)
@@ -47,6 +66,9 @@ public actor LiteRTLMService {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: binaryPath)
         process.arguments = [modelPath, String(port)]
+        var environment = ProcessInfo.processInfo.environment
+        environment["LITERT_LM_BACKEND"] = backend.rawValue
+        process.environment = environment
         let stdout = Pipe()
         process.standardOutput = stdout
         self.process = process

@@ -116,11 +116,33 @@ Second machine, downloaded through the shipped path (E4B, the variant a 24 GB Ma
 | ~100-word answer | — | 11 s |
 | Throughput | ~8-9 tok/s | ~13-16 tok/s |
 
-Still CPU-only: the NPU registry fails with `kLiteRtStatusErrorInvalidArgument` and every GPU
-accelerator (including `libLiteRtMetalAccelerator.dylib`) fails to load, exactly as on the M1. The
-M4 is faster because its CPU is faster, not because anything is being accelerated — which is the
-argument for measuring the 12B variant before offering it, rather than assuming a bigger Mac can
-carry a bigger model.
+Those numbers are CPU-only. The GPU does work, and the reason it looked impossible is that three
+separate things were missing at once:
+
+1. **The bridge hardcoded `Backend::CPU`.** Now selectable through `LITERT_LM_BACKEND`.
+2. **The accelerator dylibs were not shipped.** They exist in `prebuilt/macos_arm64/` but only one
+   of them was published. The one that actually registers is `libLiteRtWebGpuAccelerator.dylib`
+   (WebGPU/Dawn) — `libLiteRtMetalAccelerator.dylib` never loads, on either machine.
+3. **The `-gpu.litertlm` model files are a trap.** They ask for `GPU_ARTISAN`, a legacy TfLite
+   engine this build does not register (`No available engine for backend: GPU_ARTISAN`). What
+   works is the *ordinary* model file with the GPU backend. The 2.97 GB E4B-gpu download was
+   measured and discarded.
+
+Same M4, same model, same prompts:
+
+| | CPU | GPU |
+|---|---|---|
+| One-sentence answer | 6.8 s | **2.2 s** |
+| ~120-word answer | 11.0 s | **6.8 s** |
+| Throughput | ~13-16 tok/s | **~22-25 tok/s** |
+
+The GPU sampler stays on CPU (`sampler_factory` looks for a `.so`, not a `.dylib`); shipping the
+sampler dylibs anyway was measured and changed nothing, so they are not shipped. The NPU still
+never registers on either machine.
+
+The engine asks for the GPU and falls back to CPU if it does not come up: the accelerator is
+`dlopen`ed at runtime and simply fails to register where it cannot run, and a slow answer beats
+no answer.
 
 **Disk, not memory, is what actually broke it.** On first run XNNPACK builds a weight cache next to
 the model (`<model>_<mtime>_<size>.xnnpack_cache`, **2.1 GB** for E4B) and calls `abort()` if it
