@@ -256,6 +256,38 @@ extension SpanishStrings {
             "Comprobando…",
         "It starts BeLauncher exactly as your assistant would, asks it a question whose answer we know, and checks that content comes back. A configuration file mentioning us is not enough.":
             "Arranca BeLauncher igual que lo haría tu asistente, le hace una pregunta cuya respuesta conocemos y comprueba que vuelva con contenido. No basta con que el archivo de configuración nos mencione.",
+
+        // MARK: - LiteRT-LM (Gemma on-device)
+        "A full local model that answers without leaving this Mac: no conversation, no document ever reaches a server. About 3.6 GB, downloaded once.":
+            "Un modelo local completo que responde sin salir de este Mac: ninguna conversación, ningún documento llega jamás a un servidor. Unos 3.6 GB, se descarga una sola vez.",
+        "Nobody looked yet whether Gemma is on this Mac.":
+            "Todavía nadie comprobó si Gemma está en este Mac.",
+        "Checking whether Gemma is installed…":
+            "Comprobando si Gemma está instalado…",
+        "Ready. Gemma answers with no internet connection.":
+            "Listo. Gemma responde sin conexión a internet.",
+        "Gemma is not installed. Every other model keeps working while you decide.":
+            "Gemma no está instalado. El resto de modelos siguen funcionando mientras decides.",
+        "Downloading the engine…":
+            "Descargando el motor…",
+        "Downloading the model (~3.6 GB)…":
+            "Descargando el modelo (~3.6 GB)…",
+        "Download cancelled. Nothing installed, and what came down already is kept: resuming continues where it left off instead of starting over.":
+            "Descarga cancelada. No se instaló nada, y lo que ya bajó se conserva: al reanudar sigue donde se quedó en vez de empezar de cero.",
+        "%1$@ %2$@%% (%3$@ of %4$@)":
+            "%1$@ %2$@%% (%3$@ de %4$@)",
+        "The download failed (HTTP %@). Retry to try again.":
+            "La descarga falló (HTTP %@). Reintenta para volver a intentarlo.",
+        "Gemma on your Mac":
+            "Gemma en tu Mac",
+        "Download":
+            "Descargar",
+        "Downloaded":
+            "Descargado",
+        "A model that never leaves your Mac":
+            "Un modelo que nunca sale de tu Mac",
+        "Optional. Everything else in BeLauncher works whether or not you download it, and you can always start or cancel this from Settings → Intelligence.":
+            "Opcional. Todo lo demás en BeLauncher funciona lo descargues o no, y siempre puedes iniciarlo o cancelarlo desde Ajustes → Inteligencia.",
     ]
 
     // MARK: - Privacy: pausing, excluding, forgetting
