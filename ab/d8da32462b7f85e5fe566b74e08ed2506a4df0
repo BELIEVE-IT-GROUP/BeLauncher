@@ -1,0 +1,22 @@
+Sources/BeLauncherCore/LiteRTLMInstall.swift
+  s_6d5bf66b8b4b65::t_95418bbfad3dfb 84-88,92
+  s_6d5bf66b8b4b65::t_3cfbdafeb025c4 89-91
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_73475082718caf 108-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "abd8da32462b7f85e5fe566b74e08ed2506a4df0",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
