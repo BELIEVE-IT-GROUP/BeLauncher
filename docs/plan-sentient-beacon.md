@@ -12,7 +12,7 @@ que evita duplicación, estados optimistas o recuperación incompleta.
 
 | Área | Estado | Qué ya funciona | Qué sigue faltando |
 |---|---|---|---|
-| Brain diario | En progreso | `BrainOverview` con métricas, recientes, Inbox, Pulse, captura real y acciones visibles de nota/importación/voz/pregunta | Cambios relevantes y acciones preparadas en una sola vista |
+| Brain diario | En progreso | `BrainOverview` con métricas, recientes, Inbox, Pulse, captura real, acciones visibles de nota/importación/voz/pregunta y `dailyBrief` con tres tarjetas (qué cambió / qué importa / qué se puede hacer) más cada señal de Pulse con su propia acción de "preguntarle al Brain", todo en una sola vista | Ejecución de un clic por señal (marcar hecho, asignar dueño) requiere `ActionDraftStore` (propone → aprueba → recibo), que todavía no existe en el repo |
 | Viewer / grafo | Funcional | Selección, evidencia, lectura inline, lector con documento correcto, acciones del Inspector dentro de Brain, backlinks explícitos en el Vault y citas navegables cuando existe Markdown local | Pulido final del workspace |
 | Notas / Inbox | Parcial fuerte | Nota Markdown, evidencia de audio/importación con ruta original, revisión persistente, propuesta de memoria, reintento de transcripción, filtros por tipo, proyección común `InboxItem` y adjuntos importados en staging UUID+manifiesto con recuperación tras interrupción (`Vault.saveEvidence`, prueba `recoversInterruptedEvidenceImport`) | — |
 | Conversación | Funcional | Pregunta con fuentes identificadas, apertura dentro del lector cuando hay documento local, contexto explícito del documento actual, guardar respuesta y convertir en misión; la consulta comparte `BrainCommandCoordinator`, tiene cancelación visible y no puede cerrar una ejecución posterior | Pruebas visuales y pulido final del workspace |
@@ -57,7 +57,7 @@ utilizable: leer, conversar, convertir y actuar.
 
 | Sentient OS | Beacon existente | Gap real | Dueño propuesto | Prioridad |
 |---|---|---|---|---|
-| Home / For You | `BrainOverview`, GraphView, BrainStatusView | La superficie diaria existe; falta convertir más señales en acciones preparadas | `BrainOverview` | P1 |
+| Home / For You | `BrainOverview`, GraphView, BrainStatusView | `dailyBrief` ya convierte señales de Pulse en acciones preparadas dentro de una sola vista; falta ejecución de un clic (marcar hecho, asignar dueño) | `ActionDraftStore` | P1 |
 | Knowledge Viewer | GraphModel, Inspector, CorpusReaderView, BrainWebView | Lectura inline, evidencia y rutas de regreso ya están cableadas; queda pulido final del workspace | `BrainWorkspace` | P0 |
 | Reader Markdown | VaultDocument, CorpusDocument, CorpusReaderView | Lector/editor con origen, backlinks y acciones ya existe; falta unificar el último detalle de edición | `BrainDocumentReader` | P0 |
 | Grafo accionable | `GraphModel.readHere`, `evidence`, `materializeDocument`, `why` | Capacidades existentes no forman un flujo obvio | `BrainWorkspace` + pruebas UX | P0 |
