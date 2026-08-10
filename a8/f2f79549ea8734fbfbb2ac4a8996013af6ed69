@@ -1,0 +1,21 @@
+docs/plan-sentient-beacon.md
+  s_6d5bf66b8b4b65::t_bcb9a05ce5a3b5 23
+  s_6d5bf66b8b4b65::t_306d6ff1c2a4ab 66
+  s_6d5bf66b8b4b65::t_c5420a77e09ee0 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a8f2f79549ea8734fbfbb2ac4a8996013af6ed69",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
