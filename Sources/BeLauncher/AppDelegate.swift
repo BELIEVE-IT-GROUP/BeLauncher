@@ -463,13 +463,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Launches the on-device LiteRT-LM core when its binary and model are actually present.
-    ///
-    /// Neither ships yet (see docs/spikes/litert-lm-server.md) so on every real user's machine
-    /// today `isAvailable` is false and this is a no-op — same as `askModel` finding no local
-    /// provider running. This exists so the "litertlm" entry in `ModelProviderRegistry` is real
-    /// and testable ahead of that bundling decision, not so it does anything on its own yet.
+    /// Launches the on-device LiteRT-LM core when its binary and model are actually present —
+    /// at startup, and again the moment a download finishes, since nothing ships bundled and the
+    /// usual case is someone downloading it while the app is already open.
     private func startLiteRTLMIfAvailable() {
+        NotificationCenter.default.addObserver(
+            forName: LiteRTLMInstaller.didBecomeReady, object: nil, queue: .main) { [weak self] _ in
+            self?.startLiteRTLMNow()
+        }
+        startLiteRTLMNow()
+    }
+
+    private func startLiteRTLMNow() {
         guard LiteRTLMLocalCore.isAvailable else { return }
         Task { [liteRTLMService] in
             do {

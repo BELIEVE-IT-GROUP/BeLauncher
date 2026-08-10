@@ -11,6 +11,10 @@ import BeLauncherCore
 final class LiteRTLMInstaller {
     static let shared = LiteRTLMInstaller()
 
+    /// Posted when the engine and model are both on disk, so whoever owns the server can start it
+    /// without waiting for the next app launch.
+    static let didBecomeReady = Notification.Name("LiteRTLMInstallerDidBecomeReady")
+
     private(set) var phase: LiteRTLMInstall.Phase = .idle
     private(set) var installProgress = InstallProgressStore.load(providerID: "litertlm")
     private var task: Task<Void, Never>?
@@ -101,6 +105,11 @@ final class LiteRTLMInstaller {
 
                 self.phase = .ready
                 self.persist(.ready)
+                // Without this the engine sits on disk doing nothing until the next launch: the
+                // server is started once, at startup, and a download that finishes afterwards has
+                // no way to say so. That is exactly what "Gemma is not ready" meant on a machine
+                // where everything had in fact downloaded correctly.
+                NotificationCenter.default.post(name: LiteRTLMInstaller.didBecomeReady, object: nil)
             } catch is CancellationError {
                 self.phase = .cancelled
                 self.persist(.cancelled)
