@@ -1,0 +1,42 @@
+Scripts/litert-lm-server-bridge.cc
+  s_6d5bf66b8b4b65::t_fe3426549a136b 153-159
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_68c349284d3bb1 119-145
+Sources/BeLauncher/AppDelegate.swift
+  s_6d5bf66b8b4b65::t_9c3ef33966ccef 476-478
+Sources/BeLauncher/WelcomeView.swift
+  s_6d5bf66b8b4b65::t_4fadcd8c175290 70-83
+Tests/BeLauncherCoreTests/LiteRTLMServiceTests.swift
+  s_6d5bf66b8b4b65::t_840e5653dea9cc 94-126
+  s_6d5bf66b8b4b65::t_34de3b9f5bec81 127
+Scripts/release-litert-lm-server.sh
+  s_6d5bf66b8b4b65::t_fe6b6f36a6829a 24-31,41,46-48,88-91,106,122,132-134
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_6d5bf66b8b4b65::t_640b3ac4b974d6 261-270
+Sources/BeLauncherCore/LiteRTLMService.swift
+  s_6d5bf66b8b4b65::t_ae377916affccf 69-71
+  s_6d5bf66b8b4b65::t_cfb2a90d05e1c3 37-54,56-57
+Sources/BeLauncher/LiteRTLMInstaller.swift
+  s_6d5bf66b8b4b65::t_cb07913ff33837 26-28,44,80-83
+Sources/BeLauncherCore/LiteRTLMInstall.swift
+  s_6d5bf66b8b4b65::t_cb07913ff33837 122
+  s_6d5bf66b8b4b65::t_ca4d6850657ad4 42-72
+  s_6d5bf66b8b4b65::t_4b7ff637d46581 106-119
+  s_6d5bf66b8b4b65::t_1f518f54e3e986 12-15,101-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "44e6115a9b20726bf8b912ee59118ed19a473de9",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
