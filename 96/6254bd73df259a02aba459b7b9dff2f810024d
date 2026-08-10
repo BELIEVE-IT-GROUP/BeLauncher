@@ -1,0 +1,27 @@
+Scripts/build-litert-lm-server.sh
+  s_6d5bf66b8b4b65::t_69ee7d04278a29 1-63
+Scripts/litert-lm-server-bridge.cc
+  s_6d5bf66b8b4b65::t_e62020a7a6d377 1-230
+Sources/BeLauncherCore/LiteRTLMService.swift
+  s_6d5bf66b8b4b65::t_f4d2a0fb16b396 1-110
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_e5e391260cb07f 1-60
+Tests/BeLauncherCoreTests/LiteRTLMServiceTests.swift
+  s_6d5bf66b8b4b65::t_d8eccd9004185e 1-94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "966254bd73df259a02aba459b7b9dff2f810024d",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
