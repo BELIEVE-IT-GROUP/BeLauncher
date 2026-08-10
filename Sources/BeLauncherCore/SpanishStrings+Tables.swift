@@ -258,8 +258,8 @@ extension SpanishStrings {
             "Arranca BeLauncher igual que lo haría tu asistente, le hace una pregunta cuya respuesta conocemos y comprueba que vuelva con contenido. No basta con que el archivo de configuración nos mencione.",
 
         // MARK: - LiteRT-LM (Gemma on-device)
-        "A full local model that answers without leaving this Mac: no conversation, no document ever reaches a server. About 3.6 GB, downloaded once.":
-            "Un modelo local completo que responde sin salir de este Mac: ninguna conversación, ningún documento llega jamás a un servidor. Unos 3.6 GB, se descarga una sola vez.",
+        "A full local model that answers without leaving this Mac: no conversation, no document ever reaches a server. About %@, downloaded once.":
+            "Un modelo local completo que responde sin salir de este Mac: ninguna conversación, ningún documento llega jamás a un servidor. Unos %@, se descarga una sola vez.",
         "Nobody looked yet whether Gemma is on this Mac.":
             "Todavía nadie comprobó si Gemma está en este Mac.",
         "Checking whether Gemma is installed…":
@@ -270,8 +270,8 @@ extension SpanishStrings {
             "Gemma no está instalado. El resto de modelos siguen funcionando mientras decides.",
         "Downloading the engine…":
             "Descargando el motor…",
-        "Downloading the model (~3.6 GB)…":
-            "Descargando el modelo (~3.6 GB)…",
+        "Downloading the model (~%@)…":
+            "Descargando el modelo (~%@)…",
         "Download cancelled. Nothing installed, and what came down already is kept: resuming continues where it left off instead of starting over.":
             "Descarga cancelada. No se instaló nada, y lo que ya bajó se conserva: al reanudar sigue donde se quedó en vez de empezar de cero.",
         "%1$@ %2$@%% (%3$@ of %4$@)":
