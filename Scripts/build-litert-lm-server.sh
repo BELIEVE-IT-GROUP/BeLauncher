@@ -27,15 +27,21 @@ command -v file >/dev/null || fail "file is required"
     || fail "this build targets macOS arm64"
 [[ -f "$BRIDGE_SOURCE" ]] || fail "bridge source is missing"
 
+command -v git-lfs >/dev/null || fail "git-lfs is required"
+
 mkdir -p "$WORK_ROOT"
 if [[ ! -d "$SOURCE_DIR/.git" ]] || ! git -C "$SOURCE_DIR" rev-parse HEAD >/dev/null 2>&1; then
     if [[ -d "$SOURCE_DIR" ]]; then
         mv "$SOURCE_DIR" "$WORK_ROOT/source-incomplete-$(date +%s)"
     fi
+    # LFS smudge is skipped on clone to avoid pulling every platform's prebuilt binaries
+    # (ios/android/linux/macos, several hundred MB); only macos_arm64 is fetched below,
+    # since that is the sole platform this script builds for.
     GIT_LFS_SKIP_SMUDGE=1 git clone --depth 1 --branch "$REPO_REF" "$REPO_URL" "$SOURCE_DIR"
 fi
 
 cd "$SOURCE_DIR"
+git lfs pull --include="prebuilt/macos_arm64/*"
 expected_bazel="$(tr -d '[:space:]' < .bazelversion)"
 [[ "$expected_bazel" == "7.6.1" ]] || fail "unexpected Bazel pin: $expected_bazel"
 

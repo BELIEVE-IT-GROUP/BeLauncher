@@ -1,7 +1,8 @@
 # LiteRT-LM local core: production server bridge
 
-Status: **server bridge and Swift lifecycle manager written and unit-tested; not yet built or run
-against a real model on real hardware. Not wired into `ModelProviderRegistry` yet.**
+Status: **built and verified end-to-end on real M1/8 GB hardware against the real
+`gemma-4-E4B-it.litertlm` model — real HTTP round trips return real generated text. Not yet
+wired into `ModelProviderRegistry`.**
 
 ## What this is
 
@@ -35,26 +36,49 @@ concurrent start, and fails closed with `didNotBecomeReady` when a process exits
 ready. All five tests pass; `swift test` for the whole package passes except one pre-existing,
 unrelated timing flake in `SearchPerformanceTests`.
 
-What is **not** verified here, because this sandbox has neither the model file nor a live Bazel
-build environment:
+## Verified on real hardware (2026-08-10, M1/8 GB)
 
-- That `litert-lm-server-bridge.cc` actually compiles against the real LiteRT-LM headers.
-- That a real request round-trips through the socket and returns real generated text.
-- Any throughput or memory number on M1/8 GB — X2 and X4's numbers were measured on a 24 GiB host
-  and are explicitly not a guarantee for the target hardware.
+Steps 1–3 below are now done, on this machine, against the model already present at
+`/private/tmp/belauncher-litert-models/gemma-4-E4B-it.litertlm` (3.6 GB, downloaded during the
+X2/X4 spikes).
+
+1. **Build.** `MODEL_PATH=... Scripts/build-litert-lm-server.sh` initially failed at the link step:
+   `ld: unknown file type in .../libGemmaModelConstraintProvider.dylib`. Cause: the script clones
+   with `GIT_LFS_SKIP_SMUDGE=1` (deliberately, to skip the ~6 platforms' worth of prebuilt
+   binaries this build doesn't need), but that also left `prebuilt/macos_arm64/*.dylib` — the one
+   platform this script *does* need — as unresolved Git LFS pointer text files instead of the real
+   Mach-O binaries. Fixed by adding `git lfs pull --include="prebuilt/macos_arm64/*"` right after
+   the clone, scoped to just that platform. After the fix, `bazelisk build
+   //belauncher/litert_lm_server:litert_lm_server_bridge` completes successfully and produces a
+   real arm64 Mach-O executable.
+2. **Round trip.** Launched the built binary directly against the real model file. It printed the
+   `{"ready":true,"port":8998,"speculative_decoding":true}` line within ~1s (the XNNPACK cache
+   files from the prior X2/X4 runs were already on disk next to the model, which is presumably why
+   this was fast — a cold cache would likely take longer). Two consecutive real
+   `POST /v1/chat/completions` requests (Spanish-language prompts) both returned real generated
+   text in the exact `choices[0].message.content` shape `IntelligenceClient.extractText` expects.
+   A malformed request correctly returned `400 {"error":"expected messages[].content"}`.
+3. **Resource numbers.** RSS after loading the model and serving two requests: **~1.4 GB**.
+   Response latency: **~7–9 seconds** for a short (~1–2 sentence) generated answer, running on
+   CPU only via XNNPACK — the server log shows both NPU and GPU/Metal acceleration failed to
+   register (`NPU accelerator could not be loaded`, `GPU accelerator could not be loaded`), so
+   this is CPU-only inference, not the best case this hardware could produce. Rough throughput
+   from response length: **~8–9 tokens/sec**. These are single-request numbers from an already-warm
+   XNNPACK cache; not a load test, not a cold-start number, and not necessarily representative of
+   sustained multi-turn conversation cost (each request currently creates a fresh
+   `Conversation` — see below).
 
 ## Next steps, in order
 
-1. Run `MODEL_PATH=/path/to/gemma-4-E4B-it.litertlm Scripts/build-litert-lm-server.sh` on the
-   target Mac to get a real binary, and confirm it compiles.
-2. Launch it directly (`./litert_lm_server_bridge model.litertlm 8998`) and `curl` it with a real
-   prompt to confirm the OpenAI-compatible round trip actually returns generated text, not just
-   that the process starts.
-3. Measure load time, memory, and tokens/sec on the actual M1/8 GB budget this project has been
-   explicit about — X2/X4's numbers do not transfer.
-4. Only then: register a `belocal-litertlm` entry in `ModelProviderRegistry`, bundle the built
-   binary with the signed app, and wire `LiteRTLMService` into app startup/shutdown. That is a
-   small, mechanical change once 1–3 are done — most of the risk was in the server itself.
+1. ~~Run the build on target hardware and confirm it compiles.~~ Done — see above; build script
+   fixed.
+2. ~~Confirm the OpenAI-compatible round trip returns real generated text.~~ Done — see above.
+3. ~~Measure load time, memory, and tokens/sec on the actual M1/8 GB budget.~~ Done — see above.
+   ~9 tok/s CPU-only and ~1.4 GB RSS are real numbers now, not projections; NPU/GPU acceleration is
+   currently not engaging on this hardware, which is worth its own investigation before treating
+   9 tok/s as a ceiling.
+4. Register a `belocal-litertlm` entry in `ModelProviderRegistry`, bundle the built binary with the
+   signed app, and wire `LiteRTLMService` into app startup/shutdown. Not yet done in this session.
 5. Reconnect `BELMTPScheduler` (X4) once the provider contract exposes real MTP cycle telemetry
    from this server, not before — wiring it without that telemetry would be an unproven "adaptive"
    claim, per X4's own acceptance gates.
