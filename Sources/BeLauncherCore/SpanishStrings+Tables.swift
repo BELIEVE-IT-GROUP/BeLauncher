@@ -1028,6 +1028,7 @@ extension SpanishStrings {
         "It switches itself off when it finishes": "Se apaga solo al terminar",
         "Nothing is working harder than it should": "Nada está trabajando de más",
         "Nothing called “%@”": "Nada llamado «%@»",
+        "Not sure which one you mean": "No está claro cuál de estas",
         "Working memory": "Memoria de trabajo",
         "It is kept as a proposal until you confirm it":
             "Se guardará como propuesta hasta que la confirmes",

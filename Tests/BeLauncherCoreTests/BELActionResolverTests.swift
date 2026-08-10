@@ -43,4 +43,35 @@ struct BELActionResolverTests {
         #expect(BELActionResolver.resolve("s") == nil)
         #expect(BELActionResolver.resolve("sa") == nil)
     }
+
+    private func definition(_ id: String, alias: String, takesArgument: Bool = false) -> BELActionDefinition {
+        BELActionDefinition(id: id, kind: .native, titleKey: "seed.\(id)", aliases: [alias],
+                            arguments: takesArgument ? [.init("text", .text, required: false)] : [],
+                            risk: .r0, adapter: .publicAPI, availability: .implemented)
+    }
+
+    @Test("two actions sharing an exact alias are reported as ambiguous, not silently dropped")
+    func exactAliasCollisionIsAmbiguous() {
+        let definitions = [definition("a.one", alias: "cerrar"), definition("a.two", alias: "cerrar")]
+        #expect(BELActionResolver.resolve("cerrar", definitions: definitions) == nil)
+        #expect(BELActionResolver.resolveDetailed("cerrar", definitions: definitions)
+            == .ambiguous(["a.one", "a.two"]))
+    }
+
+    @Test("two actions sharing a prefix alias are reported as ambiguous")
+    func prefixAliasCollisionIsAmbiguous() {
+        let definitions = [definition("a.one", alias: "abrir", takesArgument: true),
+                          definition("a.two", alias: "abrir", takesArgument: true)]
+        #expect(BELActionResolver.resolve("abrir esto", definitions: definitions) == nil)
+        #expect(BELActionResolver.resolveDetailed("abrir esto", definitions: definitions)
+            == .ambiguous(["a.one", "a.two"]))
+    }
+
+    @Test("a single fuzzy match still resolves, in English and Spanish")
+    func fuzzyResolutionIsDetailed() {
+        let definitions = [definition("a.one", alias: "cerrar ventana")]
+        guard case .match(let match)? = BELActionResolver.resolveDetailed("cerar ventana", definitions: definitions)
+        else { Issue.record("expected a fuzzy match"); return }
+        #expect(match.actionID == "a.one")
+    }
 }

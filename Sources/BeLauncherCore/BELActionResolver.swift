@@ -15,11 +15,27 @@ public struct BELActionMatch: Sendable, Equatable {
     }
 }
 
+/// Whether typed text resolved to one action, to several equally plausible ones, or to none.
+public enum BELActionResolution: Sendable, Equatable {
+    case match(BELActionMatch)
+    /// More than one action matched equally well. IDs, sorted for stable output.
+    case ambiguous([String])
+}
+
 /// Resolves human launcher text without asking an LLM to choose a side effect.
 public enum BELActionResolver {
     public static func resolve(_ query: String,
                                definitions: [BELActionDefinition] = BELActionCatalog.all)
     -> BELActionMatch? {
+        if case .match(let match) = resolveDetailed(query, definitions: definitions) { return match }
+        return nil
+    }
+
+    /// Same resolution as `resolve`, but keeps "several actions matched equally well" distinct
+    /// from "nothing matched" so the caller can tell the person instead of failing in silence.
+    public static func resolveDetailed(_ query: String,
+                                       definitions: [BELActionDefinition] = BELActionCatalog.all)
+    -> BELActionResolution? {
         let folded = Phrases.fold(query)
         // Two characters are enough for ordinary search, but not enough to infer an action.
         guard folded.count >= 3 else { return nil }
@@ -35,9 +51,9 @@ public enum BELActionResolver {
         }
         if exact.count == 1, let definition = exact.first {
             guard let arguments = parseArguments("", for: definition) else { return nil }
-            return BELActionMatch(actionID: definition.id, arguments: arguments, confidence: 1_000)
+            return .match(BELActionMatch(actionID: definition.id, arguments: arguments, confidence: 1_000))
         }
-        if exact.count > 1 { return nil }
+        if exact.count > 1 { return .ambiguous(exact.map(\.id).sorted()) }
 
         let prefixed = executable.compactMap { definition -> BELActionMatch? in
             let aliases = [definition.id] + definition.aliases.map(Phrases.fold)
@@ -50,8 +66,8 @@ public enum BELActionResolver {
             return BELActionMatch(actionID: definition.id, argument: argument,
                                   arguments: arguments, confidence: 900)
         }
-        if prefixed.count == 1, let match = prefixed.first { return match }
-        if prefixed.count > 1 { return nil }
+        if prefixed.count == 1, let match = prefixed.first { return .match(match) }
+        if prefixed.count > 1 { return .ambiguous(prefixed.map(\.actionID).sorted()) }
 
         // Fuzzy matching may choose only actions that need no missing positional argument. This
         // keeps a typo from silently opening, deleting or moving something without a path.
@@ -65,9 +81,10 @@ public enum BELActionResolver {
             }
         // Fuzzy inference is deliberately conservative because this result may execute a native
         // side effect. Exact IDs/aliases and explicit prefixes remain the fast paths.
-        guard let best = candidates.max(by: { $0.1 < $1.1 }), best.1 >= 60,
-              candidates.filter({ $0.1 == best.1 }).count == 1 else { return nil }
-        return BELActionMatch(actionID: best.0, confidence: best.1)
+        guard let best = candidates.max(by: { $0.1 < $1.1 }), best.1 >= 60 else { return nil }
+        let tied = candidates.filter { $0.1 == best.1 }
+        if tied.count > 1 { return .ambiguous(Set(tied.map(\.0)).sorted()) }
+        return .match(BELActionMatch(actionID: best.0, confidence: best.1))
     }
 
     private static func parseArguments(_ raw: String, for definition: BELActionDefinition)

@@ -692,6 +692,21 @@ public enum SearchEngine {
                 }
             }
 
+            // Two actions matched equally well: saying nothing reads as "the app did not
+            // understand", when what actually happened is it understood two things at once.
+            if !collides, AIVerb.typed(query) == nil,
+               case .ambiguous(let ids)? = BELActionResolver.resolveDetailed(query) {
+                let titles = ids.compactMap { BELActionCatalog.named($0) }.map { L($0.titleKey) }
+                if !titles.isEmpty {
+                    pinned.append(SearchResult(
+                        id: "bel-ambiguous", kind: .answer,
+                        title: L("Not sure which one you mean"),
+                        subtitle: titles.joined(separator: " · "),
+                        score: 100_110, matched: [], payload: ""
+                    ))
+                }
+            }
+
             // The missions that turn notes into memory work on what you just copied. Planning
             // them without it produced steps that were guaranteed to do nothing.
             let clipboard = input.clips.first(where: { $0.kind == .text })?.text ?? ""
