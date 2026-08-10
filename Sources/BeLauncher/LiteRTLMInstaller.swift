@@ -24,7 +24,10 @@ final class LiteRTLMInstaller {
 
     private var binaryURL: URL { root.appendingPathComponent("litert_lm_server_bridge") }
     private var dylibURL: URL { root.appendingPathComponent(LiteRTLMInstall.dylibName) }
-    private var modelURL: URL { root.appendingPathComponent("gemma-4-E4B-it.litertlm") }
+    /// Where the model this Mac downloads lands. Reads through `LiteRTLMLocalCore.modelPath()` so
+    /// a model downloaded by an earlier version — a different variant than this Mac would pick
+    /// today — still counts as installed instead of being re-downloaded.
+    private var modelURL: URL { URL(fileURLWithPath: LiteRTLMLocalCore.modelPath()) }
 
     var isBusy: Bool { phase.isBusy }
     var canCancel: Bool { phase.canCancel }

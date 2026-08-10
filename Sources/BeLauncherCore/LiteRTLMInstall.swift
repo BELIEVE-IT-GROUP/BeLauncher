@@ -6,13 +6,61 @@ import Foundation
 /// protocol underneath, because there is exactly one binary and one model file, not a manifest of
 /// blobs.
 public enum LiteRTLMInstall {
-    public static let modelName = "gemma-4-E4B-it"
+
+    // MARK: - Which model this Mac gets
+
+    /// Two sizes, picked by how much memory the machine has. The bridge runs CPU-only through
+    /// XNNPACK on macOS (NPU and GPU acceleration do not engage — see
+    /// docs/spikes/litert-lm-server.md), so the ceiling here is what stays responsive on the
+    /// smaller Macs, not what the largest one could hold. The 12B and 31B variants exist upstream
+    /// and are deliberately not offered: nobody has measured them on CPU-only Apple silicon, and
+    /// shipping an unmeasured size would trade a slow answer for a bigger download.
+    public enum Variant: String, Sendable, CaseIterable {
+        case e2b = "gemma-4-E2B-it"
+        case e4b = "gemma-4-E4B-it"
+
+        public var fileName: String { "\(rawValue).litertlm" }
+
+        public var url: URL {
+            URL(string: "https://huggingface.co/litert-community/\(rawValue)-litert-lm/resolve/main/\(fileName)")!
+        }
+
+        /// Measured via HEAD on 2026-08-10; used as the fallback denominator when a response
+        /// carries no Content-Length, so the progress bar never divides by zero.
+        public var bytes: Int64 {
+            switch self {
+            case .e2b: 2_588_147_712
+            case .e4b: 3_659_530_240
+            }
+        }
+
+        /// Rounded for a sentence, not for arithmetic.
+        public var readableSize: String {
+            switch self {
+            case .e2b: "2.6 GB"
+            case .e4b: "3.7 GB"
+            }
+        }
+    }
+
+    /// 8 GB Macs run E4B — that was verified on an M1/8 GB, ~1.4 GB resident — but they run it
+    /// with no room to spare while everything else the person has open competes for the same
+    /// memory. E2B leaves that room and answers faster; above 8 GB the extra quality is free.
+    public static func variant(forPhysicalMemory bytes: UInt64) -> Variant {
+        bytes > 8 * 1024 * 1024 * 1024 ? .e4b : .e2b
+    }
+
+    /// What this particular Mac downloads.
+    public static var variant: Variant {
+        variant(forPhysicalMemory: ProcessInfo.processInfo.physicalMemory)
+    }
+
+    public static var modelName: String { variant.rawValue }
+    public static var modelFileName: String { variant.fileName }
 
     /// Published by Google under litert-community on Hugging Face: no auth required, resolves to
     /// a single file, supports Range requests (verified via HEAD, see docs/spikes/litert-lm-server.md).
-    public static let modelURL = URL(
-        string: "https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it.litertlm"
-    )!
+    public static var modelURL: URL { variant.url }
 
     /// Built, signed and notarized by the `litert-lm-server` release workflow and published to
     /// Believe's own R2 bucket — see Scripts/release-litert-lm-server.sh. "latest" is a stable
@@ -31,16 +79,15 @@ public enum LiteRTLMInstall {
         string: "https://files.believe-global.com/apps/belauncher/litert-lm/libGemmaModelConstraintProvider.dylib"
     )!
 
-    /// Measured via HEAD against `modelURL` on 2026-08-10; used only as a fallback denominator
-    /// when a response carries no Content-Length, so the bar never divides by zero.
-    public static let modelBytes: Int64 = 3_659_530_240
+    public static var modelBytes: Int64 { variant.bytes }
     public static let binaryBytes: Int64 = 31_200_000
-    public static let requiredDiskBytes: Int64 = modelBytes + binaryBytes + 300_000_000
+    public static var requiredDiskBytes: Int64 { modelBytes + binaryBytes + 300_000_000 }
 
-    /// One line justifying a 3.6 GB download. Said once, said honestly: what it is, what it
-    /// costs, why it stays private.
+    /// One line justifying a multi-gigabyte download. Said once, said honestly: what it is, what
+    /// it costs, why it stays private. The size is the one this Mac will actually download.
     public static var pitch: String {
-        L("A full local model that answers without leaving this Mac: no conversation, no document ever reaches a server. About 3.6 GB, downloaded once.")
+        L("A full local model that answers without leaving this Mac: no conversation, no document ever reaches a server. About %@, downloaded once.",
+          variant.readableSize)
     }
 
     // MARK: - What is on the machine
@@ -117,7 +164,7 @@ public enum LiteRTLMInstall {
         case .downloadingBinary(let progress):
             describe(L("Downloading the engine…"), progress)
         case .downloadingModel(let progress):
-            describe(L("Downloading the model (~3.6 GB)…"), progress)
+            describe(L("Downloading the model (~%@)…", variant.readableSize), progress)
         case .cancelled:
             L("Download cancelled. Nothing installed, and what came down already is kept: resuming continues where it left off instead of starting over.")
         case .insufficientSpace(let free):

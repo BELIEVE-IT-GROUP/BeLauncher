@@ -92,3 +92,33 @@ struct LiteRTLMServiceTests {
         await service.stop()
     }
 }
+
+@Suite("El modelo local se elige según la memoria del Mac")
+struct LiteRTLMVariantTests {
+    @Test("Un Mac de 8 GB baja el modelo chico, no el que lo deja sin aire")
+    func eightGigabytesGetsTheSmallModel() {
+        let variant = LiteRTLMInstall.variant(forPhysicalMemory: 8 * 1024 * 1024 * 1024)
+        #expect(variant == .e2b)
+        #expect(variant.bytes < LiteRTLMInstall.Variant.e4b.bytes)
+    }
+
+    @Test("Con más de 8 GB la calidad extra sale gratis")
+    func moreMemoryGetsTheFullModel() {
+        #expect(LiteRTLMInstall.variant(forPhysicalMemory: 16 * 1024 * 1024 * 1024) == .e4b)
+        #expect(LiteRTLMInstall.variant(forPhysicalMemory: 64 * 1024 * 1024 * 1024) == .e4b)
+    }
+
+    @Test("Lo que se le promete a la persona es el tamaño que de verdad va a bajar")
+    func pitchQuotesTheSizeThisMacDownloads() {
+        #expect(LiteRTLMInstall.pitch.contains(LiteRTLMInstall.variant.readableSize))
+        #expect(LiteRTLMInstall.requiredDiskBytes > LiteRTLMInstall.variant.bytes)
+    }
+
+    @Test("Cada variante apunta a su propio archivo en Hugging Face")
+    func eachVariantResolvesToItsOwnFile() {
+        for variant in LiteRTLMInstall.Variant.allCases {
+            #expect(variant.url.absoluteString.hasSuffix(variant.fileName))
+            #expect(variant.url.host == "huggingface.co")
+        }
+    }
+}

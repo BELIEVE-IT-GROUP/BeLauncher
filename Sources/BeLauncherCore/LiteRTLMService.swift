@@ -125,9 +125,16 @@ public enum LiteRTLMLocalCore {
             ?? (root as NSString).appendingPathComponent("litert_lm_server_bridge")
     }
 
+    /// Prefers the variant this Mac would download, but runs whichever one is actually on disk: a
+    /// machine that downloaded the larger model before (or had its memory changed under it) should
+    /// keep using what it already paid gigabytes for rather than sit idle next to a usable model.
     public static func modelPath() -> String {
-        ProcessInfo.processInfo.environment["LITERT_LM_MODEL_PATH"]
-            ?? (root as NSString).appendingPathComponent("gemma-4-E4B-it.litertlm")
+        if let override = ProcessInfo.processInfo.environment["LITERT_LM_MODEL_PATH"] {
+            return override
+        }
+        let candidates = [LiteRTLMInstall.variant] + LiteRTLMInstall.Variant.allCases
+        let paths = candidates.map { (root as NSString).appendingPathComponent($0.fileName) }
+        return paths.first { FileManager.default.fileExists(atPath: $0) } ?? paths[0]
     }
 
     public static var isAvailable: Bool {

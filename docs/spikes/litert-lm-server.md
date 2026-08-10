@@ -113,6 +113,15 @@ asks for them — from the onboarding step (`WelcomeView`) or from Settings → 
 cancel that keeps what already came down. Everything else in BeLauncher works whether or not they
 ever download it.
 
+Which model a Mac downloads depends on its physical memory, not on a fixed choice: 8 GB or less
+gets **E2B** (2.6 GB), more than 8 GB gets **E4B** (3.7 GB). E4B was verified to run on an M1/8 GB
+at ~1.4 GB resident, but with nothing to spare next to everything else a person has open; E2B
+leaves that room and answers faster. The 12B (6.5 GB) and 31B variants exist upstream and are
+deliberately not offered — the bridge is CPU-only through XNNPACK here, and nobody has measured
+those sizes on Apple silicon, so offering one would trade a slow answer for a bigger download.
+A Mac that already downloaded a different variant keeps using it (`LiteRTLMLocalCore.modelPath()`
+prefers what is on disk) instead of paying for the download twice.
+
 What gets published, by `Scripts/release-litert-lm-server.sh` on the same self-hosted runner as the
 DMG (`.github/workflows/release-litert-lm-server.yml`), signed with the Believe Developer ID and
 notarized by Apple:
