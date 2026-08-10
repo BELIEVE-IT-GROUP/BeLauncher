@@ -46,9 +46,13 @@ struct BELLanguageModelProviderTests {
     func localCoreFacade() throws {
         let locals = BELLanguageModelProviderFactory.localCoreProviders()
         #expect(Set(locals.map(\.providerID)) == Set([BELLocalCore.id]))
-        #expect(Set(locals.map(\.backend.descriptor.id)) == Set(["ollama", "lmstudio"]))
+        #expect(Set(locals.map(\.backend.descriptor.id)) == Set(["ollama", "lmstudio", "litertlm"]))
         #expect(locals.allSatisfy { $0.capabilities.contains(.chat) })
-        #expect(locals.allSatisfy { $0.capabilities.contains(.embeddings) })
+        // Only Ollama and LM Studio also embed; the LiteRT-LM bridge is chat-only, so this can no
+        // longer be an allSatisfy across every local runtime.
+        let embedders = locals.filter { $0.backend.descriptor.id != "litertlm" }
+        #expect(!embedders.isEmpty)
+        #expect(embedders.allSatisfy { $0.capabilities.contains(.embeddings) })
     }
 
     @Test("factory collapses local providers and keeps cloud identities")

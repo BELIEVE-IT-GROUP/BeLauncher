@@ -108,3 +108,34 @@ public actor LiteRTLMService {
         process = nil
     }
 }
+
+/// Where the bridge binary and model are expected to live, and whether they are actually there.
+///
+/// Nothing bundles them yet — see docs/spikes/litert-lm-server.md, "bundling the binary with a
+/// signed build" is still an open product decision (a 3.6 GB model cannot ship the same way
+/// `brain.html` does). Until that decision is made and shipped, `isAvailable` is false on every
+/// real user's machine and the app starts up exactly as it did before this type existed. The env
+/// var override exists so a Bazel-built binary and a manually-placed model file (the only way
+/// this has been verified so far, per the spike doc) can be exercised without copying gigabytes
+/// into Application Support first.
+public enum LiteRTLMLocalCore {
+    public static func binaryPath() -> String {
+        ProcessInfo.processInfo.environment["LITERT_LM_BINARY_PATH"]
+            ?? (root as NSString).appendingPathComponent("litert_lm_server_bridge")
+    }
+
+    public static func modelPath() -> String {
+        ProcessInfo.processInfo.environment["LITERT_LM_MODEL_PATH"]
+            ?? (root as NSString).appendingPathComponent("gemma-4-E4B-it.litertlm")
+    }
+
+    public static var isAvailable: Bool {
+        FileManager.default.isExecutableFile(atPath: binaryPath())
+            && FileManager.default.fileExists(atPath: modelPath())
+    }
+
+    private static var root: String {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("BeLauncher/LocalCore", isDirectory: true).path
+    }
+}
