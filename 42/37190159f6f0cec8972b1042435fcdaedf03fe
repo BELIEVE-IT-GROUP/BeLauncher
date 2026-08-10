@@ -1,0 +1,41 @@
+Sources/BeLauncherCore/SpanishStrings+Tables.swift
+  s_6d5bf66b8b4b65::t_b45a6aa4d5d621 287-290
+  s_6d5bf66b8b4b65::t_c6627f36a0d12d 259-280
+  s_6d5bf66b8b4b65::t_f828cb25dfa778 281-286
+Sources/BeLauncher/WelcomeView.swift
+  s_6d5bf66b8b4b65::t_f2925bd45c16ee 17,26,35-36,44,52,57-104
+  s_6d5bf66b8b4b65::t_044bf47e751d4a 105-107
+Sources/BeLauncherCore/LiteRTLMInstall.swift
+  s_6d5bf66b8b4b65::t_60472fa96e0e6d 1-130
+Sources/BeLauncher/LiteRTLMInstaller.swift
+  s_6d5bf66b8b4b65::t_2605722cf1cc3a 61-64,73-76
+  s_6d5bf66b8b4b65::t_aa5e384ab547a8 139
+  s_6d5bf66b8b4b65::t_66c3b0d4478d25 209-210
+  s_6d5bf66b8b4b65::t_5482e18f0b4d38 144
+  s_6d5bf66b8b4b65::t_9e9fd00438b4ef 170-172,174
+  s_6d5bf66b8b4b65::t_2680a2efe89614 1-60,65-72,77-108,113,127,133,157,169,198,208,212,220-231
+  s_6d5bf66b8b4b65::t_98748f82575cbe 109-112,115-126,128-132,134-138,140-143,145-156,158-168,173,175-197,199-207,211,213-219
+  s_6d5bf66b8b4b65::t_2cb25483461284 114
+Sources/BeLauncher/SettingsView.swift
+  s_6d5bf66b8b4b65::t_c5d5fbd9624371 284
+  s_6d5bf66b8b4b65::t_5cc3261a58d948 414-443
+  s_6d5bf66b8b4b65::t_000fde9218fe2a 463
+Sources/BeLauncherCore/LiteRTLMService.swift
+  s_6d5bf66b8b4b65::t_b69e538ef33843 13-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "4237190159f6f0cec8972b1042435fcdaedf03fe",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
