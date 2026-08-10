@@ -1,0 +1,22 @@
+Scripts/build-litert-lm-server.sh
+  s_6d5bf66b8b4b65::t_747f8f4250ba57 30-31,37-39,44
+docs/spikes/litert-lm-server.md
+  s_6d5bf66b8b4b65::t_d8d39c1f6d135b 3-5
+  s_6d5bf66b8b4b65::t_da7865bc31fdb0 39,41-69,73-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "33b4e56ba0121123e0ec95cf273574d18393ad4a",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
