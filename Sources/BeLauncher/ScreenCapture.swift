@@ -1,4 +1,5 @@
 import AppKit
+@preconcurrency import ScreenCaptureKit
 import Vision
 import ApplicationServices
 import BeLauncherCore
@@ -135,11 +136,24 @@ enum ScreenCapture {
         CGPreflightScreenCaptureAccess()
     }
 
+    /// Asks through ScreenCaptureKit, then falls back to the Core Graphics call.
+    ///
+    /// `CGRequestScreenCaptureAccess()` alone left this app **absent from the System Settings
+    /// list entirely** on macOS 26 — verified against the TCC database, which held Microphone and
+    /// AudioCapture rows for us but no ScreenCapture row at all. An app that never registers
+    /// cannot be approved: the person opens Settings, finds nothing to switch on, and is stuck.
+    /// Touching `SCShareableContent` is what registers it, which is also the API the call
+    /// recording actually captures with (see SystemAudioCapture).
     static func requestScreenRecording() {
         if screenRecordingGranted { return }
         Permissions.prepareForPermissionPrompt()
-        if !CGRequestScreenCaptureAccess() {
-            Permissions.openScreenRecordingSettings()
+        Task {
+            _ = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            await MainActor.run {
+                if !screenRecordingGranted, !CGRequestScreenCaptureAccess() {
+                    Permissions.openScreenRecordingSettings()
+                }
+            }
         }
     }
 }
