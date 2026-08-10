@@ -10,9 +10,10 @@ import Foundation
 /// kept out of the app layer because starting our own bundled binary has no install decision to
 /// present to a person.
 ///
-/// Deliberately not yet wired into `ModelProviderRegistry`: that step makes the provider
-/// selectable from Settings, and it should not appear there until the binary is bundled with a
-/// signed build and a real benchmark has run on the target hardware, not merely compiled here.
+/// Wired into `ModelProviderRegistry` (id `litertlm`) and into `AppDelegate` startup/shutdown.
+/// It stays a no-op on every real user's machine until `LiteRTLMLocalCore.isAvailable` is true,
+/// which today means someone downloaded the binary and model through `LiteRTLMInstaller` — see
+/// docs/spikes/litert-lm-server.md for what is and is not bundled.
 public actor LiteRTLMService {
     public static let defaultPort = 8998
 

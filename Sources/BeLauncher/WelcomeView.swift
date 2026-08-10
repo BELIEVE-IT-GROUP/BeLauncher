@@ -14,6 +14,7 @@ struct WelcomeView: View {
 
     @State private var step = 0
     @State private var health = CapabilityHealth()
+    @State private var liteRTLM = LiteRTLMInstaller.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,7 +23,7 @@ struct WelcomeView: View {
 
             Divider()
             HStack {
-                ForEach(0..<3) { index in
+                ForEach(0..<4) { index in
                     Circle()
                         .fill(index == step ? Theme.accent : Color.secondary.opacity(0.3))
                         .frame(width: 6, height: 6)
@@ -31,8 +32,8 @@ struct WelcomeView: View {
                 if step > 0 {
                     Button(L("Back")) { step -= 1 }
                 }
-                Button(step == 2 ? L("Get started") : L("Next")) {
-                    if step == 2 { onFinish() } else { step += 1 }
+                Button(step == 3 ? L("Get started") : L("Next")) {
+                    if step == 3 { onFinish() } else { step += 1 }
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -40,6 +41,7 @@ struct WelcomeView: View {
             .padding(14)
         }
         .frame(width: 620, height: 620)
+        .task { liteRTLM.refresh() }
     }
 
     @ViewBuilder
@@ -47,7 +49,59 @@ struct WelcomeView: View {
         switch step {
         case 0: intro
         case 1: permissions
+        case 2: gemmaDownload
         default: firstSteps
+        }
+    }
+
+    // MARK: - Gemma, entirely optional, fully explained
+
+    private var gemmaDownload: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Label(L("A model that never leaves your Mac"), systemImage: "cpu")
+                    .font(.system(size: 18, weight: .semibold))
+
+                Text(LiteRTLMInstall.pitch)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(L("Optional. Everything else in BeLauncher works whether or not you download it, and you can always start or cancel this from Settings → Intelligence."))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if liteRTLM.isBusy {
+                            HStack {
+                                ProgressView().controlSize(.small)
+                                Text(LiteRTLMInstall.message(for: liteRTLM.phase))
+                                    .font(.caption).foregroundStyle(.secondary)
+                                Spacer()
+                                if liteRTLM.canCancel {
+                                    Button(L("Cancel")) { liteRTLM.cancel() }
+                                        .controlSize(.small)
+                                }
+                            }
+                        } else {
+                            HStack {
+                                Button(liteRTLM.isReady ? L("Downloaded") : L("Download")) {
+                                    liteRTLM.install()
+                                }
+                                .controlSize(.small)
+                                .disabled(liteRTLM.isReady)
+                                Text(LiteRTLMInstall.message(for: liteRTLM.phase))
+                                    .font(.caption)
+                                    .foregroundStyle(liteRTLM.isReady ? Color.green : Color.secondary)
+                            }
+                        }
+                    }
+                    .padding(6)
+                }
+            }
+            .padding(24)
         }
     }
 

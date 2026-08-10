@@ -281,6 +281,7 @@ private struct UpdateRow: View {
 private struct IntelligenceTab: View {
     @Bindable var model: SettingsModel
     @State private var draftKeys: [String: String] = [:]
+    @State private var liteRTLM = LiteRTLMInstaller.shared
 
     var body: some View {
         Form {
@@ -410,6 +411,36 @@ private struct IntelligenceTab: View {
                     .controlSize(.small)
             }
 
+            Section(L("Gemma on your Mac")) {
+                Text(LiteRTLMInstall.pitch)
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if liteRTLM.isBusy {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text(LiteRTLMInstall.message(for: liteRTLM.phase))
+                            .font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        if liteRTLM.canCancel {
+                            Button(L("Cancel")) { liteRTLM.cancel() }
+                                .controlSize(.small)
+                        }
+                    }
+                } else {
+                    HStack {
+                        Button(liteRTLM.isReady ? L("Downloaded") : L("Download")) {
+                            liteRTLM.install()
+                        }
+                        .controlSize(.small)
+                        .disabled(liteRTLM.isReady)
+                        Text(LiteRTLMInstall.message(for: liteRTLM.phase))
+                            .font(.caption)
+                            .foregroundStyle(liteRTLM.isReady ? Color.green : Color.secondary)
+                    }
+                }
+            }
+
             Section(L("What you can ask it for")) {
                 ForEach(AIVerb.all) { verb in
                     HStack {
@@ -429,6 +460,7 @@ private struct IntelligenceTab: View {
         .task {
             model.scanLocalModels()
             await model.refreshProviderHealth()
+            liteRTLM.refresh()
         }
     }
 }
