@@ -81,7 +81,15 @@ public enum LiteRTLMInstall {
 
     public static var modelBytes: Int64 { variant.bytes }
     public static let binaryBytes: Int64 = 31_200_000
-    public static var requiredDiskBytes: Int64 { modelBytes + binaryBytes + 300_000_000 }
+
+    /// The model file is not the whole cost. On first run XNNPACK builds a weight cache next to
+    /// the model (`<model>_<mtime>_<size>.xnnpack_cache`) and **aborts the process** if it cannot
+    /// finish writing it — which is exactly how this failed on a Mac mini M4 with 825 MB free: the
+    /// cache had reached 664 MB and the server died with SIGABRT, after the download had already
+    /// succeeded. Measured once there was room: 2.1 GB of cache for E4B's 3.7 GB of weights.
+    /// Reserving the model's size again covers that with margin, since the cache holds repacked
+    /// weights and cannot meaningfully exceed them.
+    public static var requiredDiskBytes: Int64 { modelBytes * 2 + binaryBytes + 300_000_000 }
 
     /// One line justifying a multi-gigabyte download. Said once, said honestly: what it is, what
     /// it costs, why it stays private. The size is the one this Mac will actually download.

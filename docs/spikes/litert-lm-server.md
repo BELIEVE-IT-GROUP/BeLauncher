@@ -105,6 +105,29 @@ X2/X4 spikes).
    from this server, not before — wiring it without that telemetry would be an unproven "adaptive"
    claim, per X4's own acceptance gates.
 
+## Verified on real hardware (2026-08-10, Mac mini M4 / 24 GB)
+
+Second machine, downloaded through the shipped path (E4B, the variant a 24 GB Mac gets):
+
+| | M1 / 8 GB | Mac mini M4 / 24 GB |
+|---|---|---|
+| Startup to first response | ~30 s | 19 s |
+| One-sentence answer | ~9 s | 6.8 s |
+| ~100-word answer | — | 11 s |
+| Throughput | ~8-9 tok/s | ~13-16 tok/s |
+
+Still CPU-only: the NPU registry fails with `kLiteRtStatusErrorInvalidArgument` and every GPU
+accelerator (including `libLiteRtMetalAccelerator.dylib`) fails to load, exactly as on the M1. The
+M4 is faster because its CPU is faster, not because anything is being accelerated — which is the
+argument for measuring the 12B variant before offering it, rather than assuming a bigger Mac can
+carry a bigger model.
+
+**Disk, not memory, is what actually broke it.** On first run XNNPACK builds a weight cache next to
+the model (`<model>_<mtime>_<size>.xnnpack_cache`, **2.1 GB** for E4B) and calls `abort()` if it
+cannot finish writing — the server died with SIGABRT at 664 MB of cache on a Mac with 825 MB free,
+*after* a fully successful 3.7 GB download. `requiredDiskBytes` reserved 300 MB of slack, which was
+never going to be enough; it now reserves the model's size a second time.
+
 ## Distribution: downloaded on request, never bundled (2026-08-10)
 
 Nothing ships inside the signed `.app`. The engine and the model are fetched only when a person
