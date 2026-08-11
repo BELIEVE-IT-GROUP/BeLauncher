@@ -1,0 +1,22 @@
+Sources/BeLauncherCore/LiteRTLMInstall.swift
+  s_6d5bf66b8b4b65::t_68370cf102b108 124-134
+Sources/BeLauncherCore/LiteRTLMService.swift
+  s_6d5bf66b8b4b65::t_dd19e71093738b 46,52-63
+  s_6d5bf66b8b4b65::t_ba205fb240c2a2 64-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "976119366d7598ad6deb3c677a33ecd6654921bd",
+  "prompts": {},
+  "sessions": {
+    "s_6d5bf66b8b4b65": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839bcf83-0931-4d5f-a330-4495ecfded74",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Jbelieve <jorge@believe-global.com>"
+    }
+  }
+}
