@@ -121,13 +121,17 @@ public enum LiteRTLMInstall {
     public static var modelBytes: Int64 { variant.bytes }
     public static let binaryBytes: Int64 = 56_000_000
 
-    /// The model file is not the whole cost. On first run XNNPACK builds a weight cache next to
-    /// the model (`<model>_<mtime>_<size>.xnnpack_cache`) and **aborts the process** if it cannot
-    /// finish writing it — which is exactly how this failed on a Mac mini M4 with 825 MB free: the
-    /// cache had reached 664 MB and the server died with SIGABRT, after the download had already
-    /// succeeded. Measured once there was room: 2.1 GB of cache for E4B's 3.7 GB of weights.
-    /// Reserving the model's size again covers that with margin, since the cache holds repacked
-    /// weights and cannot meaningfully exceed them.
+    /// The model file is not the whole cost, on every Mac. Running on the GPU, it is: measured on
+    /// an M4, the GPU path never builds a weight cache, so the steady cost is the model plus the
+    /// engine and nothing else. But a Mac where the GPU accelerator does not register falls back
+    /// to CPU, and there XNNPACK builds a cache next to the model (2.1 GB for E4B's 3.7 GB) and
+    /// **aborts the process** if it cannot finish writing it — which is how this failed on an M4
+    /// with 825 MB free: SIGABRT at 664 MB of cache, after a fully successful download.
+    ///
+    /// So the check reserves for the machine that falls back, even though most will not: being
+    /// asked for headroom that goes unused is a bad afternoon, and downloading gigabytes to reach
+    /// a crash is a lost one. Whatever the CPU path did build is deleted the moment the GPU takes
+    /// over, in `LiteRTLMService.discardCPUWeightCache`.
     public static var requiredDiskBytes: Int64 { modelBytes * 2 + binaryBytes + 300_000_000 }
 
     /// One line justifying a multi-gigabyte download. Said once, said honestly: what it is, what

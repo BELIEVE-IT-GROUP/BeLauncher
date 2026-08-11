@@ -43,8 +43,24 @@ public actor LiteRTLMService {
                                    port: Int = LiteRTLMService.defaultPort) async throws {
         do {
             try await start(binaryPath: binaryPath, modelPath: modelPath, port: port, backend: .gpu)
+            LiteRTLMService.discardCPUWeightCache(besideModelAt: modelPath)
         } catch {
             try await start(binaryPath: binaryPath, modelPath: modelPath, port: port, backend: .cpu)
+        }
+    }
+
+    /// Deletes the XNNPACK weight cache once the GPU is carrying the model.
+    ///
+    /// That cache belongs to the CPU path: measured on an M4, running on the GPU never creates it
+    /// and answers just as fast. On a Mac that ran on CPU before, it is 2.1 GB of dead weight next
+    /// to a 3.7 GB model — more than half the download again, for nothing. It costs nothing to
+    /// lose: the CPU path rebuilds it on first use if the GPU ever stops registering.
+    static func discardCPUWeightCache(besideModelAt modelPath: String) {
+        let directory = (modelPath as NSString).deletingLastPathComponent
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: directory)) ?? []
+        for file in files where file.hasSuffix(".xnnpack_cache") {
+            try? FileManager.default.removeItem(
+                atPath: (directory as NSString).appendingPathComponent(file))
         }
     }
 
