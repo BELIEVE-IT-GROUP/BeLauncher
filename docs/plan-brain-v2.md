@@ -18,6 +18,36 @@ hay hoy entre una persona y "su cerebro".
 lo ha estado desde que la app salió; medido en `docs/PRD-olas-cerebro.md`: **0 nodos, 0 aristas**.
 Todo el pipeline de captura, episodios y grafo existe y está apagado.
 
+### Y donde sí está encendido, produce basura (medido 2026-08-11)
+
+En la máquina de Jorge, con la captura activa desde hace tiempo, el corpus real tiene 195 nodos,
+4.981 aristas y 836 pasajes. Inspeccionados uno por uno, esto es lo que hay:
+
+- **Los "proyectos" son pestañas del navegador.** 51 de los 195 nodos son dominios:
+  `github.com`, `fly.io`, `dash.cloudflare.com`, `portal.azure.com`. Una entidad completa del vault
+  dice, entera: *"bechat.believe-global.com — Proyecto · visto 40 vez(es)"*. Ese es el archivo.
+- **Los episodios son vertederos.** Uno real de 110 minutos acumula 37 links y ~100 "subjects"
+  entre los que hay `/System/Applications/Preview.app`, `CoreServices` y `com.corel.CUH`. Su
+  título es un fragmento de portapapeles mal tecleado pegado a tres títulos de pestañas y un
+  *"y 77 más"*.
+- **El grafo está saturado**: 25 aristas por nodo, porque cada episodio enlaza entre sí los ~40
+  dominios que tocó. Un grafo donde todo conecta con todo no dice nada.
+- **Lo que importaría está vacío**: 1 nodo de decisión, 1 reunión, 0 commits.
+- **El pipeline gira sin producir**: 14 de las últimas 20 corridas escribieron 0 pasajes.
+- **🔴 Hay secretos indexados.** 48 pasajes contienen `license_key`, `api_key`, `password` o `sk-`.
+  Uno es un clip del portapapeles con claves de licencia de BeLauncher y correos de clientes, en
+  texto plano y buscable. El portapapeles entra sin filtro.
+
+Lo que **sí** sirve: **663 de los 836 pasajes tienen contenido real** (>400 caracteres), casi todos
+de conversaciones. El texto capturado tiene sustancia; lo podrido es la capa que pretende
+estructurarlo.
+
+**El diagnóstico de fondo: el pipeline confunde actividad con conocimiento.** Captura lo que es
+fácil de capturar —qué app tocaste, qué dominio abriste— y lo etiqueta con nombres que prometen
+significado ("Proyecto", "Episodio", "Decisión"). Por eso el grafo se ve lleno y no sirve para
+nada. Un dominio visitado 40 veces no es un proyecto, y 110 minutos de ventanas en foco no son un
+episodio de trabajo.
+
 **Puede actuar, pero no actúa.** `BELActionCatalog.swift` tiene 288 acciones, **170 nativas** de
 verdad (archivos, notas, calendario, sistema, recordatorios). Desde el Brain, `runIntent(text)`
 solo *escribe el texto en el launcher* para que la persona apriete enter. La única ejecución real
@@ -56,8 +86,10 @@ cuando tiene algo que decir, y que lo que dice lo puede *hacer*.
 
 Tres decisiones que ordenan todo el plan:
 
-1. **Encender antes que construir.** El pipeline de captura ya existe y está apagado. Ninguna
-   fase posterior significa nada sobre un corpus vacío.
+1. **Arreglar qué se destila, antes que construir.** Encenderlo no era el problema: donde está
+   encendido produce dominios disfrazados de proyectos. Ninguna fase posterior significa nada
+   sobre un corpus que confunde actividad con conocimiento — y un chat excelente sobre esa base
+   solo responde con más convicción cosas que no sabe.
 2. **El motor es la suscripción que la persona ya paga, no una API por token.** Verificado en la
    máquina de Jorge: `claude -p --output-format stream-json` responde con su sesión de Claude Code
    y emite streaming línea a línea. También hay `codex` con sesión propia, Ollama en 11434 y Gemma
@@ -73,20 +105,31 @@ Tres decisiones que ordenan todo el plan:
 Cada fase entrega algo usable y verificable por su cuenta. El orden importa: cada una depende de la
 anterior.
 
-### Fase 0 — Encender la captura (sin esto nada más importa)
+### Fase 0 — Que lo capturado valga algo (sin esto nada más importa)
 
-Hoy el Brain arranca vacío en toda máquina. Hay que decidir y ejecutar el encendido con
-consentimiento explícito en el onboarding, no con un default silencioso: la persona elige qué
-fuentes entran (correo, notas, calendario, navegador, mensajes) y lo ve.
+Lo primero es **dejar de llamar conocimiento a la actividad**. Un dominio visitado no es un
+proyecto; una ventana en foco no es un episodio.
 
-- Poner el encendido en el onboarding, fuente por fuente, con lo que cada una aporta dicho en una
-  línea. Reusar el patrón del paso de Gemma, que ya funciona.
+- **Sacar los dominios del grafo como entidades.** Que un sitio visitado sea contexto de un
+  episodio, no un nodo de primera clase con nombre de proyecto. Eso solo ya borra 51 de 195 nodos
+  y la mayor parte de las 4.981 aristas.
+- **Un episodio necesita un asunto, no un rango de tiempo.** Hoy son 110 minutos de todo lo que
+  pasó. Si no se puede nombrar de qué trata en una frase legible, no es un episodio: es un tramo
+  de reloj, y no debería escribirse.
+- **🔴 Filtro de secretos antes de indexar.** 48 pasajes con claves y contraseñas ya están dentro,
+  incluidas licencias de BeLauncher con correos de clientes. Hace falta detección al capturar
+  (patrones de clave, tarjetas, tokens) **y** una purga de lo ya indexado. Esto va primero que
+  todo lo demás: es lo único de esta lista que además es un problema de seguridad.
+- **Que el pipeline diga cuándo no produjo nada.** 14 de 20 corridas escribieron 0 pasajes y la
+  interfaz decía "completado" igual.
 - Arreglar el detector de motor de embeddings que se resuelve **una sola vez por proceso**
   (`BrainSearch.swift:113`): si Ollama arranca después, esa sesión entera se queda sin semántica.
 - Unir las tres búsquedas: una sola entrada con la semántica pesando de verdad, no como desempate.
+- Y recién entonces, el encendido en el onboarding fuente por fuente, con consentimiento explícito
+  en vez de un default silencioso.
 
-**Verificable**: en una máquina nueva, tras el onboarding, el grafo tiene nodos y la búsqueda
-semántica devuelve resultados que el fuzzy no encuentra. Hoy son 0 y 0.
+**Verificable**: los nodos del grafo se pueden leer en voz alta y significan algo. Ningún pasaje
+contiene una clave. Una corrida que no produce nada lo dice.
 
 ### Fase 1 — El chat de verdad
 
@@ -193,7 +236,8 @@ reescribe entera igual.
 
 | Riesgo | Por qué es real | Qué lo contiene |
 |---|---|---|
-| El corpus se enciende y nadie mira lo que capturó | Ya pasó: `graph_enabled=false` desde el día uno, y nadie lo notó hasta auditarlo | Onboarding fuente por fuente, con lo capturado visible desde el primer día |
+| El corpus se llena de ruido con aspecto de conocimiento | Ya pasó: 51 dominios etiquetados como "Proyecto", episodios de 110 minutos sin asunto, 25 aristas por nodo | Fase 0 completa antes de tocar el chat; un nodo que no se puede leer en voz alta no se escribe |
+| Vuelve a entrar un secreto al índice | Ya pasó: 48 pasajes con claves, incluidas licencias con correos de clientes | Filtro al capturar, purga de lo indexado, y el portapapeles deja de entrar crudo |
 | El CLI de suscripción cambia su formato de salida | Es una herramienta ajena, no una API estable | Aislar el parseo tras el transporte; caída a `directKey` y a local |
 | Ejecutar acciones borra algo | 170 acciones incluyen mover y borrar archivos | Confirmación por riesgo + recibo con cómo deshacer, patrón que ya existe |
 | El local no alcanza para conversar bien | Gemma E4B da ~22-25 tok/s en un M4, menos en Macs chicos | El usuario elige; lo proactivo va en local, la conversación puede ir a la suscripción |
@@ -203,6 +247,13 @@ reescribe entera igual.
 
 ## 6. Por dónde empezar
 
-Fase 0 y Fase 1 en paralelo son la mitad del valor: un Brain que tiene qué recordar y una
-conversación que se siente como una conversación. La Fase 2 es corta y desbloquea la calidad de
-respuesta sin costo por token. Las fases 3 a 5 son las que lo convierten en otra cosa.
+**El filtro y la purga de secretos van primero, esta semana.** Son 48 pasajes con claves y correos
+de clientes indexados y buscables; es lo único de este documento que no puede esperar a una fase.
+
+Después, Fase 0 y Fase 1 son la mitad del valor: un Brain que tiene algo que valga la pena
+recordar y una conversación que se siente como una conversación. En ese orden y no al revés — un
+chat excelente sobre un corpus de dominios visitados responde con más convicción cosas que no
+sabe, que es peor que no responder.
+
+La Fase 2 es corta y desbloquea la calidad de respuesta sin costo por token. Las fases 3 a 5 son
+las que lo convierten en otra cosa.
