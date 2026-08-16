@@ -62,7 +62,11 @@ enum Permissions {
         var granted = AVAudioApplication.shared.recordPermission == .granted
         if AVAudioApplication.shared.recordPermission == .undetermined {
             granted = await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { granted in
+                // Same reason as ReminderAccess.refresh(): AVFoundation calls back off the main
+                // thread, so the closure must not inherit this enum's MainActor isolation. Only
+                // reached the first time permission is undetermined, which is exactly the run
+                // where a trap would be hardest to reproduce.
+                AVAudioApplication.requestRecordPermission { @Sendable granted in
                     continuation.resume(returning: granted)
                 }
             }
