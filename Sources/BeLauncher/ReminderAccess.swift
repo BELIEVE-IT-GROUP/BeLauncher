@@ -31,7 +31,11 @@ final class ReminderAccess {
         guard isAuthorised else { return }
         let predicate = store.predicateForReminders(in: nil)
         let result: ([ReminderItem], [ReminderItem]) = await withCheckedContinuation { continuation in
-            store.fetchReminders(matching: predicate) { items in
+            // EventKit answers on its own queue, not ours. Without @Sendable the closure inherits
+            // this type's MainActor isolation, and the runtime executor check trips on it: a
+            // warning on macOS 26, a SIGTRAP at launch on macOS 27. Nothing here touches the
+            // actor's state, so the mapping is free to run wherever EventKit calls us.
+            store.fetchReminders(matching: predicate) { @Sendable items in
                 let map: (EKReminder) -> ReminderItem? = { item in
                         guard let title = item.title, !title.isEmpty else { return nil }
                         return ReminderItem(
